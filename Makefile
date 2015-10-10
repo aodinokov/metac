@@ -9,11 +9,11 @@ _always_:
 
 %.ffi_meta.c: %.dbg.o
 	nm $< | sed -re '/ffi_meta__/!d;s/.* ffi_meta__//;s/^([^_]*)_/\1 /' > $<.task
-	-awk -V
+	-awk --version
 	dwarfdump $< | ./ffi_meta.awk -v file=$<.task > $@
 	rm -f $<.task
 
-ffi_meta_ut_001: -lcheck -ljansson -lffi
+ffi_meta_ut_001: -lcheck
 ffi_meta_ut_001: ffi_meta_ut_001.o ffi_meta_ut_001.ffi_meta.o ffi_meta.o
 
 ffi_meta_ut_001.run_test: ffi_meta_ut_001 _always_
