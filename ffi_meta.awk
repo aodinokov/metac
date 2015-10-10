@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f
+#!/usr/bin/gawk -f
 
 function mark_obj(id) {
     if ("marked" in data[id])
