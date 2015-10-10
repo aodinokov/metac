@@ -1,5 +1,7 @@
 CFLAGS+=-g3 -o0
 
+all: ffi_meta_ut_001.ffi_meta.c ffi_meta_ut_001.run_test
+
 _always_:
 
 %.dbg.o: %.c
@@ -16,7 +18,6 @@ ffi_meta_ut_001: ffi_meta_ut_001.o ffi_meta_ut_001.ffi_meta.o ffi_meta.o
 ffi_meta_ut_001.run_test: ffi_meta_ut_001 _always_
 	./$^
 
-all: ffi_meta_ut_001.ffi_meta.c ffi_meta_ut_001.run_test
 
 clean:
 	rm -rf *.o
