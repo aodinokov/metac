@@ -4,6 +4,6 @@ compiler:
   - clang
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y dwarfdump check
+  - sudo apt-get install -y gawk dwarfdump check
 script: make all
 
