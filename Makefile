@@ -12,6 +12,9 @@ _always_:
 	-awk --version
 	dwarfdump $< | ./ffi_meta.awk -v file=$<.task > $@
 	rm -f $<.task
+	@echo "-----------------------------------------------------------------------"
+	@cat $@
+	@echo "-----------------------------------------------------------------------"
 
 ffi_meta_ut_001: -lcheck
 ffi_meta_ut_001: ffi_meta_ut_001.o ffi_meta_ut_001.ffi_meta.o ffi_meta.o
