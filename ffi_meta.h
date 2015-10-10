@@ -75,12 +75,4 @@ void 						ffi_meta_object_destroy(struct ffi_meta_object *object);
 /* object structure functions */
 struct ffi_meta_object *	ffi_meta_object_structure_member_by_name(struct ffi_meta_object *object, const char *member_name);
 
-/* (de)serialization example to be moved to ffi_meta_json lib */
-#include <jansson.h>
-struct ffi_meta_object * 	ffi_meta_object_from_json(struct ffi_meta_type *type, json_t *json);
-json_t * 					ffi_meta_object_to_json(struct ffi_meta_object *object);
-
-/*for now it's just example - this should be moved to ffi_meta_json lib */
-int ffi_meta_fn_call_args_json(void *fn, struct ffi_meta_type *fn_meta_type, char *args);
-
 #endif /* FFI_META_H_ */
