@@ -128,7 +128,9 @@ END {
 }
 /^<[^>]+><[^>]+>/{
     while (match($0, /<([^>]+)><([^>]+)>[ \t]+([^ \t]*)/, arr)) {
-	inx = arr[2]; data[inx]["type"]=arr[3];
+	inx = arr[2];
+	val = arr[3];
+	data[inx]["type"] = val;
 	#print $0 > "/dev/stderr";
 	#print length(obj_stack) > "/dev/stderr";
 	# maintain object tree
@@ -149,7 +151,7 @@ END {
 	    data[obj_stack[length(obj_stack) - 2]]["child"][length(data[obj_stack[length(obj_stack) - 2]]["child"])] = inx;
 
 	while ( getline line > 0 && 
-	    match(line, "^[ \\t]{" index($0, arr[3]) ",}([^ \t]+)[ \t]+(.*)", arr2)) {
+	    match(line, "^[ \\t]{" index($0, val) ",}([^ \t]+)[ \t]+\"{0,1}([^\"]*)\"{0,1}", arr2)) {
 	    #print "             ", arr2[1], arr2[2];
 	    data[inx][arr2[1]]=arr2[2];
 	}
