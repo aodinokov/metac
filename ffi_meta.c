@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "ffi_meta.h"
@@ -136,7 +137,7 @@ struct ffi_meta_type *ffi_meta_type_typedef_skip(struct ffi_meta_type *type) {
 	return type;
 }
 
-unsigned int ffi_meta_structure_member_count(struct ffi_meta_type *type) {
+unsigned int ffi_meta_type_structure_member_count(struct ffi_meta_type *type) {
 	unsigned int i;
 	unsigned int count = 0;
 

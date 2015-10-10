@@ -41,7 +41,7 @@ FFI_META_EXPORT_TYPE(check_all_types1_t);
 
 START_TEST(check_all_types1) {
 	struct ffi_meta_type *type = FFI_META_TYPE(check_all_types1_t);
-	fail_unless(ffi_meta_structure_member_count(type) == 19, "Incorrect member count");
+	fail_unless(ffi_meta_type_structure_member_count(type) == 19, "Incorrect member count");
 }END_TEST
 
 
