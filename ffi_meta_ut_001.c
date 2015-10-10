@@ -9,6 +9,31 @@
 #include "check_ext.h"
 #include "ffi_meta.h"
 
+/*
+ * ideas for ut:
+ * 1. objects of exported metatype
+ * 1.1. define type (many different cases:
+ *  base types (https://en.wikipedia.org/wiki/C_data_types), pointers,
+ *  typedefs, structures, unions, arrays, enums, their combinations)
+ * 1.2. export metatype based on that type
+ * 1.3. create object by using the metatype definition
+ * 1.4. check that fields offsets and lengths are the same as for initial type
+ *
+ * 2. array of objects of exported metatype
+ * 2.1. define type (see 1.1)
+ * 2.2. export metatype based on that type
+ * 2.3. create array of objeccts by using the metatype definition
+ * 2.4. check that fields offsets and lengths are the same as for array of initial type
+ *
+ * 3. check that metatype is correctly builded (optional - covered by 1 and 2)
+ * 4. check that function metatype is correctly builded (result type, params)6
+ * 5. check basic functions to navigate by metatype
+ * 6. check basic functions to navigate by object, created by metatype
+ *
+ * 7. serialization/deserialization - TBD: status from json - not in this ut
+ */
+
+
 struct char_struct_s {
 	signed char xschar;
 	signed char xaschar[10];
@@ -100,7 +125,6 @@ START_TEST(check_object_create1) {
 
 	ffi_meta_object_destroy(object);
 }END_TEST
-
 
 int main(void){
 	return run_suite(
