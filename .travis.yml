@@ -4,6 +4,6 @@ compiler:
   - clang
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y dwarfdump check-dev
+  - sudo apt-get install -y dwarfdump check-devel
 script: dwarfdump
 
