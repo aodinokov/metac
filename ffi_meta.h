@@ -69,7 +69,7 @@ struct ffi_meta_object * 	ffi_meta_object_array_create(struct ffi_meta_type *typ
 struct ffi_meta_type * 		ffi_meta_object_type(struct ffi_meta_object *object);
 unsigned int 				ffi_meta_object_count(struct ffi_meta_object *object);
 /*TODO: rename to ffi_meta_array_ptr */
-void *						ffi_meta_object_ptr(struct ffi_meta_object *object);	/*<< Returns pointer to the C data*/
+void *						ffi_meta_object_ptr(struct ffi_meta_object *object, unsigned int *p_data_length);	/*<< Returns pointer to the C data*/
 void 						ffi_meta_object_destroy(struct ffi_meta_object *object);
 
 /* object structure functions */

@@ -313,8 +313,9 @@ static struct ffi_meta_object * 	_ffi_meta_object_create(struct ffi_meta_type *_
 				global_offset += at_byte_size->byte_size;
 			}
 			assert(global_offset <= max_data_lenth);
+			object->data_length = global_offset;
 			if (p_data_lenth)
-				*p_data_lenth = global_offset;
+				*p_data_lenth = object->data_length;
 		}while(0);
 		break;
 	case DW_TAG_array_type:
@@ -370,8 +371,9 @@ static struct ffi_meta_object * 	_ffi_meta_object_create(struct ffi_meta_type *_
 					max_data_lenth -= child_data_lenth;
 				}
 			}
+			object->data_length = global_offset;
 			if (p_data_lenth)
-				*p_data_lenth = global_offset;
+				*p_data_lenth = object->data_length;
 		}while(0);
 		break;
 	case DW_TAG_member:
@@ -387,6 +389,8 @@ static struct ffi_meta_object * 	_ffi_meta_object_create(struct ffi_meta_type *_
 				ffi_meta_object_destroy(object);
 				return NULL;
 			}
+			if (p_data_lenth)
+				object->data_length = *p_data_lenth;
 		}while(0);
 		break;
 	default:
@@ -408,7 +412,9 @@ struct ffi_meta_type * 		ffi_meta_object_type(struct ffi_meta_object *object) {
 unsigned int 				ffi_meta_object_count(struct ffi_meta_object *object) {
 	return object->count;
 }
-void *						ffi_meta_object_ptr(struct ffi_meta_object *object) {
+void *						ffi_meta_object_ptr(struct ffi_meta_object *object, unsigned int *p_data_length) {
+	if (p_data_length != NULL)
+		*p_data_length = object->data_length;
 	return object->data;
 }
 
@@ -435,7 +441,6 @@ struct ffi_meta_object *	ffi_meta_object_structure_member_by_name(struct ffi_met
 		}
 	}
 
-	msg_stderr("failed to find member %s\n", member_name);
 	return NULL;
 }
 

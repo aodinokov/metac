@@ -50,6 +50,7 @@ START_TEST(check_object_create1) {
 	struct ffi_meta_type *member_type;
 	struct ffi_meta_object *member_object;
 	check_all_types1_t *s;
+	unsigned int data_len = 0;
 
 	object = ffi_meta_object_create(FFI_META_TYPE(check_all_types1_t));
 	fail_unless(object != NULL, "object wasn't created");
@@ -57,16 +58,18 @@ START_TEST(check_object_create1) {
 	fail_unless(ffi_meta_object_type(object) == FFI_META_TYPE(check_all_types1_t),
 			"ffi_meta_object_type returned incorrect pointer on type");
 
-	s = (check_all_types1_t *)ffi_meta_object_ptr(object);
+	s = (check_all_types1_t *)ffi_meta_object_ptr(object, &data_len);
 	fail_unless(s != NULL, "ffi_meta_object_ptr must return address");
+	fail_unless(data_len == sizeof(check_all_types1_t), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+			(int)data_len, (int)sizeof(check_all_types1_t));
 
 	/*check first member*/
 	member_object = ffi_meta_object_structure_member_by_name(object, "xschar");
 	fail_unless(member_object != NULL, "xschar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xschar == ffi_meta_object_ptr(member_object), "incorrect xschar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object),
+	fail_unless(&s->xschar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xschar offset detected %p instead of %p",
+			ffi_meta_object_ptr(member_object, NULL),
 			&s->xschar);
 
 	fail_unless(ffi_meta_object_structure_member_by_name(object, "xaschar1") == NULL, "xaschar1 member must NOT present");
@@ -76,18 +79,23 @@ START_TEST(check_object_create1) {
 	fail_unless(member_object != NULL, "xaschar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xaschar == ffi_meta_object_ptr(member_object), "incorrect xaschar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object),
+	fail_unless(&s->xaschar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xaschar offset detected %p instead of %p",
+			ffi_meta_object_ptr(member_object, NULL),
 			&s->xaschar);
+	fail_unless(data_len == sizeof(s->xaschar), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+			(int)data_len, (int)sizeof(s->xaschar));
+
 
 	/*check third member*/
 	member_object = ffi_meta_object_structure_member_by_name(object, "xuchar");
 	fail_unless(member_object != NULL, "xuchar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xuchar == ffi_meta_object_ptr(member_object), "incorrect xuchar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object),
+	fail_unless(&s->xuchar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xuchar offset detected %p instead of %p",
+			ffi_meta_object_ptr(member_object, NULL),
 			&s->xuchar);
+	fail_unless(data_len == sizeof(s->xuchar), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+			(int)data_len, (int)sizeof(s->xuchar));
 
 
 	ffi_meta_object_destroy(object);
