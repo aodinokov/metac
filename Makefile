@@ -3,6 +3,7 @@ CFLAGS+=-g3 -o0
 all: ffi_meta_ut_001.ffi_meta.c ffi_meta_ut_001.run_test
 
 _always_:
+	awk -V
 
 %.dbg.o: %.c
 	$(CC) -c $< -g3 $(CFLAGS) -o $@
