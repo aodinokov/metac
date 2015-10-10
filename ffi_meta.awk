@@ -17,39 +17,47 @@ function dump_at(data_id, at_id) {
     res = 0;
     switch(at_id){
     case "DW_AT_name":
-	print "\t{key: " at_id ", name: \"" data[data_id][at_id] "\"},";
+	#print "\t{key: " at_id ", name: \"" data[data_id][at_id] "\"},";
+	print "\t{.key = " at_id ", .name = \"" data[data_id][at_id] "\"},";
 	++res;
 	break;
     case "DW_AT_byte_size":
-	print "\t{key: " at_id ", byte_size: " data[data_id][at_id] "},";
+	#print "\t{key: " at_id ", byte_size: " data[data_id][at_id] "},";
+	print "\t{.key = " at_id ", .byte_size = " data[data_id][at_id] "},";
 	++res;
 	break;
     case "DW_AT_data_member_location":
 	if (match(data[data_id][at_id], "([0-9]+).*", arr))
-	print "\t{key: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
+	#print "\t{key: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
+	print "\t{.key = " at_id ", .data_member_location = " arr[1] "/*" data[data_id][at_id] "*/},";
 	++res;
 	break;
     case "DW_AT_encoding":
-	print "\t{key: " at_id ", encoding: " data[data_id][at_id] "},";
+	#print "\t{key: " at_id ", encoding: " data[data_id][at_id] "},";
+	print "\t{.key = " at_id ", .encoding = " data[data_id][at_id] "},";
 	++res;
 	break;
     case "DW_AT_type":
 	if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
-	    print "\t{key: " at_id ", type: &data_" arr[1] "},";
+	    #print "\t{key: " at_id ", type: &data_" arr[1] "},";
+	    print "\t{.key = " at_id ", .type = &data_" arr[1] "},";
 	    ++res;
 	}
 	break;
     case "DW_AT_lower_bound":
-	print "\t{key: " at_id ", lower_bound: " data[data_id][at_id] "},";
+	#print "\t{key: " at_id ", lower_bound: " data[data_id][at_id] "},";
+	print "\t{.key = " at_id ", .lower_bound = " data[data_id][at_id] "},";
 	++res;
 	break;
     case "DW_AT_upper_bound":
-	print "\t{key: " at_id ", upper_bound: " data[data_id][at_id] "},";
+	#print "\t{key: " at_id ", upper_bound: " data[data_id][at_id] "},";
+	print "\t{.key = " at_id ", .upper_bound = " data[data_id][at_id] "},";
 	++res;
 	break;
     default:
 	if (match(at_id, "DW_AT_(.*)", arr))
-	    print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "} */"
+	    #print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "} */"
+	    print "\t/* Skip {.key = " at_id ", ." arr[1] "= " data[data_id][at_id] "} */"
     }
     return res;
 }
@@ -107,18 +115,26 @@ END {
 	print "};"
 
 	print "static struct ffi_meta_type data_" i " = {";
-	if ("type" in data[i]) 
-	    print "\ttype: " data[i]["type"] ","
-
+	if ("type" in data[i]) {
+	    #print "\ttype: " data[i]["type"] ","
+	    print "\t.type = " data[i]["type"] ","
+	}
 	if ("child" in data[i]) {
-	    print "\tchild_num: " length(data[i]["child"]) ","
-	    print "\tchild: data_" i "_child,";
-	} else print "\tchild_num: 0,";
+	    #print "\tchild_num: " length(data[i]["child"]) ","
+	    #print "\tchild: data_" i "_child,";
+	    print "\t.child_num = " length(data[i]["child"]) ","
+	    print "\t.child = data_" i "_child,";
+	} else {
+	    #print "\tchild_num: 0,";
+	    #print "\t.child_num = 0,";
+	}
 
-	print "\tat_num: " at_num ",";
-	if (at_num > 0)
-	    print "\tat: data_" i "_at,";
-
+	#print "\tat_num: " at_num ",";
+	print "\t.at_num = " at_num ",";
+	if (at_num > 0) {
+	    #print "\tat: data_" i "_at,";
+	    print "\t.at = data_" i "_at,";
+	}
 	print "};"
 	if (in_task != 0) {
 	    print "struct ffi_meta_type *ffi_meta__type_" data[i]["DW_AT_name"] " = &data_" i ";";
