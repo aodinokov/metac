@@ -245,9 +245,14 @@ static struct ffi_meta_object * 	_ffi_meta_object_create(struct ffi_meta_type *_
 	switch(object->type->type) {
 	case DW_TAG_base_type:
 	case DW_TAG_pointer_type:
-		assert(at_byte_size);
-
-		object->data_length = at_byte_size->byte_size * object->count;
+		if (object->type->type == DW_TAG_base_type) {
+		    assert(at_byte_size);
+		}
+		if (at_byte_size) {
+		    object->data_length = at_byte_size->byte_size * object->count;
+		} else {
+		    object->data_length = sizeof(void*) * object->count;
+		}
 
 		if (object->data_length > max_data_lenth) {
 			msg_stderr("max_data_lenth is too small: %d > %d\n", object->data_length, max_data_lenth);
