@@ -1,5 +1,5 @@
 /*
- * ffi_meta_ut_001.c
+ * metac_ut_001.c
  *
  *  Created on: Oct 3, 2015
  *      Author: mralex
@@ -7,14 +7,15 @@
 
 
 #include "check_ext.h"
-#include "ffi_meta.h"
+#include "metac.h"
 
 /*
- * ideas for ut:
+ * ideas for UT:
  * 1. objects of exported metatype
  * 1.1. define type (many different cases:
  *  base types (https://en.wikipedia.org/wiki/C_data_types), pointers,
  *  typedefs, structures, unions, arrays, enums, their combinations)
+ *  bonus:va_list, arrays with undefined length?
  * 1.2. export metatype based on that type
  * 1.3. create object by using the metatype definition
  * 1.4. check that fields offsets and lengths are the same as for initial type
@@ -62,68 +63,68 @@ typedef struct check_all_types1_s {
 	struct check_all_types1_s *p_astruct[10];
 	struct char_struct_s astruct[10];
 }check_all_types1_t;
-FFI_META_EXPORT_TYPE(check_all_types1_t);
+METAC_EXPORT_TYPE(check_all_types1_t);
 
 START_TEST(check_all_types1) {
-	struct ffi_meta_type *type = FFI_META_TYPE(check_all_types1_t);
-	fail_unless(ffi_meta_type_structure_member_count(type) == 19, "Incorrect member count");
+	struct metac_type *type = METAC_TYPE(check_all_types1_t);
+	fail_unless(metac_type_structure_member_count(type) == 19, "Incorrect member count");
 }END_TEST
 
 
 START_TEST(check_object_create1) {
-	struct ffi_meta_object *object;
-	struct ffi_meta_type *member_type;
-	struct ffi_meta_object *member_object;
+	struct metac_object *object;
+	struct metac_type *member_type;
+	struct metac_object *member_object;
 	check_all_types1_t *s;
 	unsigned int data_len = 0;
 
-	object = ffi_meta_object_create(FFI_META_TYPE(check_all_types1_t));
+	object = metac_object_create(METAC_TYPE(check_all_types1_t));
 	fail_unless(object != NULL, "object wasn't created");
 
-	fail_unless(ffi_meta_object_type(object) == FFI_META_TYPE(check_all_types1_t),
-			"ffi_meta_object_type returned incorrect pointer on type");
+	fail_unless(metac_object_type(object) == METAC_TYPE(check_all_types1_t),
+			"metac_object_type returned incorrect pointer on type");
 
-	s = (check_all_types1_t *)ffi_meta_object_ptr(object, &data_len);
-	fail_unless(s != NULL, "ffi_meta_object_ptr must return address");
-	fail_unless(data_len == sizeof(check_all_types1_t), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+	s = (check_all_types1_t *)metac_object_ptr(object, &data_len);
+	fail_unless(s != NULL, "metac_object_ptr must return address");
+	fail_unless(data_len == sizeof(check_all_types1_t), "metac_object_ptr object has incorrect size %d instead of %d",
 			(int)data_len, (int)sizeof(check_all_types1_t));
 
 	/*check first member*/
-	member_object = ffi_meta_object_structure_member_by_name(object, "xschar");
+	member_object = metac_object_structure_member_by_name(object, "xschar");
 	fail_unless(member_object != NULL, "xschar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xschar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xschar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object, NULL),
+	fail_unless(&s->xschar == metac_object_ptr(member_object, &data_len), "incorrect xschar offset detected %p instead of %p",
+			metac_object_ptr(member_object, NULL),
 			&s->xschar);
 
-	fail_unless(ffi_meta_object_structure_member_by_name(object, "xaschar1") == NULL, "xaschar1 member must NOT present");
+	fail_unless(metac_object_structure_member_by_name(object, "xaschar1") == NULL, "xaschar1 member must NOT present");
 
 	/*check with array TODO: probably we could create macro - because it repeats the test with xschar*/
-	member_object = ffi_meta_object_structure_member_by_name(object, "xaschar");
+	member_object = metac_object_structure_member_by_name(object, "xaschar");
 	fail_unless(member_object != NULL, "xaschar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xaschar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xaschar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object, NULL),
+	fail_unless(&s->xaschar == metac_object_ptr(member_object, &data_len), "incorrect xaschar offset detected %p instead of %p",
+			metac_object_ptr(member_object, NULL),
 			&s->xaschar);
-	fail_unless(data_len == sizeof(s->xaschar), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+	fail_unless(data_len == sizeof(s->xaschar), "metac_object_ptr object has incorrect size %d instead of %d",
 			(int)data_len, (int)sizeof(s->xaschar));
 
 
 	/*check third member*/
-	member_object = ffi_meta_object_structure_member_by_name(object, "xuchar");
+	member_object = metac_object_structure_member_by_name(object, "xuchar");
 	fail_unless(member_object != NULL, "xuchar member must present");
 
 	/*check offset*/
-	fail_unless(&s->xuchar == ffi_meta_object_ptr(member_object, &data_len), "incorrect xuchar offset detected %p instead of %p",
-			ffi_meta_object_ptr(member_object, NULL),
+	fail_unless(&s->xuchar == metac_object_ptr(member_object, &data_len), "incorrect xuchar offset detected %p instead of %p",
+			metac_object_ptr(member_object, NULL),
 			&s->xuchar);
-	fail_unless(data_len == sizeof(s->xuchar), "ffi_meta_object_ptr object has incorrect size %d instead of %d",
+	fail_unless(data_len == sizeof(s->xuchar), "metac_object_ptr object has incorrect size %d instead of %d",
 			(int)data_len, (int)sizeof(s->xuchar));
 
 
-	ffi_meta_object_destroy(object);
+	metac_object_destroy(object);
 }END_TEST
 
 int main(void){

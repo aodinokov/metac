@@ -1,15 +1,15 @@
 CFLAGS+=-g3 -o0
 
-all: ffi_meta_ut_001.ffi_meta.c ffi_meta_ut_001.run_test
+all: metac_ut_001.metac.c metac_ut_001.run_test
 
 _always_:
 
 %.dbg.o: %.c
 	$(CC) -c $< -g3 $(CFLAGS) -o $@
 
-%.ffi_meta.c: %.dbg.o
+%.metac.c: %.dbg.o
 	-nm --version
-	nm $< | sed -re '/ffi_meta__/!d;s/.* ffi_meta__//;s/^([^_]*)_/\1 /' > $<.task
+	nm $< | sed -re '/metac__/!d;s/.* metac__//;s/^([^_]*)_/\1 /' > $<.task
 	#@echo "task-------------------------------------------------------------------"
 	#@cat $<.task
 	#@echo "-----------------------------------------------------------------------"
@@ -18,20 +18,20 @@ _always_:
 	#@echo "dwarf------------------------------------------------------------------"
 	#@dwarfdump $<
 	#@echo "-----------------------------------------------------------------------"
-	dwarfdump $< | ./ffi_meta.awk -v file=$<.task > $@
+	dwarfdump $< | ./metac.awk -v file=$<.task > $@
 	rm -f $<.task
 	@echo "result-----------------------------------------------------------------"
 	@cat $@
 	@echo "-----------------------------------------------------------------------"
 
-ffi_meta_ut_001: -lcheck
-ffi_meta_ut_001: ffi_meta_ut_001.o ffi_meta_ut_001.ffi_meta.o ffi_meta.o
+metac_ut_001: -lcheck
+metac_ut_001: metac_ut_001.o metac_ut_001.metac.o metac.o
 
-ffi_meta_ut_001.run_test: ffi_meta_ut_001 _always_
+metac_ut_001.run_test: metac_ut_001 _always_
 	./$^
 
 
 clean:
-	rm -rf *.o *.ffi_meta.c
+	rm -rf *.o *.metac.c
 
 .PHONY: all clean
