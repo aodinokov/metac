@@ -54,6 +54,11 @@ function dump_at(data_id, at_id) {
 	print "\t{.key = " at_id ", .upper_bound = " data[data_id][at_id] "},";
 	++res;
 	break;
+    case "DW_AT_const_value":
+	#print "\t{key: " at_id ", const_value: " data[data_id][at_id] "},";
+	print "\t{.key = " at_id ", .const_value = " data[data_id][at_id] "},";
+	++res;
+	break;
     default:
 	if (match(at_id, "DW_AT_(.*)", arr))
 	    #print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "} */"

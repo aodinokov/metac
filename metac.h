@@ -26,6 +26,7 @@ struct metac_type_at{
 	struct metac_type *type;
 	unsigned int lower_bound;
 	unsigned int upper_bound;
+	unsigned long const_value;
     };
 };
 
@@ -51,13 +52,18 @@ unsigned int 			metac_type_structure_member_count(struct metac_type *type);
 const char *			metac_type_structure_member_name(struct metac_type *type);
 struct metac_type *	metac_type_structure_member_type(struct metac_type *type);
 
-/* special function to work with typedef*/
+/* special function to work with typedef */
 struct metac_type *	metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
+
+/* special function to work with arrays */
+unsigned int metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
+unsigned int metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
 
 /* TODO: to be extended by other types */
 
 /* macroses to export C type definitions in code*/
-#define METAC_TYPE(name) metac__type_   ## name
+#define _METAC_TYPE(name) metac__type_   ## name
+#define METAC_TYPE(name) _METAC_TYPE(name)
 #define METAC_EXPORT_TYPE(name)            extern struct metac_type *METAC_TYPE(name)
 
 /* definition of instance of the specific type in memory*/

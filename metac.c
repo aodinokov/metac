@@ -157,6 +157,75 @@ unsigned int metac_type_structure_member_count(struct metac_type *type) {
 	return count;
 }
 
+unsigned int metac_type_byte_size(struct metac_type *type) {
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	switch(type->type) {
+	case DW_TAG_base_type:
+	case DW_TAG_enumeration_type:
+	case DW_TAG_structure_type:
+		{
+			struct metac_type_at * at_byte_size;
+			at_byte_size = metac_type_get_at(type, DW_AT_byte_size);
+			assert(at_byte_size);
+			return at_byte_size->byte_size;
+		}while(0);
+		break;
+	case DW_TAG_pointer_type:
+		return sizeof(void*);
+		break;
+	case DW_TAG_array_type:
+		{
+			struct metac_type_at * at_type;
+			unsigned int elements_num = metac_type_array_length(type);
+
+			at_type = metac_type_get_at(type, DW_AT_type);
+			if (at_type == NULL) {
+				msg_stderr("array has to contain type at\n");
+				return 0;
+			}
+			return elements_num * metac_type_byte_size(at_type->type);
+
+
+		}while(0);
+		break;
+	}
+	return 0;
+}
+
+unsigned int metac_type_array_length(struct metac_type *type) {
+	unsigned int i;
+	unsigned int length = 0;
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (type->type != DW_TAG_array_type) {
+		msg_stderr("expected type DW_TAG_array_type\n");
+		return 0;
+	}
+
+	for (i = 0; i < type->child_num; i++) {
+		struct metac_type_at
+			* at_lower_bound,
+			* at_upper_bound;
+		assert(type->child[i]->type == DW_TAG_subrange_type);
+
+		/* get range parameter */
+		at_lower_bound = metac_type_get_at(type->child[i], DW_AT_lower_bound); /*optional*/
+		at_upper_bound = metac_type_get_at(type->child[i], DW_AT_upper_bound); /*mandatory?*/
+		if (at_upper_bound == NULL) {
+			msg_stderr("upper_bound is mandatory\n");
+			return 0;
+		}
+		length += at_upper_bound->upper_bound + 1;
+		if (at_lower_bound)
+			length -= at_lower_bound->lower_bound;
+
+	}
+	return length;
+}
 
 struct metac_object {
 	    struct metac_type *_type;		/*< type that was used to call object_create function of this object (instance)*/
@@ -183,13 +252,14 @@ void 						metac_object_destroy(struct metac_object *object) {
 		free(object->p_agg);
 	object->p_agg = NULL;
 
-	for (i = 0; i < object->count * object->type->child_num; i++) {
-		if (object->child[i])
-			metac_object_destroy(object->child[i]);
-		object->child[i] = NULL;
-	}
-	if (object->child)
+	if (object->child) {
+		for (i = 0; i < object->count * object->type->child_num; i++) {
+			if (object->child[i])
+				metac_object_destroy(object->child[i]);
+			object->child[i] = NULL;
+		}
 		free(object->child);
+	}
 	object->child = NULL;
 
 	if (!object->parent_data_memory && object->data)
@@ -207,6 +277,10 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 	struct metac_type *type;
 	struct metac_type_at * at_byte_size;
 	struct metac_object * object;
+
+	static struct metac_type_at ptr_at_byte_size = {.key = DW_AT_byte_size, .byte_size = sizeof(void*)};
+	struct metac_type_at 		arr_at_byte_size = {.key = DW_AT_byte_size, .byte_size = 0};
+
 	assert(_type);
 	assert(count > 0);
 
@@ -214,6 +288,16 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 	assert(type);
 
 	at_byte_size = metac_type_get_at(type, DW_AT_byte_size);
+	if (at_byte_size == NULL) {
+		if (type->type == DW_TAG_pointer_type) {
+			/*workaround for clang - it doesn't provide length of ptrs */
+			at_byte_size = &ptr_at_byte_size;
+		} else if (data == NULL && type->type == DW_TAG_array_type) {
+			/*workaroung with arrays - we need to know byte_size */
+			arr_at_byte_size.byte_size = metac_type_byte_size(type);
+			at_byte_size = &arr_at_byte_size;
+		}
+	}
 	assert(data || at_byte_size);
 
 	/* create object itself */
@@ -245,15 +329,10 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 	/* work with agg and children */
 	switch(object->type->type) {
 	case DW_TAG_base_type:
+	case DW_TAG_enumeration_type:
 	case DW_TAG_pointer_type:
-		if (object->type->type == DW_TAG_base_type) {
-		    assert(at_byte_size);
-		}
-		if (at_byte_size) {
-		    object->data_length = at_byte_size->byte_size * object->count;
-		} else {
-		    object->data_length = sizeof(void*) * object->count;
-		}
+		assert(at_byte_size);
+		object->data_length = at_byte_size->byte_size * object->count;
 
 		if (object->data_length > max_data_lenth) {
 			msg_stderr("max_data_lenth is too small: %d > %d\n", object->data_length, max_data_lenth);
@@ -318,6 +397,23 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 				*p_data_lenth = object->data_length;
 		}while(0);
 		break;
+	case DW_TAG_member:
+		{
+			struct metac_type_at * at_type =
+					metac_type_get_at(object->type, DW_AT_type);
+			assert(at_type);
+			assert(count == 1);
+
+			object->p_agg = _metac_object_create(at_type->type, count, data, max_data_lenth, p_data_lenth);
+			if (object->p_agg == NULL) {
+				msg_stderr("failed to create p_agg\n");
+				metac_object_destroy(object);
+				return NULL;
+			}
+			if (p_data_lenth)
+				object->data_length = *p_data_lenth;
+		}while(0);
+		break;
 	case DW_TAG_array_type:
 		{
 			unsigned int global_offset = 0;
@@ -374,23 +470,6 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 			object->data_length = global_offset;
 			if (p_data_lenth)
 				*p_data_lenth = object->data_length;
-		}while(0);
-		break;
-	case DW_TAG_member:
-		{
-			struct metac_type_at * at_type =
-					metac_type_get_at(object->type, DW_AT_type);
-			assert(at_type);
-			assert(count == 1);
-
-			object->p_agg = _metac_object_create(at_type->type, count, data, max_data_lenth, p_data_lenth);
-			if (object->p_agg == NULL) {
-				msg_stderr("failed to create p_agg\n");
-				metac_object_destroy(object);
-				return NULL;
-			}
-			if (p_data_lenth)
-				object->data_length = *p_data_lenth;
 		}while(0);
 		break;
 	default:

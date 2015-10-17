@@ -44,9 +44,9 @@
 
 /* export base types */
 METAC_EXPORT_TYPE(char);
-METAC_EXPORT_TYPE(short);
+//METAC_EXPORT_TYPE(short); /*wont' work because we will look for short int in the metac.awk*/
 METAC_EXPORT_TYPE(int);
-METAC_EXPORT_TYPE(long);
+//METAC_EXPORT_TYPE(long);	/*wont' work because we will look for long int in the metac.awk*/
 METAC_EXPORT_TYPE(float);
 METAC_EXPORT_TYPE(double);
 
@@ -150,6 +150,7 @@ typedef enum _enum_{
 }enum_t;
 
 typedef enum{
+	aeMinus = -1,
 	aeZero = 0,
 	aeOne = 1,
 	aeTen = 10,
@@ -161,7 +162,86 @@ METAC_EXPORT_TYPE(anon_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
-METAC_EXPORT_TYPE(char_array5_t);
+METAC_EXPORT_TYPE(char_array5_t);	/*can't create array - don't know it's size */
+
+#define GENERAL_TYPE_SMOKE(_type_) \
+do{ \
+	unsigned int data_len; \
+	_type_ *ptr; \
+	struct metac_object *object; \
+	struct metac_type *type = METAC_TYPE(_type_); \
+	\
+	object = metac_object_create(METAC_TYPE(_type_)); \
+	fail_unless(object != NULL, "object wasn't created"); \
+	\
+	fail_unless(metac_object_type(object) == METAC_TYPE(_type_), \
+			"metac_object_type returned incorrect pointer on type"); \
+	\
+	ptr = (_type_ *)metac_object_ptr(object, &data_len); \
+	fail_unless(ptr != NULL, "metac_object_ptr must return address"); \
+	fail_unless(data_len == sizeof(_type_), "metac_object_ptr object has incorrect size %d instead of %d", \
+			(int)data_len, (int)sizeof(_type_)); \
+	\
+	metac_object_destroy(object); \
+	\
+	mark_point(); \
+}while(0)
+
+
+START_TEST(basic_types_smoke) {
+	GENERAL_TYPE_SMOKE(char);
+	//GENERAL_TYPE_SMOKE(short);
+	//GENERAL_TYPE_SMOKE(int);
+	//GENERAL_TYPE_SMOKE(long);
+	GENERAL_TYPE_SMOKE(float);
+	GENERAL_TYPE_SMOKE(double);
+
+	GENERAL_TYPE_SMOKE(char_t);
+	GENERAL_TYPE_SMOKE(schar_t);
+	GENERAL_TYPE_SMOKE(uchar_t);
+
+	GENERAL_TYPE_SMOKE(short_t);
+	GENERAL_TYPE_SMOKE(shortint_t);
+	GENERAL_TYPE_SMOKE(sshort_t);
+	GENERAL_TYPE_SMOKE(sshortint_t);
+	GENERAL_TYPE_SMOKE(ushort_t);
+	GENERAL_TYPE_SMOKE(ushortint_t);
+
+	GENERAL_TYPE_SMOKE(int_t);
+	GENERAL_TYPE_SMOKE(signed_t);
+	GENERAL_TYPE_SMOKE(sint_t);
+	GENERAL_TYPE_SMOKE(unsigned_t);
+	GENERAL_TYPE_SMOKE(uint_t);
+
+	GENERAL_TYPE_SMOKE(long_t);
+	GENERAL_TYPE_SMOKE(longint_t);
+	GENERAL_TYPE_SMOKE(slong_t);
+	GENERAL_TYPE_SMOKE(slongint_t);
+	GENERAL_TYPE_SMOKE(ulong_t);
+	GENERAL_TYPE_SMOKE(ulongint_t);
+
+	GENERAL_TYPE_SMOKE(llong_t);
+	GENERAL_TYPE_SMOKE(llongint_t);
+	GENERAL_TYPE_SMOKE(sllong_t);
+	GENERAL_TYPE_SMOKE(sllongint_t);
+	GENERAL_TYPE_SMOKE(ullong_t);
+	GENERAL_TYPE_SMOKE(ullongint_t);
+
+	GENERAL_TYPE_SMOKE(float_t);
+	GENERAL_TYPE_SMOKE(double_t);
+	GENERAL_TYPE_SMOKE(ldouble_t);
+
+	GENERAL_TYPE_SMOKE(voidptr_t);
+	GENERAL_TYPE_SMOKE(voidptrptr_t);
+	GENERAL_TYPE_SMOKE(charptr_t);
+
+	GENERAL_TYPE_SMOKE(enum_t);
+	GENERAL_TYPE_SMOKE(anon_enum_t);
+
+	GENERAL_TYPE_SMOKE(char_array5_t);
+
+}END_TEST
+
 
 
 struct char_struct_s {
@@ -261,6 +341,7 @@ int main(void){
 		START_SUITE(suite_1){
 			ADD_CASE(
 				START_CASE(basic_case){
+					ADD_TEST(basic_types_smoke);
 					ADD_TEST(check_all_types1);
 				}END_CASE
 			);
