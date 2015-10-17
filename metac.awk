@@ -21,20 +21,10 @@ function dump_at(data_id, at_id) {
 	print "\t{.key = " at_id ", .name = \"" data[data_id][at_id] "\"},";
 	++res;
 	break;
-    case "DW_AT_byte_size":
-	#print "\t{key: " at_id ", byte_size: " data[data_id][at_id] "},";
-	print "\t{.key = " at_id ", .byte_size = " data[data_id][at_id] "},";
-	++res;
-	break;
     case "DW_AT_data_member_location":
 	if (match(data[data_id][at_id], "([0-9]+).*", arr))
 	#print "\t{key: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
 	print "\t{.key = " at_id ", .data_member_location = " arr[1] "/*" data[data_id][at_id] "*/},";
-	++res;
-	break;
-    case "DW_AT_encoding":
-	#print "\t{key: " at_id ", encoding: " data[data_id][at_id] "},";
-	print "\t{.key = " at_id ", .encoding = " data[data_id][at_id] "},";
 	++res;
 	break;
     case "DW_AT_type":
@@ -44,25 +34,22 @@ function dump_at(data_id, at_id) {
 	    ++res;
 	}
 	break;
+    case "DW_AT_byte_size":
+    case "DW_AT_encoding":
     case "DW_AT_lower_bound":
-	#print "\t{key: " at_id ", lower_bound: " data[data_id][at_id] "},";
-	print "\t{.key = " at_id ", .lower_bound = " data[data_id][at_id] "},";
-	++res;
-	break;
     case "DW_AT_upper_bound":
-	#print "\t{key: " at_id ", upper_bound: " data[data_id][at_id] "},";
-	print "\t{.key = " at_id ", .upper_bound = " data[data_id][at_id] "},";
-	++res;
-	break;
     case "DW_AT_const_value":
-	#print "\t{key: " at_id ", const_value: " data[data_id][at_id] "},";
-	print "\t{.key = " at_id ", .const_value = " data[data_id][at_id] "},";
+	if (match(at_id, "DW_AT_(.*)", arr)) {
+	    #print "\t{key: " at_id ", " arr[1] ": " data[data_id][at_id] "},"
+	    print "\t{.key = " at_id ", ." arr[1] " = " data[data_id][at_id] "},"
+	}
 	++res;
 	break;
     default:
-	if (match(at_id, "DW_AT_(.*)", arr))
-	    #print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "} */"
-	    print "\t/* Skip {.key = " at_id ", ." arr[1] "= " data[data_id][at_id] "} */"
+	if (match(at_id, "DW_AT_(.*)", arr)) {
+	    #print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "}, */"
+	    print "\t/* Skip {.key = " at_id ", ." arr[1] " = " data[data_id][at_id] "}, */"
+	}
     }
     return res;
 }

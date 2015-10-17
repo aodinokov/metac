@@ -162,7 +162,9 @@ METAC_EXPORT_TYPE(anon_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
-METAC_EXPORT_TYPE(char_array5_t);	/*can't create array - don't know it's size */
+METAC_EXPORT_TYPE(char_array5_t);
+
+/*TODO: unions, bitmasks, structs, combinations */
 
 #define GENERAL_TYPE_SMOKE(_type_) \
 do{ \
