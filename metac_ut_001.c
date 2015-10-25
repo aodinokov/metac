@@ -45,7 +45,7 @@
 /* export base types */
 METAC_EXPORT_TYPE(char);
 //METAC_EXPORT_TYPE(short); /*wont' work because we will look for short int in the metac.awk*/
-METAC_EXPORT_TYPE(int);
+//METAC_EXPORT_TYPE(int);
 //METAC_EXPORT_TYPE(long);	/*wont' work because we will look for long int in the metac.awk*/
 METAC_EXPORT_TYPE(float);
 METAC_EXPORT_TYPE(double);
@@ -164,7 +164,30 @@ METAC_EXPORT_TYPE(anon_enum_t);
 typedef char_t char_array5_t[5];
 METAC_EXPORT_TYPE(char_array5_t);
 
-/*TODO: unions, bitmasks, structs, combinations */
+/* unions */
+typedef union _union_{
+   int d;
+   char f;
+}union_t;
+METAC_EXPORT_TYPE(union_t);
+
+/* struct */
+typedef struct _struct_
+{
+  unsigned int widthValidated;
+  unsigned int heightValidated;
+}struct_t;
+METAC_EXPORT_TYPE(struct_t);
+
+/* bit fields */
+typedef struct _bit_fields_
+{
+  unsigned int widthValidated : 1;
+  unsigned int heightValidated : 2;
+}bit_fields_t;
+METAC_EXPORT_TYPE(bit_fields_t);
+
+/*TODO: some combinations*/
 
 #define GENERAL_TYPE_SMOKE(_type_) \
 do{ \
@@ -172,6 +195,8 @@ do{ \
 	_type_ *ptr; \
 	struct metac_object *object; \
 	struct metac_type *type = METAC_TYPE(_type_); \
+	\
+	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value"); \
 	\
 	object = metac_object_create(METAC_TYPE(_type_)); \
 	fail_unless(object != NULL, "object wasn't created"); \
@@ -241,6 +266,10 @@ START_TEST(basic_types_smoke) {
 	GENERAL_TYPE_SMOKE(anon_enum_t);
 
 	GENERAL_TYPE_SMOKE(char_array5_t);
+
+	GENERAL_TYPE_SMOKE(union_t);
+	GENERAL_TYPE_SMOKE(struct_t);
+	GENERAL_TYPE_SMOKE(bit_fields_t);
 
 }END_TEST
 

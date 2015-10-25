@@ -35,6 +35,8 @@ function dump_at(data_id, at_id) {
 	}
 	break;
     case "DW_AT_byte_size":
+    case "DW_AT_bit_offset":
+    case "DW_AT_bit_size":
     case "DW_AT_encoding":
     case "DW_AT_lower_bound":
     case "DW_AT_upper_bound":
