@@ -60,6 +60,7 @@ struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *t
 struct metac_type * metac_type_member_type(struct metac_type *type);
 char * 				metac_type_member_name(struct metac_type *type);
 int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset);
+int 		metac_type_member_bit_attr(struct metac_type *type, unsigned int * p_bit_offset, unsigned int * p_bit_size);
 
 /* special functions when metac_object_type(object) == DW_TAG_structure_type */
 unsigned int 			metac_type_structure_member_count(struct metac_type *type);
@@ -68,6 +69,7 @@ struct metac_type *		metac_type_structure_member(struct metac_type *type, unsign
 struct metac_type *		metac_type_structure_member_type(struct metac_type *type, unsigned int id);
 char *					metac_type_structure_member_name(struct metac_type *type, unsigned int id);
 int						metac_type_structure_member_offset(struct metac_type *type, unsigned int id, unsigned int * p_offset);
+int 					metac_type_structure_member_bit_attr(struct metac_type *type, unsigned int id, unsigned int * p_bit_offset, unsigned int * p_bit_size);
 
 /* special function to work with typedef */
 struct metac_type *	metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/

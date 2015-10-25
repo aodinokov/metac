@@ -139,7 +139,7 @@ char * 		metac_type_member_name(struct metac_type *type)  {
 	return at_name->name;
 }
 
-int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset)  {
+int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset) {
 	struct metac_type_at * at_data_member_location;
 	assert(type);
 	if (type->type != DW_TAG_member) {
@@ -154,6 +154,27 @@ int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset)
 		*p_offset = at_data_member_location->data_member_location;
 	return 0;
 }
+
+int 		metac_type_member_bit_attr(struct metac_type *type, unsigned int * p_bit_offset, unsigned int * p_bit_size) {
+	struct metac_type_at * at_bit_offset,
+		* at_bit_size;
+	assert(type);
+	if (type->type != DW_TAG_member) {
+		msg_stderr("expected type DW_TAG_member\n");
+		return -1;
+	}
+	at_bit_offset = metac_type_at_by_key(type, DW_AT_bit_offset);
+	at_bit_size = metac_type_at_by_key(type, DW_AT_bit_size);
+	if (at_bit_offset == NULL || at_bit_size == NULL)
+		return -1;
+
+	if (p_bit_offset)
+		*p_bit_offset = at_bit_offset->bit_offset;
+	if (p_bit_size)
+		*p_bit_size = at_bit_size->bit_size;
+	return 0;
+}
+
 
 unsigned int metac_type_structure_member_count(struct metac_type *type) {
 #ifndef	NDEBUG
@@ -222,6 +243,14 @@ int						metac_type_structure_member_offset(struct metac_type *type, unsigned in
 		return -1;
 	return metac_type_member_offset(member, p_offset);
 }
+
+int						bit_attr(struct metac_type *type, unsigned int id, unsigned int * p_bit_offset, unsigned int * p_bit_size) {
+	struct metac_type * member = metac_type_structure_member(type, id);
+	if (member == NULL)
+		return -1;
+	return metac_type_member_bit_attr(member, p_bit_offset, p_bit_size);
+}
+
 
 unsigned int metac_type_array_length(struct metac_type *type) {
 	unsigned int i;
