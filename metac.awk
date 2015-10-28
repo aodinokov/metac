@@ -56,6 +56,23 @@ function dump_at(data_id, at_id) {
     return res;
 }
 
+function at_name_is_in_task(name) {
+	if (name in task)
+		return 1;
+	if (name == "long int")
+		return ("long" in task);
+	if (name == "short int")
+		return ("short" in task);
+	return 0;
+}
+
+function export_name(name) {
+	if (name == "long int")
+		return "long";
+	if (name == "short int")
+		return "short";
+	return name;
+}
 
 BEGIN {
     obj_stack[0] = ""
@@ -73,7 +90,7 @@ BEGIN {
 END {
     for (i in data) {
 	if ( length(task) == 0 ||
-	    ("DW_AT_name" in data[i] && data[i]["DW_AT_name"] in task))
+	    ("DW_AT_name" in data[i] && at_name_is_in_task(data[i]["DW_AT_name"])))
 	    mark_obj(i);
     }
     asort(obj);
@@ -103,7 +120,7 @@ END {
 	print "static struct metac_type_at data_" i "_at[] = {";
 	for (j in data[i]) {
 	    at_num += dump_at(i, j);
-	    if (j == "DW_AT_name" && data[i][j] in task)
+	    if (j == "DW_AT_name" && at_name_is_in_task(data[i][j]))
 		in_task = 1;
 	}
 	print "};"
@@ -131,7 +148,7 @@ END {
 	}
 	print "};"
 	if (in_task != 0) {
-	    print "struct metac_type *metac__type_" data[i]["DW_AT_name"] " = &data_" i ";";
+	    print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
 	}
 	print;
     }

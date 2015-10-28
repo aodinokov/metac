@@ -44,9 +44,9 @@
 
 /* export base types */
 METAC_EXPORT_TYPE(char);
-//METAC_EXPORT_TYPE(short); /*wont' work because we will look for short int in the metac.awk*/
+METAC_EXPORT_TYPE(short); /*wont' work because we will look for short int in the metac.awk*/
 //METAC_EXPORT_TYPE(int);
-//METAC_EXPORT_TYPE(long);	/*wont' work because we will look for long int in the metac.awk*/
+METAC_EXPORT_TYPE(long);	/*wont' work because we will look for long int in the metac.awk*/
 METAC_EXPORT_TYPE(float);
 METAC_EXPORT_TYPE(double);
 
@@ -217,9 +217,9 @@ do{ \
 
 START_TEST(basic_types_smoke) {
 	GENERAL_TYPE_SMOKE(char);
-	//GENERAL_TYPE_SMOKE(short);
+	GENERAL_TYPE_SMOKE(short);
 	//GENERAL_TYPE_SMOKE(int);
-	//GENERAL_TYPE_SMOKE(long);
+	GENERAL_TYPE_SMOKE(long);
 	GENERAL_TYPE_SMOKE(float);
 	GENERAL_TYPE_SMOKE(double);
 
