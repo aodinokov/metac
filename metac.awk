@@ -149,6 +149,7 @@ END {
 	print "};"
 	if (in_task != 0) {
 	    print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
+	    delete task[export_name(data[i]["DW_AT_name"])];
 	}
 	print;
     }
