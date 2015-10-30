@@ -25,7 +25,7 @@ _always_:
 	#@echo "-----------------------------------------------------------------------"
 
 metac_ut_001: -lcheck
-metac_ut_001: metac_ut_001.o metac_ut_001.metac.o metac.o
+metac_ut_001: metac_ut_001.o metac_ut_001.metac.o metac_type.o
 
 metac_ut_001.run_test: metac_ut_001 _always_
 	./$^

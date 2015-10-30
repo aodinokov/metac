@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "metac.h"
+#include "metac_type.h"
 
 /*TODO: to use some logging lib */
 #define msg_stddbg(...) fprintf(stderr, ##__VA_ARGS__)
