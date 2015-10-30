@@ -7,7 +7,7 @@
 
 
 #include "check_ext.h"
-#include "metac_type.h"
+#include "metac_object.h"
 
 /*
  * ideas for UT:
