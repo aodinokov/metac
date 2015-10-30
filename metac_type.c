@@ -96,6 +96,8 @@ unsigned int metac_type_byte_size(struct metac_type *type) {
 
 		}while(0);
 		break;
+	case DW_TAG_subprogram:
+		return 1;	/*sizeof function == 1*/
 	}
 	return 0;
 }
