@@ -1,6 +1,6 @@
 CFLAGS+=-g3 -o0
 
-all: metac_ut_001.metac.c metac_ut_001.run_test
+all: metac_type_ut_001.run_test metac_object_ut_001.run_test
 
 _always_:
 
@@ -24,10 +24,15 @@ _always_:
 	#@cat $@
 	#@echo "-----------------------------------------------------------------------"
 
-metac_ut_001: -lcheck
-metac_ut_001: metac_ut_001.o metac_ut_001.metac.o metac_type.o metac_object.o
+# tests 
+metac_type_ut_001: -lcheck
+metac_type_ut_001: metac_type_ut_001.o metac_type_ut_001.metac.o metac_type.o metac_object.o
 
-metac_ut_001.run_test: metac_ut_001 _always_
+metac_object_ut_001: -lcheck
+metac_object_ut_001: metac_object_ut_001.o metac_object_ut_001.metac.o metac_type.o metac_object.o
+
+
+%.run_test: % _always_
 	./$^
 
 

@@ -3,12 +3,6 @@
 
 #include "dwarf.h"
 
-/*todo: consider renaming of lib to cmeta, mc or metaC instead of ffi_meta*/
-/*TODO: unittests ideas:
- * 1. define type and check via this api that all fields are present and there are not extra fields.
- * 2. init object dinamically via API and check that all fields have right values
- * */
-
 /* declaration of C type in C */
 struct metac_type;
 
