@@ -222,6 +222,18 @@ do{ \
 	mark_point(); \
 } while(0)
 
+#define STRUCT_TYPE_SMOKE_START(_type_, _s_type_) \
+do{ \
+	struct metac_type *type = METAC_TYPE(_type_); \
+	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+
+#define STRUCT_TYPE_SMOKE_MEMBER(_member_)
+/*todo. check offsets*/
+
+#define STRUCT_TYPE_SMOKE_END \
+	mark_point(); \
+} while(0)
+
 
 START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(char, DW_TAG_base_type);

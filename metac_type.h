@@ -46,19 +46,19 @@ struct metac_type_at* 	metac_type_at_by_key(struct metac_type *type, int key);
 unsigned int 			metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
 
 
-/* special functions when type->type == DW_TAG_subprogram */
+/* special functions when metac_type(type) == DW_TAG_subprogram */
 struct metac_type *	metac_type_subprogram_return_type(struct metac_type *type);
 int 					metac_type_subprogram_parameter_count(struct metac_type *type);
 struct metac_type *	metac_type_subprogram_parameter(struct metac_type *type, unsigned int id);
 struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *type, const char *parameter_name);
 
-/* special functions when type->type == DW_TAG_member */
+/* special functions when metac_type(type) == DW_TAG_member */
 struct metac_type * metac_type_member_type(struct metac_type *type);
 char * 				metac_type_member_name(struct metac_type *type);
 int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset);
 int 		metac_type_member_bit_attr(struct metac_type *type, unsigned int * p_bit_offset, unsigned int * p_bit_size);
 
-/* special functions when type->type == DW_TAG_structure_type */
+/* special functions when metac_type(type) == DW_TAG_structure_type */
 unsigned int 			metac_type_structure_member_count(struct metac_type *type);
 struct metac_type *		metac_type_structure_member(struct metac_type *type, unsigned int id);
 //struct metac_type *		metac_type_structure_member_by_name(struct metac_type *type, const char *parameter_name);
