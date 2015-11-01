@@ -203,34 +203,16 @@ do{ \
 	_type_ *ptr = NULL; \
 	struct metac_type *type = METAC_TYPE(_type_); \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+	char * type_name = metac_type_name(type); \
+	char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
+		 * tmp = strchr(type_name_copy, ' '); \
+	if (tmp != NULL)*tmp = '\0'; /*workaround for long int and short int - get only first word*/ \
 	\
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value for " #_type_); \
 	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
+	fail_unless(strcmp(type_name_copy, #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
 	\
-	mark_point(); \
-} while(0)
-
-#define FUNC_TYPE_SMOKE(_type_, _s_type_) \
-do{ \
-	struct metac_type *type = METAC_TYPE(_type_); \
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-	\
-	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
-	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
-			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
-	\
-	mark_point(); \
-} while(0)
-
-#define STRUCT_TYPE_SMOKE_START(_type_, _s_type_) \
-do{ \
-	struct metac_type *type = METAC_TYPE(_type_); \
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-
-#define STRUCT_TYPE_SMOKE_MEMBER(_member_)
-/*todo. check offsets*/
-
-#define STRUCT_TYPE_SMOKE_END \
+	free(type_name_copy);\
 	mark_point(); \
 } while(0)
 
@@ -293,9 +275,41 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(bit_fields_t, DW_TAG_structure_type);
 
 	GENERAL_TYPE_SMOKE(func_ptr_t, DW_TAG_pointer_type);
+}END_TEST
 
+//#define STRUCT_TYPE_SMOKE_START(_type_) \
+//do{ \
+//	struct metac_type *type = METAC_TYPE(_type_);
+//
+//#define STRUCT_TYPE_SMOKE_MEMBER(_member_)
+///*todo. check offsets*/
+//
+//#define STRUCT_TYPE_SMOKE_END \
+//	mark_point(); \
+//} while(0)
+
+START_TEST(struct_type_smoke) {
+//	STRUCT_TYPE_SMOKE_START(struct_t)
+//			STRUCT_TYPE_SMOKE_MEMBER(widthValidated)
+//			STRUCT_TYPE_SMOKE_MEMBER(heightValidated)
+//	STRUCT_TYPE_SMOKE_END
+}END_TEST
+
+#define FUNC_TYPE_SMOKE(_type_, _s_type_) \
+do{ \
+	struct metac_type *type = METAC_TYPE(_type_); \
+	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+	\
+	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
+	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
+			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
+	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
+	\
+	mark_point(); \
+} while(0)
+
+START_TEST(func_type_smoke) {
 	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram);
-
 }END_TEST
 
 int main(void){
@@ -304,6 +318,8 @@ int main(void){
 			ADD_CASE(
 				START_CASE(type_smoke){
 					ADD_TEST(general_type_smoke);
+					ADD_TEST(struct_type_smoke);
+					ADD_TEST(func_type_smoke);
 				}END_CASE
 			);
 		}END_SUITE

@@ -57,6 +57,16 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, int key) {
 	return NULL;
 }
 
+char *					metac_type_name(struct metac_type *type) {
+	struct metac_type_at* at_name;
+	assert(type);
+
+	at_name = metac_type_at_by_key(type, DW_AT_name);
+	if (at_name)
+		return at_name->name;
+	return NULL;
+}
+
 unsigned int metac_type_byte_size(struct metac_type *type) {
 	assert(type);
 	type = metac_type_typedef_skip(type);

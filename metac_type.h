@@ -43,6 +43,8 @@ unsigned int 			metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int id);
 /* some service fuctions to navigate in metac_type */
 struct metac_type_at* 	metac_type_at_by_key(struct metac_type *type, int key);
+
+char *					metac_type_name(struct metac_type *type);
 unsigned int 			metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
 
 
