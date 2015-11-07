@@ -1,0 +1,5 @@
+1. expand struct test - for bit_fields and unions
+2. expand API for subprograms - need to get params.
+3. expand subprograms API UT
+4. expand API for arrays (to get offset of N element)
+5. make some highlevel API to get global offset/size e.g. of field in struct in union in array (with C-syntax)
