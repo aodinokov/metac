@@ -43,19 +43,52 @@ struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int id)  
 	return &type->at[id];
 }
 
-struct metac_type_at* metac_type_at_by_key(struct metac_type *type, int key) {
+int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func, void * data) {
 	int i;
 
 	if (type == NULL)
-		return NULL;
+		return -1;
 
 	for (i = 0; i < metac_type_at_num(type); i++) {
 		struct metac_type_at* at = metac_type_at(type, i);
-		if (at != NULL && at->key == key)
-			return at;
+		if (at != NULL && map_func(type,  metac_type_at(type, i), data) != 0)
+			return 0;
 	}
-	return NULL;
+	return 0;
 }
+
+struct metac_type_at_by_key_func_data {
+	int key;
+	struct metac_type_at* result;
+};
+static int metac_type_at_by_key_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	if (at->key == ((struct metac_type_at_by_key_func_data*)data)->key) {
+		((struct metac_type_at_by_key_func_data*)data)->result = at;
+		return 1;
+	}
+	return 0;
+}
+
+struct metac_type_at* metac_type_at_by_key(struct metac_type *type, int key) {
+	struct metac_type_at_by_key_func_data data = {
+			.key = key,
+			.result = NULL,
+	};
+	metac_type_at_map(type, metac_type_at_by_key_func, &data);
+	return data.result;
+// easy implementation based on nested functions (GCC)
+//	struct metac_type_at* res = NULL;
+//	int _func_(struct metac_type *type, struct metac_type_at *at, void * data) {
+//		if (at->key == key) {
+//			res = at;
+//			return 1;
+//		}
+//		return 0;
+//	}
+//	metac_type_at_map(type, _func_, NULL);
+//	return res;
+}
+
 
 char *					metac_type_name(struct metac_type *type) {
 	struct metac_type_at* at_name;
@@ -126,70 +159,71 @@ struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
 	return type;
 }
 
-struct metac_type * metac_type_member_type(struct metac_type *type) {
-	struct metac_type_at * at_type;
-	assert(type);
-	if (type->type != DW_TAG_member) {
-		msg_stderr("expected type DW_TAG_member\n");
-		return NULL;
-	}
-	at_type = metac_type_at_by_key(type, DW_AT_type);
-	if (at_type == NULL)
-		return NULL;
 
-	return at_type->type;
-}
-
-char * 		metac_type_member_name(struct metac_type *type)  {
+struct metac_type_member_info_func_data {
 	struct metac_type_at * at_name;
-	assert(type);
-	if (type->type != DW_TAG_member) {
-		msg_stderr("expected type DW_TAG_member\n");
-		return NULL;
-	}
-	at_name = metac_type_at_by_key(type, DW_AT_name);
-	if (at_name == NULL)
-		return NULL;
-
-	return at_name->name;
-}
-
-int 		metac_type_member_offset(struct metac_type *type, unsigned int * p_offset) {
+	struct metac_type_at * at_type;
 	struct metac_type_at * at_data_member_location;
+	struct metac_type_at * at_bit_offset;
+	struct metac_type_at * at_bit_size;
+};
+static int metac_type_member_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_member_info_func_data * p =(struct metac_type_member_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_name:
+		p->at_name = at;
+		break;
+	case DW_AT_type:
+		p->at_type = at;
+		break;
+	case DW_AT_data_member_location:
+		p->at_data_member_location = at;
+		break;
+	case DW_AT_bit_offset:
+		p->at_bit_offset = at;
+		break;
+	case DW_AT_bit_size:
+		p->at_bit_size = at;
+		break;
+	}
+	return ((p->at_name != NULL) &&
+			(p->at_type != NULL) &&
+			(p->at_data_member_location != NULL) &&
+			(p->at_bit_offset != NULL) &&
+			(p->at_bit_size != NULL))?1:0;
+}
+
+int metac_type_member_info(struct metac_type *type, struct metac_type_member_info * p_member_info) {
+	struct metac_type_member_info_func_data data = {
+			.at_name = NULL,
+			.at_type = NULL,
+			.at_data_member_location = NULL,
+			.at_bit_offset = NULL,
+			.at_bit_size = NULL,
+	};
 	assert(type);
 	if (type->type != DW_TAG_member) {
 		msg_stderr("expected type DW_TAG_member\n");
 		return -1;
 	}
-	at_data_member_location = metac_type_at_by_key(type, DW_AT_data_member_location);
-	if (at_data_member_location == NULL)
-		return -1;
 
-	if (p_offset)
-		*p_offset = at_data_member_location->data_member_location;
-	return 0;
-}
-
-int 		metac_type_member_bit_attr(struct metac_type *type, unsigned int * p_bit_offset, unsigned int * p_bit_size) {
-	struct metac_type_at * at_bit_offset,
-		* at_bit_size;
-	assert(type);
-	if (type->type != DW_TAG_member) {
-		msg_stderr("expected type DW_TAG_member\n");
+	metac_type_at_map(type, metac_type_member_info_func, &data);
+	if (	data.at_name == NULL ||
+			data.at_type == NULL ||
+			data.at_data_member_location == NULL) {
+		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
-	at_bit_offset = metac_type_at_by_key(type, DW_AT_bit_offset);
-	at_bit_size = metac_type_at_by_key(type, DW_AT_bit_size);
-	if (at_bit_offset == NULL || at_bit_size == NULL)
-		return -1;
 
-	if (p_bit_offset)
-		*p_bit_offset = at_bit_offset->bit_offset;
-	if (p_bit_size)
-		*p_bit_size = at_bit_size->bit_size;
+	if (p_member_info != NULL) {
+		p_member_info->name = data.at_name->name;
+		p_member_info->type = data.at_type->type;
+		p_member_info->p_data_member_location = &data.at_data_member_location->data_member_location;
+		p_member_info->p_bit_offset = &data.at_bit_offset->bit_offset;
+		p_member_info->p_bit_size = &data.at_bit_offset->bit_size;
+	}
 	return 0;
 }
-
 
 unsigned int metac_type_structure_member_count(struct metac_type *type) {
 #ifndef	NDEBUG
@@ -238,34 +272,29 @@ struct metac_type * metac_type_structure_member(struct metac_type *type, unsigne
 	return metac_type_child(type, id);
 }
 
-struct metac_type *		metac_type_structure_member_type(struct metac_type *type, unsigned int id) {
-	struct metac_type * member = metac_type_structure_member(type, id);
-	if (member == NULL)
+struct metac_type *		metac_type_structure_member_by_name(struct metac_type *type, const char *parameter_name) {
+	int i;
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	if (type->type != DW_TAG_structure_type) {
+		msg_stderr("expected type DW_TAG_structure_type\n");
 		return NULL;
-	return metac_type_member_type(member);
-}
+	}
 
-char *					metac_type_structure_member_name(struct metac_type *type, unsigned int id) {
-	struct metac_type * member = metac_type_structure_member(type, id);
-	if (member == NULL)
-		return NULL;
-	return metac_type_member_name(member);
+	for (i = 0; i < metac_type_structure_member_count(type); i++){
+		struct metac_type_at * at_name;
+		struct metac_type * member_type = metac_type_structure_member(type, i);
+		assert(member_type);
+		at_name = metac_type_at_by_key(member_type, DW_AT_name);
+		if (at_name != NULL &&
+				strcmp(at_name->name, parameter_name) == 0) {
+			return member_type;
+		}
+	}
+	return NULL;
 }
-
-int						metac_type_structure_member_offset(struct metac_type *type, unsigned int id, unsigned int * p_offset) {
-	struct metac_type * member = metac_type_structure_member(type, id);
-	if (member == NULL)
-		return -1;
-	return metac_type_member_offset(member, p_offset);
-}
-
-int						bit_attr(struct metac_type *type, unsigned int id, unsigned int * p_bit_offset, unsigned int * p_bit_size) {
-	struct metac_type * member = metac_type_structure_member(type, id);
-	if (member == NULL)
-		return -1;
-	return metac_type_member_bit_attr(member, p_bit_offset, p_bit_size);
-}
-
 
 unsigned int metac_type_array_length(struct metac_type *type) {
 	unsigned int i;
