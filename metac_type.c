@@ -76,17 +76,6 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, int key) {
 	};
 	metac_type_at_map(type, metac_type_at_by_key_func, &data);
 	return data.result;
-// easy implementation based on nested functions (GCC)
-//	struct metac_type_at* res = NULL;
-//	int _func_(struct metac_type *type, struct metac_type_at *at, void * data) {
-//		if (at->key == key) {
-//			res = at;
-//			return 1;
-//		}
-//		return 0;
-//	}
-//	metac_type_at_map(type, _func_, NULL);
-//	return res;
 }
 
 

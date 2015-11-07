@@ -187,7 +187,7 @@ typedef struct _bit_fields_
 }bit_fields_t;
 METAC_EXPORT_TYPE(bit_fields_t);
 
-/*TODO: some combinations*/
+/*TODO: some combinations??? */
 
 /* function ptr */
 typedef int_t (*func_ptr_t)(bit_fields_t *arg);
@@ -277,22 +277,46 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(func_ptr_t, DW_TAG_pointer_type);
 }END_TEST
 
-//#define STRUCT_TYPE_SMOKE_START(_type_) \
-//do{ \
-//	struct metac_type *type = METAC_TYPE(_type_);
-//
-//#define STRUCT_TYPE_SMOKE_MEMBER(_member_)
-///*todo. check offsets*/
-//
-//#define STRUCT_TYPE_SMOKE_END \
-//	mark_point(); \
-//} while(0)
+#define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
+do{ \
+	struct metac_type *type = METAC_TYPE(_type_); \
+	_type_ struct_; \
+	fail_unless(metac_type_structure_member_count(type) == (fields_number), \
+			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
+
+
+#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_, _is_bit_field_, _bit_size_, _bit_offset_) \
+	do { \
+		struct metac_type_member_info member_info; \
+		struct metac_type * member_type = metac_type_structure_member_by_name(type, #_member_name_); \
+		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		/* check name*/\
+		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+				member_info.name, #_member_name_); \
+		/* check type*/\
+		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+		/* check offset */\
+		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
+		if (!_is_bit_field_) { \
+			fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
+					"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
+					(int)*member_info.p_data_member_location,\
+					(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
+		} else { \
+		} \
+	} while(0)\
+
+#define STRUCT_TYPE_SMOKE_END \
+	mark_point(); \
+} while(0)
 
 START_TEST(struct_type_smoke) {
-//	STRUCT_TYPE_SMOKE_START(struct_t)
-//			STRUCT_TYPE_SMOKE_MEMBER(widthValidated)
-//			STRUCT_TYPE_SMOKE_MEMBER(heightValidated)
-//	STRUCT_TYPE_SMOKE_END
+	STRUCT_TYPE_SMOKE_START(struct_t, 2)
+		STRUCT_TYPE_SMOKE_MEMBER(heightValidated, 0, 0, 0);
+		STRUCT_TYPE_SMOKE_MEMBER(widthValidated, 0, 0, 0);
+	STRUCT_TYPE_SMOKE_END;
 }END_TEST
 
 #define FUNC_TYPE_SMOKE(_type_, _s_type_) \
