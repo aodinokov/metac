@@ -115,15 +115,15 @@ unsigned int metac_type_byte_size(struct metac_type *type) {
 		break;
 	case DW_TAG_array_type:
 		{
-			struct metac_type_at * at_type;
-			unsigned int elements_num = metac_type_array_length(type);
-
-			at_type = metac_type_at_by_key(type, DW_AT_type);
-			if (at_type == NULL) {
-				msg_stderr("array has to contain type at\n");
+			unsigned int elements_num =
+					metac_type_array_length(type);
+			struct metac_type * element_type =
+					metac_type_array_element_type(type);
+			if (element_type == NULL) {
+				msg_stderr("metac_type_array_element_type returned NULL\n");
 				return 0;
 			}
-			return elements_num * metac_type_byte_size(at_type->type);
+			return elements_num * metac_type_byte_size(element_type);
 
 
 		}while(0);
@@ -208,13 +208,13 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 		p_member_info->name = data.at_name->name;
 		p_member_info->type = data.at_type->type;
 		p_member_info->p_data_member_location = &data.at_data_member_location->data_member_location;
-		p_member_info->p_bit_offset = &data.at_bit_offset->bit_offset;
-		p_member_info->p_bit_size = &data.at_bit_offset->bit_size;
+		p_member_info->p_bit_offset = data.at_bit_offset!=NULL?&data.at_bit_offset->bit_offset:NULL;
+		p_member_info->p_bit_size = data.at_bit_offset!=NULL?&data.at_bit_offset->bit_size:NULL;
 	}
 	return 0;
 }
 
-unsigned int metac_type_structure_member_count(struct metac_type *type) {
+unsigned int _metac_type_su_member_count(struct metac_type *type, int expected_type) {
 #ifndef	NDEBUG
 	unsigned int i;
 #endif
@@ -223,8 +223,9 @@ unsigned int metac_type_structure_member_count(struct metac_type *type) {
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
-	if (type->type != DW_TAG_structure_type) {
-		msg_stderr("expected type DW_TAG_structure_type\n");
+	if ((expected_type >= 0 && metac_type(type) != expected_type) ||
+		(expected_type < 0 && (metac_type(type) != DW_TAG_structure_type || metac_type(type) != DW_TAG_union_type))) {
+		msg_stderr("incorrect type %d\n", (int)metac_type(type));
 		return 0;
 	}
 #ifndef	NDEBUG
@@ -237,7 +238,7 @@ unsigned int metac_type_structure_member_count(struct metac_type *type) {
 	return metac_type_child_num(type);
 }
 
-struct metac_type * metac_type_structure_member(struct metac_type *type, unsigned int id) {
+struct metac_type * _metac_type_su_member(struct metac_type *type, int expected_type, unsigned int id) {
 #ifndef	NDEBUG
 	unsigned int i;
 #endif
@@ -246,8 +247,9 @@ struct metac_type * metac_type_structure_member(struct metac_type *type, unsigne
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
-	if (type->type != DW_TAG_structure_type) {
-		msg_stderr("expected type DW_TAG_structure_type\n");
+	if ((expected_type >= 0 && metac_type(type) != expected_type) ||
+		(expected_type < 0 && (metac_type(type) != DW_TAG_structure_type || metac_type(type) != DW_TAG_union_type))) {
+		msg_stderr("incorrect type %d\n", (int)metac_type(type));
 		return NULL;
 	}
 #ifndef	NDEBUG
@@ -261,14 +263,15 @@ struct metac_type * metac_type_structure_member(struct metac_type *type, unsigne
 	return metac_type_child(type, id);
 }
 
-struct metac_type *		metac_type_structure_member_by_name(struct metac_type *type, const char *parameter_name) {
+struct metac_type *		_metac_type_su_member_by_name(struct metac_type *type, int expected_type, const char *parameter_name) {
 	int i;
 	assert(type);
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
-	if (type->type != DW_TAG_structure_type) {
-		msg_stderr("expected type DW_TAG_structure_type\n");
+	if ((expected_type >= 0 && metac_type(type) != expected_type) ||
+		(expected_type < 0 && (metac_type(type) != DW_TAG_structure_type || metac_type(type) != DW_TAG_union_type))) {
+		msg_stderr("incorrect type %d\n", (int)metac_type(type));
 		return NULL;
 	}
 
@@ -285,34 +288,168 @@ struct metac_type *		metac_type_structure_member_by_name(struct metac_type *type
 	return NULL;
 }
 
+struct metac_type_subrange_info_func_data {
+	struct metac_type_at * at_type;
+	struct metac_type_at * at_lower_bound;
+	struct metac_type_at * at_upper_bound;
+};
+static int metac_type_subrange_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_subrange_info_func_data * p =(struct metac_type_subrange_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_type:
+		p->at_type = at;
+		break;
+	case DW_AT_lower_bound:
+		p->at_lower_bound = at;
+		break;
+	case DW_AT_upper_bound:
+		p->at_upper_bound = at;
+		break;
+	}
+	return ((p->at_type != NULL) &&
+			(p->at_lower_bound != NULL) &&
+			(p->at_upper_bound != NULL))?1:0;
+}
+
+int metac_type_subrange_info(struct metac_type *type, struct metac_type_subrange_info * p_subrange_info) {
+	struct metac_type_subrange_info_func_data data = {
+			.at_type = NULL,
+			.at_lower_bound = NULL,
+			.at_upper_bound = NULL,
+	};
+	assert(type);
+	if (type->type != DW_TAG_subrange_type) {
+		msg_stderr("expected type DW_TAG_subrange_type\n");
+		return -1;
+	}
+
+	metac_type_at_map(type, metac_type_subrange_info_func, &data);
+	if (	data.at_type == NULL) {
+		msg_stderr("mandatory fields are absent\n");
+		return -1;
+	}
+
+	if (p_subrange_info != NULL) {
+		p_subrange_info->type = data.at_type->type;
+		p_subrange_info->p_lower_bound = data.at_lower_bound!=NULL?&data.at_lower_bound->lower_bound:NULL;
+		p_subrange_info->p_upper_bound = data.at_upper_bound!=NULL?&data.at_upper_bound->upper_bound:NULL;
+	}
+	return 0;
+}
+
+
+struct metac_type * metac_type_array_element_type(struct metac_type *type) {
+	struct metac_type_at * at_type;
+
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (metac_type(type) != DW_TAG_array_type) {
+		msg_stderr("expected type DW_TAG_array_type\n");
+		return NULL;
+	}
+	at_type = metac_type_at_by_key(type, DW_AT_type);
+	if (at_type == NULL) {
+		msg_stderr("array has to contain type at\n");
+		return NULL;
+	}
+	return at_type->type;
+}
+
+int metac_type_array_element_info(struct metac_type *type, unsigned int N, struct metac_type_element_info *p_element_info){
+	unsigned int i;
+	unsigned int element_location = 0;
+
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (metac_type(type) != DW_TAG_array_type) {
+		msg_stderr("expected type DW_TAG_array_type\n");
+		return -1;
+	}
+
+	for (i = 0; i < metac_type_array_subrange_count(type); i++) {
+		struct metac_type_subrange_info subrange_info;
+		if (metac_type_subrange_info(metac_type_array_subrange(type, i), &subrange_info ) != 0){
+			msg_stderr("metac_type_subrange_info returned error\n");
+			return -1;
+		}
+		if (subrange_info.p_upper_bound == NULL) {
+			msg_stderr("subrange upper_bound isn't set\n");
+			return -1;
+		}
+
+		if (	((subrange_info.p_lower_bound == NULL) ||
+				(subrange_info.p_lower_bound != NULL  && *(subrange_info.p_lower_bound) <= N)) &&
+				*(subrange_info.p_upper_bound) >= N) { /* found range */
+			element_location +=N;
+			if (p_element_info) {
+				p_element_info->type = metac_type_array_element_type(type);
+				assert(p_element_info->type != NULL);
+				p_element_info->element_location = element_location * metac_type_byte_size(p_element_info->type);
+			}
+			return 0;
+		}
+
+		element_location += *(subrange_info.p_upper_bound) + 1;
+		if (subrange_info.p_lower_bound != NULL)
+			element_location -= *(subrange_info.p_lower_bound);
+
+	}
+	msg_stderr("N is out of range\n");
+	return -1;
+}
+
+unsigned int metac_type_array_subrange_count(struct metac_type *type){
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (metac_type(type) != DW_TAG_array_type) {
+		msg_stderr("expected type DW_TAG_array_type\n");
+		return 0;
+	}
+	return metac_type_child_num(type);
+}
+
+struct metac_type * metac_type_array_subrange(struct metac_type *type, unsigned int id) {
+	struct metac_type * subrange_type;
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (metac_type(type) != DW_TAG_array_type) {
+		msg_stderr("expected type DW_TAG_array_type\n");
+		return NULL;
+	}
+
+	subrange_type = metac_type_child(type, id);
+	assert(metac_type(subrange_type) == DW_TAG_subrange_type);
+	return subrange_type;
+}
+
 unsigned int metac_type_array_length(struct metac_type *type) {
 	unsigned int i;
 	unsigned int length = 0;
 	assert(type);
 	type = metac_type_typedef_skip(type);
 	assert(type);
-	if (type->type != DW_TAG_array_type) {
+	if (metac_type(type) != DW_TAG_array_type) {
 		msg_stderr("expected type DW_TAG_array_type\n");
 		return 0;
 	}
 
-	for (i = 0; i < metac_type_child_num(type); i++) {
-		struct metac_type_at
-			* at_lower_bound,
-			* at_upper_bound;
-		struct metac_type *child = metac_type_child(type, i);
-		assert(child->type == DW_TAG_subrange_type);
-
-		/* get range parameter */
-		at_lower_bound = metac_type_at_by_key(child, DW_AT_lower_bound); /*optional*/
-		at_upper_bound = metac_type_at_by_key(child, DW_AT_upper_bound); /*mandatory?*/
-		if (at_upper_bound == NULL) {
-			msg_stderr("upper_bound is mandatory\n");
+	for (i = 0; i < metac_type_array_subrange_count(type); i++) {
+		struct metac_type_subrange_info subrange_info;
+		if (metac_type_subrange_info(metac_type_array_subrange(type, i), &subrange_info ) != 0){
+			msg_stderr("metac_type_subrange_info returned error\n");
 			return 0;
 		}
-		length += at_upper_bound->upper_bound + 1;
-		if (at_lower_bound)
-			length -= at_lower_bound->lower_bound;
+		if (subrange_info.p_upper_bound == NULL) {
+			msg_stderr("subrange upper_bound isn't set\n");
+			return 0;
+		}
+		length += *(subrange_info.p_upper_bound) + 1;
+		if (subrange_info.p_lower_bound != NULL)
+			length -= *(subrange_info.p_lower_bound);
 
 	}
 	return length;

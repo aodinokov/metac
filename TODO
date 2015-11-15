@@ -1,5 +1,10 @@
 1. expand struct test - for bit_fields and unions
 2. expand API for subprograms - need to get params.
 3. expand subprograms API UT
-4. expand API for arrays (to get offset of N element)
-5. make some highlevel API to get global offset/size e.g. of field in struct in union in array (with C-syntax)
+4. expand API for arrays (to get offset of Nth element) - done
+5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
+6. modify metac.awk give API to find type by some params.
+7. expand API for enums
+8. add UT for enums
+9. add UT for arrays - done partly
+10. expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
