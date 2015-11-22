@@ -374,12 +374,8 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int N, struc
 			msg_stderr("metac_type_subrange_info returned error\n");
 			return -1;
 		}
-		if (subrange_info.p_upper_bound == NULL) {
-			msg_stderr("subrange upper_bound isn't set\n");
-			return -1;
-		}
-
-		if (	((subrange_info.p_lower_bound == NULL) ||
+		if (	(i ==0 && subrange_info.p_upper_bound == NULL) || /* allow arrays without bounds to calc Nth element */
+				((subrange_info.p_lower_bound == NULL) ||
 				(subrange_info.p_lower_bound != NULL  && *(subrange_info.p_lower_bound) <= N)) &&
 				*(subrange_info.p_upper_bound) >= N) { /* found range */
 			element_location +=N;

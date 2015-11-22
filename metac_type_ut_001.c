@@ -298,7 +298,6 @@ do{ \
 		/* check type*/\
 		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
 		/* check offset */\
-		/*fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL");*/ \
 		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == \
 				(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
 				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
@@ -410,32 +409,55 @@ START_TEST(func_type_smoke) {
 	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram);
 }END_TEST
 
+/* arrays */
+typedef char_t char_array_t[0];
+METAC_EXPORT_TYPE(char_array_t);
+
+
 START_TEST(array_type_smoke) {
-	/*test for array with bounds*/
-	char_array5_t reference_object;
-	struct metac_type_element_info element_info;
-	struct metac_type_subrange_info subrange_info;
-	struct metac_type *type = METAC_TYPE(char_array5_t);
-	struct metac_type *subrange_type;
-	unsigned int subrange_count = metac_type_array_subrange_count(type);
-	fail_unless(subrange_count > 0, "subrange_count must be more than 0");
-	subrange_type = metac_type_array_subrange(type, subrange_count - 1);
-	fail_unless(subrange_type != NULL, "subrange must be not NULL");
-	fail_unless(metac_type_subrange_info(subrange_type, &subrange_info) == 0, "metac_type_subrange_info returned error");
-	fail_unless(subrange_info.p_upper_bound != NULL, "subrange_info.p_upper_bound must present");
-	fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
-			"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
+	/* test for array with bounds */
+	do {
+		char_array5_t reference_object;
+		struct metac_type_element_info element_info;
+		struct metac_type_subrange_info subrange_info;
+		struct metac_type *type = METAC_TYPE(char_array5_t);
+		struct metac_type *subrange_type;
+		unsigned int subrange_count = metac_type_array_subrange_count(type);
+		fail_unless(subrange_count > 0, "subrange_count must be more than 0");
+		subrange_type = metac_type_array_subrange(type, subrange_count - 1);
+		fail_unless(subrange_type != NULL, "subrange must be not NULL");
+		fail_unless(metac_type_subrange_info(subrange_type, &subrange_info) == 0, "metac_type_subrange_info returned error");
+		fail_unless(subrange_info.p_upper_bound != NULL, "subrange_info.p_upper_bound must present");
+		fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
+				"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
 
-	fail_unless(metac_type_array_element_type(type) == METAC_TYPE(char_t), "metac_type_array_element_type returned incorrect pointer");
+		fail_unless(metac_type_array_element_type(type) == METAC_TYPE(char_t), "metac_type_array_element_type returned incorrect pointer");
 
-	fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound), &element_info) == 0, "metac_type_array_element_info returned error");
-	fail_unless((((char*)&reference_object[*(subrange_info.p_upper_bound)]) - ((char*)&reference_object[0]) == element_info.element_location),
-			"incorrect element location %d instead of %d",
-			(int)element_info.element_location,
-			(int)(((char*)(&reference_object[*(subrange_info.p_upper_bound)])) - ((char*)(&reference_object[0]))));
+		fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound), &element_info) == 0, "metac_type_array_element_info returned error");
+		fail_unless((((char*)&reference_object[*(subrange_info.p_upper_bound)]) - ((char*)&reference_object[0]) == element_info.element_location),
+				"incorrect element location %d instead of %d",
+				(int)element_info.element_location,
+				(int)(((char*)(&reference_object[*(subrange_info.p_upper_bound)])) - ((char*)(&reference_object[0]))));
 
-	fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound) + 1, &element_info) != 0, "metac_type_array_element_info must fail");
-	/* TODO: test for array without bounds */
+		fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound) + 1, &element_info) != 0, "metac_type_array_element_info must fail");
+	}while(0);
+	/* test for array without bounds */
+	do {
+		char_array_t reference_object;
+		struct metac_type_element_info element_info;
+		struct metac_type_subrange_info subrange_info;
+		struct metac_type *type = METAC_TYPE(char_array_t);
+		struct metac_type *subrange_type;
+		unsigned int subrange_count = metac_type_array_subrange_count(type);
+		fail_unless(subrange_count > 0, "subrange_count must be more than 0");
+		subrange_type = metac_type_array_subrange(type, subrange_count - 1);
+		fail_unless(subrange_type != NULL, "subrange must be not NULL");
+		fail_unless(metac_type_subrange_info(subrange_type, &subrange_info) == 0, "metac_type_subrange_info returned error");
+		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
+		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
+		fail_unless(metac_type_array_element_type(type) == METAC_TYPE(char_t), "metac_type_array_element_type returned incorrect pointer");
+		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info must fail");
+	}while(0);
 
 }END_TEST
 
