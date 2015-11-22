@@ -198,8 +198,8 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 
 	metac_type_at_map(type, metac_type_member_info_func, &data);
 	if (	data.at_name == NULL ||
-			data.at_type == NULL ||
-			data.at_data_member_location == NULL) {
+			data.at_type == NULL /*||
+			data.at_data_member_location == NULL*/) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
@@ -207,9 +207,9 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 	if (p_member_info != NULL) {
 		p_member_info->name = data.at_name->name;
 		p_member_info->type = data.at_type->type;
-		p_member_info->p_data_member_location = &data.at_data_member_location->data_member_location;
+		p_member_info->p_data_member_location = data.at_data_member_location!=NULL?&data.at_data_member_location->data_member_location:NULL;
 		p_member_info->p_bit_offset = data.at_bit_offset!=NULL?&data.at_bit_offset->bit_offset:NULL;
-		p_member_info->p_bit_size = data.at_bit_offset!=NULL?&data.at_bit_offset->bit_size:NULL;
+		p_member_info->p_bit_size = data.at_bit_size!=NULL?&data.at_bit_size->bit_size:NULL;
 	}
 	return 0;
 }
@@ -275,9 +275,9 @@ struct metac_type *		_metac_type_su_member_by_name(struct metac_type *type, int 
 		return NULL;
 	}
 
-	for (i = 0; i < metac_type_structure_member_count(type); i++){
+	for (i = 0; i < _metac_type_su_member_count(type, expected_type); i++){
 		struct metac_type_at * at_name;
-		struct metac_type * member_type = metac_type_structure_member(type, i);
+		struct metac_type * member_type = _metac_type_su_member(type, expected_type, i);
 		assert(member_type);
 		at_name = metac_type_at_by_key(member_type, DW_AT_name);
 		if (at_name != NULL &&

@@ -182,8 +182,8 @@ METAC_EXPORT_TYPE(struct_t);
 /* bit fields */
 typedef struct _bit_fields_
 {
-  unsigned int widthValidated : 1;
-  unsigned int heightValidated : 2;
+  unsigned int widthValidated : 9;
+  unsigned int heightValidated : 12;
 }bit_fields_t;
 METAC_EXPORT_TYPE(bit_fields_t);
 
@@ -277,6 +277,40 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(func_ptr_t, DW_TAG_pointer_type);
 }END_TEST
 
+#define UNION_TYPE_SMOKE_START(_type_, fields_number) \
+do{ \
+	struct metac_type *type = METAC_TYPE(_type_); \
+	_type_ struct_; \
+	fail_unless(metac_type_union_member_count(type) == (fields_number), \
+			"metac_type_union_member_count incorrect value for " #_type_ ": %d", fields_number); \
+
+
+#define UNION_TYPE_SMOKE_MEMBER(_member_name_) \
+	do { \
+		struct metac_type_member_info member_info; \
+		struct metac_type * member_type = metac_type_union_member_by_name(type, #_member_name_); \
+		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		/* check name*/\
+		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+				member_info.name, #_member_name_); \
+		/* check type*/\
+		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+		/* check offset */\
+		/*fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL");*/ \
+		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == \
+				(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
+				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
+				(int)(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
+				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
+		\
+	} while(0)
+
+#define UNION_TYPE_SMOKE_END \
+	mark_point(); \
+} while(0)
+
 #define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
 do{ \
 	struct metac_type *type = METAC_TYPE(_type_); \
@@ -285,7 +319,7 @@ do{ \
 			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
 
 
-#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_, _is_bit_field_, _bit_size_, _bit_offset_) \
+#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_) \
 	do { \
 		struct metac_type_member_info member_info; \
 		struct metac_type * member_type = metac_type_structure_member_by_name(type, #_member_name_); \
@@ -299,24 +333,64 @@ do{ \
 		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
 		/* check offset */\
 		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
-		if (!_is_bit_field_) { \
-			fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
-					"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
-					(int)*member_info.p_data_member_location,\
-					(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
-		} else { \
+		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
+				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
+				(int)*member_info.p_data_member_location,\
+				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
+		\
+	} while(0)
+
+#define STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(_member_name_) \
+	do { \
+		int i; \
+		int bit_size = 0; \
+		unsigned int mask; /*will take number of bits*/ \
+		struct metac_type_member_info member_info; \
+		struct metac_type * member_type = metac_type_structure_member_by_name(type, #_member_name_); \
+		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		/* check name*/\
+		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+				member_info.name, #_member_name_); \
+		/* check type*/\
+		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+		/* check offset */\
+		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
+		/* check bit_size*/ \
+		memset(&struct_, 0xff, sizeof(struct_)); \
+		mask = struct_._member_name_; \
+		struct_.heightValidated = 0; \
+		\
+		while (mask != 0) { \
+			mask >>= 1; \
+			bit_size++; \
 		} \
-	} while(0)\
+		fail_unless(*member_info.p_bit_size == bit_size, "bit_size is incorrect %d instead of %d", \
+				(int)*member_info.p_bit_size, (int)bit_size); \
+		/*TODO: make check for bit_offset and data_member_location (for big/little endian) - depends on implementation*/ \
+	} while(0)
 
 #define STRUCT_TYPE_SMOKE_END \
 	mark_point(); \
 } while(0)
 
 START_TEST(struct_type_smoke) {
+	UNION_TYPE_SMOKE_START(union_t, 2)
+		UNION_TYPE_SMOKE_MEMBER(d);
+		UNION_TYPE_SMOKE_MEMBER(f);
+	UNION_TYPE_SMOKE_END;
+
 	STRUCT_TYPE_SMOKE_START(struct_t, 2)
-		STRUCT_TYPE_SMOKE_MEMBER(heightValidated, 0, 0, 0);
-		STRUCT_TYPE_SMOKE_MEMBER(widthValidated, 0, 0, 0);
+		STRUCT_TYPE_SMOKE_MEMBER(heightValidated);
+		STRUCT_TYPE_SMOKE_MEMBER(widthValidated);
 	STRUCT_TYPE_SMOKE_END;
+
+	STRUCT_TYPE_SMOKE_START(bit_fields_t, 2)
+		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(heightValidated);
+		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(widthValidated);
+	STRUCT_TYPE_SMOKE_END;
+
 }END_TEST
 
 #define FUNC_TYPE_SMOKE(_type_, _s_type_) \

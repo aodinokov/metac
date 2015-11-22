@@ -61,7 +61,7 @@ struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *t
 struct metac_type_member_info {
 	struct metac_type *	type;	/* mandatory field */
 	char * name;				/* mandatory field */
-	unsigned int * p_data_member_location;	/* mandatory field */
+	unsigned int * p_data_member_location;	/* mandatory field for structs but optional for unions */
 	unsigned int * p_bit_offset;/* optional field (may be NULL) */
 	unsigned int * p_bit_size;	/* optional field (may be NULL) */
 };
