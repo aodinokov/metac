@@ -35,13 +35,13 @@ struct metac_type {
     struct metac_type_at *at;
 };
 
-/* some basic fuctions to navigate in struct metac_type */
+/* some basic functions to navigate in structure metac_type */
 static inline int 		metac_type(struct metac_type *type){return type->type;}
 unsigned int 			metac_type_child_num(struct metac_type *type);
 struct metac_type* 		metac_type_child(struct metac_type *type, unsigned int id);
 unsigned int 			metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int id);
-/* some service fuctions to navigate in metac_type */
+/* some service functions to navigate in metac_type */
 /* easy function to find at by at.key */
 struct metac_type_at* 	metac_type_at_by_key(struct metac_type *type, int key);
 /* basic examples that use metac_type_at_by_key */
@@ -57,11 +57,11 @@ int 					metac_type_subprogram_parameter_count(struct metac_type *type);
 struct metac_type *	metac_type_subprogram_parameter(struct metac_type *type, unsigned int id);
 struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *type, const char *parameter_name);
 
-/* special functions when metac_type(type) == DW_TAG_member */
+/* special functions when metac_type(type) == DW_TAG_member (element of structure or union) */
 struct metac_type_member_info {
 	struct metac_type *	type;	/* mandatory field */
 	char * name;				/* mandatory field */
-	unsigned int * p_data_member_location;	/* mandatory field for structs but optional for unions */
+	unsigned int * p_data_member_location;	/* mandatory field for structures, but optional for unions */
 	unsigned int * p_bit_offset;/* optional field (may be NULL) */
 	unsigned int * p_bit_size;	/* optional field (may be NULL) */
 };
@@ -95,13 +95,13 @@ struct metac_type_subrange_info {
 };
 int metac_type_subrange_info(struct metac_type *type, struct metac_type_subrange_info * p_subrange_info);
 
-/* special functions to work with arrays */
+/* special functions to work with arrays when metac_type(type) == DW_TAG_array_type (array) */
 struct metac_type * metac_type_array_element_type(struct metac_type *type);		/*< returns array elements type */
 
 unsigned int 		metac_type_array_subrange_count(struct metac_type *type);
 struct metac_type * metac_type_array_subrange(struct metac_type *type, unsigned int id);
 
-/* some addtional helpful functions */
+/* some additional helpful functions when metac_type(type) == DW_TAG_array_type (array) */
 struct metac_type_element_info {
 	struct metac_type *	type;
 	unsigned int element_location;
@@ -109,6 +109,23 @@ struct metac_type_element_info {
 int 				metac_type_array_element_info(struct metac_type *type, unsigned int N,
 							struct metac_type_element_info *p_element_info);	/*< returns Nth element info */
 unsigned int		metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
+
+/* special functions to work with enumeration type when metac_type(type) == DW_TAG_enumeration_type (enum) */
+struct metac_type_enumeration_type_info {
+	char * name;				/* mandatory field */
+	unsigned int byte_size;		/* mandatory field */
+	unsigned int enumerators_count;	/* mandatory field */
+};
+struct metac_type_enumerator_info {
+	char * name;				/* mandatory field */
+	unsigned int const_value;		/* mandatory field */
+};
+
+int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/
+int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int N,
+		struct metac_type_enumerator_info *p_info);	/*< returns Nth element info */
+
+
 
 /* TODO: to be extended by other types */
 

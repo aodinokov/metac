@@ -556,3 +556,116 @@ struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *t
 
 	return res;
 }
+
+
+struct metac_type_enumeration_type_info_func_data {
+	struct metac_type_at * at_name;
+	struct metac_type_at * at_byte_size;
+};
+static int metac_type_enumeration_type_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_enumeration_type_info_func_data * p =(struct metac_type_enumeration_type_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_name:
+		p->at_name = at;
+		break;
+	case DW_AT_byte_size:
+		p->at_byte_size = at;
+		break;
+	}
+	return ((p->at_name != NULL) &&
+			(p->at_byte_size != NULL))?1:0;
+}
+
+int metac_type_enumeration_type_info(struct metac_type *type,
+		struct metac_type_enumeration_type_info *p_info) {
+	struct metac_type_enumeration_type_info_func_data data = {
+			.at_name = NULL,
+			.at_byte_size = NULL,
+	};
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (type->type != DW_TAG_enumeration_type) {
+		msg_stderr("expected type DW_TAG_enumeration_type\n");
+		return -1;
+	}
+
+	metac_type_at_map(type, metac_type_enumeration_type_info_func, &data);
+	if (	data.at_name == NULL ||
+			data.at_byte_size == NULL) {
+		msg_stderr("mandatory fields are absent\n");
+		return -1;
+	}
+	if (p_info != NULL) {
+		p_info->name = data.at_name->name;
+		p_info->byte_size = data.at_byte_size->byte_size;
+		p_info->enumerators_count = metac_type_child_num(type);
+	}
+	return 0;
+}
+
+struct metac_type_enumerator_info_func_data {
+	struct metac_type_at * at_name;
+	struct metac_type_at * at_const_value;
+};
+static int metac_type_enumerator_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_enumerator_info_func_data * p =(struct metac_type_enumerator_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_name:
+		p->at_name = at;
+		break;
+	case DW_AT_const_value:
+		p->at_const_value = at;
+		break;
+	}
+	return ((p->at_name != NULL) &&
+			(p->at_const_value != NULL))?1:0;
+}
+
+int metac_type_enumerator_info(struct metac_type *type,
+		struct metac_type_enumerator_info *p_info) {
+	struct metac_type_enumerator_info_func_data data = {
+			.at_name = NULL,
+			.at_const_value = NULL,
+	};
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (type->type != DW_TAG_enumerator) {
+		msg_stderr("expected type DW_TAG_enumerator\n");
+		return -1;
+	}
+
+	metac_type_at_map(type, metac_type_enumerator_info_func, &data);
+	if (	data.at_name == NULL ||
+			data.at_const_value == NULL) {
+		msg_stderr("mandatory fields are absent\n");
+		return -1;
+	}
+	if (p_info != NULL) {
+		p_info->name = data.at_name->name;
+		p_info->const_value = data.at_const_value->const_value;
+	}
+	return 0;
+}
+
+
+int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int N,
+		struct metac_type_enumerator_info *p_info) {
+	struct metac_type* 	metac_type_enumerator;
+
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
+	if (type->type != DW_TAG_enumeration_type) {
+		msg_stderr("expected type DW_TAG_enumeration_type\n");
+		return -1;
+	}
+	metac_type_enumerator = metac_type_child(type, N);
+	if (metac_type_enumerator == NULL) {
+		msg_stderr("N is incorrect\n");
+		return -1;
+	}
+	return metac_type_enumerator_info(metac_type_enumerator, p_info);
+}
+
