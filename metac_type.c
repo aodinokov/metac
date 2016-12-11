@@ -451,119 +451,132 @@ unsigned int metac_type_array_length(struct metac_type *type) {
 	return length;
 }
 
-struct metac_type *	metac_type_subprogram_return_type(struct metac_type *type) {
-	struct metac_type_at * res;
-
-	if (type->type != DW_TAG_subprogram) {
-		msg_stderr("_DW_TAG_subprogram_ expected type == DW_TAG_subprogram\n");
-		return NULL;
+struct metac_type_subprogram_info_func_data {
+	struct metac_type_at * at_type;
+	struct metac_type_at * at_name;
+};
+static int metac_type_subprogram_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_subprogram_info_func_data * p = (struct metac_type_subprogram_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_name:
+		p->at_name = at;
+		break;
+	case DW_AT_type:
+		p->at_type = at;
+		break;
 	}
-
-	res = metac_type_at_by_key(type, DW_AT_type);
-	assert(res);
-
-	return res->type;
+	return ((p->at_name != NULL) &&
+			(p->at_type != NULL))?1:0;
 }
 
-int 					metac_type_subprogram_parameter_count(struct metac_type *type) {
-	int i;
-	int count = 0;
-
+int metac_type_subprogram_info(struct metac_type *type,
+		struct metac_type_subprogram_info *p_info) {
+	struct metac_type_subprogram_info_func_data data = {
+			.at_name = NULL,
+			.at_type = NULL,
+	};
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
 	if (type->type != DW_TAG_subprogram) {
-		msg_stderr("_DW_TAG_subprogram_ expected type == DW_TAG_subprogram\n");
+		msg_stderr("expected type DW_TAG_subprogram\n");
 		return -1;
 	}
 
-	for (i = 0; i < metac_type_child_num(type); i++) {
-		struct metac_type *child = metac_type_child(type, i);
-		if (child->type == DW_TAG_formal_parameter)
-			count++;
+	metac_type_at_map(type, metac_type_subprogram_info_func, &data);
+	if (	data.at_name == NULL) {
+		msg_stderr("mandatory fields are absent\n");
+		return -1;
 	}
-	return count;
+	if (p_info != NULL) {
+		p_info->name = data.at_name != NULL? data.at_name->name:NULL;
+		p_info->return_type = data.at_type != NULL? data.at_type->type:NULL;
+		p_info->parameters_count = metac_type_child_num(type);
+	}
+	return 0;
 }
 
-struct metac_type *	metac_type_subprogram_parameter(struct metac_type *type, unsigned int id) {
-	int i, j = 0;
-	struct metac_type * res = NULL;
-
-	if (type->type != DW_TAG_subprogram) {
-		msg_stderr("_DW_TAG_subprogram_ expected type == DW_TAG_subprogram\n");
-		return NULL;
+struct metac_type_parameter_info_func_data {
+	struct metac_type_at * at_name;
+	struct metac_type_at * at_type;
+};
+static int metac_type_parameter_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
+	struct metac_type_parameter_info_func_data * p = (struct metac_type_parameter_info_func_data*)data;
+	switch(at->key){
+	case DW_AT_name:
+		p->at_name = at;
+		break;
+	case DW_AT_type:
+		p->at_type = at;
+		break;
 	}
+	return ((p->at_name != NULL) &&
+			(p->at_type != NULL))?1:0;
+}
 
-	for (i = 0; i < metac_type_child_num(type); i++) {
-		struct metac_type *child = metac_type_child(type, i);
-		if (child->type == DW_TAG_formal_parameter) {
-			if (j == id) {
-				res = child;
-				break;
-			}
-			/* TODO: in fact we can do it without loop if this confistion is always true*/
-			assert(child->type == DW_TAG_formal_parameter);
+int metac_type_parameter_info(struct metac_type *type,
+		struct metac_type_parameter_info *p_info) {
+	struct metac_type_parameter_info_func_data data = {
+			.at_name = NULL,
+			.at_type = NULL,
+	};
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
 
-			j++;
+	/*handle DW_TAG_unspecified_parameters*/
+	if (type->type == DW_TAG_unspecified_parameters){
+		if (p_info != NULL) {
+			p_info->unspecified_parameters = 1;
 		}
+		return 0;
 	}
 
-	/*TODO: common code with the next function? - to a separate function */
-	if (res) { /* formal parameter found */
-		struct metac_type_at * at_type;
-		at_type = metac_type_at_by_key(res, DW_AT_type);
-
-		res = NULL;
-		if (at_type)
-			res = at_type->type;
-
+	if (type->type != DW_TAG_formal_parameter) {
+		msg_stderr("expected type DW_TAG_formal_parameter or DW_TAG_unspecified_parameters\n");
+		return -1;
 	}
 
-	return res;
+	metac_type_at_map(type, metac_type_parameter_info_func, &data);
+	if (	data.at_name == NULL ||
+			data.at_type == NULL) {
+		msg_stderr("mandatory fields are absent\n");
+		return -1;
+	}
+	if (p_info != NULL) {
+		p_info->unspecified_parameters = 0;
+		p_info->name = data.at_name->name;
+		p_info->type = data.at_type->type;
+	}
+	return 0;
 }
 
-struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *type, const char *parameter_name) {
-	int i, j = 0;
-	struct metac_type * res = NULL;
 
+int metac_type_subprogram_parameter_info(struct metac_type *type, unsigned int N,
+		struct metac_type_parameter_info *p_info) {
+	struct metac_type* 	metac_type_parameter;
+
+	assert(type);
+	type = metac_type_typedef_skip(type);
+	assert(type);
 	if (type->type != DW_TAG_subprogram) {
-		msg_stderr("_DW_TAG_subprogram_ expected type == DW_TAG_subprogram\n");
-		return NULL;
+		msg_stderr("expected type DW_TAG_subprogram\n");
+		return -1;
 	}
-
-	for (i = 0; i < metac_type_child_num(type); i++) {
-		struct metac_type *child = metac_type_child(type, i);
-		if (child->type == DW_TAG_formal_parameter) {
-			struct metac_type_at * at;
-
-			at = metac_type_at_by_key(child, DW_AT_name);
-			assert(at);
-			if (at && strcmp(parameter_name, at->name) == 0) {
-				res = child;
-				break;
-			}
-			j++;
-		}
+	metac_type_parameter = metac_type_child(type, N);
+	if (metac_type_parameter == NULL) {
+		msg_stderr("N is incorrect\n");
+		return -1;
 	}
-
-	/*TODO: common code with the previous function? - to a separate function */
-	if (res) { /* formal parameter found */
-		struct metac_type_at * at;
-		at = metac_type_at_by_key(res, DW_AT_type);
-
-		res = NULL;
-		if (at)
-			res = at->type;
-
-	}
-
-	return res;
+	return metac_type_parameter_info(metac_type_parameter, p_info);
 }
-
 
 struct metac_type_enumeration_type_info_func_data {
 	struct metac_type_at * at_name;
 	struct metac_type_at * at_byte_size;
 };
 static int metac_type_enumeration_type_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
-	struct metac_type_enumeration_type_info_func_data * p =(struct metac_type_enumeration_type_info_func_data*)data;
+	struct metac_type_enumeration_type_info_func_data * p = (struct metac_type_enumeration_type_info_func_data*)data;
 	switch(at->key){
 	case DW_AT_name:
 		p->at_name = at;
@@ -609,7 +622,7 @@ struct metac_type_enumerator_info_func_data {
 	struct metac_type_at * at_const_value;
 };
 static int metac_type_enumerator_info_func(struct metac_type *type, struct metac_type_at *at, void * data) {
-	struct metac_type_enumerator_info_func_data * p =(struct metac_type_enumerator_info_func_data*)data;
+	struct metac_type_enumerator_info_func_data * p = (struct metac_type_enumerator_info_func_data*)data;
 	switch(at->key){
 	case DW_AT_name:
 		p->at_name = at;

@@ -194,9 +194,15 @@ typedef int_t (*func_ptr_t)(bit_fields_t *arg);
 METAC_EXPORT_TYPE(func_ptr_t);
 
 /* function */
-int_t func_t(bit_fields_t *arg) {if (arg)return 1; return 0;}
+typedef bit_fields_t * p_bit_fields_t;
+METAC_EXPORT_TYPE(p_bit_fields_t);
+int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
 METAC_EXPORT_TYPE(func_t);
 
+typedef const char * cchar_t;
+METAC_EXPORT_TYPE(cchar_t);
+void func_printf(cchar_t format, ...){return;}
+METAC_EXPORT_TYPE(func_printf);
 
 #define GENERAL_TYPE_SMOKE(_type_, _s_type_) \
 do{ \
@@ -392,10 +398,13 @@ START_TEST(struct_type_smoke) {
 
 }END_TEST
 
-#define FUNC_TYPE_SMOKE(_type_, _s_type_) \
+#define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
 do{ \
+	unsigned int i; \
 	struct metac_type *type = METAC_TYPE(_type_); \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+	struct metac_type_subprogram_info s_info; \
+	struct metac_type_parameter_info p_info; \
 	\
 	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
@@ -403,10 +412,35 @@ do{ \
 	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
 	\
 	mark_point(); \
+	\
+	fail_unless(metac_type_subprogram_info(type, &s_info) == 0, "metac_type_subprogram_info: expected success"); \
+	\
+	fail_unless(strcmp(s_info.name, #_type_) == 0, "invalid name %s instead of %s", s_info.name, #_type_); \
+	fail_unless(s_info.return_type == expected_return_type, "not expected return type %p instead of %p", s_info.return_type, expected_return_type); \
+	fail_unless(s_info.parameters_count == sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), "params number must be %u instead of %u", \
+			sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), s_info.parameters_count); \
+	\
+	for (i = 0; i < s_info.parameters_count; i++) { \
+		fail_unless(metac_type_subprogram_parameter_info(type, i, &p_info) == 0, "expected success"); \
+		fail_unless(p_info.unspecified_parameters == expected_parameter_info_values[i].unspecified_parameters, "expected %d instead of %d", expected_parameter_info_values[i].unspecified_parameters, p_info.unspecified_parameters); \
+		if (p_info.unspecified_parameters == 0) { \
+			fail_unless(strcmp(p_info.name, expected_parameter_info_values[i].name) == 0, "expected %s instead of %s", expected_parameter_info_values[i].name, p_info.name); \
+			fail_unless(p_info.type == expected_parameter_info_values[i].type, "wrong parameter type: expected %p instead of %p", expected_parameter_info_values[i].type, p_info.type); \
+		}\
+	}\
 } while(0)
 
 START_TEST(func_type_smoke) {
-	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram);
+	struct metac_type_parameter_info func_t_expected_parameter_info_values[] = {
+			{.unspecified_parameters = 0, .name = "arg", .type = METAC_TYPE(p_bit_fields_t)},
+	};
+	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
+			{.unspecified_parameters = 0, .name = "format", .type = METAC_TYPE(cchar_t)},
+			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
+	};
+
+	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, METAC_TYPE(int_t), func_t_expected_parameter_info_values);
+	FUNC_TYPE_SMOKE(func_printf, DW_TAG_subprogram, NULL, func_printf_expected_parameter_info_values);
 }END_TEST
 
 /* arrays */

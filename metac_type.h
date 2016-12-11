@@ -52,10 +52,19 @@ typedef int (*metac_type_at_map_func_t)(struct metac_type *type, struct metac_ty
 int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func, void * data);
 
 /* special functions when metac_type(type) == DW_TAG_subprogram */
-struct metac_type *	metac_type_subprogram_return_type(struct metac_type *type);
-int 					metac_type_subprogram_parameter_count(struct metac_type *type);
-struct metac_type *	metac_type_subprogram_parameter(struct metac_type *type, unsigned int id);
-struct metac_type *	metac_type_subprogram_parameter_by_name(struct metac_type *type, const char *parameter_name);
+struct metac_type_subprogram_info {
+	struct metac_type * return_type;
+	char * name;
+	unsigned int parameters_count;
+};
+struct metac_type_parameter_info {
+	int unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
+	struct metac_type * type;
+	char * name;
+};
+int metac_type_subprogram_info(struct metac_type *type, struct metac_type_subprogram_info *p_info);		/*< returns subprogram type info*/
+int metac_type_subprogram_parameter_info(struct metac_type *type, unsigned int N,
+		struct metac_type_parameter_info *p_info);		/*< returns subprogram parameter info*/
 
 /* special functions when metac_type(type) == DW_TAG_member (element of structure or union) */
 struct metac_type_member_info {
