@@ -461,6 +461,50 @@ START_TEST(array_type_smoke) {
 
 }END_TEST
 
+#define ENUM_TYPE_SMOKE(enum_type, et_name, expected_e_info_values) \
+do { \
+	unsigned int i; \
+	struct metac_type_enumeration_type_info et_info; \
+	struct metac_type_enumerator_info e_info; \
+    \
+	fail_unless(metac_type_enumeration_type_info(enum_type, &et_info) == 0, "metac_type_enumeration_type_info: expected success"); \
+    \
+	fail_unless((et_info.name == NULL && et_name == NULL) || strcmp(et_info.name, et_name) == 0, "invalid name %s instead of %s", et_info.name, et_name); \
+	fail_unless(et_info.byte_size > 0 && et_info.byte_size <= 8, "expected byte_size in the range(0,8] instead of %u", et_info.byte_size); \
+	fail_unless(et_info.enumerators_count == sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), "children number must be %u instead of %u", \
+			sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), et_info.enumerators_count); \
+    \
+	for (i = 0; i < et_info.enumerators_count; i++) { \
+		fail_unless(metac_type_enumeration_type_enumerator_info(enum_type, i, &e_info) == 0, "expected success"); \
+		fail_unless(strcmp(e_info.name, expected_e_info_values[i].name) == 0, "expected %s instead of %s", expected_e_info_values[i].name, e_info.name); \
+		fail_unless((int)e_info.const_value == expected_e_info_values[i].const_value, "expected %d instead of %d", expected_e_info_values[i].const_value, e_info.const_value); \
+	}\
+}while(0)
+
+
+START_TEST(enum_type_smoke) {
+	struct metac_type *enum_type = METAC_TYPE(enum_t);
+	struct metac_type_enumerator_info enum_type_expected_e_info_values[] = {
+			{.name = "_eZero", .const_value = 0},
+			{.name = "_eOne", .const_value = 1},
+			{.name = "_eTen", .const_value = 10},
+			{.name = "_eEleven", .const_value = 11},
+			{.name = "_eTwelve", .const_value = 12},
+	};
+	struct metac_type *anon_enum_type = METAC_TYPE(anon_enum_t);
+	struct metac_type_enumerator_info anon_enum_type_expected_e_info_values[] = {
+			{.name = "aeMinus", .const_value = -1},
+			{.name = "aeZero", .const_value = 0},
+			{.name = "aeOne", .const_value = 1},
+			{.name = "aeTen", .const_value = 10},
+			{.name = "aeEleven", .const_value = 11},
+			{.name = "aeTwelve", .const_value = 12},
+	};
+
+	ENUM_TYPE_SMOKE(enum_type, "_enum_", enum_type_expected_e_info_values);
+	ENUM_TYPE_SMOKE(anon_enum_type, NULL, anon_enum_type_expected_e_info_values);
+
+}END_TEST
 
 int main(void){
 	return run_suite(
@@ -471,6 +515,7 @@ int main(void){
 					ADD_TEST(struct_type_smoke);
 					ADD_TEST(func_type_smoke);
 					ADD_TEST(array_type_smoke);
+					ADD_TEST(enum_type_smoke);
 				}END_CASE
 			);
 		}END_SUITE

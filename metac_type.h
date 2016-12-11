@@ -23,7 +23,7 @@ struct metac_type_at{
 		unsigned int bit_size;				/* bit-field member bit size in structs and unions */
 		unsigned int lower_bound;			/* for array_ranges*/
 		unsigned int upper_bound;			/* for array_ranges*/
-		unsigned long const_value;			/* for enums*/
+		long const_value;					/* for enums*/
     };
 };
 
@@ -118,7 +118,7 @@ struct metac_type_enumeration_type_info {
 };
 struct metac_type_enumerator_info {
 	char * name;				/* mandatory field */
-	unsigned int const_value;		/* mandatory field */
+	long const_value;		/* mandatory field */
 };
 
 int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/

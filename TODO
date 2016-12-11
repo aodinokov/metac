@@ -2,11 +2,11 @@
 4. done - expand API for arrays (to get offset of Nth element)
 9. done - add UT for arrays (TODO: don't like array's API - need to make something like enum has)
 7. done - expand API for enums
-8. add UT for enums
+8. done - add UT for enums
 2. expand API for subprograms - need to get params.
 3. expand subprograms API UT
+12. make a refactoring of all types (make something like enums) + define macroses and use them when use metac_type_at_map
 11. create function to read/write bit fields (arch independent)
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
 6. modify metac.awk give API to find type by some params.
 10. expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
-11. make a refactoring of all types (make something like enums) + define macroses and use them when use metac_type_at_map

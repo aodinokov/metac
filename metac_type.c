@@ -591,13 +591,13 @@ int metac_type_enumeration_type_info(struct metac_type *type,
 	}
 
 	metac_type_at_map(type, metac_type_enumeration_type_info_func, &data);
-	if (	data.at_name == NULL ||
+	if (	/*data.at_name == NULL || not true for anonymous enums */
 			data.at_byte_size == NULL) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
 	if (p_info != NULL) {
-		p_info->name = data.at_name->name;
+		p_info->name = data.at_name != NULL?data.at_name->name:NULL;
 		p_info->byte_size = data.at_byte_size->byte_size;
 		p_info->enumerators_count = metac_type_child_num(type);
 	}
