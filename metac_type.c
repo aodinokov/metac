@@ -392,7 +392,7 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int N, struc
 			element_location -= *(subrange_info.p_lower_bound);
 
 	}
-	msg_stderr("N is out of range\n");
+	/* msg_stderr("N is out of range\n"); */
 	return -1;
 }
 
@@ -505,7 +505,7 @@ struct metac_type *	metac_type_subprogram_parameter(struct metac_type *type, uns
 		}
 	}
 
-	/*TODO: common code with the next function? - to a separete function */
+	/*TODO: common code with the next function? - to a separate function */
 	if (res) { /* formal parameter found */
 		struct metac_type_at * at_type;
 		at_type = metac_type_at_by_key(res, DW_AT_type);

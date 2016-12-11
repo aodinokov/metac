@@ -2,7 +2,7 @@
 #define CHECK_EXT_H
 
 #include <check.h>
-#include <stdlib.h> // getenv
+#include <stdlib.h> /* getenv */
 
 /* 	redefine env
 	CK_DEFAULT_TIMEOUT=<sec> to set timeout
