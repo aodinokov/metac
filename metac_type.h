@@ -8,20 +8,20 @@ struct metac_type;
 struct metac_type_at;
 
 /* definition of types used for attributes */
-typedef char* 					metac_name_t;
-typedef struct metac_type 		metac_type_t;
-typedef struct metac_type_at 	metac_type_at_t;
-typedef unsigned int 			metac_byte_size_t;
-typedef unsigned int 			metac_encoding_t;
-typedef unsigned int 			metac_data_member_location_t;
-typedef unsigned int 			metac_bit_offset_t;
-typedef unsigned int 			metac_bit_size_t;
-typedef unsigned int 			metac_bound_t;
+typedef char *					metac_name_t;
+typedef struct metac_type		metac_type_t;
+typedef struct metac_type_at	metac_type_at_t;
+typedef unsigned int			metac_byte_size_t;
+typedef unsigned int			metac_encoding_t;
+typedef unsigned int			metac_data_member_location_t;
+typedef unsigned int			metac_bit_offset_t;
+typedef unsigned int			metac_bit_size_t;
+typedef unsigned int			metac_bound_t;
 typedef long					metac_const_value_t;
 
-typedef int 					metac_type_id_t;
-typedef int 					metac_type_at_id_t;
-typedef unsigned int 			metac_num_t;
+typedef int						metac_type_id_t;
+typedef int						metac_type_at_id_t;
+typedef unsigned int			metac_num_t;
 
 
 /**
@@ -32,16 +32,16 @@ typedef unsigned int 			metac_num_t;
 struct metac_type_at {
 	metac_type_at_id_t					id;
 	union {
-		metac_name_t 					name;					/* universal field */
+		metac_name_t					name;					/* universal field */
 		metac_type_t *					type;					/* universal field */
-		metac_byte_size_t 				byte_size;				/* type size */
-		metac_encoding_t 				encoding;				/* type encoding (DW_ATE_signed etc) */
-		metac_data_member_location_t 	data_member_location;	/* member offset in structs and unions */
-		metac_bit_offset_t 				bit_offset;				/* bit-field member bit offset in structs and unions */
-		metac_bit_size_t 				bit_size;				/* bit-field member bit size in structs and unions */
-		metac_bound_t 					lower_bound;			/* for array_ranges*/
-		metac_bound_t 					upper_bound;			/* for array_ranges*/
-		metac_const_value_t 			const_value;			/* for enums*/
+		metac_byte_size_t				byte_size;				/* type size */
+		metac_encoding_t				encoding;				/* type encoding (DW_ATE_signed etc) */
+		metac_data_member_location_t	data_member_location;	/* member offset in structs and unions */
+		metac_bit_offset_t				bit_offset;				/* bit-field member bit offset in structs and unions */
+		metac_bit_size_t				bit_size;				/* bit-field member bit size in structs and unions */
+		metac_bound_t					lower_bound;			/* for array_ranges*/
+		metac_bound_t					upper_bound;			/* for array_ranges*/
+		metac_const_value_t				const_value;			/* for enums*/
 	};
 };
 
