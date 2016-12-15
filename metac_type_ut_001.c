@@ -441,6 +441,8 @@ START_TEST(func_type_smoke) {
 #if __clang_major__ == 3 && __clang_minor__ > 4
 			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
 #endif
+#else
+			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
 #endif
 	};
 

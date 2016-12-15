@@ -2,8 +2,6 @@ language: c
 compiler:
   - gcc
   - clang
-packages:
-  - clang-3.6
 before_install:
   - sudo apt-get remove gawk libsigsegv2 -y
   - sudo add-apt-repository ppa:schot/gawk -y
