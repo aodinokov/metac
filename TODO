@@ -1,14 +1,14 @@
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
 10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
-13. minor - print at only if at_num>0
-25. UT for metac_object?
 20. Easy PoC serialization/de-serialization. e.g. to serialize function call params to json (based on the function arguments) and de-serialize them
 21. What to do with pointers and cycles?
 22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
 23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
 24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
+metac.awk refactoring:
 25. Improve performance of metac_type_by_name and metac_object_by_name: pre-sort METAC_DECLARE_EXTERN_TYPES_ARRAY & METAC_DECLARE_EXTERN_OBJECTS_ARRAY and use O(log N) algorithm to search 
+13. minor - print at only if at_num>0
 
 
 

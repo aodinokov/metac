@@ -36,4 +36,4 @@ metac_type_ut_001: metac_type_ut_001.o metac_type_ut_001.metac.o metac_type.o
 clean:
 	rm -rf *.o *.metac.c
 
-.PHONY: all clean
+.PHONY: all clean _always_
