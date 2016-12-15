@@ -1,7 +1,11 @@
 #ifndef METAC_H_
 #define METAC_H_
 
-#include "dwarf.h"
+#include <dwarf.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* declaration of C type in C */
 struct metac_type;
@@ -226,4 +230,7 @@ struct metac_object_array_item {
 #define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_array_item METAC_OBJECTS_ARRAY[]
 struct metac_object * metac_object_by_name(struct metac_object_array_item * array, metac_name_t name);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* METAC_H_ */
