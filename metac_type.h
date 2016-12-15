@@ -175,15 +175,16 @@ struct metac_type_array_info {
 	metac_num_t						subranges_count;		/* number of subranges */
 	metac_bound_t					lower_bound;			/* TODO: min index in the array (0 by default) */
 	metac_bound_t *					p_upper_bound;			/* TODO: max index in the array */
-	metac_bound_t					elements_number;		/* TODO: based on min and max - length of the array */
+	metac_bound_t					elements_count;			/* TODO: based on min and max - length of the array */
 };
 int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
 int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
-		struct metac_type_subrange_info *p_info);			/*< returns array subrange info*/
+		struct metac_type_subrange_info *p_info);			/*< returns i-th array subrange info*/
 int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
 
 /*??? TODO: see implementation */
+//metac_bound_t metac_type_array_elements_count(struct metac_type *type);	/*< returns length in elements of array */
 metac_bound_t metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
 
 /* macroses to export C type definitions in code*/
