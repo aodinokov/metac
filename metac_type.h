@@ -77,9 +77,6 @@ struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
 metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
 struct metac_type_p_at*	metac_type_p_at(struct metac_type *type);
-
-/* some service functions to navigate in metac_type */
-/* easy function to find at by at.key */
 struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);
 
 
@@ -87,9 +84,10 @@ struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
 
-/* generalized map approach: pointer + function to iterate by at array */
-typedef int (*metac_type_at_map_func_t)(struct metac_type *type, struct metac_type_at *at, void * data);
-int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func, void * data);
+// removing, bacause we now have cached pointers
+///* generalized map approach: pointer + function to iterate by at array */
+//typedef int (*metac_type_at_map_func_t)(struct metac_type *type, struct metac_type_at *at, void * data);
+//int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func, void * data);
 
 /* special functions when metac_type(type) == DW_TAG_subprogram */
 struct metac_type_subprogram_info {
