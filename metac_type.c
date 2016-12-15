@@ -159,7 +159,7 @@ int metac_type_subprogram_info(struct metac_type *type,
 		return -1;
 	}
 
-	if (	type->p_at.p_at_name == NULL) {
+	if (type->p_at.p_at_name == NULL) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
@@ -193,8 +193,8 @@ int metac_type_parameter_info(struct metac_type *type,
 		return -1;
 	}
 
-	if (	type->p_at.p_at_name == NULL ||
-			type->p_at.p_at_type == NULL) {
+	if (type->p_at.p_at_name == NULL ||
+		type->p_at.p_at_type == NULL) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
@@ -266,8 +266,8 @@ int metac_type_enumerator_info(struct metac_type *type,
 		return -1;
 	}
 
-	if (	type->p_at.p_at_name == NULL ||
-			type->p_at.p_at_const_value == NULL) {
+	if (type->p_at.p_at_name == NULL ||
+		type->p_at.p_at_const_value == NULL) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
@@ -309,9 +309,9 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 		return -1;
 	}
 
-	if (	type->p_at.p_at_name == NULL ||
-			type->p_at.p_at_type == NULL /*||
-			type->p_at.p_at_data_member_location == NULL*/) {
+	if (type->p_at.p_at_name == NULL ||
+		type->p_at.p_at_type == NULL /*||
+		type->p_at.p_at_data_member_location == NULL*/) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}
@@ -428,7 +428,7 @@ int metac_type_subrange_info(struct metac_type *type, struct metac_type_subrange
 		return -1;
 	}
 
-	if (	type->p_at.p_at_type == NULL) {
+	if (type->p_at.p_at_type == NULL) {
 		msg_stderr("mandatory fields are absent\n");
 		return -1;
 	}

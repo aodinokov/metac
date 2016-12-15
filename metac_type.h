@@ -2,7 +2,6 @@
 #define METAC_H_
 
 #include "dwarf.h"
-#include <stdio.h>	/* NULL */
 
 /* declaration of C type in C */
 struct metac_type;

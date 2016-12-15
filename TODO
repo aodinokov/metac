@@ -1,4 +1,3 @@
-16. metac_type_array_length -> metac_array_type_length (change everywhere) - not sure, need to finish with object first
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
 10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h

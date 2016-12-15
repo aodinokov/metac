@@ -9,7 +9,6 @@
 #include "check_ext.h"
 #include "metac_type.h"
 
-#define __USE_GNU 	/*RTLD_DEFAULT*/
 #include <dlfcn.h>
 
 /*

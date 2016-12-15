@@ -25,7 +25,6 @@ _always_:
 	#@echo "-----------------------------------------------------------------------"
 
 # tests 
-#metac_type_ut_001: LDFLAGS=-lcheck -ldl -lm -lrt -pthread -rdynamic
 metac_type_ut_001: -ldl -lcheck -lm -lrt
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 metac_type_ut_001: metac_type_ut_001.o metac_type_ut_001.metac.o metac_type.o
