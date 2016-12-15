@@ -183,8 +183,18 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
 
 /* macroses to export C type definitions in code*/
-#define _METAC_TYPE(name) metac__type_ ## name
-#define METAC_TYPE(name) _METAC_TYPE(name)
-#define METAC_EXPORT_TYPE(name) extern struct metac_type *METAC_TYPE(name)
+#define _METAC(x, name) metac__ ## x ## _ ## name
+#define METAC(x, name) _METAC(x, name)
+
+#define METAC_TYPE(name) METAC(type, name)
+#define METAC_TYPE_IMPORT(name) extern struct metac_type *METAC_TYPE(name)
+
+/*just to play with that*/
+struct metac_object_{
+	struct metac_type **	type;
+	void *					ptr;
+};
+#define METAC_OBJECT_(_type_, _name_) struct metac_object_ METAC(obj, _name_) = {.type = &METAC_TYPE(_type_), .ptr = &_name_}
+
 
 #endif /* METAC_H_ */

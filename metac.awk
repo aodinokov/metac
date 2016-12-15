@@ -55,13 +55,13 @@ function dump_at(data_id, at_id) {
     return res;
 }
 
-function at_name_is_in_task(name) {
-    if (name in task)
+function at_name_is_in_task4types(name) {
+    if (name in task4types)
         return 1;
     if (name == "long int")
-        return ("long" in task);
+        return ("long" in task4types);
     if (name == "short int")
-        return ("short" in task);
+        return ("short" in task4types);
     return 0;
 }
 
@@ -79,18 +79,28 @@ BEGIN {
         file;
         while(( getline line < file ) > 0 ) {
             split(line, x, " ");
-            task[x[2]] = x[1];
+            switch (x[1]) {
+            case "type":
+                task4types[x[2]] = x[1];
+                break;
+            case "obj":
+                # we ignore them
+                break;
+            default:
+                print "WARNING: Unknown task type for line: " line > "/dev/stderr";
+                break;
+            }
         }
     }else{
-        task[0] = "";
-        delete task[0];
+        task4types[0] = "";
+        delete task4types[0];
     }
 }
 
 END {
     for (i in data) {
-        if ( length(task) == 0 ||
-            ("DW_AT_name" in data[i] && at_name_is_in_task(data[i]["DW_AT_name"])))
+        if ( length(task4types) == 0 ||
+            ("DW_AT_name" in data[i] && at_name_is_in_task4types(data[i]["DW_AT_name"])))
             mark_obj(i);
     }
     asort(obj);
@@ -108,14 +118,14 @@ END {
     }
     print "\n/* real data */"
     for (i in obj) {
-        in_task = 0;
+        in_task4types = 0;
         i = obj[i];
         p_at = "";
         print "/* --" i "--*/"
         if ("child" in data[i]) {
             print "static struct metac_type *data_" i "_child[] = {";
             for (k in data[i]["child"]) print "\t&data_" data[i]["child"][k] ",";
-            print "};"
+            print "};"d
         }
         at_num = 0;
         print "static struct metac_type_at data_" i "_at[] = {";
@@ -125,8 +135,8 @@ END {
                 if (dump_res > 0)
                     p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
                 at_num += dump_res;
-                if (j == "DW_AT_name" && at_name_is_in_task(data[i][j]))
-                    in_task = 1;
+                if (j == "DW_AT_name" && at_name_is_in_task4types(data[i][j]))
+                    in_task4types = 1;
             }
         }
         print "};"
@@ -155,9 +165,9 @@ END {
         
         print "\t.p_at = {\n" p_at "\t},";
         print "};"
-        if (in_task != 0) {
+        if (in_task4types != 0) {
             print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
-            delete task[export_name(data[i]["DW_AT_name"])];
+            delete task4types[export_name(data[i]["DW_AT_name"])];
         }
         print;
     }

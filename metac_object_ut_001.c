@@ -43,12 +43,12 @@
  */
 
 /* export base types */
-METAC_EXPORT_TYPE(char);
-METAC_EXPORT_TYPE(short);
-METAC_EXPORT_TYPE(int);
-METAC_EXPORT_TYPE(long);
-METAC_EXPORT_TYPE(float);
-METAC_EXPORT_TYPE(double);
+METAC_TYPE_IMPORT(char);
+METAC_TYPE_IMPORT(short);
+METAC_TYPE_IMPORT(int);
+METAC_TYPE_IMPORT(long);
+METAC_TYPE_IMPORT(float);
+METAC_TYPE_IMPORT(double);
 
 /* create typedefs for non-one-word base types and export them */
 /*char*/
@@ -56,9 +56,9 @@ typedef char char_t;
 typedef signed char schar_t;
 typedef unsigned char uchar_t;
 
-METAC_EXPORT_TYPE(char_t);
-METAC_EXPORT_TYPE(schar_t);
-METAC_EXPORT_TYPE(uchar_t);
+METAC_TYPE_IMPORT(char_t);
+METAC_TYPE_IMPORT(schar_t);
+METAC_TYPE_IMPORT(uchar_t);
 
 /*short*/
 typedef short short_t;
@@ -68,12 +68,12 @@ typedef signed short int sshortint_t;
 typedef unsigned short ushort_t;
 typedef unsigned short int ushortint_t;
 
-METAC_EXPORT_TYPE(short_t);
-METAC_EXPORT_TYPE(shortint_t);
-METAC_EXPORT_TYPE(sshort_t);
-METAC_EXPORT_TYPE(sshortint_t);
-METAC_EXPORT_TYPE(ushort_t);
-METAC_EXPORT_TYPE(ushortint_t);
+METAC_TYPE_IMPORT(short_t);
+METAC_TYPE_IMPORT(shortint_t);
+METAC_TYPE_IMPORT(sshort_t);
+METAC_TYPE_IMPORT(sshortint_t);
+METAC_TYPE_IMPORT(ushort_t);
+METAC_TYPE_IMPORT(ushortint_t);
 
 /*int*/
 typedef int int_t;
@@ -82,11 +82,11 @@ typedef signed int sint_t;
 typedef unsigned unsigned_t;
 typedef unsigned int uint_t;
 
-METAC_EXPORT_TYPE(int_t);
-METAC_EXPORT_TYPE(signed_t);
-METAC_EXPORT_TYPE(sint_t);
-METAC_EXPORT_TYPE(unsigned_t);
-METAC_EXPORT_TYPE(uint_t);
+METAC_TYPE_IMPORT(int_t);
+METAC_TYPE_IMPORT(signed_t);
+METAC_TYPE_IMPORT(sint_t);
+METAC_TYPE_IMPORT(unsigned_t);
+METAC_TYPE_IMPORT(uint_t);
 
 /*long*/
 typedef long long_t;
@@ -96,12 +96,12 @@ typedef signed long int slongint_t;
 typedef unsigned long ulong_t;
 typedef unsigned long int ulongint_t;
 
-METAC_EXPORT_TYPE(long_t);
-METAC_EXPORT_TYPE(longint_t);
-METAC_EXPORT_TYPE(slong_t);
-METAC_EXPORT_TYPE(slongint_t);
-METAC_EXPORT_TYPE(ulong_t);
-METAC_EXPORT_TYPE(ulongint_t);
+METAC_TYPE_IMPORT(long_t);
+METAC_TYPE_IMPORT(longint_t);
+METAC_TYPE_IMPORT(slong_t);
+METAC_TYPE_IMPORT(slongint_t);
+METAC_TYPE_IMPORT(ulong_t);
+METAC_TYPE_IMPORT(ulongint_t);
 
 /*long long*/
 typedef long long llong_t;
@@ -111,24 +111,24 @@ typedef signed long long int sllongint_t;
 typedef unsigned long long ullong_t;
 typedef unsigned long long int ullongint_t;
 
-METAC_EXPORT_TYPE(llong_t);
-METAC_EXPORT_TYPE(llongint_t);
-METAC_EXPORT_TYPE(sllong_t);
-METAC_EXPORT_TYPE(sllongint_t);
-METAC_EXPORT_TYPE(ullong_t);
-METAC_EXPORT_TYPE(ullongint_t);
+METAC_TYPE_IMPORT(llong_t);
+METAC_TYPE_IMPORT(llongint_t);
+METAC_TYPE_IMPORT(sllong_t);
+METAC_TYPE_IMPORT(sllongint_t);
+METAC_TYPE_IMPORT(ullong_t);
+METAC_TYPE_IMPORT(ullongint_t);
 
 /*float*/
 typedef float float_t;
-METAC_EXPORT_TYPE(float_t);
+METAC_TYPE_IMPORT(float_t);
 
 /*double*/
 typedef double double_t;
-METAC_EXPORT_TYPE(double_t);
+METAC_TYPE_IMPORT(double_t);
 
 /*long double*/
 typedef long double ldouble_t;
-METAC_EXPORT_TYPE(ldouble_t);
+METAC_TYPE_IMPORT(ldouble_t);
 
 /* pointers */
 typedef void* voidptr_t;
@@ -136,9 +136,9 @@ typedef void** voidptrptr_t;
 typedef char* charptr_t;
 /* skip other types */
 
-METAC_EXPORT_TYPE(voidptr_t);
-METAC_EXPORT_TYPE(voidptrptr_t);
-METAC_EXPORT_TYPE(charptr_t);
+METAC_TYPE_IMPORT(voidptr_t);
+METAC_TYPE_IMPORT(voidptrptr_t);
+METAC_TYPE_IMPORT(charptr_t);
 
 /* enums */
 typedef enum _enum_{
@@ -157,19 +157,19 @@ typedef enum{
 	aeEleven,
 	aeTwelve,
 }anon_enum_t;
-METAC_EXPORT_TYPE(enum_t);
-METAC_EXPORT_TYPE(anon_enum_t);
+METAC_TYPE_IMPORT(enum_t);
+METAC_TYPE_IMPORT(anon_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
-METAC_EXPORT_TYPE(char_array5_t);
+METAC_TYPE_IMPORT(char_array5_t);
 
 /* unions */
 typedef union _union_{
    int d;
    char f;
 }union_t;
-METAC_EXPORT_TYPE(union_t);
+METAC_TYPE_IMPORT(union_t);
 
 /* struct */
 typedef struct _struct_
@@ -177,7 +177,7 @@ typedef struct _struct_
   unsigned int widthValidated;
   unsigned int heightValidated;
 }struct_t;
-METAC_EXPORT_TYPE(struct_t);
+METAC_TYPE_IMPORT(struct_t);
 
 /* bit fields */
 typedef struct _bit_fields_
@@ -185,7 +185,7 @@ typedef struct _bit_fields_
   unsigned int widthValidated : 1;
   unsigned int heightValidated : 2;
 }bit_fields_t;
-METAC_EXPORT_TYPE(bit_fields_t);
+METAC_TYPE_IMPORT(bit_fields_t);
 
 /*TODO: some combinations*/
 
@@ -303,7 +303,7 @@ typedef struct check_all_types1_s {
 	struct check_all_types1_s *p_astruct[10];
 	struct char_struct_s astruct[10];
 }check_all_types1_t;
-METAC_EXPORT_TYPE(check_all_types1_t);
+METAC_TYPE_IMPORT(check_all_types1_t);
 
 START_TEST(check_all_types1) {
 	struct metac_type *type = METAC_TYPE(check_all_types1_t);
