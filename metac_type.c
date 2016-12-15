@@ -113,9 +113,10 @@ int metac_type_child_id_by_name(struct metac_type *type, metac_name_t name) {
 	return -1;
 }
 
-/*--------- need further refactoring ---------*/
 unsigned int metac_type_byte_size(struct metac_type *type) {
-	assert(type);
+	if (type == NULL)
+		return 0;
+
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
@@ -131,18 +132,20 @@ unsigned int metac_type_byte_size(struct metac_type *type) {
 			return type->p_at.p_at_byte_size->byte_size;
 		return sizeof(void*);
 	case DW_TAG_array_type:
-		if (type->p_at.p_at_type->type == NULL) {
-			msg_stderr("metac_type_array_element_type returned NULL\n");
-			return 0;
+		{
+			struct metac_type_array_info array_info;
+			if (metac_type_array_info(type, &array_info) != 0) {
+				msg_stderr("metac_type_array_info error\n");
+				return 0;
+			}
+			return array_info.elements_count * metac_type_byte_size(array_info.type);
 		}
-		return metac_type_array_length(type) * metac_type_byte_size(type->p_at.p_at_type->type);
 	case DW_TAG_subprogram:
 		return 1;	/*sizeof function == 1*/
 	}
 	return 0;
 }
 
-/*-----------V refactored V----------------*/
 int metac_type_subprogram_info(struct metac_type *type,
 		struct metac_type_subprogram_info *p_info) {
 	if (type == NULL)
@@ -458,6 +461,31 @@ int metac_type_array_info(struct metac_type *type, struct metac_type_array_info 
 	if (p_info != NULL) {
 		p_info->type = type->p_at.p_at_type->type;
 		p_info->subranges_count = metac_type_child_num(type);
+
+		/**/
+		assert(p_info->subranges_count < 2);	/* assumption: C should have several subranges */
+
+		p_info->lower_bound = 0;
+		p_info->p_upper_bound = NULL;
+		p_info->elements_count = 0;
+
+		if (p_info->subranges_count > 0) {
+			struct metac_type_subrange_info subrange_info;
+
+			if (metac_type_array_subrange_info(type, 0, &subrange_info) == 0){
+				if (subrange_info.p_lower_bound != NULL)
+					p_info->lower_bound = *subrange_info.p_lower_bound;
+			}
+
+			if (metac_type_array_subrange_info(type, p_info->subranges_count - 1, &subrange_info) == 0){
+				if (subrange_info.p_upper_bound != NULL)
+					p_info->p_upper_bound = subrange_info.p_upper_bound;
+			}
+
+			if (p_info->p_upper_bound != NULL) {
+				p_info->elements_count = *(p_info->p_upper_bound) + 1 - p_info->lower_bound;
+			}
+		}
 	}
 	return 0;
 }
@@ -523,36 +551,5 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i, struc
 
 	}
 	return -1;
-}
-
-metac_bound_t metac_type_array_length(struct metac_type *type) {
-	metac_num_t id;
-	metac_bound_t count = 0;
-	assert(type);
-	type = metac_type_typedef_skip(type);
-	assert(type);
-	if (metac_type_id(type) != DW_TAG_array_type) {
-		msg_stderr("expected type DW_TAG_array_type\n");
-		return 0;
-	}
-
-	/*TODO: completely not sure that it will work! may be we just can take upper bound of the last subrange???? - in that case
-	 * it's easy just to put it into array_info! */
-	for (id = 0; id < metac_type_child_num(type); id++) {
-		struct metac_type_subrange_info subrange_info;
-		if (metac_type_array_subrange_info(type, id, &subrange_info) != 0){
-			msg_stderr("metac_type_subrange_info returned error\n");
-			return 0;
-		}
-		if (subrange_info.p_upper_bound == NULL) {
-			msg_stderr("subrange upper_bound isn't set\n");
-			return 0;
-		}
-		count += *(subrange_info.p_upper_bound) + 1;
-		if (subrange_info.p_lower_bound != NULL)
-			count -= *(subrange_info.p_lower_bound);
-
-	}
-	return count;
 }
 

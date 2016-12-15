@@ -84,7 +84,6 @@ struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at
 /* basic example that use metac_type_at_by_key */
 metac_name_t			metac_type_name(struct metac_type *type);
 int 					metac_type_child_id_by_name(struct metac_type *type, metac_name_t name);
-/*???*/
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
 
 /* special function to work with typedef */
@@ -94,13 +93,13 @@ struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< retur
  * special functions when metac_type(type) == DW_TAG_enumeration_type (enum)
  */
 struct metac_type_enumeration_type_info {
-	char *			name;					/* name of type (can be NULL for anonymous enums) */
-	unsigned int	byte_size;				/* mandatory field */
-	unsigned int	enumerators_count;		/* mandatory field */
+	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
+	metac_byte_size_t	byte_size;				/* mandatory field */
+	metac_num_t			enumerators_count;		/* mandatory field */
 };
 struct metac_type_enumerator_info {
-	char *			name;					/* enumerator name */
-	long			const_value;			/* enumerator value */
+	metac_name_t		name;					/* enumerator name */
+	metac_const_value_t	const_value;			/* enumerator value */
 };
 int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/
 int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int i,
@@ -135,7 +134,7 @@ struct metac_type_member_info {
 };
 
 /*
- * special functions when metac_type(type) == DW_TAG_union_type
+ * special functions when metac_type(type) == DW_TAG_structure_type
  */
 struct metac_type_structure_info {
 	metac_name_t					name;						/* name of the structure (may be NULL)*/
@@ -173,19 +172,15 @@ struct metac_type_element_info {
 struct metac_type_array_info {
 	metac_type_t *					type;					/* type of elements */
 	metac_num_t						subranges_count;		/* number of subranges */
-	metac_bound_t					lower_bound;			/* TODO: min index in the array (0 by default) */
-	metac_bound_t *					p_upper_bound;			/* TODO: max index in the array */
-	metac_bound_t					elements_count;			/* TODO: based on min and max - length of the array */
+	metac_bound_t					lower_bound;			/* min index in the array (0 by default) */
+	metac_bound_t *					p_upper_bound;			/* max index in the array */
+	metac_bound_t					elements_count;			/* based on min and max - length of the array */
 };
 int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
 int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
 		struct metac_type_subrange_info *p_info);			/*< returns i-th array subrange info*/
 int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
-
-/*??? TODO: see implementation */
-//metac_bound_t metac_type_array_elements_count(struct metac_type *type);	/*< returns length in elements of array */
-metac_bound_t metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
 
 /* macroses to export C type definitions in code*/
 #define _METAC_TYPE(name) metac__type_ ## name
