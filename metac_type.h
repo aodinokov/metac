@@ -6,6 +6,7 @@
 /* declaration of C type in C */
 struct metac_type;
 struct metac_type_at;
+struct metac_type_p_at;
 
 /* definition of types used for attributes */
 typedef char *					metac_name_t;
@@ -45,24 +46,28 @@ struct metac_type_at {
 	};
 };
 
+struct metac_type_p_at {
+	struct metac_type_at *		at_name;					/* universal field */
+	struct metac_type_at *		at_type;					/* universal field */
+	struct metac_type_at *		at_byte_size;				/* type size */
+	struct metac_type_at *		at_encoding;				/* type encoding (DW_ATE_signed etc) */
+	struct metac_type_at *		at_data_member_location;	/* member offset in structs and unions */
+	struct metac_type_at *		at_bit_offset;				/* bit-field member bit offset in structs and unions */
+	struct metac_type_at *		at_bit_size;				/* bit-field member bit size in structs and unions */
+	struct metac_type_at *		at_lower_bound;				/* for array_ranges*/
+	struct metac_type_at *		at_upper_bound;				/* for array_ranges*/
+	struct metac_type_at *		at_const_value;				/* for enums*/
+};
+
+
 struct metac_type {
 	metac_type_id_t		id;				/* type id */
 	metac_num_t			child_num;		/* number of children */
 	metac_type_t **		child;			/* pointer to array of children */
 	metac_num_t			at_num;			/* number of attributes */
 	metac_type_at_t *	at;				/* pointer to array of attributes */
-	struct {
-		struct metac_type_at *		at_name;					/* universal field */
-		struct metac_type_at *		at_type;					/* universal field */
-		struct metac_type_at *		at_byte_size;				/* type size */
-		struct metac_type_at *		at_encoding;				/* type encoding (DW_ATE_signed etc) */
-		struct metac_type_at *		at_data_member_location;	/* member offset in structs and unions */
-		struct metac_type_at *		at_bit_offset;				/* bit-field member bit offset in structs and unions */
-		struct metac_type_at *		at_bit_size;				/* bit-field member bit size in structs and unions */
-		struct metac_type_at *		at_lower_bound;				/* for array_ranges*/
-		struct metac_type_at *		at_upper_bound;				/* for array_ranges*/
-		struct metac_type_at *		at_const_value;				/* for enums*/
-	}p_at;
+
+	struct metac_type_p_at p_at;		/* pre-calculated attributes by name*/
 };
 
 /* some basic functions to navigate in structure metac_type */
@@ -71,6 +76,7 @@ metac_num_t				metac_type_child_num(struct metac_type *type);
 struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
 metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
+struct metac_type_p_at*	metac_type_p_at(struct metac_type *type);
 
 /* some service functions to navigate in metac_type */
 /* easy function to find at by at.key */

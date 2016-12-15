@@ -49,6 +49,12 @@ struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i)  {
 	return &type->at[i];
 }
 
+struct metac_type_p_at*	metac_type_p_at(struct metac_type *type) {
+	if (type == NULL)
+		return NULL;
+	return &type->p_at;
+}
+
 int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func, void * data) {
 	int id;
 
@@ -64,36 +70,46 @@ int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func
 	return 0;
 }
 
-struct metac_type_at_by_key_func_data {
-	metac_type_at_id_t id;
-	struct metac_type_at* result;
-};
-static int metac_type_at_by_key_func(struct metac_type *type, struct metac_type_at *at, void * data) {
-	if (at->id == ((struct metac_type_at_by_key_func_data*)data)->id) {
-		((struct metac_type_at_by_key_func_data*)data)->result = at;
-		return 1;
-	}
-	return 0;
-}
-
 struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_at_id_t id) {
-	struct metac_type_at_by_key_func_data data = {
-			.id = id,
-			.result = NULL,
-	};
-	metac_type_at_map(type, metac_type_at_by_key_func, &data);
-	return data.result;
-}
+	if (type == NULL)
+		return NULL;
 
-
-char*	metac_type_name(struct metac_type *type) {
-	struct metac_type_at* at_name;
-
-	at_name = metac_type_at_by_key(type, DW_AT_name);
-	if (at_name)
-		return at_name->name;
+	switch (id) {
+#define HANDLE_KEY(_key_) case DW_AT_ ##_key_ : return type->p_at.at_ ## _key_
+	HANDLE_KEY(name);
+	HANDLE_KEY(type);
+	HANDLE_KEY(byte_size);
+	HANDLE_KEY(encoding);
+	HANDLE_KEY(data_member_location);
+	HANDLE_KEY(bit_offset);
+	HANDLE_KEY(bit_size);
+	HANDLE_KEY(lower_bound);
+	HANDLE_KEY(upper_bound);
+	HANDLE_KEY(const_value);
+	}
 	return NULL;
 }
+
+char*	metac_type_name(struct metac_type *type) {
+	if (type == NULL || type->p_at.at_name == NULL)
+		return NULL;
+	return type->p_at.at_name->name;
+}
+
+struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
+	if (type == NULL)
+		return NULL;
+
+	if (type->id == DW_TAG_typedef) {
+		if (type->p_at.at_type == NULL || type->p_at.at_type->type == NULL) {
+			msg_stderr("typedef has to contain type in attributes\n");
+			return NULL;
+		}
+		return metac_type_typedef_skip(type->p_at.at_type->type);
+	}
+	return type;
+}
+
 /*--------- need further refactoring ---------*/
 unsigned int metac_type_byte_size(struct metac_type *type) {
 	assert(type);
@@ -139,21 +155,6 @@ unsigned int metac_type_byte_size(struct metac_type *type) {
 	}
 	return 0;
 }
-
-struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
-	assert(type);
-	if (type->id == DW_TAG_typedef){
-		struct metac_type_at * at_type;
-		at_type = metac_type_at_by_key(type, DW_AT_type);
-		if (at_type == NULL) {
-			msg_stderr("typedef has to contain type at\n");
-			return NULL;
-		}
-		return metac_type_typedef_skip(at_type->type);
-	}
-	return type;
-}
-
 
 struct metac_type_member_info_func_data {
 	struct metac_type_at * at_name;
