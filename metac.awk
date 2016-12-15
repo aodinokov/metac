@@ -183,7 +183,7 @@ END {
     }
     #pint all types
     print "struct metac_type_array_item METAC_TYPES_ARRAY[] = {"
-    print types_array_body;
+    print types_array_body "\t{.name = NULL, .ptr = NULL },";
     print "};\n"
     #print all objects
     for (i in task4objects) {
@@ -194,6 +194,7 @@ END {
     for (i in task4objects) {
         print "\t{.name = \"" i "\", .ptr = &METAC_OBJECT_NAME(" i ")},"
     }
+    print "\t{.name = NULL, .ptr = NULL },";
     print "};"
 }
 /^<[^>]+><[^>]+>/{

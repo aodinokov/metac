@@ -9,6 +9,9 @@
 #include "check_ext.h"
 #include "metac_type.h"
 
+#define __USE_GNU 	/*RTLD_DEFAULT*/
+#include <dlfcn.h>
+
 /*
  * ideas for UT:
  * 1. objects of exported metatype
@@ -197,22 +200,20 @@ METAC_TYPE_GENERATE(func_ptr_t);
 typedef bit_fields_t * p_bit_fields_t;
 METAC_TYPE_GENERATE(p_bit_fields_t);
 int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
-METAC_TYPE_GENERATE(func_t);
+METAC_FUNCTION(func_t);
 
 typedef const char * cchar_t;
 METAC_TYPE_GENERATE(cchar_t);
 void func_printf(cchar_t format, ...){return;}
-//METAC_TYPE_GENERATE(func_printf);
-//METAC_OBJECT(func_printf, func_printf);
 METAC_FUNCTION(func_printf);
 
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
-METAC_DECLARE_EXTERN_OBJECTS_LIST;
+METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 
 #define GENERAL_TYPE_SMOKE(_type_, _s_type_) \
 do{ \
 	_type_ *ptr = NULL; \
-	struct metac_type *type = METAC_TYPE_NAME(_type_); \
+	struct metac_type *type = METAC_TYPE_NAME(_type_), *type_from_array; \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
 	char * type_name = metac_type_name(type); \
 	char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
@@ -224,6 +225,10 @@ do{ \
 	fail_unless(strcmp(type_name_copy, #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
 	\
 	free(type_name_copy);\
+	mark_point(); \
+	\
+	type_from_array = metac_type_by_name(METAC_TYPES_ARRAY, #_type_);\
+	fail_unless(type_from_array == type, "metac_type_by_name returned incorrect value %p", type_from_array);\
 	mark_point(); \
 } while(0)
 
@@ -411,6 +416,8 @@ do{ \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
 	struct metac_type_subprogram_info s_info; \
 	struct metac_type_parameter_info p_info; \
+	struct metac_object * p_object; \
+	struct metac_object_info p_object_info;\
 	\
 	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
@@ -437,6 +444,12 @@ do{ \
 	\
 	mark_point(); \
 	\
+	p_object = metac_object_by_name(METAC_OBJECTS_ARRAY, #_type_);\
+	fail_unless(p_object != NULL, "metac_type_by_name returned incorrect value %p", p_object);\
+	fail_unless(metac_object_info(p_object, &p_object_info) == 0, "metac_object_info failed");\
+	fail_unless(p_object_info.type == type, "p_object_info.type must be == type");\
+	fail_unless(p_object_info.ptr == _type_, "p_object_info.ptr must point to the object");\
+	mark_point(); \
 } while(0)
 
 START_TEST(func_type_smoke) {
@@ -553,6 +566,17 @@ START_TEST(enum_type_smoke) {
 
 }END_TEST
 
+START_TEST(metac_array_symbols) {
+	mark_point();
+	mark_point();
+	void * handle = dlopen(NULL, RTLD_NOW);
+	void * types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
+	void * objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
+	dlclose(handle);
+	fail_unless(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p", METAC_TYPES_ARRAY_SYMBOL, types_array);
+	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
+}END_TEST
+
 int main(void){
 	return run_suite(
 		START_SUITE(type_suite){
@@ -563,6 +587,7 @@ int main(void){
 					ADD_TEST(func_type_smoke);
 					ADD_TEST(array_type_smoke);
 					ADD_TEST(enum_type_smoke);
+					ADD_TEST(metac_array_symbols);
 				}END_CASE
 			);
 		}END_SUITE

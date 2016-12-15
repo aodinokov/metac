@@ -2,6 +2,7 @@
 #define METAC_H_
 
 #include "dwarf.h"
+#include <stdio.h>	/* NULL */
 
 /* declaration of C type in C */
 struct metac_type;
@@ -196,6 +197,7 @@ struct metac_type_array_item {
 #define METAC_TYPES_ARRAY METAC(types, array)
 #define METAC_TYPES_ARRAY_SYMBOL "metac__types_array"
 #define METAC_DECLARE_EXTERN_TYPES_ARRAY extern struct metac_type_array_item METAC_TYPES_ARRAY[]
+struct metac_type * metac_type_by_name(struct metac_type_array_item * array, metac_name_t name);
 
 struct metac_object {
 	struct metac_type **	type;
@@ -222,7 +224,7 @@ struct metac_object_array_item {
 
 #define METAC_OBJECTS_ARRAY METAC(objects, array)
 #define METAC_OBJECTS_ARRAY_SYMBOL "metac__objects_array"
-#define METAC_DECLARE_EXTERN_OBJECTS_LIST extern struct metac_object_array_item METAC_OBJECTS_ARRAY[]
-
+#define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_array_item METAC_OBJECTS_ARRAY[]
+struct metac_object * metac_object_by_name(struct metac_object_array_item * array, metac_name_t name);
 
 #endif /* METAC_H_ */

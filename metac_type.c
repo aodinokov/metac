@@ -564,3 +564,29 @@ int metac_object_info(struct metac_object * object, struct metac_object_info * o
 	return 0;
 }
 
+struct metac_type * metac_type_by_name(struct metac_type_array_item * array, metac_name_t name) {
+	if (array == NULL || name == NULL)
+		return NULL;
+
+	while (array->name) {
+		if (strcmp(array->name, name) == 0)
+			return array->ptr;
+		++array;
+	}
+
+	return NULL;
+}
+
+struct metac_object * metac_object_by_name(struct metac_object_array_item * array, metac_name_t name) {
+	if (array == NULL || name == NULL)
+		return NULL;
+
+	while (array->name) {
+		if (strcmp(array->name, name) == 0)
+			return array->ptr;
+		++array;
+	}
+
+	return NULL;
+}
+
