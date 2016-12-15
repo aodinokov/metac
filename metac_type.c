@@ -124,35 +124,18 @@ unsigned int metac_type_byte_size(struct metac_type *type) {
 	case DW_TAG_enumeration_type:
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		{
-			struct metac_type_at * at_byte_size = metac_type_at_by_key(type, DW_AT_byte_size);
-			assert(at_byte_size != NULL);
-			return at_byte_size->byte_size;
-		}while(0);
-		break;
+		assert(type->p_at.p_at_byte_size);
+		return type->p_at.p_at_byte_size->byte_size;
 	case DW_TAG_pointer_type:
-		{
-			struct metac_type_at * at_byte_size = metac_type_at_by_key(type, DW_AT_byte_size);
-			if (at_byte_size != NULL)
-				return at_byte_size->byte_size;
-			return sizeof(void*);
-		}while(0);
-		break;
+		if (type->p_at.p_at_byte_size != NULL)
+			return type->p_at.p_at_byte_size->byte_size;
+		return sizeof(void*);
 	case DW_TAG_array_type:
-		{
-			unsigned int elements_num =
-					metac_type_array_length(type);
-			struct metac_type * element_type =
-					type->p_at.p_at_type->type;
-			if (element_type == NULL) {
-				msg_stderr("metac_type_array_element_type returned NULL\n");
-				return 0;
-			}
-			return elements_num * metac_type_byte_size(element_type);
-
-
-		}while(0);
-		break;
+		if (type->p_at.p_at_type->type == NULL) {
+			msg_stderr("metac_type_array_element_type returned NULL\n");
+			return 0;
+		}
+		return metac_type_array_length(type) * metac_type_byte_size(type->p_at.p_at_type->type);
 	case DW_TAG_subprogram:
 		return 1;	/*sizeof function == 1*/
 	}

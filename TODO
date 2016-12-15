@@ -5,9 +5,14 @@
 8. done - add UT for enums
 2. done - expand API for subprograms - need to get params.
 3. done - expand subprograms API UT
-12. make a refactoring of all types (make something like enums) + define macroses and use them when use metac_type_at_map
-11. create function to read/write bit fields (arch independent)
+12. done - make a refactoring of all types (make something like enums) + define macroses and use them when use metac_type_at_map
+14. fix metac_type_array_info - 3 last fields must be initialized. and possibly get rid of metac_type_array_length?
+15. metac_type_array_length - real elements_count.
+11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
-6. modify metac.awk give API to find type by some params.
-10. expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
-13. pring at only if at_num>0
+6. done - modify metac.awk give API to find type by some params.
+10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
+13. minor - print at only if at_num>0
+
+
+

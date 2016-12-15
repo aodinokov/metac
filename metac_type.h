@@ -173,9 +173,9 @@ struct metac_type_element_info {
 struct metac_type_array_info {
 	metac_type_t *					type;					/* type of elements */
 	metac_num_t						subranges_count;		/* number of subranges */
-	metac_bound_t *					p_lower_bound;			/* TODO: min index in the array */
+	metac_bound_t					lower_bound;			/* TODO: min index in the array (0 by default) */
 	metac_bound_t *					p_upper_bound;			/* TODO: max index in the array */
-	metac_bound_t					length;					/* TODO: based on min and max - length of the array */
+	metac_bound_t					elements_number;		/* TODO: based on min and max - length of the array */
 };
 int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
 int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
