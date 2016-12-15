@@ -553,3 +553,14 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i, struc
 	return -1;
 }
 
+int metac_object_info(struct metac_object * object, struct metac_object_info * object_info) {
+	if (object == NULL || object->type == NULL)
+		return -1;
+
+	if (object_info) {
+		object_info->ptr = object->ptr;
+		object_info->type = *object->type;
+	}
+	return 0;
+}
+

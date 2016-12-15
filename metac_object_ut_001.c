@@ -43,12 +43,12 @@
  */
 
 /* export base types */
-METAC_TYPE_IMPORT(char);
-METAC_TYPE_IMPORT(short);
-METAC_TYPE_IMPORT(int);
-METAC_TYPE_IMPORT(long);
-METAC_TYPE_IMPORT(float);
-METAC_TYPE_IMPORT(double);
+METAC_TYPE_GENERATE(char);
+METAC_TYPE_GENERATE(short);
+METAC_TYPE_GENERATE(int);
+METAC_TYPE_GENERATE(long);
+METAC_TYPE_GENERATE(float);
+METAC_TYPE_GENERATE(double);
 
 /* create typedefs for non-one-word base types and export them */
 /*char*/
@@ -56,9 +56,9 @@ typedef char char_t;
 typedef signed char schar_t;
 typedef unsigned char uchar_t;
 
-METAC_TYPE_IMPORT(char_t);
-METAC_TYPE_IMPORT(schar_t);
-METAC_TYPE_IMPORT(uchar_t);
+METAC_TYPE_GENERATE(char_t);
+METAC_TYPE_GENERATE(schar_t);
+METAC_TYPE_GENERATE(uchar_t);
 
 /*short*/
 typedef short short_t;
@@ -68,12 +68,12 @@ typedef signed short int sshortint_t;
 typedef unsigned short ushort_t;
 typedef unsigned short int ushortint_t;
 
-METAC_TYPE_IMPORT(short_t);
-METAC_TYPE_IMPORT(shortint_t);
-METAC_TYPE_IMPORT(sshort_t);
-METAC_TYPE_IMPORT(sshortint_t);
-METAC_TYPE_IMPORT(ushort_t);
-METAC_TYPE_IMPORT(ushortint_t);
+METAC_TYPE_GENERATE(short_t);
+METAC_TYPE_GENERATE(shortint_t);
+METAC_TYPE_GENERATE(sshort_t);
+METAC_TYPE_GENERATE(sshortint_t);
+METAC_TYPE_GENERATE(ushort_t);
+METAC_TYPE_GENERATE(ushortint_t);
 
 /*int*/
 typedef int int_t;
@@ -82,11 +82,11 @@ typedef signed int sint_t;
 typedef unsigned unsigned_t;
 typedef unsigned int uint_t;
 
-METAC_TYPE_IMPORT(int_t);
-METAC_TYPE_IMPORT(signed_t);
-METAC_TYPE_IMPORT(sint_t);
-METAC_TYPE_IMPORT(unsigned_t);
-METAC_TYPE_IMPORT(uint_t);
+METAC_TYPE_GENERATE(int_t);
+METAC_TYPE_GENERATE(signed_t);
+METAC_TYPE_GENERATE(sint_t);
+METAC_TYPE_GENERATE(unsigned_t);
+METAC_TYPE_GENERATE(uint_t);
 
 /*long*/
 typedef long long_t;
@@ -96,12 +96,12 @@ typedef signed long int slongint_t;
 typedef unsigned long ulong_t;
 typedef unsigned long int ulongint_t;
 
-METAC_TYPE_IMPORT(long_t);
-METAC_TYPE_IMPORT(longint_t);
-METAC_TYPE_IMPORT(slong_t);
-METAC_TYPE_IMPORT(slongint_t);
-METAC_TYPE_IMPORT(ulong_t);
-METAC_TYPE_IMPORT(ulongint_t);
+METAC_TYPE_GENERATE(long_t);
+METAC_TYPE_GENERATE(longint_t);
+METAC_TYPE_GENERATE(slong_t);
+METAC_TYPE_GENERATE(slongint_t);
+METAC_TYPE_GENERATE(ulong_t);
+METAC_TYPE_GENERATE(ulongint_t);
 
 /*long long*/
 typedef long long llong_t;
@@ -111,24 +111,24 @@ typedef signed long long int sllongint_t;
 typedef unsigned long long ullong_t;
 typedef unsigned long long int ullongint_t;
 
-METAC_TYPE_IMPORT(llong_t);
-METAC_TYPE_IMPORT(llongint_t);
-METAC_TYPE_IMPORT(sllong_t);
-METAC_TYPE_IMPORT(sllongint_t);
-METAC_TYPE_IMPORT(ullong_t);
-METAC_TYPE_IMPORT(ullongint_t);
+METAC_TYPE_GENERATE(llong_t);
+METAC_TYPE_GENERATE(llongint_t);
+METAC_TYPE_GENERATE(sllong_t);
+METAC_TYPE_GENERATE(sllongint_t);
+METAC_TYPE_GENERATE(ullong_t);
+METAC_TYPE_GENERATE(ullongint_t);
 
 /*float*/
 typedef float float_t;
-METAC_TYPE_IMPORT(float_t);
+METAC_TYPE_GENERATE(float_t);
 
 /*double*/
 typedef double double_t;
-METAC_TYPE_IMPORT(double_t);
+METAC_TYPE_GENERATE(double_t);
 
 /*long double*/
 typedef long double ldouble_t;
-METAC_TYPE_IMPORT(ldouble_t);
+METAC_TYPE_GENERATE(ldouble_t);
 
 /* pointers */
 typedef void* voidptr_t;
@@ -136,9 +136,9 @@ typedef void** voidptrptr_t;
 typedef char* charptr_t;
 /* skip other types */
 
-METAC_TYPE_IMPORT(voidptr_t);
-METAC_TYPE_IMPORT(voidptrptr_t);
-METAC_TYPE_IMPORT(charptr_t);
+METAC_TYPE_GENERATE(voidptr_t);
+METAC_TYPE_GENERATE(voidptrptr_t);
+METAC_TYPE_GENERATE(charptr_t);
 
 /* enums */
 typedef enum _enum_{
@@ -157,19 +157,19 @@ typedef enum{
 	aeEleven,
 	aeTwelve,
 }anon_enum_t;
-METAC_TYPE_IMPORT(enum_t);
-METAC_TYPE_IMPORT(anon_enum_t);
+METAC_TYPE_GENERATE(enum_t);
+METAC_TYPE_GENERATE(anon_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
-METAC_TYPE_IMPORT(char_array5_t);
+METAC_TYPE_GENERATE(char_array5_t);
 
 /* unions */
 typedef union _union_{
    int d;
    char f;
 }union_t;
-METAC_TYPE_IMPORT(union_t);
+METAC_TYPE_GENERATE(union_t);
 
 /* struct */
 typedef struct _struct_
@@ -177,7 +177,7 @@ typedef struct _struct_
   unsigned int widthValidated;
   unsigned int heightValidated;
 }struct_t;
-METAC_TYPE_IMPORT(struct_t);
+METAC_TYPE_GENERATE(struct_t);
 
 /* bit fields */
 typedef struct _bit_fields_
@@ -185,7 +185,7 @@ typedef struct _bit_fields_
   unsigned int widthValidated : 1;
   unsigned int heightValidated : 2;
 }bit_fields_t;
-METAC_TYPE_IMPORT(bit_fields_t);
+METAC_TYPE_GENERATE(bit_fields_t);
 
 /*TODO: some combinations*/
 
@@ -194,14 +194,14 @@ do{ \
 	unsigned int data_len; \
 	_type_ *ptr; \
 	struct metac_object *object; \
-	struct metac_type *type = METAC_TYPE(_type_); \
+	struct metac_type *type = METAC_TYPE_NAME(_type_); \
 	\
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value"); \
 	\
-	object = metac_object_create(METAC_TYPE(_type_)); \
+	object = metac_object_create(METAC_TYPE_NAME(_type_)); \
 	fail_unless(object != NULL, "object wasn't created"); \
 	\
-	fail_unless(metac_object_type(object) == METAC_TYPE(_type_), \
+	fail_unless(metac_object_type(object) == METAC_TYPE_NAME(_type_), \
 			"metac_object_type returned incorrect pointer on type"); \
 	\
 	ptr = (_type_ *)metac_object_ptr(object, &data_len); \
@@ -303,10 +303,10 @@ typedef struct check_all_types1_s {
 	struct check_all_types1_s *p_astruct[10];
 	struct char_struct_s astruct[10];
 }check_all_types1_t;
-METAC_TYPE_IMPORT(check_all_types1_t);
+METAC_TYPE_GENERATE(check_all_types1_t);
 
 START_TEST(check_all_types1) {
-	struct metac_type *type = METAC_TYPE(check_all_types1_t);
+	struct metac_type *type = METAC_TYPE_NAME(check_all_types1_t);
 	fail_unless(metac_type_child_num(metac_type_typedef_skip(type)) == 19, "Incorrect member count");
 }END_TEST
 
@@ -318,10 +318,10 @@ START_TEST(check_object_create1) {
 	check_all_types1_t *s;
 	unsigned int data_len = 0;
 
-	object = metac_object_create(METAC_TYPE(check_all_types1_t));
+	object = metac_object_create(METAC_TYPE_NAME(check_all_types1_t));
 	fail_unless(object != NULL, "object wasn't created");
 
-	fail_unless(metac_object_type(object) == METAC_TYPE(check_all_types1_t),
+	fail_unless(metac_object_type(object) == METAC_TYPE_NAME(check_all_types1_t),
 			"metac_object_type returned incorrect pointer on type");
 
 	s = (check_all_types1_t *)metac_object_ptr(object, &data_len);

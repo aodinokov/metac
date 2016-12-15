@@ -182,19 +182,47 @@ int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
 int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
 
-/* macroses to export C type definitions in code*/
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
+/* macroses to export C type definitions in code*/
+#define METAC_TYPE_NAME(name) METAC(type, name)
+#define METAC_TYPE_GENERATE(name) extern struct metac_type *METAC_TYPE_NAME(name)
 
-#define METAC_TYPE(name) METAC(type, name)
-#define METAC_TYPE_IMPORT(name) extern struct metac_type *METAC_TYPE(name)
+struct metac_type_array_item {
+	metac_name_t 			name;
+	struct metac_type * 	ptr;
+};
 
-/*just to play with that*/
-struct metac_object_{
+#define METAC_TYPES_ARRAY METAC(types, array)
+#define METAC_TYPES_ARRAY_SYMBOL "metac__types_array"
+#define METAC_DECLARE_EXTERN_TYPES_ARRAY extern struct metac_type_array_item METAC_TYPES_ARRAY[]
+
+struct metac_object {
 	struct metac_type **	type;
 	void *					ptr;
 };
-#define METAC_OBJECT_(_type_, _name_) struct metac_object_ METAC(obj, _name_) = {.type = &METAC_TYPE(_type_), .ptr = &_name_}
+#define METAC_OBJECT_NAME(name) METAC(object, name)
+#define METAC_OBJECT(_type_, _name_) \
+	METAC_TYPE_GENERATE(_name_); \
+	struct metac_object METAC_OBJECT_NAME(_name_) = {.type = &METAC_TYPE_NAME(_type_), .ptr = &_name_}
+#define METAC_FUNCTION(_name_) METAC_OBJECT(_name_, _name_)
+
+struct metac_object_info {
+	struct metac_type *		type;
+	void *					ptr;
+	/*TODO: some other params, like real_type (without typedefs), byte length and etc?*/
+};
+
+int metac_object_info(struct metac_object * object, struct metac_object_info * object_info);
+
+struct metac_object_array_item {
+	metac_name_t 			name;
+	struct metac_object * 	ptr;
+};
+
+#define METAC_OBJECTS_ARRAY METAC(objects, array)
+#define METAC_OBJECTS_ARRAY_SYMBOL "metac__objects_array"
+#define METAC_DECLARE_EXTERN_OBJECTS_LIST extern struct metac_object_array_item METAC_OBJECTS_ARRAY[]
 
 
 #endif /* METAC_H_ */
