@@ -16,6 +16,7 @@
 6. done - modify metac.awk give API to find type by some params.
 10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
 13. minor - print at only if at_num>0
+19. done - need an automated way how to understand from METAC_OBJECT(_type_, _name_) make type and add object in metac.awk (to avoid using METAC_TYPE_GENERATE)
 
 
 

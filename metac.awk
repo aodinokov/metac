@@ -83,7 +83,13 @@ BEGIN {
             case "type":
                 task4types[x[2]] = x[1];
                 break;
-            case "obj":
+            case "object":
+                task4objects[x[2]] = x[1];
+                break;
+            case "types":
+                # we ignore them
+                break;
+            case "objects":
                 # we ignore them
                 break;
             default:
@@ -94,6 +100,8 @@ BEGIN {
     }else{
         task4types[0] = "";
         delete task4types[0];
+        task4objects[0] = "";
+        delete task4objects[0];
     }
 }
 
@@ -117,6 +125,7 @@ END {
         print "static struct metac_type data_" obj[i] ";";
     }
     print "\n/* real data */"
+    types_array_body = "";
     for (i in obj) {
         in_task4types = 0;
         i = obj[i];
@@ -167,10 +176,25 @@ END {
         print "};"
         if (in_task4types != 0) {
             print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
+            types_array_body = types_array_body "\t{.name = \"" export_name(data[i]["DW_AT_name"]) "\", .ptr = &data_" i "},\n";
             delete task4types[export_name(data[i]["DW_AT_name"])];
         }
         print;
     }
+    #pint all types
+    print "struct metac_type_array_item METAC_TYPES_ARRAY[] = {"
+    print types_array_body;
+    print "};\n"
+    #print all objects
+    for (i in task4objects) {
+        print "extern struct metac_object METAC_OBJECT_NAME(" i ");"
+    }
+    print
+    print "struct metac_object_array_item METAC_OBJECTS_ARRAY[] = {"
+    for (i in task4objects) {
+        print "\t{.name = \"" i "\", .ptr = &METAC_OBJECT_NAME(" i ")},"
+    }
+    print "};"
 }
 /^<[^>]+><[^>]+>/{
     while (match($0, /<([^>]+)><([^>]+)>[ \t]+([^ \t]*)/, arr)) {
