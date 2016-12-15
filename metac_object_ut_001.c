@@ -307,7 +307,7 @@ METAC_EXPORT_TYPE(check_all_types1_t);
 
 START_TEST(check_all_types1) {
 	struct metac_type *type = METAC_TYPE(check_all_types1_t);
-	fail_unless(metac_type_structure_member_count(type) == 19, "Incorrect member count");
+	fail_unless(metac_type_child_num(metac_type_typedef_skip(type)) == 19, "Incorrect member count");
 }END_TEST
 
 

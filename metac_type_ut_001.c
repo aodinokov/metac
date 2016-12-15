@@ -287,16 +287,18 @@ START_TEST(general_type_smoke) {
 do{ \
 	struct metac_type *type = METAC_TYPE(_type_); \
 	_type_ struct_; \
-	fail_unless(metac_type_union_member_count(type) == (fields_number), \
+	struct metac_type_union_info _info_;\
+	fail_unless(metac_type_union_info(type, &_info_) == 0, "get info returned error");\
+	fail_unless(_info_.members_count == (fields_number), \
 			"metac_type_union_member_count incorrect value for " #_type_ ": %d", fields_number); \
 
 
 #define UNION_TYPE_SMOKE_MEMBER(_member_name_) \
 	do { \
 		struct metac_type_member_info member_info; \
-		struct metac_type * member_type = metac_type_union_member_by_name(type, #_member_name_); \
-		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		int i = metac_type_child_id_by_name(type, #_member_name_); \
+		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_union_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
 		/* check name*/\
 		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
 		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
@@ -320,17 +322,18 @@ do{ \
 do{ \
 	struct metac_type *type = METAC_TYPE(_type_); \
 	_type_ struct_; \
-	fail_unless(metac_type_structure_member_count(type) == (fields_number), \
+	struct metac_type_structure_info _info_;\
+	fail_unless(metac_type_structure_info(type, &_info_) == 0, "get info returned error");\
+	fail_unless(_info_.members_count == (fields_number), \
 			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
-
 
 #define STRUCT_TYPE_SMOKE_MEMBER(_member_name_) \
 	do { \
 		struct metac_type_member_info member_info; \
-		struct metac_type * member_type = metac_type_structure_member_by_name(type, #_member_name_); \
-		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
-		/* check name*/\
+		int i = metac_type_child_id_by_name(type, #_member_name_); \
+		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		/* check name*/ \
 		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
 		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
 				member_info.name, #_member_name_); \
@@ -347,13 +350,12 @@ do{ \
 
 #define STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(_member_name_) \
 	do { \
-		int i; \
 		int bit_size = 0; \
 		unsigned int mask; /*will take number of bits*/ \
 		struct metac_type_member_info member_info; \
-		struct metac_type * member_type = metac_type_structure_member_by_name(type, #_member_name_); \
-		fail_unless(member_type != NULL, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_member_info(member_type, &member_info) == 0, "failed to get member info for " #_member_name_); \
+		int i = metac_type_child_id_by_name(type, #_member_name_); \
+		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
 		/* check name*/\
 		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
 		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
@@ -395,7 +397,6 @@ START_TEST(struct_type_smoke) {
 		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(heightValidated);
 		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(widthValidated);
 	STRUCT_TYPE_SMOKE_END;
-
 }END_TEST
 
 #define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
@@ -416,7 +417,7 @@ do{ \
 	fail_unless(metac_type_subprogram_info(type, &s_info) == 0, "metac_type_subprogram_info: expected success"); \
 	\
 	fail_unless(strcmp(s_info.name, #_type_) == 0, "invalid name %s instead of %s", s_info.name, #_type_); \
-	fail_unless(s_info.return_type == expected_return_type, "not expected return type %p instead of %p", s_info.return_type, expected_return_type); \
+	fail_unless(s_info.type == expected_return_type, "not expected return type %p instead of %p", s_info.type, expected_return_type); \
 	fail_unless(s_info.parameters_count == sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), "params number must be %u instead of %u", \
 			sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), s_info.parameters_count); \
 	\
