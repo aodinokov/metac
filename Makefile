@@ -1,6 +1,6 @@
 CFLAGS+=-g3 -o0
 
-all: metac_type_ut_001.run metac_type_ut_001.metac.c doc
+all: metac_type_ut_001.run metac_type_ut_001.metac.c
 
 _always_:
 
