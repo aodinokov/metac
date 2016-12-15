@@ -1,6 +1,6 @@
 CFLAGS+=-g3 -o0
 
-all: metac_type_ut_001.run metac_type_ut_001.metac.c
+all: metac_type_ut_001.run metac_type_ut_001.metac.c doc
 
 _always_:
 
@@ -32,6 +32,9 @@ metac_type_ut_001: metac_type_ut_001.o metac_type_ut_001.metac.o metac_type.o
 %.run: % _always_
 	./$<
 
+# documentation
+doc: _always_
+	@doxygen Doxyfile
 
 clean:
 	rm -rf *.o *.metac.c

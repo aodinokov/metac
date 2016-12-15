@@ -10,6 +10,8 @@ metac.awk refactoring:
 25. Improve performance of metac_type_by_name and metac_object_by_name: pre-sort METAC_DECLARE_EXTERN_TYPES_ARRAY & METAC_DECLARE_EXTERN_OBJECTS_ARRAY and use O(log N) algorithm to search 
 13. minor - print at only if at_num>0
 
+Documentation
+26. make doxigen doc generation
 
 
 
