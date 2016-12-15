@@ -14,7 +14,8 @@ typedef struct metac_type		metac_type_t;
 typedef struct metac_type_at	metac_type_at_t;
 typedef unsigned int			metac_byte_size_t;
 typedef unsigned int			metac_encoding_t;
-typedef unsigned int			metac_data_member_location_t;
+typedef unsigned int			metac_data_location_t;
+typedef metac_data_location_t	metac_data_member_location_t;
 typedef unsigned int			metac_bit_offset_t;
 typedef unsigned int			metac_bit_size_t;
 typedef unsigned int			metac_bound_t;
@@ -77,7 +78,7 @@ struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
 metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
 struct metac_type_p_at*	metac_type_p_at(struct metac_type *type);
-struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);
+struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);	/* find id for the first child with the given name */
 
 
 /* basic example that use metac_type_at_by_key */
@@ -158,32 +159,32 @@ int metac_type_union_member_info(struct metac_type *type, unsigned int i,
 		struct metac_type_member_info *p_info);		/*< returns union parameter info*/
 
 /*
- * special functions when metac_type(type) == DW_TAG_subrange_type (array theoretically can contain several subranges)
+ * special functions to work with arrays when metac_type(type) == DW_TAG_array_type (array)
  */
 struct metac_type_subrange_info {
 	metac_type_t *					type;					/* type of index */
 	metac_bound_t *					p_lower_bound;			/* min index in subrange */
 	metac_bound_t *					p_upper_bound;			/* max index in subrange */
 };
-
-/* special functions to work with arrays when metac_type(type) == DW_TAG_array_type (array) */
-struct metac_type * metac_type_array_element_type(struct metac_type *type);		/*< returns array elements type */
-
-unsigned int 		metac_type_array_subrange_count(struct metac_type *type);
-struct metac_type * metac_type_array_subrange(struct metac_type *type, unsigned int id);
-
-/* some additional helpful functions when metac_type(type) == DW_TAG_array_type (array) */
 struct metac_type_element_info {
-	struct metac_type *	type;
-	unsigned int element_location;
+	metac_type_t *					type;					/* type of element */
+	metac_data_location_t 			data_location;			/* offset of the element */
 };
-int 				metac_type_array_element_info(struct metac_type *type, unsigned int N,
-							struct metac_type_element_info *p_element_info);	/*< returns Nth element info */
-unsigned int		metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
+struct metac_type_array_info {
+	metac_type_t *					type;					/* type of elements */
+	metac_num_t						subranges_count;		/* number of subranges */
+	metac_bound_t *					p_lower_bound;			/* TODO: min index in the array */
+	metac_bound_t *					p_upper_bound;			/* TODO: max index in the array */
+	metac_bound_t					length;					/* TODO: based on min and max - length of the array */
+};
+int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
+int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
+		struct metac_type_subrange_info *p_info);			/*< returns array subrange info*/
+int metac_type_array_element_info(struct metac_type *type, unsigned int i,
+		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
 
-
-
-/* TODO: to be extended by other types */
+/*??? TODO: see implementation */
+metac_bound_t metac_type_array_length(struct metac_type *type);	/*< returns length in elements of array */
 
 /* macroses to export C type definitions in code*/
 #define _METAC_TYPE(name) metac__type_ ## name
