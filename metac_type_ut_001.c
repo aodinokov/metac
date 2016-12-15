@@ -436,12 +436,8 @@ START_TEST(func_type_smoke) {
 	};
 	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
 			{.unspecified_parameters = 0, .name = "format", .type = METAC_TYPE(cchar_t)},
-#ifdef __clang__
+#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
 /* Workaround: looks like clang3.4 doesn't have ability to show if function has unspecified parameter. See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472*/
-#if __clang_major__ == 3 && __clang_minor__ > 4
-			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
-#endif
-#else
 			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
 #endif
 	};
