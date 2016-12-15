@@ -123,7 +123,7 @@ END {
             if (match(j, "DW_AT_(.*)", arr0)) {
                 dump_res = dump_at(i, j);
                 if (dump_res > 0)
-                    p_at= p_at "\t\t.at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
+                    p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
                 at_num += dump_res;
                 if (j == "DW_AT_name" && at_name_is_in_task(data[i][j]))
                     in_task = 1;

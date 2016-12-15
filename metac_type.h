@@ -47,16 +47,16 @@ struct metac_type_at {
 };
 
 struct metac_type_p_at {
-	struct metac_type_at *		at_name;					/* universal field */
-	struct metac_type_at *		at_type;					/* universal field */
-	struct metac_type_at *		at_byte_size;				/* type size */
-	struct metac_type_at *		at_encoding;				/* type encoding (DW_ATE_signed etc) */
-	struct metac_type_at *		at_data_member_location;	/* member offset in structs and unions */
-	struct metac_type_at *		at_bit_offset;				/* bit-field member bit offset in structs and unions */
-	struct metac_type_at *		at_bit_size;				/* bit-field member bit size in structs and unions */
-	struct metac_type_at *		at_lower_bound;				/* for array_ranges*/
-	struct metac_type_at *		at_upper_bound;				/* for array_ranges*/
-	struct metac_type_at *		at_const_value;				/* for enums*/
+	struct metac_type_at *		p_at_name;					/* universal field */
+	struct metac_type_at *		p_at_type;					/* universal field */
+	struct metac_type_at *		p_at_byte_size;				/* type size */
+	struct metac_type_at *		p_at_encoding;				/* type encoding (DW_ATE_signed etc) */
+	struct metac_type_at *		p_at_data_member_location;	/* member offset in structs and unions */
+	struct metac_type_at *		p_at_bit_offset;			/* bit-field member bit offset in structs and unions */
+	struct metac_type_at *		p_at_bit_size;				/* bit-field member bit size in structs and unions */
+	struct metac_type_at *		p_at_lower_bound;			/* for array_ranges*/
+	struct metac_type_at *		p_at_upper_bound;			/* for array_ranges*/
+	struct metac_type_at *		p_at_const_value;			/* for enums*/
 };
 
 

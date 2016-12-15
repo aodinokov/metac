@@ -75,7 +75,7 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_a
 		return NULL;
 
 	switch (id) {
-#define HANDLE_KEY(_key_) case DW_AT_ ##_key_ : return type->p_at.at_ ## _key_
+#define HANDLE_KEY(_key_) case DW_AT_ ##_key_ : return type->p_at.p_at_ ## _key_
 	HANDLE_KEY(name);
 	HANDLE_KEY(type);
 	HANDLE_KEY(byte_size);
@@ -91,9 +91,9 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_a
 }
 
 char*	metac_type_name(struct metac_type *type) {
-	if (type == NULL || type->p_at.at_name == NULL)
+	if (type == NULL || type->p_at.p_at_name == NULL)
 		return NULL;
-	return type->p_at.at_name->name;
+	return type->p_at.p_at_name->name;
 }
 
 struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
@@ -101,11 +101,11 @@ struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
 		return NULL;
 
 	if (type->id == DW_TAG_typedef) {
-		if (type->p_at.at_type == NULL || type->p_at.at_type->type == NULL) {
+		if (type->p_at.p_at_type == NULL || type->p_at.p_at_type->type == NULL) {
 			msg_stderr("typedef has to contain type in attributes\n");
 			return NULL;
 		}
-		return metac_type_typedef_skip(type->p_at.at_type->type);
+		return metac_type_typedef_skip(type->p_at.p_at_type->type);
 	}
 	return type;
 }
