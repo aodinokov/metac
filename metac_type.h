@@ -49,8 +49,20 @@ struct metac_type {
 	metac_type_id_t		id;				/* type id */
 	metac_num_t			child_num;		/* number of children */
 	metac_type_t **		child;			/* pointer to array of children */
-	metac_num_t			at_num;				/* number of attributes */
+	metac_num_t			at_num;			/* number of attributes */
 	metac_type_at_t *	at;				/* pointer to array of attributes */
+	struct {
+		struct metac_type_at *		at_name;					/* universal field */
+		struct metac_type_at *		at_type;					/* universal field */
+		struct metac_type_at *		at_byte_size;				/* type size */
+		struct metac_type_at *		at_encoding;				/* type encoding (DW_ATE_signed etc) */
+		struct metac_type_at *		at_data_member_location;	/* member offset in structs and unions */
+		struct metac_type_at *		at_bit_offset;				/* bit-field member bit offset in structs and unions */
+		struct metac_type_at *		at_bit_size;				/* bit-field member bit size in structs and unions */
+		struct metac_type_at *		at_lower_bound;				/* for array_ranges*/
+		struct metac_type_at *		at_upper_bound;				/* for array_ranges*/
+		struct metac_type_at *		at_const_value;				/* for enums*/
+	}p_at;
 };
 
 /* some basic functions to navigate in structure metac_type */

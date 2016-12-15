@@ -15,42 +15,41 @@ function mark_obj(id) {
 
 function dump_at(data_id, at_id) {
     res = 0;
-    switch(at_id){
-    case "DW_AT_name":
-        #print "\t{id: " at_id ", name: \"" data[data_id][at_id] "\"},";
-        print "\t{.id = " at_id ", .name = \"" data[data_id][at_id] "\"},";
-        ++res;
-        break;
-    case "DW_AT_data_member_location":
-        if (match(data[data_id][at_id], "([0-9]+).*", arr))
-        #print "\t{id: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
-        print "\t{.id = " at_id ", .data_member_location = " arr[1] "/*" data[data_id][at_id] "*/},";
-        ++res;
-        break;
-    case "DW_AT_type":
-        if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
-            #print "\t{id: " at_id ", type: &data_" arr[1] "},";
-            print "\t{.id = " at_id ", .type = &data_" arr[1] "},";
+    if (match(at_id, "DW_AT_(.*)", arr0)) {
+        switch(at_id){
+        case "DW_AT_name":
+            #print "\t{id: " at_id ", name: \"" data[data_id][at_id] "\"},";
+            print "\t{.id = " at_id ", ." arr0[1] " = \"" data[data_id][at_id] "\"},";
             ++res;
-        }
-        break;
-    case "DW_AT_byte_size":
-    case "DW_AT_bit_offset":
-    case "DW_AT_bit_size":
-    case "DW_AT_encoding":
-    case "DW_AT_lower_bound":
-    case "DW_AT_upper_bound":
-    case "DW_AT_const_value":
-        if (match(at_id, "DW_AT_(.*)", arr)) {
-            #print "\t{id: " at_id ", " arr[1] ": " data[data_id][at_id] "},"
-            print "\t{.id = " at_id ", ." arr[1] " = " data[data_id][at_id] "},"
-        }
-        ++res;
-        break;
-    default:
-        if (match(at_id, "DW_AT_(.*)", arr)) {
-            #print "\t/* Skip {id: " at_id ", " arr[1] ": " data[data_id][at_id] "}, */"
-            print "\t/* Skip {.id = " at_id ", ." arr[1] " = " data[data_id][at_id] "}, */"
+            break;
+        case "DW_AT_data_member_location":
+            if (match(data[data_id][at_id], "([0-9]+).*", arr)) {
+                #print "\t{id: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
+                print "\t{.id = " at_id ", ." arr0[1] " = " arr[1] "/*" data[data_id][at_id] "*/},";
+                ++res;
+            }
+            break;
+        case "DW_AT_type":
+            if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
+                #print "\t{id: " at_id ", type: &data_" arr[1] "},";
+                print "\t{.id = " at_id ", ." arr0[1] " = &data_" arr[1] "},";
+                ++res;
+            }
+            break;
+        case "DW_AT_byte_size":
+        case "DW_AT_bit_offset":
+        case "DW_AT_bit_size":
+        case "DW_AT_encoding":
+        case "DW_AT_lower_bound":
+        case "DW_AT_upper_bound":
+        case "DW_AT_const_value":
+                #print "\t{id: " at_id ", " arr0[1] ": " data[data_id][at_id] "},"
+                print "\t{.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "},"
+            ++res;
+            break;
+        default:
+                #print "\t/* Skip {id: " at_id ", " arr0[1] ": " data[data_id][at_id] "}, */"
+                print "\t/* Skip {.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "}, */"
         }
     }
     return res;
@@ -111,6 +110,7 @@ END {
     for (i in obj) {
         in_task = 0;
         i = obj[i];
+        p_at = "";
         print "/* --" i "--*/"
         if ("child" in data[i]) {
             print "static struct metac_type *data_" i "_child[] = {";
@@ -120,9 +120,14 @@ END {
         at_num = 0;
         print "static struct metac_type_at data_" i "_at[] = {";
         for (j in data[i]) {
-            at_num += dump_at(i, j);
-            if (j == "DW_AT_name" && at_name_is_in_task(data[i][j]))
-                in_task = 1;
+            if (match(j, "DW_AT_(.*)", arr0)) {
+                dump_res = dump_at(i, j);
+                if (dump_res > 0)
+                    p_at= p_at "\t\t.at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
+                at_num += dump_res;
+                if (j == "DW_AT_name" && at_name_is_in_task(data[i][j]))
+                    in_task = 1;
+            }
         }
         print "};"
 
@@ -143,10 +148,12 @@ END {
 
         #print "\tat_num: " at_num ",";
         print "\t.at_num = " at_num ",";
-        if (at_num > 0) {
+        #if (at_num > 0) {
             #print "\tat: data_" i "_at,";
             print "\t.at = data_" i "_at,";
-        }
+        #}
+        
+        print "\t.p_at = {\n" p_at "\t},";
         print "};"
         if (in_task != 0) {
             print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
