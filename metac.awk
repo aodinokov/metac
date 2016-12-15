@@ -17,20 +17,20 @@ function dump_at(data_id, at_id) {
     res = 0;
     switch(at_id){
     case "DW_AT_name":
-	#print "\t{key: " at_id ", name: \"" data[data_id][at_id] "\"},";
-	print "\t{.key = " at_id ", .name = \"" data[data_id][at_id] "\"},";
+	#print "\t{id: " at_id ", name: \"" data[data_id][at_id] "\"},";
+	print "\t{.id = " at_id ", .name = \"" data[data_id][at_id] "\"},";
 	++res;
 	break;
     case "DW_AT_data_member_location":
 	if (match(data[data_id][at_id], "([0-9]+).*", arr))
-	#print "\t{key: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
-	print "\t{.key = " at_id ", .data_member_location = " arr[1] "/*" data[data_id][at_id] "*/},";
+	#print "\t{id: " at_id ", data_member_location: " arr[1] "/*" data[data_id][at_id] "*/},";
+	print "\t{.id = " at_id ", .data_member_location = " arr[1] "/*" data[data_id][at_id] "*/},";
 	++res;
 	break;
     case "DW_AT_type":
 	if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
-	    #print "\t{key: " at_id ", type: &data_" arr[1] "},";
-	    print "\t{.key = " at_id ", .type = &data_" arr[1] "},";
+	    #print "\t{id: " at_id ", type: &data_" arr[1] "},";
+	    print "\t{.id = " at_id ", .type = &data_" arr[1] "},";
 	    ++res;
 	}
 	break;
@@ -42,15 +42,15 @@ function dump_at(data_id, at_id) {
     case "DW_AT_upper_bound":
     case "DW_AT_const_value":
 	if (match(at_id, "DW_AT_(.*)", arr)) {
-	    #print "\t{key: " at_id ", " arr[1] ": " data[data_id][at_id] "},"
-	    print "\t{.key = " at_id ", ." arr[1] " = " data[data_id][at_id] "},"
+	    #print "\t{id: " at_id ", " arr[1] ": " data[data_id][at_id] "},"
+	    print "\t{.id = " at_id ", ." arr[1] " = " data[data_id][at_id] "},"
 	}
 	++res;
 	break;
     default:
 	if (match(at_id, "DW_AT_(.*)", arr)) {
-	    #print "\t/* Skip {key: " at_id ", " arr[1] ": " data[data_id][at_id] "}, */"
-	    print "\t/* Skip {.key = " at_id ", ." arr[1] " = " data[data_id][at_id] "}, */"
+	    #print "\t/* Skip {id: " at_id ", " arr[1] ": " data[data_id][at_id] "}, */"
+	    print "\t/* Skip {.id = " at_id ", ." arr[1] " = " data[data_id][at_id] "}, */"
 	}
     }
     return res;
@@ -128,7 +128,7 @@ END {
 	print "static struct metac_type data_" i " = {";
 	if ("type" in data[i]) {
 	    #print "\ttype: " data[i]["type"] ","
-	    print "\t.type = " data[i]["type"] ","
+	    print "\t.id = " data[i]["type"] ","
 	}
 	if ("child" in data[i]) {
 	    #print "\tchild_num: " length(data[i]["child"]) ","

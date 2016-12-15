@@ -215,7 +215,7 @@ do{ \
 	if (tmp != NULL)*tmp = '\0'; /*workaround for long int and short int - get only first word*/ \
 	\
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value for " #_type_); \
-	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
+	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
 	fail_unless(strcmp(type_name_copy, #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
 	\
 	free(type_name_copy);\
@@ -406,7 +406,7 @@ do{ \
 	struct metac_type_subprogram_info s_info; \
 	struct metac_type_parameter_info p_info; \
 	\
-	fail_unless(metac_type(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type(typedef_skip_type)); \
+	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
 			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
 	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\

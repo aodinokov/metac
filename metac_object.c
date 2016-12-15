@@ -78,8 +78,8 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 	struct metac_type_at * at_byte_size;
 	struct metac_object * object;
 
-	static struct metac_type_at ptr_at_byte_size = {.key = DW_AT_byte_size, .byte_size = sizeof(void*)};
-	struct metac_type_at 		arr_at_byte_size = {.key = DW_AT_byte_size, .byte_size = 0};
+	static struct metac_type_at ptr_at_byte_size = {.id = DW_AT_byte_size, .byte_size = sizeof(void*)};
+	struct metac_type_at 		arr_at_byte_size = {.id = DW_AT_byte_size, .byte_size = 0};
 
 	assert(_type);
 	assert(count > 0);
@@ -89,10 +89,10 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 
 	at_byte_size = metac_type_at_by_key(type, DW_AT_byte_size);
 	if (at_byte_size == NULL) {
-		if (type->type == DW_TAG_pointer_type) {
+		if (type->id == DW_TAG_pointer_type) {
 			/*workaround for clang - it doesn't provide length of ptrs */
 			at_byte_size = &ptr_at_byte_size;
-		} else if (data == NULL && type->type == DW_TAG_array_type) {
+		} else if (data == NULL && type->id == DW_TAG_array_type) {
 			/*workaroung with arrays - we need to know byte_size */
 			arr_at_byte_size.byte_size = metac_type_byte_size(type);
 			at_byte_size = &arr_at_byte_size;
@@ -127,7 +127,7 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 	}
 
 	/* work with agg and children */
-	switch(object->type->type) {
+	switch(object->type->id) {
 	case DW_TAG_base_type:
 	case DW_TAG_enumeration_type:
 	case DW_TAG_pointer_type:
@@ -168,14 +168,14 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 					unsigned int child_max_data_lenth = 0;
 
 					struct metac_type_at default_at_data_member_location = {
-							.key = DW_AT_data_member_location,
+							.id = DW_AT_data_member_location,
 							.data_member_location = 0,
 					};
 
 					struct metac_type_at * at_data_member_location =
 							metac_type_at_by_key(type->child[child], DW_AT_data_member_location); /*TODO: invert cycles for better performance*/
 
-					if (object->type->type == DW_TAG_union_type &&
+					if (object->type->id == DW_TAG_union_type &&
 						at_data_member_location == NULL) {
 						at_data_member_location = &default_at_data_member_location;
 					}
@@ -244,7 +244,7 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 											* at_upper_bound;
 
 					global_id = id * object->type->child_num + child;
-					assert(type->child[child]->type == DW_TAG_subrange_type);
+					assert(type->child[child]->id == DW_TAG_subrange_type);
 
 					/* get range parameter */
 					at_lower_bound = metac_type_at_by_key(type->child[child], DW_AT_lower_bound); /*optional*/
@@ -277,7 +277,7 @@ static struct metac_object * 	_metac_object_create(struct metac_type *_type,
 		}while(0);
 		break;
 	default:
-		msg_stderr("type %x is unsupported\n", object->type->type);
+		msg_stderr("type %x is unsupported\n", object->type->id);
 		assert(0/*TBD: not implemented yet*/);
 	}
 
@@ -295,7 +295,7 @@ struct metac_object *	metac_object_structure_member_by_name(struct metac_object 
 	assert(object);
 	assert(object->type);
 
-	if (object->type->type != DW_TAG_structure_type) {
+	if (object->type->id != DW_TAG_structure_type) {
 		msg_stderr("function expects DW_TAG_structure_type\n");
 		return NULL;
 	}
