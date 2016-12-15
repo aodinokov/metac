@@ -49,25 +49,25 @@ struct metac_type {
 	metac_type_id_t		id;				/* type id */
 	metac_num_t			child_num;		/* number of children */
 	metac_type_t **		child;			/* pointer to array of children */
-	metac_num_t		at_num;			/* number of attributes */
+	metac_num_t			at_num;				/* number of attributes */
 	metac_type_at_t *	at;				/* pointer to array of attributes */
 };
 
 /* some basic functions to navigate in structure metac_type */
-int 					metac_type_id(struct metac_type *type);
-metac_num_t 			metac_type_child_num(struct metac_type *type);
-struct metac_type* 		metac_type_child(struct metac_type *type, unsigned int i);
-metac_num_t 			metac_type_at_num(struct metac_type *type);
+int						metac_type_id(struct metac_type *type);
+metac_num_t				metac_type_child_num(struct metac_type *type);
+struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
+metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
 
 /* some service functions to navigate in metac_type */
 /* easy function to find at by at.key */
-struct metac_type_at* 	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);
+struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);
 
 
 /* basic example that use metac_type_at_by_key */
 metac_name_t			metac_type_name(struct metac_type *type);
-metac_byte_size_t 		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
+metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
 
 /* generalized map approach: pointer + function to iterate by at array */
 typedef int (*metac_type_at_map_func_t)(struct metac_type *type, struct metac_type_at *at, void * data);
@@ -75,14 +75,14 @@ int metac_type_at_map(struct metac_type *type, metac_type_at_map_func_t map_func
 
 /* special functions when metac_type(type) == DW_TAG_subprogram */
 struct metac_type_subprogram_info {
-	metac_type_t * 	return_type;
-	metac_name_t 	name;
-	metac_num_t 	parameters_count;
+	metac_type_t *	return_type;
+	metac_name_t	name;
+	metac_num_t		parameters_count;
 };
 struct metac_type_parameter_info {
-	int 			unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
-	metac_type_t * 	type;
-	metac_name_t 	name;
+	int				unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
+	metac_type_t *	type;
+	metac_name_t	name;
 };
 int metac_type_subprogram_info(struct metac_type *type, struct metac_type_subprogram_info *p_info);		/*< returns subprogram type info*/
 int metac_type_subprogram_parameter_info(struct metac_type *type, unsigned int i,
@@ -161,8 +161,8 @@ int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigne
 /* TODO: to be extended by other types */
 
 /* macroses to export C type definitions in code*/
-#define _METAC_TYPE(name) metac__type_   ## name
+#define _METAC_TYPE(name) metac__type_ ## name
 #define METAC_TYPE(name) _METAC_TYPE(name)
-#define METAC_EXPORT_TYPE(name)            extern struct metac_type *METAC_TYPE(name)
+#define METAC_EXPORT_TYPE(name) extern struct metac_type *METAC_TYPE(name)
 
 #endif /* METAC_H_ */
