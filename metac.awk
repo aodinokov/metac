@@ -13,24 +13,25 @@ function mark_obj(id) {
     }
 }
 
-function dump_at(data_id, at_id) {
-    res = 0;
+function dump_at(data_id, at_id, res) {
+    res[1] = 0;
+    res[2] = "";
     if (match(at_id, "DW_AT_(.*)", arr0)) {
         switch(at_id){
         case "DW_AT_name":
-            print "\t{.id = " at_id ", ." arr0[1] " = \"" data[data_id][at_id] "\"},";
-            ++res;
+            res[1]++;
+            res[2] = "\t{.id = " at_id ", ." arr0[1] " = \"" data[data_id][at_id] "\"},\n";
             break;
         case "DW_AT_data_member_location":
             if (match(data[data_id][at_id], "([0-9]+).*", arr)) {
-                print "\t{.id = " at_id ", ." arr0[1] " = " arr[1] "/*" data[data_id][at_id] "*/},";
-                ++res;
+                res[1]++;
+                res[2] = "\t{.id = " at_id ", ." arr0[1] " = " arr[1] "/*" data[data_id][at_id] "*/},\n";
             }
             break;
         case "DW_AT_type":
             if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
-                print "\t{.id = " at_id ", ." arr0[1] " = &" type_variable_name(arr[1]) "},";
-                ++res;
+                res[1]++;
+                res[2] = "\t{.id = " at_id ", ." arr0[1] " = &" type_variable_name(arr[1]) "},\n";
             }
             break;
         case "DW_AT_byte_size":
@@ -40,14 +41,15 @@ function dump_at(data_id, at_id) {
         case "DW_AT_lower_bound":
         case "DW_AT_upper_bound":
         case "DW_AT_const_value":
-                print "\t{.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "},"
-            ++res;
+            res[1]++;
+            res[2] = "\t{.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "},\n"
+            
             break;
         default:
-                print "\t/* Skip {.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "}, */"
+            res[2] = "\t/* Skip {.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "}, */\n"
         }
     }
-    return res;
+    return res[1];
 }
 
 function type_name(name) {
@@ -153,6 +155,7 @@ END {
     
     for (i in obj) {
         i = obj[i];
+        at = "";
         p_at = "";
         
         print "/* --" i "--*/"
@@ -163,16 +166,19 @@ END {
         }
         
         at_num = 0;
-        print "static struct metac_type_at data_" i "_at[] = {";
+        at = "static struct metac_type_at data_" i "_at[] = {\n";
         for (j in data[i]) {
             if (match(j, "DW_AT_(.*)", arr0)) {
-                dump_res = dump_at(i, j);
+                string_res[2] = "";
+                dump_res = dump_at(i, j, string_res);
                 if (dump_res > 0)
-                    p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
+                    p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n"
+                at = at string_res[2];
                 at_num += dump_res;
             }
         }
-        print "};"
+        if (at_num > 0)
+            print at "};"
         
         print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
         if ("type" in data[i]) {
@@ -183,12 +189,11 @@ END {
             print "\t.child = data_" i "_child,";
         } 
         
-        print "\t.at_num = " at_num ",";
-        #if (at_num > 0) {
+        if (at_num > 0) {
+            print "\t.at_num = " at_num ",";
             print "\t.at = data_" i "_at,";
-        #}
-        
-        print "\t.p_at = {\n" p_at "\t},";
+            print "\t.p_at = {\n" p_at "\t},";
+        }
         print "};"
         
         # move type from task4types to types_array to print the whole list of types
