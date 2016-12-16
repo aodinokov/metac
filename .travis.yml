@@ -6,6 +6,6 @@ before_install:
   - sudo apt-get remove gawk libsigsegv2 -y
   - sudo add-apt-repository ppa:schot/gawk -y
   - sudo apt-get update -qq
-  - sudo apt-get install -y gawk libsigsegv2 dwarfdump check libdwarf-dev
+  - sudo apt-get install -y gawk libsigsegv2 dwarfdump check libdwarf-dev libjson0-dev
 script: make all
 

@@ -1,3 +1,4 @@
 check
 dwarfdump
 libdwarf-dev
+libjson0-dev
