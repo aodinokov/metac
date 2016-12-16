@@ -55,19 +55,23 @@ function dump_at(data_id, at_id) {
     return res;
 }
 
-function at_name_is_in_task4types(name) {
-    if (name in task4types)
-        return 1;
+function export_name(name) {
     if (name == "long int")
-        return ("long" in task4types);
+        return "long";
     if (name == "short int")
-        return ("short" in task4types);
+        return "short";
+    return name;
+}
+
+function export_name_in_task4types(name) {
+    if (export_name(name) in task4types)
+        return 1;
     return 0;
 }
 
 function need_static(addr) {
     if (("DW_AT_name" in data[addr]) &&
-        at_name_is_in_task4types(data[addr]["DW_AT_name"]))
+        export_name_in_task4types(data[addr]["DW_AT_name"]))
             return "";
     return "static ";
 }
@@ -82,6 +86,10 @@ function export_type_name(addr) {
     
     name = data[addr]["DW_AT_name"];
     
+    if (!export_name_in_task4types(name) &&
+        !(export_name(name) in types_array))
+        return "data_" addr;
+    
     if (name == "long int")
         name = "long";
     if (name == "short int")
@@ -92,18 +100,10 @@ function export_type_name(addr) {
 
 # workaround for old clang: https://travis-ci.org/aodinokov/metac/jobs/194107462
 function definintion_of_export_type_name(addr) {
-    name = export_type_name(addr);
-    if (name in types_array)
-        return "data_" addr;
-    return name;
-}
-
-function export_name(name) {
-    if (name == "long int")
-        return "long";
-    if (name == "short int")
-        return "short";
-    return name;
+    if (("DW_AT_name" in data[addr]) &&
+        export_name_in_task4types(data[addr]["DW_AT_name"]))
+            return export_type_name(addr);
+    return "data_" addr;
 }
 
 BEGIN {
@@ -141,7 +141,7 @@ BEGIN {
 END {
     for (i in data) {
         if ( length(task4types) == 0 ||
-            ("DW_AT_name" in data[i] && at_name_is_in_task4types(data[i]["DW_AT_name"])))
+            ("DW_AT_name" in data[i] && export_name_in_task4types(data[i]["DW_AT_name"])))
             mark_obj(i);
     }
     asort(obj);
@@ -182,7 +182,7 @@ END {
                 if (dump_res > 0)
                     p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n" 
                 at_num += dump_res;
-                if (j == "DW_AT_name" && at_name_is_in_task4types(data[i][j]))
+                if (j == "DW_AT_name" && export_name_in_task4types(data[i][j]))
                     in_task4types = 1;
             }
         }
