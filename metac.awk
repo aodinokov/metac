@@ -79,14 +79,23 @@ function export_type_name(addr) {
         type == "DW_TAG_enumerator" ||
         type == "DW_TAG_formal_parameter")
         return "data_" addr;
-
+    
     name = data[addr]["DW_AT_name"];
+    
     if (name == "long int")
         name = "long";
     if (name == "short int")
         name = "short";
-
+    
     return "metac__type_" gensub(/ /, "_", "g", name);
+}
+
+# workaround for old clang: https://travis-ci.org/aodinokov/metac/jobs/194107462
+function definintion_of_export_type_name(addr) {
+    name = export_type_name(addr);
+    if (name in types_array)
+        return "data_" addr;
+    return name;
 }
 
 function export_name(name) {
@@ -179,7 +188,7 @@ END {
         }
         print "};"
 
-        print need_static(i) "struct metac_type " export_type_name(i) " = {";
+        print need_static(i) "struct metac_type " definintion_of_export_type_name(i) " = {";
         if ("type" in data[i]) {
             #print "\ttype: " data[i]["type"] ","
             print "\t.id = " data[i]["type"] ","
