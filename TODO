@@ -8,6 +8,7 @@
 24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
 metac.awk refactoring: 
 13. minor - print at only if at_num>0
+27. identify if we need static or not
 
 Documentation
 26. make doxygen doc generation

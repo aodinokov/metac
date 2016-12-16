@@ -553,17 +553,6 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i, struc
 	return -1;
 }
 
-int metac_object_info(struct metac_object * object, struct metac_object_info * object_info) {
-	if (object == NULL || object->type == NULL)
-		return -1;
-
-	if (object_info) {
-		object_info->ptr = object->ptr;
-		object_info->type = *object->type;
-	}
-	return 0;
-}
-
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
 	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)

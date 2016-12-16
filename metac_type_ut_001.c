@@ -45,12 +45,12 @@
  */
 
 /* export base types */
-METAC_TYPE_GENERATE(char);
-METAC_TYPE_GENERATE(short);
-METAC_TYPE_GENERATE(int);
-METAC_TYPE_GENERATE(long);
-METAC_TYPE_GENERATE(float);
-METAC_TYPE_GENERATE(double);
+METAC_TYPEPTR_GENERATE(char);
+METAC_TYPEPTR_GENERATE(short);
+METAC_TYPEPTR_GENERATE(int);
+METAC_TYPEPTR_GENERATE(long);
+METAC_TYPEPTR_GENERATE(float);
+METAC_TYPEPTR_GENERATE(double);
 
 /* create typedefs for non-one-word base types and export them */
 /*char*/
@@ -58,9 +58,9 @@ typedef char char_t;
 typedef signed char schar_t;
 typedef unsigned char uchar_t;
 
-METAC_TYPE_GENERATE(char_t);
-METAC_TYPE_GENERATE(schar_t);
-METAC_TYPE_GENERATE(uchar_t);
+METAC_TYPEPTR_GENERATE(char_t);
+METAC_TYPEPTR_GENERATE(schar_t);
+METAC_TYPEPTR_GENERATE(uchar_t);
 
 /*short*/
 typedef short short_t;
@@ -70,12 +70,12 @@ typedef signed short int sshortint_t;
 typedef unsigned short ushort_t;
 typedef unsigned short int ushortint_t;
 
-METAC_TYPE_GENERATE(short_t);
-METAC_TYPE_GENERATE(shortint_t);
-METAC_TYPE_GENERATE(sshort_t);
-METAC_TYPE_GENERATE(sshortint_t);
-METAC_TYPE_GENERATE(ushort_t);
-METAC_TYPE_GENERATE(ushortint_t);
+METAC_TYPEPTR_GENERATE(short_t);
+METAC_TYPEPTR_GENERATE(shortint_t);
+METAC_TYPEPTR_GENERATE(sshort_t);
+METAC_TYPEPTR_GENERATE(sshortint_t);
+METAC_TYPEPTR_GENERATE(ushort_t);
+METAC_TYPEPTR_GENERATE(ushortint_t);
 
 /*int*/
 typedef int int_t;
@@ -84,11 +84,11 @@ typedef signed int sint_t;
 typedef unsigned unsigned_t;
 typedef unsigned int uint_t;
 
-METAC_TYPE_GENERATE(int_t);
-METAC_TYPE_GENERATE(signed_t);
-METAC_TYPE_GENERATE(sint_t);
-METAC_TYPE_GENERATE(unsigned_t);
-METAC_TYPE_GENERATE(uint_t);
+METAC_TYPEPTR_GENERATE(int_t);
+METAC_TYPEPTR_GENERATE(signed_t);
+METAC_TYPEPTR_GENERATE(sint_t);
+METAC_TYPEPTR_GENERATE(unsigned_t);
+METAC_TYPEPTR_GENERATE(uint_t);
 
 /*long*/
 typedef long long_t;
@@ -98,12 +98,12 @@ typedef signed long int slongint_t;
 typedef unsigned long ulong_t;
 typedef unsigned long int ulongint_t;
 
-METAC_TYPE_GENERATE(long_t);
-METAC_TYPE_GENERATE(longint_t);
-METAC_TYPE_GENERATE(slong_t);
-METAC_TYPE_GENERATE(slongint_t);
-METAC_TYPE_GENERATE(ulong_t);
-METAC_TYPE_GENERATE(ulongint_t);
+METAC_TYPEPTR_GENERATE(long_t);
+METAC_TYPEPTR_GENERATE(longint_t);
+METAC_TYPEPTR_GENERATE(slong_t);
+METAC_TYPEPTR_GENERATE(slongint_t);
+METAC_TYPEPTR_GENERATE(ulong_t);
+METAC_TYPEPTR_GENERATE(ulongint_t);
 
 /*long long*/
 typedef long long llong_t;
@@ -113,24 +113,24 @@ typedef signed long long int sllongint_t;
 typedef unsigned long long ullong_t;
 typedef unsigned long long int ullongint_t;
 
-METAC_TYPE_GENERATE(llong_t);
-METAC_TYPE_GENERATE(llongint_t);
-METAC_TYPE_GENERATE(sllong_t);
-METAC_TYPE_GENERATE(sllongint_t);
-METAC_TYPE_GENERATE(ullong_t);
-METAC_TYPE_GENERATE(ullongint_t);
+METAC_TYPEPTR_GENERATE(llong_t);
+METAC_TYPEPTR_GENERATE(llongint_t);
+METAC_TYPEPTR_GENERATE(sllong_t);
+METAC_TYPEPTR_GENERATE(sllongint_t);
+METAC_TYPEPTR_GENERATE(ullong_t);
+METAC_TYPEPTR_GENERATE(ullongint_t);
 
 /*float*/
 typedef float float_t;
-METAC_TYPE_GENERATE(float_t);
+METAC_TYPEPTR_GENERATE(float_t);
 
 /*double*/
 typedef double double_t;
-METAC_TYPE_GENERATE(double_t);
+METAC_TYPEPTR_GENERATE(double_t);
 
 /*long double*/
 typedef long double ldouble_t;
-METAC_TYPE_GENERATE(ldouble_t);
+METAC_TYPEPTR_GENERATE(ldouble_t);
 
 /* pointers */
 typedef void* voidptr_t;
@@ -138,9 +138,9 @@ typedef void** voidptrptr_t;
 typedef char* charptr_t;
 /* skip other types */
 
-METAC_TYPE_GENERATE(voidptr_t);
-METAC_TYPE_GENERATE(voidptrptr_t);
-METAC_TYPE_GENERATE(charptr_t);
+METAC_TYPEPTR_GENERATE(voidptr_t);
+METAC_TYPEPTR_GENERATE(voidptrptr_t);
+METAC_TYPEPTR_GENERATE(charptr_t);
 
 /* enums */
 typedef enum _enum_{
@@ -159,19 +159,19 @@ typedef enum{
 	aeEleven,
 	aeTwelve,
 }anon_enum_t;
-METAC_TYPE_GENERATE(enum_t);
-METAC_TYPE_GENERATE(anon_enum_t);
+METAC_TYPEPTR_GENERATE(enum_t);
+METAC_TYPEPTR_GENERATE(anon_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
-METAC_TYPE_GENERATE(char_array5_t);
+METAC_TYPEPTR_GENERATE(char_array5_t);
 
 /* unions */
 typedef union _union_{
    int d;
    char f;
 }union_t;
-METAC_TYPE_GENERATE(union_t);
+METAC_TYPEPTR_GENERATE(union_t);
 
 /* struct */
 typedef struct _struct_
@@ -179,7 +179,7 @@ typedef struct _struct_
   unsigned int widthValidated;
   unsigned int heightValidated;
 }struct_t;
-METAC_TYPE_GENERATE(struct_t);
+METAC_TYPEPTR_GENERATE(struct_t);
 
 /* bit fields */
 typedef struct _bit_fields_
@@ -187,22 +187,22 @@ typedef struct _bit_fields_
   unsigned int widthValidated : 9;
   unsigned int heightValidated : 12;
 }bit_fields_t;
-METAC_TYPE_GENERATE(bit_fields_t);
+METAC_TYPEPTR_GENERATE(bit_fields_t);
 
 /*TODO: some combinations??? */
 
 /* function ptr */
 typedef int_t (*func_ptr_t)(bit_fields_t *arg);
-METAC_TYPE_GENERATE(func_ptr_t);
+METAC_TYPEPTR_GENERATE(func_ptr_t);
 
 /* function */
 typedef bit_fields_t * p_bit_fields_t;
-METAC_TYPE_GENERATE(p_bit_fields_t);
+METAC_TYPEPTR_GENERATE(p_bit_fields_t);
 int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
 METAC_FUNCTION(func_t);
 
 typedef const char * cchar_t;
-METAC_TYPE_GENERATE(cchar_t);
+METAC_TYPEPTR_GENERATE(cchar_t);
 void func_printf(cchar_t format, ...){return;}
 METAC_FUNCTION(func_printf);
 
@@ -212,7 +212,7 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 #define GENERAL_TYPE_SMOKE(_type_, _s_type_) \
 do{ \
 	_type_ *ptr = NULL; \
-	struct metac_type *type = METAC_TYPE_NAME(_type_), *type_from_array; \
+	struct metac_type *type = METAC_TYPEPTR_NAME(_type_), *type_from_array; \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
 	char * type_name = metac_type_name(type); \
 	char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
@@ -294,7 +294,7 @@ START_TEST(general_type_smoke) {
 
 #define UNION_TYPE_SMOKE_START(_type_, fields_number) \
 do{ \
-	struct metac_type *type = METAC_TYPE_NAME(_type_); \
+	struct metac_type *type = METAC_TYPEPTR_NAME(_type_); \
 	_type_ struct_; \
 	struct metac_type_union_info _info_;\
 	fail_unless(metac_type_union_info(type, &_info_) == 0, "get info returned error");\
@@ -329,7 +329,7 @@ do{ \
 
 #define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
 do{ \
-	struct metac_type *type = METAC_TYPE_NAME(_type_); \
+	struct metac_type *type = METAC_TYPEPTR_NAME(_type_); \
 	_type_ struct_; \
 	struct metac_type_structure_info _info_;\
 	fail_unless(metac_type_structure_info(type, &_info_) == 0, "get info returned error");\
@@ -411,12 +411,11 @@ START_TEST(struct_type_smoke) {
 #define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
 do{ \
 	unsigned int i; \
-	struct metac_type *type = METAC_TYPE_NAME(_type_); \
+	struct metac_type *type = METAC_TYPEPTR_NAME(_type_); \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
 	struct metac_type_subprogram_info s_info; \
 	struct metac_type_parameter_info p_info; \
 	struct metac_object * p_object; \
-	struct metac_object_info p_object_info;\
 	\
 	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
 	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
@@ -445,32 +444,30 @@ do{ \
 	\
 	p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, #_type_);\
 	fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
-	fail_unless(metac_object_info(p_object, &p_object_info) == 0, "metac_object_info failed");\
-	fail_unless(p_object_info.type == type, "p_object_info.type must be == type");\
-	fail_unless(p_object_info.ptr == _type_, "p_object_info.ptr must point to the object");\
+	fail_unless(p_object->type == type, "p_object_info.type must be == type");\
 	mark_point(); \
 } while(0)
 
 START_TEST(func_type_smoke) {
 	struct metac_type_parameter_info func_t_expected_parameter_info_values[] = {
-			{.unspecified_parameters = 0, .name = "arg", .type = METAC_TYPE_NAME(p_bit_fields_t)},
+			{.unspecified_parameters = 0, .name = "arg", .type = METAC_TYPEPTR_NAME(p_bit_fields_t)},
 	};
 	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
-			{.unspecified_parameters = 0, .name = "format", .type = METAC_TYPE_NAME(cchar_t)},
+			{.unspecified_parameters = 0, .name = "format", .type = METAC_TYPEPTR_NAME(cchar_t)},
 #if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
 /* Workaround: looks like clang3.4 doesn't have ability to show if function has unspecified parameter. See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472*/
 			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
 #endif
 	};
 
-	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, METAC_TYPE_NAME(int_t), func_t_expected_parameter_info_values);
+	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, METAC_TYPEPTR_NAME(int_t), func_t_expected_parameter_info_values);
 	FUNC_TYPE_SMOKE(func_printf, DW_TAG_subprogram, NULL, func_printf_expected_parameter_info_values);
 
 }END_TEST
 
 /* arrays */
 typedef char_t char_array_t[0];
-METAC_TYPE_GENERATE(char_array_t);
+METAC_TYPEPTR_GENERATE(char_array_t);
 
 
 START_TEST(array_type_smoke) {
@@ -480,7 +477,7 @@ START_TEST(array_type_smoke) {
 		struct metac_type_array_info array_info;
 		struct metac_type_element_info element_info;
 		struct metac_type_subrange_info subrange_info;
-		struct metac_type *type = METAC_TYPE_NAME(char_array5_t);
+		struct metac_type *type = METAC_TYPEPTR_NAME(char_array5_t);
 		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
 		fail_unless(array_info.subranges_count > 0, "subranges_count must be more than 0");
 		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
@@ -490,7 +487,7 @@ START_TEST(array_type_smoke) {
 		fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
 				"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
 
-		fail_unless(array_info.type == METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
+		fail_unless(array_info.type == METAC_TYPEPTR_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
 
 		fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound), &element_info) == 0, "metac_type_array_element_info returned error");
 		fail_unless((((char*)&reference_object[*(subrange_info.p_upper_bound)]) - ((char*)&reference_object[0]) == element_info.data_location),
@@ -506,7 +503,7 @@ START_TEST(array_type_smoke) {
 		struct metac_type_array_info array_info;
 		struct metac_type_element_info element_info;
 		struct metac_type_subrange_info subrange_info;
-		struct metac_type *type = METAC_TYPE_NAME(char_array_t);
+		struct metac_type *type = METAC_TYPEPTR_NAME(char_array_t);
 		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
 		fail_unless(array_info.subranges_count > 0, "subrange_count must be more than 0");
 		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
@@ -514,7 +511,7 @@ START_TEST(array_type_smoke) {
 		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
 		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
 		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
-		fail_unless(array_info.type == METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
+		fail_unless(array_info.type == METAC_TYPEPTR_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
 		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info must fail");
 	}while(0);
 
@@ -542,7 +539,7 @@ do { \
 
 
 START_TEST(enum_type_smoke) {
-	struct metac_type *enum_type = METAC_TYPE_NAME(enum_t);
+	struct metac_type *enum_type = METAC_TYPEPTR_NAME(enum_t);
 	struct metac_type_enumerator_info enum_type_expected_e_info_values[] = {
 			{.name = "_eZero", .const_value = 0},
 			{.name = "_eOne", .const_value = 1},
@@ -550,7 +547,7 @@ START_TEST(enum_type_smoke) {
 			{.name = "_eEleven", .const_value = 11},
 			{.name = "_eTwelve", .const_value = 12},
 	};
-	struct metac_type *anon_enum_type = METAC_TYPE_NAME(anon_enum_t);
+	struct metac_type *anon_enum_type = METAC_TYPEPTR_NAME(anon_enum_t);
 	struct metac_type_enumerator_info anon_enum_type_expected_e_info_values[] = {
 			{.name = "aeMinus", .const_value = -1},
 			{.name = "aeZero", .const_value = 0},

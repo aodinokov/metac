@@ -32,7 +32,7 @@ function dump_at(data_id, at_id) {
         case "DW_AT_type":
             if (match(data[data_id][at_id], "<([^>]+)>", arr)) {
                 #print "\t{id: " at_id ", type: &data_" arr[1] "},";
-                print "\t{.id = " at_id ", ." arr0[1] " = &data_" arr[1] "},";
+                print "\t{.id = " at_id ", ." arr0[1] " = &" export_type_name(arr[1]) "},";
                 ++res;
             }
             break;
@@ -65,6 +65,16 @@ function at_name_is_in_task4types(name) {
     return 0;
 }
 
+function export_type_name(addr) {
+    type = data[addr]["type"]
+    if (!("DW_AT_name" in data[addr]) ||
+        type == "DW_TAG_member" ||
+        type == "DW_TAG_enumerator" ||
+        type == "DW_TAG_formal_parameter")
+        return "data_" addr;
+    return "metac__type_" gensub(/ /, "_", "g", data[addr]["DW_AT_name"]);
+}
+
 function export_name(name) {
     if (name == "long int")
         return "long";
@@ -80,7 +90,7 @@ BEGIN {
         while(( getline line < file ) > 0 ) {
             split(line, x, " ");
             switch (x[1]) {
-            case "type":
+            case "typeptr":
                 task4types[x[2]] = x[1];
                 break;
             case "object":
@@ -123,7 +133,8 @@ END {
     print "#include <stdio.h>  /* NULL */"
     print "\n/* early declaration */"
     for (i in obj) {
-        print "static struct metac_type data_" obj[i] ";";
+        i = obj[i];
+        print "/*static*/ struct metac_type " export_type_name(i) "; /* " i " */";
     }
     print "\n/* real data */"
     
@@ -137,7 +148,8 @@ END {
         print "/* --" i "--*/"
         if ("child" in data[i]) {
             print "static struct metac_type *data_" i "_child[] = {";
-            for (k in data[i]["child"]) print "\t&data_" data[i]["child"][k] ",";
+            #for (k in data[i]["child"]) print "\t&data_" data[i]["child"][k] ",";
+            for (k in data[i]["child"]) print "\t&" export_type_name(data[i]["child"][k]) ",";
             print "};"d
         }
         at_num = 0;
@@ -154,7 +166,7 @@ END {
         }
         print "};"
 
-        print "static struct metac_type data_" i " = {";
+        print "/*static*/ struct metac_type " export_type_name(i) " = {";
         if ("type" in data[i]) {
             #print "\ttype: " data[i]["type"] ","
             print "\t.id = " data[i]["type"] ","
@@ -179,8 +191,8 @@ END {
         print "\t.p_at = {\n" p_at "\t},";
         print "};"
         if (in_task4types != 0) {
-            print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
-            types_array[export_name(data[i]["DW_AT_name"])] = "data_" i;
+            print "struct metac_type *metac__typeptr_" export_name(data[i]["DW_AT_name"]) " = &" export_type_name(i) ";";
+            types_array[export_name(data[i]["DW_AT_name"])] = export_type_name(i);
             delete task4types[export_name(data[i]["DW_AT_name"])];
         }
         print;

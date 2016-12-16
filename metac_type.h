@@ -13,21 +13,21 @@ struct metac_type_at;
 struct metac_type_p_at;
 
 /* definition of types used for attributes */
-typedef char *					metac_name_t;
-typedef struct metac_type		metac_type_t;
-typedef struct metac_type_at	metac_type_at_t;
-typedef unsigned int			metac_byte_size_t;
-typedef unsigned int			metac_encoding_t;
-typedef unsigned int			metac_data_location_t;
-typedef metac_data_location_t	metac_data_member_location_t;
-typedef unsigned int			metac_bit_offset_t;
-typedef unsigned int			metac_bit_size_t;
-typedef unsigned int			metac_bound_t;
-typedef long					metac_const_value_t;
+typedef char *							metac_name_t;
+typedef struct metac_type				metac_type_t;
+typedef struct metac_type_at			metac_type_at_t;
+typedef unsigned int					metac_byte_size_t;
+typedef unsigned int					metac_encoding_t;
+typedef unsigned int					metac_data_location_t;
+typedef metac_data_location_t			metac_data_member_location_t;
+typedef unsigned int					metac_bit_offset_t;
+typedef unsigned int					metac_bit_size_t;
+typedef unsigned int					metac_bound_t;
+typedef long							metac_const_value_t;
 
-typedef int						metac_type_id_t;
-typedef int						metac_type_at_id_t;
-typedef unsigned int			metac_num_t;
+typedef int								metac_type_id_t;
+typedef int								metac_type_at_id_t;
+typedef unsigned int					metac_num_t;
 
 
 /**
@@ -38,41 +38,41 @@ typedef unsigned int			metac_num_t;
 struct metac_type_at {
 	metac_type_at_id_t					id;
 	union {
-		metac_name_t					name;					/* universal field */
-		metac_type_t *					type;					/* universal field */
-		metac_byte_size_t				byte_size;				/* type size */
-		metac_encoding_t				encoding;				/* type encoding (DW_ATE_signed etc) */
-		metac_data_member_location_t	data_member_location;	/* member offset in structs and unions */
-		metac_bit_offset_t				bit_offset;				/* bit-field member bit offset in structs and unions */
-		metac_bit_size_t				bit_size;				/* bit-field member bit size in structs and unions */
-		metac_bound_t					lower_bound;			/* for array_ranges*/
-		metac_bound_t					upper_bound;			/* for array_ranges*/
-		metac_const_value_t				const_value;			/* for enums*/
+		metac_name_t					name;						/* universal field */
+		metac_type_t *					type;						/* universal field */
+		metac_byte_size_t				byte_size;					/* type size */
+		metac_encoding_t				encoding;					/* type encoding (DW_ATE_signed etc) */
+		metac_data_member_location_t	data_member_location;		/* member offset in structs and unions */
+		metac_bit_offset_t				bit_offset;					/* bit-field member bit offset in structs and unions */
+		metac_bit_size_t				bit_size;					/* bit-field member bit size in structs and unions */
+		metac_bound_t					lower_bound;				/* for array_ranges*/
+		metac_bound_t					upper_bound;				/* for array_ranges*/
+		metac_const_value_t				const_value;				/* for enums*/
 	};
 };
 
 struct metac_type_p_at {
-	struct metac_type_at *		p_at_name;					/* universal field */
-	struct metac_type_at *		p_at_type;					/* universal field */
-	struct metac_type_at *		p_at_byte_size;				/* type size */
-	struct metac_type_at *		p_at_encoding;				/* type encoding (DW_ATE_signed etc) */
-	struct metac_type_at *		p_at_data_member_location;	/* member offset in structs and unions */
-	struct metac_type_at *		p_at_bit_offset;			/* bit-field member bit offset in structs and unions */
-	struct metac_type_at *		p_at_bit_size;				/* bit-field member bit size in structs and unions */
-	struct metac_type_at *		p_at_lower_bound;			/* for array_ranges*/
-	struct metac_type_at *		p_at_upper_bound;			/* for array_ranges*/
-	struct metac_type_at *		p_at_const_value;			/* for enums*/
+	struct metac_type_at *				p_at_name;					/* universal field */
+	struct metac_type_at *				p_at_type;					/* universal field */
+	struct metac_type_at *				p_at_byte_size;				/* type size */
+	struct metac_type_at *				p_at_encoding;				/* type encoding (DW_ATE_signed etc) */
+	struct metac_type_at *				p_at_data_member_location;	/* member offset in structs and unions */
+	struct metac_type_at *				p_at_bit_offset;			/* bit-field member bit offset in structs and unions */
+	struct metac_type_at *				p_at_bit_size;				/* bit-field member bit size in structs and unions */
+	struct metac_type_at *				p_at_lower_bound;			/* for array_ranges*/
+	struct metac_type_at *				p_at_upper_bound;			/* for array_ranges*/
+	struct metac_type_at *				p_at_const_value;			/* for enums*/
 };
 
 
 struct metac_type {
-	metac_type_id_t		id;				/* type id */
-	metac_num_t			child_num;		/* number of children */
-	metac_type_t **		child;			/* pointer to array of children */
-	metac_num_t			at_num;			/* number of attributes */
-	metac_type_at_t *	at;				/* pointer to array of attributes */
+	metac_type_id_t						id;							/* type id */
+	metac_num_t							child_num;					/* number of children */
+	metac_type_t **						child;						/* pointer to array of children */
+	metac_num_t							at_num;						/* number of attributes */
+	metac_type_at_t *					at;							/* pointer to array of attributes */
 
-	struct metac_type_p_at p_at;		/* pre-calculated attributes by name*/
+	struct metac_type_p_at				p_at;						/* pre-calculated attributes by name*/
 };
 
 /* some basic functions to navigate in structure metac_type */
@@ -94,7 +94,7 @@ metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns le
 struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
 
 /*
- * special functions when metac_type(type) == DW_TAG_enumeration_type (enum)
+ * special functions when metac_type_id(type) == DW_TAG_enumeration_type (enum)
  */
 struct metac_type_enumeration_type_info {
 	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
@@ -110,7 +110,7 @@ int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigne
 		struct metac_type_enumerator_info *p_info);	/*< returns Nth element info */
 
 /*
- * special functions when metac_type(type) == DW_TAG_subprogram
+ * special functions when metac_type_id(type) == DW_TAG_subprogram
  */
 struct metac_type_subprogram_info {
 	metac_type_t *	type;			/* function return type (NULL if void) */
@@ -127,7 +127,7 @@ int metac_type_subprogram_parameter_info(struct metac_type *type, unsigned int i
 		struct metac_type_parameter_info *p_info);		/*< returns subprogram parameter info*/
 
 /*
- * special functions when metac_type(type) == DW_TAG_member (element of structure or union)
+ * special functions when metac_type_id(type) == DW_TAG_member (element of structure or union)
  */
 struct metac_type_member_info {
 	metac_type_t *					type;						/* type of the member (mandatory) */
@@ -138,7 +138,7 @@ struct metac_type_member_info {
 };
 
 /*
- * special functions when metac_type(type) == DW_TAG_structure_type
+ * special functions when metac_type_id(type) == DW_TAG_structure_type
  */
 struct metac_type_structure_info {
 	metac_name_t					name;						/* name of the structure (may be NULL)*/
@@ -150,7 +150,7 @@ int metac_type_structure_member_info(struct metac_type *type, unsigned int i,
 		struct metac_type_member_info *p_info);		/*< returns subprogram parameter info*/
 
 /*
- * special functions when metac_type(type) == DW_TAG_union_type
+ * special functions when metac_type_id(type) == DW_TAG_union_type
  */
 struct metac_type_union_info {
 	metac_name_t					name;						/* name of the union (may be NULL)*/
@@ -162,7 +162,7 @@ int metac_type_union_member_info(struct metac_type *type, unsigned int i,
 		struct metac_type_member_info *p_info);		/*< returns union parameter info*/
 
 /*
- * special functions to work with arrays when metac_type(type) == DW_TAG_array_type (array)
+ * special functions to work with arrays when metac_type_id(type) == DW_TAG_array_type (array)
  */
 struct metac_type_subrange_info {
 	metac_type_t *					type;					/* type of index */
@@ -190,7 +190,8 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions in code*/
 #define METAC_TYPE_NAME(name) METAC(type, name)
-#define METAC_TYPE_GENERATE(name) extern struct metac_type *METAC_TYPE_NAME(name)
+#define METAC_TYPEPTR_NAME(name) METAC(typeptr, name)
+#define METAC_TYPEPTR_GENERATE(name) extern struct metac_type *METAC_TYPEPTR_NAME(name)
 
 struct metac_type_sorted_array {
 	metac_num_t number;
@@ -206,22 +207,16 @@ struct metac_type_sorted_array {
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name);
 
 struct metac_object {
-	struct metac_type **	type;
+	struct metac_type *		type;
 	void *					ptr;
+	/*todo: reference count (0 for objects that were initialized by METAC_OBJECT/METAC_FUNCTION)*/
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
-	METAC_TYPE_GENERATE(_name_); \
+	METAC_TYPEPTR_GENERATE(_type_); \
+	extern struct metac_type METAC_TYPE_NAME(_type_); \
 	struct metac_object METAC_OBJECT_NAME(_name_) = {.type = &METAC_TYPE_NAME(_type_), .ptr = &_name_}
 #define METAC_FUNCTION(_name_) METAC_OBJECT(_name_, _name_)
-
-struct metac_object_info {
-	struct metac_type *		type;
-	void *					ptr;
-	/*TODO: some other params, like real_type (without typedefs), byte length and etc?*/
-};
-
-int metac_object_info(struct metac_object * object, struct metac_object_info * object_info);
 
 struct metac_object_sorted_array {
 	metac_num_t number;
