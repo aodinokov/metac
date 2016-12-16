@@ -564,28 +564,52 @@ int metac_object_info(struct metac_object * object, struct metac_object_info * o
 	return 0;
 }
 
-struct metac_type * metac_type_by_name(struct metac_type_array_item * array, metac_name_t name) {
+struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
+	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)
 		return NULL;
 
-	while (array->name) {
-		if (strcmp(array->name, name) == 0)
-			return array->ptr;
-		++array;
-	}
+	/*binary search*/
+	metac_num_t min = 0, max = array->number-1;
+
+	do {
+		metac_num_t i = (min+max)/2;
+		/*msg_stddbg("min %d max %d, i = %d\n", min, max, i);*/
+		int cmp_res = strcmp(array->item[i].name, name);
+		if (cmp_res == 0)return array->item[i].ptr;
+
+		if (min==max)break;
+
+		if (cmp_res > 0)
+			max = i-1;
+		else
+			min = i+1;
+	}while(1);
 
 	return NULL;
 }
 
-struct metac_object * metac_object_by_name(struct metac_object_array_item * array, metac_name_t name) {
+struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name) {
+	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)
 		return NULL;
 
-	while (array->name) {
-		if (strcmp(array->name, name) == 0)
-			return array->ptr;
-		++array;
-	}
+	/*binary search*/
+	metac_num_t min = 0, max = array->number-1;
+
+	do {
+		metac_num_t i = (min+max)/2;
+		/*msg_stddbg("min %d max %d, i = %d\n", min, max, i);*/
+		int cmp_res = strcmp(array->item[i].name, name);
+		if (cmp_res == 0)return array->item[i].ptr;
+
+		if (min==max)break;
+
+		if (cmp_res > 0)
+			max = i-1;
+		else
+			min = i+1;
+	}while(1);
 
 	return NULL;
 }

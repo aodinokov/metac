@@ -126,7 +126,10 @@ END {
         print "static struct metac_type data_" obj[i] ";";
     }
     print "\n/* real data */"
-    types_array_body = "";
+    
+    types_array[0] = "";
+    delete types_array[0];
+    
     for (i in obj) {
         in_task4types = 0;
         i = obj[i];
@@ -177,26 +180,38 @@ END {
         print "};"
         if (in_task4types != 0) {
             print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
-            types_array_body = types_array_body "\t{.name = \"" export_name(data[i]["DW_AT_name"]) "\", .ptr = &data_" i "},\n";
+            #types_array_body = types_array_body "\t{.name = \"" export_name(data[i]["DW_AT_name"]) "\", .ptr = &data_" i "},\n";
+            types_array[export_name(data[i]["DW_AT_name"])] = "data_" i;
             delete task4types[export_name(data[i]["DW_AT_name"])];
         }
         print;
     }
     #pint all types
-    print "struct metac_type_array_item METAC_TYPES_ARRAY[] = {"
-    print types_array_body "\t{.name = NULL, .ptr = NULL },";
-    print "};\n"
+    print "struct metac_type_sorted_array METAC_TYPES_ARRAY = {"
+    asorti(types_array, types_array_sorted);
+    print "\t.number = " length(types_array_sorted) ",";
+    print "\t.item = {";
+
+    for (i in types_array_sorted) {
+        print "\t\t{.name = \"" types_array_sorted[i] "\", .ptr = &" types_array[types_array_sorted[i]] "},"
+    }
+
+    print "\t},\n};\n";
+
     #print all objects
     for (i in task4objects) {
         print "extern struct metac_object METAC_OBJECT_NAME(" i ");"
     }
     print
-    print "struct metac_object_array_item METAC_OBJECTS_ARRAY[] = {"
-    for (i in task4objects) {
-        print "\t{.name = \"" i "\", .ptr = &METAC_OBJECT_NAME(" i ")},"
+    print "struct metac_object_sorted_array METAC_OBJECTS_ARRAY = {"
+    asorti(task4objects, task4objects_sorted);
+
+    print "\t.number = " length(task4objects_sorted) ",";
+    print "\t.item = {";
+    for (i in task4objects_sorted) {
+        print "\t\t{.name = \"" task4objects_sorted[i] "\", .ptr = &METAC_OBJECT_NAME(" task4objects_sorted[i] ")},"
     }
-    print "\t{.name = NULL, .ptr = NULL },";
-    print "};"
+    print "\t},\n};\n";
 }
 /^<[^>]+><[^>]+>/{
     while (match($0, /<([^>]+)><([^>]+)>[ \t]+([^ \t]*)/, arr)) {

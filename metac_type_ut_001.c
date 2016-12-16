@@ -226,7 +226,7 @@ do{ \
 	free(type_name_copy);\
 	mark_point(); \
 	\
-	type_from_array = metac_type_by_name(METAC_TYPES_ARRAY, #_type_);\
+	type_from_array = metac_type_by_name(&METAC_TYPES_ARRAY, #_type_);\
 	fail_unless(type_from_array == type, "metac_type_by_name returned incorrect value %p", type_from_array);\
 	mark_point(); \
 } while(0)
@@ -443,8 +443,8 @@ do{ \
 	\
 	mark_point(); \
 	\
-	p_object = metac_object_by_name(METAC_OBJECTS_ARRAY, #_type_);\
-	fail_unless(p_object != NULL, "metac_type_by_name returned incorrect value %p", p_object);\
+	p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, #_type_);\
+	fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
 	fail_unless(metac_object_info(p_object, &p_object_info) == 0, "metac_object_info failed");\
 	fail_unless(p_object_info.type == type, "p_object_info.type must be == type");\
 	fail_unless(p_object_info.ptr == _type_, "p_object_info.ptr must point to the object");\

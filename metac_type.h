@@ -192,15 +192,18 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 #define METAC_TYPE_NAME(name) METAC(type, name)
 #define METAC_TYPE_GENERATE(name) extern struct metac_type *METAC_TYPE_NAME(name)
 
-struct metac_type_array_item {
-	metac_name_t 			name;
-	struct metac_type * 	ptr;
+struct metac_type_sorted_array {
+	metac_num_t number;
+	struct {
+		metac_name_t 			name;
+		struct metac_type * 	ptr;
+	}item[];
 };
 
 #define METAC_TYPES_ARRAY METAC(types, array)
 #define METAC_TYPES_ARRAY_SYMBOL "metac__types_array"
-#define METAC_DECLARE_EXTERN_TYPES_ARRAY extern struct metac_type_array_item METAC_TYPES_ARRAY[]
-struct metac_type * metac_type_by_name(struct metac_type_array_item * array, metac_name_t name);
+#define METAC_DECLARE_EXTERN_TYPES_ARRAY extern struct metac_type_sorted_array METAC_TYPES_ARRAY
+struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name);
 
 struct metac_object {
 	struct metac_type **	type;
@@ -220,15 +223,18 @@ struct metac_object_info {
 
 int metac_object_info(struct metac_object * object, struct metac_object_info * object_info);
 
-struct metac_object_array_item {
-	metac_name_t 			name;
-	struct metac_object * 	ptr;
+struct metac_object_sorted_array {
+	metac_num_t number;
+	struct {
+		metac_name_t 			name;
+		struct metac_object * 	ptr;
+	}item[];
 };
 
 #define METAC_OBJECTS_ARRAY METAC(objects, array)
 #define METAC_OBJECTS_ARRAY_SYMBOL "metac__objects_array"
-#define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_array_item METAC_OBJECTS_ARRAY[]
-struct metac_object * metac_object_by_name(struct metac_object_array_item * array, metac_name_t name);
+#define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_sorted_array METAC_OBJECTS_ARRAY
+struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name);
 
 #ifdef __cplusplus
 }
