@@ -84,16 +84,11 @@ function export_type_name(addr) {
         type == "DW_TAG_formal_parameter")
         return "data_" addr;
     
-    name = data[addr]["DW_AT_name"];
+    name = export_name(data[addr]["DW_AT_name"]);
     
-    if (!export_name_in_task4types(name) &&
-        !(export_name(name) in types_array))
+    if (!(name in task4types) &&
+        !(name in types_array))
         return "data_" addr;
-    
-    if (name == "long int")
-        name = "long";
-    if (name == "short int")
-        name = "short";
     
     return "metac__type_" gensub(/ /, "_", "g", name);
 }
