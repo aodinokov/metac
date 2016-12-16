@@ -190,8 +190,7 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions in code*/
 #define METAC_TYPE_NAME(name) METAC(type, name)
-#define METAC_TYPEPTR_NAME(name) METAC(typeptr, name)
-#define METAC_TYPEPTR_GENERATE(name) extern struct metac_type *METAC_TYPEPTR_NAME(name)
+#define METAC_TYPE_GENERATE(name) extern struct metac_type METAC_TYPE_NAME(name)
 
 struct metac_type_sorted_array {
 	metac_num_t number;
@@ -213,8 +212,7 @@ struct metac_object {
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
-	METAC_TYPEPTR_GENERATE(_type_); \
-	extern struct metac_type METAC_TYPE_NAME(_type_); \
+	METAC_TYPE_GENERATE(_type_); \
 	struct metac_object METAC_OBJECT_NAME(_name_) = {.type = &METAC_TYPE_NAME(_type_), .ptr = &_name_}
 #define METAC_FUNCTION(_name_) METAC_OBJECT(_name_, _name_)
 
