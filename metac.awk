@@ -180,7 +180,6 @@ END {
         print "};"
         if (in_task4types != 0) {
             print "struct metac_type *metac__type_" export_name(data[i]["DW_AT_name"]) " = &data_" i ";";
-            #types_array_body = types_array_body "\t{.name = \"" export_name(data[i]["DW_AT_name"]) "\", .ptr = &data_" i "},\n";
             types_array[export_name(data[i]["DW_AT_name"])] = "data_" i;
             delete task4types[export_name(data[i]["DW_AT_name"])];
         }
