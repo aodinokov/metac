@@ -9,6 +9,7 @@
 metac.awk refactoring: 
 13. minor - print at only if at_num>0
 27. identify if we need static or not
+28. looks like it's a bug in clang https://travis-ci.org/aodinokov/metac/jobs/194107462 . need to find a workaround
 
 Documentation
 26. make doxygen doc generation
