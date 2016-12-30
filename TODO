@@ -1,22 +1,14 @@
-1. done (except ut for bit_offset and data_member_location. will be done in 11.) - expand struct test - for bit_fields and unions
-4. done - expand API for arrays (to get offset of Nth element)
-9. done - add UT for arrays (TODO: don't like array's API - need to make something like enum has)
-7. done - expand API for enums
-8. done - add UT for enums
-2. done - expand API for subprograms - need to get params.
-3. done - expand subprograms API UT
-12. done - make a refactoring of all types (make something like enums) + define macroses and use them when use metac_type_at_map
-14. done - fix metac_type_array_info - 3 last fields must be initialized. and possibly get rid of metac_type_array_length?
-15. done (removed - we have assumption for C that we have only 1 subrange) - metac_type_array_length - real elements_count.
-18. done rename METAC_EXPORT_TYPE(name) to METAC_TYPE_IMPORT(name) - because we really importing info about types to the source file
-17. METAC_OBJECT(type, obj) -> {ptr2type, void * ptr2object, sizeof(object)?}
 16. metac_type_array_length -> metac_array_type_length (change everywhere) - not sure, need to finish with object first
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
-6. done - modify metac.awk give API to find type by some params.
 10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
 13. minor - print at only if at_num>0
-19. done - need an automated way how to understand from METAC_OBJECT(_type_, _name_) make type and add object in metac.awk (to avoid using METAC_TYPE_GENERATE)
+25. UT for metac_object?
+20. Easy PoC serialization/de-serialization. e.g. to serialize function call params to json (based on the function arguments) and de-serialize them
+21. What to do with pointers and cycles?
+22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
+23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
+24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
 
 
 
