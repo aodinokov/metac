@@ -9,6 +9,7 @@
 22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
 23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
 24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
+25. Improve performance of metac_type_by_name and metac_object_by_name: pre-sort METAC_DECLARE_EXTERN_TYPES_ARRAY & METAC_DECLARE_EXTERN_OBJECTS_ARRAY and use O(log N) algorithm to search 
 
 
 
