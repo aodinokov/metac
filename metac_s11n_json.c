@@ -32,7 +32,8 @@ static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, 
 		assert(byte_size == sizeof(char));
 		/*json_type_string or TODO: json_type_int in range 0 - 255*/
 		assert(jtype == json_type_string);
-		assert(json_object_get_string_len(jobj) == 1);
+		/*TODO: make some ifdef to make it work with old versions of json lib*/
+		//assert(json_object_get_string_len(jobj) == 1);
 		*((char*)ptr) = json_object_get_string(jobj)[0];
 	}/*TODO: else ...*/
 
