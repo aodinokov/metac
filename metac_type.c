@@ -113,7 +113,7 @@ int metac_type_child_id_by_name(struct metac_type *type, metac_name_t name) {
 	return -1;
 }
 
-unsigned int metac_type_byte_size(struct metac_type *type) {
+metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
 	if (type == NULL)
 		return 0;
 
@@ -601,5 +601,115 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	}while(1);
 
 	return NULL;
+}
+
+static int _metac_delete(struct metac_type *type, void *ptr){
+	metac_type_id_t id;
+	if (type == NULL || ptr == NULL)
+		return -1;
+
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	id = metac_type_id(type);
+	switch (id) {
+	case DW_TAG_base_type:
+	case DW_TAG_enumeration_type:
+		/*nothing to do*/
+		return 0;
+	case DW_TAG_pointer_type: {
+			int res = 0;
+			/*get info about what type of the pointer*/
+			if (type->p_at.p_at_type) {
+				void *_ptr = *((void**)ptr);
+				res = _metac_delete(type->p_at.p_at_type->type, _ptr);
+			}
+			if (ptr)
+				free(ptr);
+			return res;
+		}
+	case DW_TAG_array_type: {
+			int res = 0;
+			metac_num_t i;
+			struct metac_type_array_info info;
+
+			if (metac_type_array_info(type, &info) != 0)
+				return -1;
+
+			for (i = 0; i < info.elements_count; i++) {
+				void *_ptr;
+				struct metac_type_element_info einfo;
+				if (metac_type_array_element_info(type, i, &einfo) != 0) {
+					++res;
+					continue;
+				}
+				_ptr = *((void**)(ptr + (einfo.data_location)));
+				res += _metac_delete(einfo.type, _ptr);
+			}
+
+			return res;
+		}
+	case DW_TAG_structure_type: {
+			int res = 0;
+			metac_num_t i;
+			struct metac_type_structure_info info;
+
+			if (metac_type_structure_info(type, &info) != 0)
+				return -1;
+
+			for (i = 0; i < info.members_count; i++) {
+				void *_ptr;
+				struct metac_type_member_info minfo;
+				if (metac_type_structure_member_info(type, i, &minfo) != 0) {
+					++res;
+					continue;
+				}
+				assert(metac_type_id(minfo.type) == DW_TAG_pointer_type && (minfo.p_bit_offset || minfo.p_bit_size));
+				if (minfo.p_bit_offset || minfo.p_bit_size)
+					continue; /*TODO: support this case if needed*/
+
+				_ptr = *((void**)(ptr + (minfo.p_data_member_location?(*(minfo.p_data_member_location)):0)));
+				res += _metac_delete(minfo.type, _ptr);
+			}
+			return res;
+		}
+	case DW_TAG_union_type:
+		/*TODO: don't know what to do here */
+		assert(0);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int _metac_object_delete(struct metac_object * object) {
+	if (object) {
+		int res = _metac_delete(object->type, object->ptr);
+		free(object);
+		return res;
+	}
+	return -1;
+}
+
+struct metac_object * metac_object_get(struct metac_object * object) {
+	if (object) {
+		if (object->ref_count != 0) {
+			++object->ref_count;
+		}
+	}
+	return object;
+}
+
+int metac_object_put(struct metac_object * object) {
+	if (object) {
+		if (object->ref_count != 0) {
+			--object->ref_count;
+			if (object->ref_count == 0) {
+				_metac_object_delete(object);
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 

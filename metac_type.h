@@ -209,6 +209,7 @@ struct metac_object {
 	struct metac_type *		type;
 	void *					ptr;
 	/*todo: reference count (0 for objects that were initialized by METAC_OBJECT/METAC_FUNCTION)*/
+	int						ref_count;
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
@@ -228,6 +229,9 @@ struct metac_object_sorted_array {
 #define METAC_OBJECTS_ARRAY_SYMBOL "metac__objects_array"
 #define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_sorted_array METAC_OBJECTS_ARRAY
 struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name);
+/*for dynamic objects*/
+struct metac_object * metac_object_get(struct metac_object * object);
+int metac_object_put(struct metac_object * object);
 
 #ifdef __cplusplus
 }

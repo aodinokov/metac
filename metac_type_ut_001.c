@@ -573,6 +573,26 @@ START_TEST(metac_array_symbols) {
 	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
 
+struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
+
+START_TEST(metac_json_deserialization) {
+	struct metac_object * res;
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"x_eOne\"")) != NULL, "metac_json2object returned NULL");*/
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
+			"metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
+	 * 		"metac_json2object returned NULL");*/
+}END_TEST
+
 int main(void){
 	return run_suite(
 		START_SUITE(type_suite){
@@ -584,6 +604,7 @@ int main(void){
 					ADD_TEST(array_type_smoke);
 					ADD_TEST(enum_type_smoke);
 					ADD_TEST(metac_array_symbols);
+					ADD_TEST(metac_json_deserialization);
 				}END_CASE
 			);
 		}END_SUITE
