@@ -26,7 +26,7 @@ _always_:
 
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
-metac_type_ut_001: metac_s11n_json.o metac_type.o metac_type_ut_001.o metac_type_ut_001.metac.o
+metac_type_ut_001: metac_type.o metac_s11n_json.o metac_type_ut_001.o metac_type_ut_001.metac.o
 metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson 
 
 %.run: % _always_
