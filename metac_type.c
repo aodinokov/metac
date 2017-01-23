@@ -664,8 +664,9 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 					++res;
 					continue;
 				}
-				assert(metac_type_id(minfo.type) == DW_TAG_pointer_type && (minfo.p_bit_offset || minfo.p_bit_size));
-				if (minfo.p_bit_offset || minfo.p_bit_size)
+				assert( (metac_type_id(minfo.type) != DW_TAG_pointer_type) ||
+						(metac_type_id(minfo.type) == DW_TAG_pointer_type && (minfo.p_bit_offset == NULL || minfo.p_bit_size == NULL)));
+				if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL)
 					continue; /*TODO: support this case if needed*/
 
 				_ptr = *((void**)(ptr + (minfo.p_data_member_location?(*(minfo.p_data_member_location)):0)));

@@ -1,3 +1,8 @@
+27. metac_byte_size_t metac_type_byte_size(struct metac_type *type) - modify implementation to check if array with zero length has
+    siblings with <array_name>_len that sets dynamically length of array
+28. _metac_object_delete (_metac_delete): for DW_TAG_union_type check if union has sibling <union_name>_subtype, that says what element of union 
+    should be considered as actual. Use the same pattern when serializing/de-serializing data.
+
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
 10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h

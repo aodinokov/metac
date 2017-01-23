@@ -573,7 +573,20 @@ START_TEST(metac_array_symbols) {
 	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
 
+/*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
+
+typedef struct _struct1_
+{
+  unsigned int x;
+  unsigned int y;
+}struct1_t;
+
+typedef struct _struct2_
+{
+	struct1_t * str1;
+}struct2_t;
+METAC_TYPE_GENERATE(struct2_t);
 
 START_TEST(metac_json_deserialization) {
 	struct metac_object * res;
@@ -591,6 +604,11 @@ START_TEST(metac_json_deserialization) {
 	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
 	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
 	 * 		"metac_json2object returned NULL");*/
+	GENERAL_TYPE_SMOKE(struct2_t, DW_TAG_structure_type);
+	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
+			"metac_json2object returned NULL");
+	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+
 }END_TEST
 
 int main(void){
