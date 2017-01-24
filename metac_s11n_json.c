@@ -142,7 +142,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		}
 
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-		mjobj = json_object_object_get_ex(jobj, minfo.name);
+		mjobj = json_object_object_get(jobj, minfo.name);
 		if (mjobj == NULL) {
 #else
 		if (json_object_object_get_ex(jobj, minfo.name, &mjobj) == 0) {
