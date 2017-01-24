@@ -463,7 +463,7 @@ int metac_type_array_info(struct metac_type *type, struct metac_type_array_info 
 		p_info->subranges_count = metac_type_child_num(type);
 
 		/**/
-		assert(p_info->subranges_count < 2);	/* assumption: C should have several subranges */
+		assert(p_info->subranges_count < 2);	/* assumption: C shouldn't have several subranges */
 
 		p_info->lower_bound = 0;
 		p_info->p_upper_bound = NULL;
@@ -504,11 +504,12 @@ int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
 		return -1;
 	}
 	metac_type_subrange = metac_type_child(type, i);
-	assert(metac_type_id(metac_type_subrange) == DW_TAG_subrange_type);
 	if (metac_type_subrange == NULL) {
 		msg_stderr("i is incorrect\n");
 		return -1;
 	}
+
+	assert(metac_type_id(metac_type_subrange) == DW_TAG_subrange_type);
 	return metac_type_subrange_info(metac_type_subrange, p_info);
 }
 
@@ -660,14 +661,21 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 			for (i = 0; i < info.members_count; i++) {
 				void *_ptr;
 				struct metac_type_member_info minfo;
+
 				if (metac_type_structure_member_info(type, i, &minfo) != 0) {
 					++res;
 					continue;
 				}
+
 				assert( (metac_type_id(minfo.type) != DW_TAG_pointer_type) ||
 						(metac_type_id(minfo.type) == DW_TAG_pointer_type && (minfo.p_bit_offset == NULL || minfo.p_bit_size == NULL)));
-				if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL)
-					continue; /*TODO: support this case if needed*/
+				if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL) {
+					/*
+					 * we can continue, because bit_fields can't contain pointers.
+					 * Both gcc and clang notifies about error on ptr with bit fields
+					 */
+					continue;
+				}
 
 				res += _metac_delete(minfo.type, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0));
 			}

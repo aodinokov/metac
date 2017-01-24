@@ -189,6 +189,25 @@ typedef struct _bit_fields_
 }bit_fields_t;
 METAC_TYPE_GENERATE(bit_fields_t);
 
+typedef struct _bit_fields_for_longer_than32_bit
+{
+  unsigned int widthValidated : 9;
+  unsigned int heightValidated : 12;
+  int heightValidated1 : 30;
+  llongint_t heightValidated2 : 63;
+}bit_fields_for_longer_than32_bit_t;
+METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+
+struct _struct_with_flexible_array_and_len {
+	int array_len;
+	char array[];
+};
+typedef struct _struct_with_struct_with_flexible_array_and_len{
+	int before_struct;
+	struct _struct_with_flexible_array_and_len str1;
+}struct_with_struct_with_flexible_array_and_len_t;
+METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
+
 /*TODO: some combinations??? */
 
 /* function ptr */
@@ -288,6 +307,8 @@ START_TEST(general_type_smoke) {
 
 	GENERAL_TYPE_SMOKE(struct_t, DW_TAG_structure_type);
 	GENERAL_TYPE_SMOKE(bit_fields_t, DW_TAG_structure_type);
+	GENERAL_TYPE_SMOKE(bit_fields_for_longer_than32_bit_t, DW_TAG_structure_type);
+	GENERAL_TYPE_SMOKE(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_structure_type);
 
 	GENERAL_TYPE_SMOKE(func_ptr_t, DW_TAG_pointer_type);
 }END_TEST
@@ -517,9 +538,10 @@ START_TEST(array_type_smoke) {
 
 }END_TEST
 
-#define ENUM_TYPE_SMOKE(enum_type, et_name, expected_e_info_values) \
+#define ENUM_TYPE_SMOKE(enum_type, _et_name_, expected_e_info_values) \
 do { \
 	unsigned int i; \
+	char *et_name = _et_name_; \
 	struct metac_type_enumeration_type_info et_info; \
 	struct metac_type_enumerator_info e_info; \
     \
@@ -636,6 +658,95 @@ START_TEST(metac_json_deserialization) {
 	}while(0);
 	mark_point();
 
+/*
+	typedef struct _bit_fields_
+	{
+	  unsigned int widthValidated : 9;
+	  unsigned int heightValidated : 12;
+	}bit_fields_t;
+	METAC_TYPE_GENERATE(bit_fields_t);
+*/
+
+
+	do {
+		int i;
+		unsigned char * p;
+		bit_fields_t *pres;
+		bit_fields_t eres = {.widthValidated = 6, .heightValidated = 100};
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
+				"metac_json2object returned NULL");
+		pres = (bit_fields_t*)res->ptr;
+//printf("result:\n");
+//p = (unsigned char *) pres;
+//for (i=0; i<sizeof(bit_fields_t); i++){
+//printf("%02x ", (int)*p);
+//p++;
+//}
+//printf("\n");
+//printf("expected:\n");
+//p = (unsigned char *) &eres;
+//for (i=0; i<sizeof(bit_fields_t); i++){
+//printf("%02x ", (int)*p);
+//p++;
+//}
+//printf("\n");
+
+		fail_unless(
+				pres->widthValidated == eres.widthValidated &&
+				pres->heightValidated == eres.heightValidated, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+
+/*
+typedef struct _bit_fields_for_longer_than32_bit
+{
+  unsigned int widthValidated : 9;
+  unsigned int heightValidated : 12;
+  int heightValidated1 : 30;
+  llongint_t heightValidated2 : 63;
+}bit_fields_for_longer_than32_bit_t;
+METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+ */
+	do {
+		int i;
+		unsigned char * p;
+		bit_fields_for_longer_than32_bit_t *pres;
+		bit_fields_for_longer_than32_bit_t eres = {
+				.widthValidated = 6,
+				.heightValidated = 100,
+				.heightValidated1 = -1,
+				.heightValidated2 = 10000000};
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_for_longer_than32_bit_t),
+				"{\"widthValidated\": 6, \"heightValidated\": 100, \"heightValidated1\": -1, \"heightValidated2\": 10000000}")) != NULL,
+				"metac_json2object returned NULL");
+		pres = (bit_fields_for_longer_than32_bit_t*)res->ptr;
+//printf("result:\n");
+//p = (unsigned char *) pres;
+//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+//printf("%02x ", (int)*p);
+//p++;
+//}
+//printf("\n");
+//printf("expected:\n");
+//p = (unsigned char *) &eres;
+//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+//printf("%02x ", (int)*p);
+//p++;
+//}
+//printf("\n");
+		fail_unless(
+				pres->widthValidated == eres.widthValidated &&
+				pres->heightValidated == eres.heightValidated /*&&
+				pres->heightValidated1 == eres.heightValidated1 &&
+				pres->heightValidated2 == eres.heightValidated2*/
+				, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+
+
+
 	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
 	 * 		"metac_json2object returned NULL");*/
 	GENERAL_TYPE_SMOKE(struct2_t, DW_TAG_structure_type);
@@ -647,7 +758,7 @@ START_TEST(metac_json_deserialization) {
 		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
 				"metac_json2object returned NULL");
 		pres = (struct2_t*)res->ptr;
-		fail_unless(pres->str1, "pointer wasn't inintialized");
+		fail_unless(pres->str1 != NULL, "pointer wasn't initialized");
 		fail_unless(
 				pres->str1->x == eres.str1->x &&
 				pres->str1->y == eres.str1->y, "unexpected data");
