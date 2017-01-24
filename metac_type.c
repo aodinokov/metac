@@ -669,8 +669,7 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 				if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL)
 					continue; /*TODO: support this case if needed*/
 
-				_ptr = *((void**)(ptr + (minfo.p_data_member_location?(*(minfo.p_data_member_location)):0)));
-				res += _metac_delete(minfo.type, _ptr);
+				res += _metac_delete(minfo.type, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0));
 			}
 			return res;
 		}

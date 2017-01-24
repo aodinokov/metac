@@ -590,24 +590,70 @@ METAC_TYPE_GENERATE(struct2_t);
 
 START_TEST(metac_json_deserialization) {
 	struct metac_object * res;
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	do {
+		char * pres;
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
+		pres = (char*)res->ptr;
+		fail_unless(*pres == 'c', "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+	do {
+		int *pres;
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
+		pres = (int*)res->ptr;
+		fail_unless(*pres == 7, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+	do {
+		int_t *pres;
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
+		pres = (int_t*)res->ptr;
+		fail_unless(*pres == 7777, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+
+	do {
+		enum_t *pres;
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
+		pres = (enum_t*)res->ptr;
+		fail_unless(*pres == _eOne, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
 	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"x_eOne\"")) != NULL, "metac_json2object returned NULL");*/
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
-			"metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+
+	do {
+		char_array5_t *pres;
+		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
+				"metac_json2object returned NULL");
+		pres = (char_array5_t*)res->ptr;
+		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+
 	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
 	 * 		"metac_json2object returned NULL");*/
 	GENERAL_TYPE_SMOKE(struct2_t, DW_TAG_structure_type);
-	fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
-			"metac_json2object returned NULL");
-	fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	do {
+		struct2_t *pres;
+		struct1_t str1 = {.x = 1, .y = 8};
+		struct2_t eres = {.str1 = &str1};
+
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
+				"metac_json2object returned NULL");
+		pres = (struct2_t*)res->ptr;
+		fail_unless(pres->str1, "pointer wasn't inintialized");
+		fail_unless(
+				pres->str1->x == eres.str1->x &&
+				pres->str1->y == eres.str1->y, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
 
 }END_TEST
 
