@@ -141,7 +141,13 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			return -EINVAL;
 		}
 
-		if (json_object_object_get_ex(jobj, minfo.name, &mjobj) == 0) { /*TODO: may be we must init this objects by default*/
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+		mjobj = json_object_object_get_ex(jobj, minfo.name);
+		if (mjobj == NULL) {
+#else
+		if (json_object_object_get_ex(jobj, minfo.name, &mjobj) == 0) {
+#endif
+			/*TODO: may be we must init this objects by default*/
 			msg_stderr("Can't find member %s in json\n", minfo.name);
 			return -EINVAL;
 		}
