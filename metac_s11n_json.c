@@ -36,7 +36,11 @@ static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, 
 	}else if (strcmp(type->p_at.p_at_name->name, "long long int") == 0){
 		assert(byte_size == sizeof(long long int));
 		assert(jtype == json_type_int);
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+		*((long long int*)ptr) = (long long int)json_object_get_int(jobj);	/*FIXME: it's a BUG*/
+#else
 		*((long long int*)ptr) = (long long int)json_object_get_int64(jobj);
+#endif
 	}else if (strcmp(type->p_at.p_at_name->name, "char") == 0){
 		assert(byte_size == sizeof(char));
 		/*json_type_string or TODO: json_type_int in range 0 - 255*/
