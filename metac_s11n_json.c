@@ -24,11 +24,17 @@ static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, 
 		return -EINVAL;
 	enum json_type jtype = json_object_get_type(jobj);
 
-	/*TODO: don't like this strcmp. need to search once to find type*/
+	/*TODO: don't like this strcmp. need to search once to find type (look into suffix arrays or lists)*/
 	if (strcmp(type->p_at.p_at_name->name, "int") == 0){
-		assert(byte_size == sizeof(int));
-		assert(jtype == json_type_int);
-		*((int*)ptr) = (int)json_object_get_int(jobj); /*FIXME: json_object_get_int64???*/
+		if (byte_size != sizeof(int)) {
+			msg_stderr("expected byte_size %d instead of %d to store int\n", (int)sizeof(int), (int)byte_size);
+			return -EFAULT;
+		}
+		if (jtype != json_type_int) {
+			msg_stderr("expected int in json\n");
+			return -EFAULT;
+		}
+		*((int*)ptr) = (int)json_object_get_int(jobj);
 	}else if (strcmp(type->p_at.p_at_name->name, "unsigned int") == 0){
 		assert(byte_size == sizeof(unsigned int));
 		assert(jtype == json_type_int);
@@ -42,12 +48,29 @@ static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, 
 		*((long long int*)ptr) = (long long int)json_object_get_int64(jobj);
 #endif
 	}else if (strcmp(type->p_at.p_at_name->name, "char") == 0){
-		assert(byte_size == sizeof(char));
-		/*json_type_string or TODO: json_type_int in range 0 - 255*/
-		assert(jtype == json_type_string);
-		/*TODO: make some ifdef to make it work with old versions of json lib*/
-		//assert(json_object_get_string_len(jobj) == 1);
-		*((char*)ptr) = json_object_get_string(jobj)[0];
+		if (byte_size != sizeof(char)) {
+			msg_stderr("expected byte_size %d instead of %d to store char\n", (int)sizeof(char), (int)byte_size);
+			return -EFAULT;
+		}
+		/*TODO: json_type_int in range 0 - 255*/
+		if (jtype != json_type_string) {
+			msg_stderr("expected string in json\n");
+			return -EFAULT;
+		}
+		if (jtype == json_type_string) {
+			int string_len;
+			const char* string = json_object_get_string(jobj);
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+			string_len = (string!=NULL)?strlen(string):0;
+#else
+			string_len = json_object_get_string_len(jobj);
+#endif
+			if (string_len != 1) {
+				msg_stderr("expected string_len == 1 instead of %d in json\n", (int)string_len);
+				return -EFAULT;
+			}
+			*((char*)ptr) = string[0];
+		}
 	}/*TODO: else ...*/
 
 	return 0;
@@ -57,6 +80,7 @@ static int _metac_fill_enumeration_type(struct metac_type * type, json_object * 
 	int res = -EINVAL;
 	metac_num_t i;
 	metac_const_value_t	const_value;
+	enum json_type jtype;
 	struct metac_type_enumeration_type_info info;
 	struct metac_type_enumerator_info einfo;
 
@@ -65,9 +89,16 @@ static int _metac_fill_enumeration_type(struct metac_type * type, json_object * 
 		return -EINVAL;
 	}
 
-	enum json_type jtype = json_object_get_type(jobj);
-	assert(jtype == json_type_string);
-	assert(byte_size == info.byte_size);
+	if (byte_size != info.byte_size) {
+		msg_stderr("expected byte_size %d instead of %d to store enum\n", (int)info.byte_size, (int)byte_size);
+		return -EFAULT;
+	}
+
+	jtype = json_object_get_type(jobj);
+	if (jtype != json_type_string) {
+		msg_stderr("expected string in json\n");
+		return -EFAULT;
+	}
 
 	for (i = 0; i < info.enumerators_count; i++) {
 		if (metac_type_enumeration_type_enumerator_info(type, i, &einfo) != 0) {
@@ -177,6 +208,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			 * now need to make mask value, shift it and to put to addr:
 			 * ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0)
 			 * the main concern will be with sign (do we need to care about encoding?);
+			 * FIXME: not sure if this will work for BIG ENDIAN
 			 */
 #define _HANDLE_BITFIELDS(_type_, _mask_) do{ \
 	metac_bit_offset_t lshift = (byte_size << 3) - \
@@ -299,7 +331,7 @@ static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_objec
 
 	byte_size = metac_type_byte_size(type);
 	if (byte_size == 0) {
-		msg_stderr("Can't determine byte_size for type");
+		msg_stderr("Can't determine byte_size for type\n");
 		return -EINVAL;
 	}
 
@@ -308,13 +340,13 @@ static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_objec
 
 	*ptr = (void *)calloc(1, byte_size);
 	if ((*ptr) == NULL) {
-		msg_stderr("Can't allocate memory");
+		msg_stderr("Can't allocate memory\n");
 		return -ENOMEM;
 	}
 
 	res = _metac_fill_recursevly(type, jobj, *ptr, byte_size);
 	if (res != 0){
-		msg_stderr("_metac_fill_recursevly returned error");
+		msg_stderr("_metac_fill_recursevly returned error\n");
 		free(*ptr);
 		*ptr = NULL;
 	}

@@ -1,6 +1,6 @@
 CFLAGS+=-g3 -o0
 
-all: metac_type_ut_001.run metac_type_ut_001.metac.c
+all: metac_type_ut_001.run metac_s11n_json_ut_001.run #metac_type_ut_001.metac.c
 
 _always_:
 
@@ -28,6 +28,10 @@ _always_:
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 metac_type_ut_001: metac_type.o metac_s11n_json.o metac_type_ut_001.o metac_type_ut_001.metac.o
 metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson
+
+metac_s11n_json_ut_001: LDFLAGS=-pthread
+metac_s11n_json_ut_001: metac_type.o metac_s11n_json.o metac_s11n_json_ut_001.o metac_s11n_json_ut_001.metac.o
+metac_s11n_json_ut_001: -lcheck -lm -lrt -ljson
 
 %.run: % _always_
 	./$<
