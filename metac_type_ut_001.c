@@ -676,20 +676,22 @@ START_TEST(metac_json_deserialization) {
 		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
 				"metac_json2object returned NULL");
 		pres = (bit_fields_t*)res->ptr;
-//printf("result:\n");
-//p = (unsigned char *) pres;
-//for (i=0; i<sizeof(bit_fields_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
-//printf("expected:\n");
-//p = (unsigned char *) &eres;
-//for (i=0; i<sizeof(bit_fields_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
+/*
+printf("result:\n");
+p = (unsigned char *) pres;
+for (i=0; i<sizeof(bit_fields_t); i++){
+printf("%02x ", (int)*p);
+p++;
+}
+printf("\n");
+printf("expected:\n");
+p = (unsigned char *) &eres;
+for (i=0; i<sizeof(bit_fields_t); i++){
+printf("%02x ", (int)*p);
+p++;
+}
+printf("\n");
+*/
 
 		fail_unless(
 				pres->widthValidated == eres.widthValidated &&

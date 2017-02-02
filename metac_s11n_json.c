@@ -179,11 +179,13 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			 * the main concern will be with sign (do we need to care about encoding?);
 			 */
 #define _HANDLE_BITFIELDS(_type_, _mask_) do{ \
-	_type_ _i, mask = _mask_; \
-	_i = *(_type_*)buffer; \
-	_i = (_i & (~(mask << (minfo.p_bit_size?(*minfo.p_bit_size):0)))) << \
-			(byte_size*8 - (minfo.p_bit_size?(*minfo.p_bit_size):0) - (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
-	*((_type_*)(ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0))) |= _i; \
+	metac_bit_offset_t lshift = (byte_size << 3) - \
+			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
+	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
+	/*msg_stddbg("lshift = %x, mask = %x\n", (int)lshift, (int)mask);*/ \
+	_type_ _i = *(_type_*)buffer; \
+	_i = (_i & mask) << lshift;\
+	*((_type_*)(ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0))) ^= _i; \
 }while(0)
 			switch(byte_size){
 			case 1:
