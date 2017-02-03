@@ -12,6 +12,7 @@
 #include <string.h>	/*strcmp*/
 #include <assert.h>	/*assert*/
 #include <errno.h>	/*EINVAL &etc*/
+#include <inttypes.h>	/* sscanf support for int8_t - int64_t*/
 
 #include "metac_type.h"
 #include "metac_debug.h"
@@ -19,60 +20,258 @@
 static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_object * jobj, void **ptr);
 static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size);
 
-static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
-	if (type->p_at.p_at_name == NULL)
-		return -EINVAL;
-	enum json_type jtype = json_object_get_type(jobj);
+static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
+	int64_t val;
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	val = json_object_get_int(jobj);
+#else
+	val = json_object_get_int64(jobj);
+#endif
+	/* Notes:
+	 * json_tokener_parse("-99999999999999999999999999999999999999") will not return error.
+	 * with the newest libjson the result can be in range [INT64_MIN; INT64_MAX]
+	 * with the version < 0.10 the result can be in range [INT32_MIN; INT32_MAX]
+	 * definitely both cases will truncate uint64_t (+uint32_t, int64_t in the second case).
+	 * For that purpose we have _metac_fill_basic_type_from_string that allows to use longer values.
+	 */
+	switch(type->p_at.p_at_encoding->encoding) {
+	case DW_ATE_unsigned_char:
+	case DW_ATE_signed_char:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t):
+			*((int8_t*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return -EFAULT;
+		}
+		break;
+	case DW_ATE_unsigned:
+	case DW_ATE_signed:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t):
+			*((int8_t*)ptr) = val;
+			break;
+		case sizeof(int16_t):
+			*((int16_t*)ptr) = val;
+			break;
+		case sizeof(int32_t):
+			*((int32_t*)ptr) = val;
+			break;
+		case sizeof(int64_t):
+			*((int64_t*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return -EFAULT;
+		}
+		break;
+	case DW_ATE_float:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(float):
+			*((float*)ptr) = val;
+			break;
+		case sizeof(double):
+			*((double*)ptr) = val;
+			break;
+		case sizeof(long double):
+			*((long double*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return -EFAULT;
+		}
+		break;
+	default:
+		msg_stderr("Unsupported encoding %d\n",(int)type->p_at.p_at_encoding->encoding);
+		return -EFAULT;
+	}
+	return 0;
+}
 
-	/*TODO: don't like this strcmp. need to search once to find type (look into suffix arrays or lists)*/
-	if (strcmp(type->p_at.p_at_name->name, "int") == 0){
-		if (byte_size != sizeof(int)) {
-			msg_stderr("expected byte_size %d instead of %d to store int\n", (int)sizeof(int), (int)byte_size);
+static int _metac_fill_basic_type_from_double(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
+	double val = json_object_get_double(jobj);
+
+	switch(type->p_at.p_at_encoding->encoding) {
+	case DW_ATE_float:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(float):
+			*((float*)ptr) = val;
+			break;
+		case sizeof(double):
+			*((double*)ptr) = val;
+			break;
+		case sizeof(long double):
+			*((long double*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
 			return -EFAULT;
 		}
-		if (jtype != json_type_int) {
-			msg_stderr("expected int in json\n");
-			return -EFAULT;
-		}
-		*((int*)ptr) = (int)json_object_get_int(jobj);
-	}else if (strcmp(type->p_at.p_at_name->name, "unsigned int") == 0){
-		assert(byte_size == sizeof(unsigned int));
-		assert(jtype == json_type_int);
-		*((int*)ptr) = (int)json_object_get_int(jobj); /*FIXME: json_object_get_int64???*/
-	}else if (strcmp(type->p_at.p_at_name->name, "long long int") == 0){
-		assert(byte_size == sizeof(long long int));
-		assert(jtype == json_type_int);
+		break;
+	default:
+		msg_stderr("Unsupported encoding %d\n",(int)type->p_at.p_at_encoding->encoding);
+		return -EFAULT;
+	}
+	return 0;
+}
+
+static int _metac_fill_basic_type_from_string(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
+	const char * string = json_object_get_string(jobj);
+	int string_len;
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-		*((long long int*)ptr) = (long long int)json_object_get_int(jobj);	/*FIXME: it's a BUG*/
+	string_len = (string!=NULL)?strlen(string):0;
 #else
-		*((long long int*)ptr) = (long long int)json_object_get_int64(jobj);
+	string_len = json_object_get_string_len(jobj);
 #endif
-	}else if (strcmp(type->p_at.p_at_name->name, "char") == 0){
-		if (byte_size != sizeof(char)) {
-			msg_stderr("expected byte_size %d instead of %d to store char\n", (int)sizeof(char), (int)byte_size);
-			return -EFAULT;
-		}
-		/*TODO: json_type_int in range 0 - 255*/
-		if (jtype != json_type_string) {
-			msg_stderr("expected string in json\n");
-			return -EFAULT;
-		}
-		if (jtype == json_type_string) {
-			int string_len;
-			const char* string = json_object_get_string(jobj);
-#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-			string_len = (string!=NULL)?strlen(string):0;
-#else
-			string_len = json_object_get_string_len(jobj);
-#endif
+
+	switch(type->p_at.p_at_encoding->encoding) {
+	case DW_ATE_unsigned_char:
+	case DW_ATE_signed_char:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t):
 			if (string_len != 1) {
 				msg_stderr("expected string_len == 1 instead of %d in json\n", (int)string_len);
 				return -EFAULT;
 			}
 			*((char*)ptr) = string[0];
+			return 0;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return -EFAULT;
 		}
-	}/*TODO: else ...*/
+		break;
+	case DW_ATE_unsigned:
+	case DW_ATE_signed: {
+			/* possible to extend this and if we meet 0x or 0 switch to hex and oct.
+			 * also don't forget that we can meet signs [-/+].
+			 * in that case we can always read as unsigned and multiply if necessary -1 (only if encoding is unsigned)
+			 */
+			const char * _string = string;
+			char * format = "%"SCNu64;
+			uint64_t uval;
+			int64_t val = 1;
 
+			if (_string[0] == '+' ||
+				_string[0] == '-') {
+				val = (_string[0] == '-')?-1:1;
+				++_string;
+			}
+
+			if (_string[0] == '0') { /*octal*/
+				format = "%"SCNo64;
+				++_string;
+			}
+
+			if (_string[0] == 'x') { /*octal*/
+				format = "%"SCNx64;
+				++_string;
+			}
+
+			if (sscanf(_string, format, &uval) != 1) {
+				msg_stderr("Wasn't able to read string \"%s\"to data\n", string);
+				return -EFAULT;
+			}
+
+			if (type->p_at.p_at_encoding->encoding == DW_ATE_signed) {
+				val*= uval;
+			}else {
+				if (val < 0) {
+					msg_stderr("Can't read string %s to unsigned type\n", string);
+					return -EFAULT;
+				}
+			}
+
+			switch(type->p_at.p_at_byte_size->byte_size) {
+			case sizeof(int8_t):
+				if (string_len != 1) {
+					msg_stderr("expected string_len == 1 instead of %d in json\n", (int)string_len);
+					return -EFAULT;
+				}
+				*((char*)ptr) = string[0];
+				return 0;
+			case sizeof(int16_t):
+				if (type->p_at.p_at_encoding->encoding == DW_ATE_signed) {
+					*((int16_t*)ptr) = val;
+				}else{
+					*((uint16_t*)ptr) = uval;
+				}
+				break;
+			case sizeof(int32_t):
+				if (type->p_at.p_at_encoding->encoding == DW_ATE_signed) {
+					*((int32_t*)ptr) = val;
+				}else{
+					*((uint32_t*)ptr) = uval;
+				}
+				break;
+			case sizeof(int64_t):
+				if (type->p_at.p_at_encoding->encoding == DW_ATE_signed) {
+					*((int64_t*)ptr) = val;
+				}else{
+					*((uint64_t*)ptr) = uval;
+				}
+				break;
+			default:
+				msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+				return -EFAULT;
+			}
+		}
+		break;
+	case DW_ATE_float: {
+			long double val;
+
+			if (sscanf(string, "%Lf", &val) != 1) {
+				msg_stderr("Wasn't able to read string \"%s\"to data\n", string);
+				return -EFAULT;
+			}
+
+			switch(type->p_at.p_at_byte_size->byte_size) {
+			case sizeof(float):
+				*((float*)ptr) = val;
+				break;
+			case sizeof(double):
+				*((double*)ptr) = val;
+				break;
+			case sizeof(long double):
+				*((long double*)ptr) = val;
+				break;
+			default:
+				msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+				return -EFAULT;
+			}
+		}
+		break;
+	default:
+		msg_stderr("Unsupported encoding %d\n",(int)type->p_at.p_at_encoding->encoding);
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
+	if (type->p_at.p_at_name == NULL ||
+		type->p_at.p_at_encoding == NULL ||
+		type->p_at.p_at_byte_size == NULL)
+		return -EINVAL;
+
+	if ((metac_byte_size_t)type->p_at.p_at_byte_size->byte_size != byte_size) {
+		msg_stderr("expected byte_size %d instead of %d to store %s\n",
+				(int)type->p_at.p_at_byte_size->byte_size, (int)byte_size, type->p_at.p_at_name->name);
+		return -EFAULT;
+	}
+
+	switch (json_object_get_type(jobj)) {
+		case json_type_int:
+			return _metac_fill_basic_type_from_int(type, jobj, ptr, byte_size);
+		case json_type_double:
+			return _metac_fill_basic_type_from_double(type, jobj, ptr, byte_size);
+		case json_type_string:
+			return _metac_fill_basic_type_from_string(type, jobj, ptr, byte_size);
+		default:
+			msg_stderr("Can't convert from json_type_%d to basic type\n",(int)json_object_get_type(jobj));
+			return -EFAULT;
+	}
 	return 0;
 }
 

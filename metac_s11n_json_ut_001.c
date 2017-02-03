@@ -11,6 +11,23 @@
 #include <stdint.h>	/*INT32_MIN, INT32_MAX*/
 #include <stdio.h>	/*sprintf*/
 
+#include <json/json.h>
+/**/
+START_TEST(check_libjson) {
+	enum json_type jtype;
+	json_object * jobj = json_tokener_parse("-99999999999999999999999999999999999999");
+	fail_unless(jobj != NULL, "json wasn't parsed");
+	jtype = json_object_get_type(jobj);
+	fail_unless(jtype == json_type_int, "json type isn't int");
+//printf("retured_int %d\n", json_object_get_int(jobj));
+printf("retured_int64 %ld\n", json_object_get_int64(jobj));
+//printf("retured_string %s\n", json_object_get_string(jobj));
+	json_object_put(jobj);
+
+
+}END_TEST
+
+
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
 
@@ -36,7 +53,7 @@ METAC_TYPE_GENERATE(enum_t);
 			_type_ * res_data_ptr; \
 			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL"); \
 			res_data_ptr = (_type_*)res->ptr; \
-			fail_unless(*res_data_ptr == _expected_value_, "unexpected data"); \
+			fail_unless(*res_data_ptr == (_expected_value_), "unexpected data"); \
 			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
 		}while(0); \
 		mark_point();
@@ -55,8 +72,8 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"A\"", 'A');
 	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"z\"", 'z');
 	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"&\"", '&');
+	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "7", 0x7);
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(char, "\"cc\"");
-	BASIC_TYPE_JSON_DES11N_NEGATIVE(char, "7");		/*FIXME: we can allow int values in range 0-255*/
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(char, "-7.9");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(char, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(char, "{\"xx\": \"xy\"}");
@@ -273,6 +290,7 @@ int main(void){
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
+					ADD_TEST(check_libjson);
 					ADD_TEST(basic_type_json_des11n);
 					ADD_TEST(metac_json_deserialization);
 				}END_CASE
