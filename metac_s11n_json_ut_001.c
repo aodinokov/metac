@@ -11,22 +11,6 @@
 #include <stdint.h>	/*INT32_MIN, INT32_MAX*/
 #include <stdio.h>	/*sprintf*/
 
-#include <json/json.h>
-/**/
-START_TEST(check_libjson) {
-	enum json_type jtype;
-	json_object * jobj = json_tokener_parse("-99999999999999999999999999999999999999");
-	fail_unless(jobj != NULL, "json wasn't parsed");
-	jtype = json_object_get_type(jobj);
-	fail_unless(jtype == json_type_int, "json type isn't int");
-//printf("retured_int %d\n", json_object_get_int(jobj));
-printf("retured_int64 %ld\n", json_object_get_int64(jobj));
-//printf("retured_string %s\n", json_object_get_string(jobj));
-	json_object_put(jobj);
-
-
-}END_TEST
-
 
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
@@ -290,7 +274,6 @@ int main(void){
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
-					ADD_TEST(check_libjson);
 					ADD_TEST(basic_type_json_des11n);
 					ADD_TEST(metac_json_deserialization);
 				}END_CASE
