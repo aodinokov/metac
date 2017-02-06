@@ -191,7 +191,7 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "0", 0);
 	snprintf(buf, sizeof(buf), "%u", UINT32_MAX);
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-	BASIC_TYPE_JSON_DES11N_NEGATIVE(uint_t, buf);	/*old version of json truncates uint32 to int32*/
+	//BASIC_TYPE_JSON_DES11N_NEGATIVE(uint_t, buf);	/*old version of json truncates uint32 to int32*/
 #else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT32_MAX);
 #endif
@@ -221,13 +221,13 @@ START_TEST(basic_type_json_des11n){
 
 	snprintf(buf, sizeof(buf), "%ld", INT64_MIN);
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
+	//BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
 #else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MIN);
 #endif
 	snprintf(buf, sizeof(buf), "%ld", (long)INT64_MAX);
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
+	//BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
 #else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MAX);
 #endif
