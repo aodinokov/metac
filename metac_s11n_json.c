@@ -48,6 +48,11 @@ static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object
 		break;
 	case DW_ATE_unsigned:
 	case DW_ATE_signed:
+		if (val < 0 &&
+			type->p_at.p_at_encoding->encoding == DW_ATE_unsigned) {
+			msg_stderr("Negative value %ld for unsigned type\n", val);
+			return -EFAULT;
+		}
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(int8_t):
 			*((int8_t*)ptr) = val;
@@ -143,43 +148,62 @@ static int _metac_fill_basic_type_from_string(struct metac_type * type, json_obj
 		break;
 	case DW_ATE_unsigned:
 	case DW_ATE_signed: {
-			/* possible to extend this and if we meet 0x or 0 switch to hex and oct.
+			/* possible to extend this and if we meet 0x or 0 switch to hex and octal.
 			 * also don't forget that we can meet signs [-/+].
 			 * in that case we can always read as unsigned and multiply if necessary -1 (only if encoding is unsigned)
 			 */
+			char suffix;
 			const char * _string = string;
-			char * format = "%"SCNu64;
+			int _string_len = string_len;
+			char * format = "%"SCNu64"%c";
 			uint64_t uval;
 			int64_t val = 1;
 
-			if (_string[0] == '+' ||
-				_string[0] == '-') {
+			if (_string_len > 0 &&
+				(_string[0] == '+' ||
+				_string[0] == '-')) {
 				val = (_string[0] == '-')?-1:1;
 				++_string;
+				--_string_len;
 			}
 
-			if (_string[0] == '0') { /*octal*/
-				format = "%"SCNo64;
+			if (val < 0 &&
+				type->p_at.p_at_encoding->encoding == DW_ATE_unsigned) {
+				msg_stderr("Invalid string %s for unsigned type\n", string);
+				return -EFAULT;
+			}
+
+			if (_string_len > 0 &&
+				_string[0] == '0') { /*octal*/
+				format = "%"SCNo64"%c";
 				++_string;
+				--_string_len;
 			}
 
-			if (_string[0] == 'x') { /*octal*/
-				format = "%"SCNx64;
+			if (_string_len > 0 &&
+				_string[0] == 'x' &&
+				strcmp(format, "%"SCNo64"%c") == 0) { /*hex*/
+				format = "%"SCNx64"%c";
 				++_string;
+				--_string_len;
 			}
 
-			if (sscanf(_string, format, &uval) != 1) {
+			if (_string_len == 0) { /*if we read the prefix, but we don't have anything after - reset*/
+				val = 1;
+				format = "%"SCNu64"%c";
+				_string = string;
+				_string_len = string_len;
+			}
+
+			/* we don't know if we read the whole string or only part that matched. For that purpose we have suffix var.
+			 * if sscanf returns 2 - we have something in remaining */
+			if (sscanf(_string, format, &uval, &suffix) != 1) {
 				msg_stderr("Wasn't able to read string \"%s\"to data\n", string);
 				return -EFAULT;
 			}
 
 			if (type->p_at.p_at_encoding->encoding == DW_ATE_signed) {
 				val*= uval;
-			}else {
-				if (val < 0) {
-					msg_stderr("Can't read string %s to unsigned type\n", string);
-					return -EFAULT;
-				}
 			}
 
 			switch(type->p_at.p_at_byte_size->byte_size) {
