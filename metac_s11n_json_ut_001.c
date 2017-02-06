@@ -77,8 +77,14 @@ START_TEST(basic_type_json_des11n){
 //	snprintf(buf, sizeof(buf), "%lu", (long)UINT64_MAX);
 //	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, buf, UINT64_MAX);
 	/* truncated int data */
-//	BASIC_TYPE_JSON_DES11N_NEGATIVE(uint_t, buf);	/*old version of json truncates uint32 to int32*/
-//	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
+//	snprintf(buf, sizeof(buf), "%u", UINT32_MAX);
+//	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT32_MAX);
+//	snprintf(buf, sizeof(buf), "%ld", INT64_MIN);
+//	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MIN);
+//	snprintf(buf, sizeof(buf), "%ld", (long)INT64_MAX);
+//	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MAX);
+//	snprintf(buf, sizeof(buf), "%u", UINT64_MAX);
+//	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT64_MAX);
 
 	/*char*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"c\"", 'c');
