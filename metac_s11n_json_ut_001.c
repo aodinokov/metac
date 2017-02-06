@@ -11,6 +11,8 @@
 #include <stdint.h>	/*INT32_MIN, INT32_MAX*/
 #include <stdio.h>	/*sprintf*/
 
+#include <json/json.h>	/*to get version of lib*/
+
 
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
@@ -27,6 +29,11 @@ typedef unsigned int uint_t;
 METAC_TYPE_GENERATE(uint_t);
 typedef unsigned long ulong_t;
 METAC_TYPE_GENERATE(ulong_t);
+METAC_TYPE_GENERATE(float);
+METAC_TYPE_GENERATE(double);
+typedef long double ldouble_t;
+METAC_TYPE_GENERATE(ldouble_t);
+
 
 
 typedef enum _enum_{
@@ -183,7 +190,11 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "1234", 1234);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "0", 0);
 	snprintf(buf, sizeof(buf), "%u", UINT32_MAX);
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(uint_t, buf);	/*old version of json truncates uint32 to int32*/
+#else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT32_MAX);
+#endif
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "\"07\"", 07);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "\"076234\"", 076234);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, "\"0xffffffff\"", 0xffffffff);
@@ -207,10 +218,19 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "-0", 0);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "1234", 1234);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "-10", -10);
+
 	snprintf(buf, sizeof(buf), "%ld", INT64_MIN);
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
+#else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MIN);
+#endif
 	snprintf(buf, sizeof(buf), "%ld", (long)INT64_MAX);
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, buf);	/*old version of json truncates int64 to int32*/
+#else
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MAX);
+#endif
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-7\"", -7);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-0\"", 0);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-07\"", -07);
