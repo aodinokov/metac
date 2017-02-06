@@ -240,6 +240,8 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-0xa\"", -0xa);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"0x7fffffff\"", 0x7fffffff);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-0x80000000\"", -0x80000000L);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"0x7fffffffffffffff\"", 0x7fffffffffffffffL);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(long, "\"-0x8000000000000000\"", -0x8000000000000000L);
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, "\"-0a\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, "\"-01a\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(long, "\"-0x\"");
@@ -257,6 +259,7 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, "\"07\"", 07);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, "\"076234\"", 076234);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, "\"0xffffffff\"", 0xffffffff);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, "\"0xffffffffffffffff\"", 0xffffffffffffffffL);
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "-10");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "\"-7\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "\"-07\"");
