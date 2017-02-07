@@ -638,14 +638,12 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 				return -1;
 
 			for (i = 0; i < info.elements_count; i++) {
-				void *_ptr;
 				struct metac_type_element_info einfo;
 				if (metac_type_array_element_info(type, i, &einfo) != 0) {
 					++res;
 					continue;
 				}
-				_ptr = *((void**)(ptr + (einfo.data_location)));
-				res += _metac_delete(einfo.type, _ptr);
+				res += _metac_delete(einfo.type, ptr + einfo.data_location);
 			}
 
 			return res;
@@ -659,7 +657,6 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 				return -1;
 
 			for (i = 0; i < info.members_count; i++) {
-				void *_ptr;
 				struct metac_type_member_info minfo;
 
 				if (metac_type_structure_member_info(type, i, &minfo) != 0) {

@@ -31,15 +31,14 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
 		printf("\n"); \
 	}while(0)
 
-#define BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_...) \
+#define JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_...) \
 		do { \
 			struct metac_object * res; \
-			_type_	res_data, expected_value = _expected_value_; \
+			_type_	expected_value = _expected_value_; \
 			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL for %s", _json_str_); \
-			fail_unless(res->ptr != NULL, "Ptr is NULL"); \
-			res_data = (_type_)*((_type_*)res->ptr);
+			fail_unless(res->ptr != NULL, "Ptr is NULL");
 
-#define BASIC_TYPE_JSON_DES11N_POSITIVE_END() \
+#define JSON_DES11N_POSITIVE_END() \
 			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
 		}while(0); \
 		mark_point();
@@ -55,14 +54,14 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
  * and perform some UTs
  */
 #define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_...) \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
-		fail_unless((res_data) == (expected_value), "unexpected data for %s, expected %s", _json_str_, #_expected_value_); \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
+		JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless((*((_type_*)res->ptr)) == (expected_value), "unexpected data for %s, expected %s", _json_str_, #_expected_value_); \
+		JSON_DES11N_POSITIVE_END()
 
 #define PCHAR_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
-		fail_unless(strcmp((res_data), (expected_value)) == 0, "unexpected data for %s", _json_str_); \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
+		JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless(strcmp((*((_type_*)res->ptr)), (expected_value)) == 0, "unexpected data for %s", _json_str_); \
+		JSON_DES11N_POSITIVE_END()
 
 METAC_TYPE_GENERATE(char);
 METAC_TYPE_GENERATE(short);
@@ -93,7 +92,6 @@ METAC_TYPE_GENERATE(pchar_t);
 
 START_TEST(basic_type_json_des11n){
 	char buf[30];
-
 	/*known issues:*/
 	/* old versions of libjson trace for this tests:*/
 #if JSON_C_MAJOR_VERSION > 0 || JSON_C_MINOR_VERSION >= 10
@@ -316,7 +314,6 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"cc\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "{\"xx\": \"xy\"}");
-
 	/*double*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "0", 0);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "-0", 0);
@@ -338,7 +335,6 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"cc\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "{\"xx\": \"xy\"}");
-
 	/*ldouble_t*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "0", 0);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "-0", 0);
@@ -364,7 +360,6 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"cc\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "{\"xx\": \"xy\"}");
-
 	/*enum_t*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eZero\"", _eZero);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eOne\"", _eOne);
@@ -384,7 +379,6 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "-7.9");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "{\"xx\": \"xy\"}");
-
 	/*pchar_t*/
 	PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "\"string1234\"", "string1234");
 
@@ -396,13 +390,13 @@ START_TEST(basic_type_json_des11n){
  */
 
 #define STRUCT_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_...) \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
 		if (memcmp((_type_*)res->ptr, &expected_value, sizeof(expected_value))!=0) { \
 			DUMP_MEM("data         : ", res->ptr, sizeof(expected_value)); \
 			DUMP_MEM("expected data: ", &expected_value, sizeof(expected_value)); \
 			fail_unless(0, "unexpected data for %s, expected %s", _json_str_, #_expected_value_); \
 		}\
-		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
+		JSON_DES11N_POSITIVE_END()
 
 #define STRUCT_TYPE_JSON_DES11N_NEGATIVE BASIC_TYPE_JSON_DES11N_NEGATIVE
 
@@ -412,7 +406,6 @@ typedef struct struct1
 	unsigned int y;
 }struct1_t;
 METAC_TYPE_GENERATE(struct1_t);
-
 typedef struct bit_fields1
 {
 	unsigned int field_15b: 15;
@@ -470,30 +463,17 @@ START_TEST(structure_type_json_des11n) {
 	}while(0);
 	mark_point();
 	STRUCT_TYPE_JSON_DES11N_NEGATIVE(struct2_t, "{\"str1\":\"string\"}");
-
 }END_TEST
 
-
-typedef char char_t;
-typedef long long int llongint_t;
-typedef char_t char_array5_t[5];
+typedef char char_array5_t[5];
 METAC_TYPE_GENERATE(char_array5_t);
 
-START_TEST(metac_json_deserialization) {
-	struct metac_object * res;
-	do {
-		char_array5_t *pres;
-		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (char_array5_t*)res->ptr;
-		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
+#define ARRAY_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE
+#define ARRAY_TYPE_JSON_DES11N_NEGATIVE STRUCT_TYPE_JSON_DES11N_NEGATIVE
 
-	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
-	 * 		"metac_json2object returned NULL");*/
+START_TEST(array_type_json_des11n) {
+	ARRAY_TYPE_JSON_DES11N_POSITIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e'});
+	//ARRAY_TYPE_JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\"]");
 }END_TEST
 
 int main(void){
@@ -503,7 +483,7 @@ int main(void){
 				START_CASE(type_smoke){
 					ADD_TEST(basic_type_json_des11n);
 					ADD_TEST(structure_type_json_des11n);
-					ADD_TEST(metac_json_deserialization);
+					ADD_TEST(array_type_json_des11n);
 				}END_CASE
 			);
 		}END_SUITE
