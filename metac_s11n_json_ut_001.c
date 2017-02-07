@@ -33,9 +33,6 @@ METAC_TYPE_GENERATE(float);
 METAC_TYPE_GENERATE(double);
 typedef long double ldouble_t;
 METAC_TYPE_GENERATE(ldouble_t);
-
-
-
 typedef enum _enum_{
 	_eZero = 0,
 	_eOne,
@@ -44,24 +41,37 @@ typedef enum _enum_{
 	_eTwelve,
 }enum_t;
 METAC_TYPE_GENERATE(enum_t);
+typedef char* pchar_t;
+METAC_TYPE_GENERATE(pchar_t);
 
-#define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
+#define BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
 		do { \
 			struct metac_object * res; \
 			_type_	res_data, expected_value = _expected_value_; \
 			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL for %s", _json_str_); \
 			fail_unless(res->ptr != NULL, "Ptr is NULL"); \
-			res_data = (_type_)*((_type_*)res->ptr); \
-			fail_unless((res_data) == (expected_value), "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
+			res_data = (_type_)*((_type_*)res->ptr);
+
+#define BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_) \
 			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
 		}while(0); \
 		mark_point();
+
+#define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless((res_data) == (expected_value), "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_)
 
 #define BASIC_TYPE_JSON_DES11N_NEGATIVE(_type_, _json_str_) \
 		do { \
 			fail_unless((metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) == NULL, "metac_json2object must return NULL for %s", _json_str_); \
 		}while(0); \
 		mark_point();
+
+#define PCHAR_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless(strcmp((res_data), (expected_value)) == 0, "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_)
 
 START_TEST(basic_type_json_des11n){
 	char buf[30];
@@ -356,6 +366,9 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "-7.9");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "{\"xx\": \"xy\"}");
+
+	/*pchar_t*/
+	//PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "\"string1234\"", "string1234");
 
 }END_TEST
 

@@ -394,10 +394,12 @@ static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj
 	assert(byte_size == sizeof(void*));
 
 	if (type->p_at.p_at_type == NULL) {
-		/*TBD: deserialize like int???*/
+		/*TBD: deserialize like int??? - no, it's a bad idea - non secure*/
 		msg_stderr("Can't de-serialize to void*\n");
 		return -EINVAL;
 	}
+
+	/*TBD: handle json_type_string if type is ptr to char or uchar - strdup string*/
 
 	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
 	return _metac_alloc_and_fill_recursevly(type->p_at.p_at_type->type, jobj, (void**)ptr);
