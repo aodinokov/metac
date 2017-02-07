@@ -1,19 +1,16 @@
 29. expand UT
     rename metac_type_ut_001.c - it's a set of smoke tests.
-    add test for flexible array use-case
 
 30. include errorno.h to metac_type and return normal error code
 
-31.json - need a solution for bit_fields in structs. need to understand how to set this
-
-32. allow void* to be (de)serialized like int??? - not sure that it's a good idea
-
-
 27. Flexible Array: _metac_alloc_and_fill_recursevly - modify implementation to check if type has array with zero length and has
     siblings with <array_name>_len that sets dynamically length of array. need to show situation when flexible array isn't located at the end. it's a potential error
+    add test for flexible array use-case
     
 28. _metac_object_delete (_metac_delete): for DW_TAG_union_type check if union has sibling <union_name>_subtype, that says what element of union 
     should be considered as actual. Use the same pattern when serializing/de-serializing data.
+
+31. to limit the recursion - instead of calling _metac_alloc_and_fill_recursevly in recursion, put adding to queue in _metac_fill_pointer_type
 
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details - _HANDLE_BITFIELDS - make it separate
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)

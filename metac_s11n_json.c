@@ -391,38 +391,78 @@ static int _metac_fill_enumeration_type(struct metac_type * type, json_object * 
 
 static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int res = -EINVAL;
-	assert(byte_size == sizeof(void*));
+	struct metac_type * mtype;
+
+	if (byte_size != sizeof(void*)) {
+		msg_stderr("expected byte_size %d instead of %d to store ptr\n", (int)sizeof(void*), (int)byte_size);
+		return -EFAULT;
+	}
 
 	if (type->p_at.p_at_type == NULL) {
-		/*TBD: deserialize like int??? - no, it's a bad idea - non secure*/
 		msg_stderr("Can't de-serialize to void*\n");
 		return -EINVAL;
 	}
 
-	/*TBD: handle json_type_string if type is ptr to char or uchar - strdup string*/
+	mtype = type->p_at.p_at_type->type;
+	if (	json_object_get_type(jobj) == json_type_string &&
+			metac_type_id(mtype)== DW_TAG_base_type &&
+			mtype->p_at.p_at_byte_size->bit_size == sizeof(uint8_t) &&
+			(mtype->p_at.p_at_encoding->encoding == DW_ATE_unsigned_char ||
+			mtype->p_at.p_at_encoding->encoding == DW_ATE_signed_char)) {
+		/* handle json_type_string if type is ptr to char or uchar*/
+		char * string = strdup(json_object_get_string(jobj));
+		if (string == NULL) {
+			msg_stderr("Can't allocate mem for string\n");
+			return -ENOMEM;
+		}
+		*((char**)ptr) = string;
+		return 0;
+	}
 
 	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
-	return _metac_alloc_and_fill_recursevly(type->p_at.p_at_type->type, jobj, (void**)ptr);
+	/*TBD: if we want to limit the recursion - instead of calling this - put here adding to queue*/
+	return _metac_alloc_and_fill_recursevly(mtype, jobj, (void**)ptr);
 }
 
+#define _STRUCTURE_HANDLE_BITFIELDS(_type_, _mask_) do{ \
+	metac_bit_offset_t lshift = (byte_size << 3) - \
+			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
+	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
+	_type_ _i = *(_type_*)buffer; \
+	_i = (_i & mask) << lshift;\
+	*((_type_*)(ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0))) ^= _i; \
+}while(0)
+
 static int _metac_fill_structure_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
-	int res = 0;
-	metac_num_t i;
-	struct metac_type_structure_info info;
+	int res;
+	struct lh_table* table;
+	struct lh_entry* entry;
 	struct metac_type_member_info minfo;
-	json_object * mjobj;
-
-	enum json_type jtype = json_object_get_type(jobj);
-	assert(jtype == json_type_object);
-
-	if (metac_type_structure_info(type, &info) != 0) {
-		msg_stderr("metac_type_structure_info returned error\n");
+	if (json_object_get_type(jobj) != json_type_object) {
+		msg_stderr("expeted json object\n");
 		return -EINVAL;
 	}
 
-	for (i = 0; i < info.members_count; i++) {
+	table = json_object_get_object(jobj);
+	if (table == NULL) {
+		msg_stderr("json_object_get_object returned NULL\n");
+		return -EFAULT;
+	}
+
+	lh_foreach(table, entry) {
+		int child_id;
 		metac_byte_size_t byte_size;
-		if (metac_type_structure_member_info(type, i, &minfo) != 0) {
+		char *key = (char *)entry->k;	/*field name*/
+		json_object *mjobj = (json_object *)entry->v;	/*field value*/
+
+		/*try to find field with name in structure*/
+		child_id = metac_type_child_id_by_name(type, key);
+		if (child_id < 0) {
+			msg_stderr("Can't find member %s in structure\n", key);
+			return -EFAULT;
+		}
+
+		if (metac_type_structure_member_info(type, child_id, &minfo) != 0) {
 			msg_stderr("metac_type_structure_member_info returned error\n");
 			return -EINVAL;
 		}
@@ -431,18 +471,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		byte_size = metac_type_byte_size(minfo.type);
 		if (byte_size == 0) {
 			msg_stderr("metac_type_byte_size returned 0 for member %s\n", minfo.name);
-			return -EINVAL;
-		}
-
-#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-		mjobj = json_object_object_get(jobj, minfo.name);
-		if (mjobj == NULL) {
-#else
-		if (json_object_object_get_ex(jobj, minfo.name, &mjobj) == 0) {
-#endif
-			/*TODO: may be we must init this objects by default*/
-			msg_stderr("Can't find member %s in json\n", minfo.name);
-			return -EINVAL;
+			return -EFAULT;
 		}
 
 		if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL) {
@@ -465,27 +494,18 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			 * the main concern will be with sign (do we need to care about encoding?);
 			 * FIXME: not sure if this will work for BIG ENDIAN
 			 */
-#define _HANDLE_BITFIELDS(_type_, _mask_) do{ \
-	metac_bit_offset_t lshift = (byte_size << 3) - \
-			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
-	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
-	/*msg_stddbg("lshift = %x, mask = %x\n", (int)lshift, (int)mask);*/ \
-	_type_ _i = *(_type_*)buffer; \
-	_i = (_i & mask) << lshift;\
-	*((_type_*)(ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0))) ^= _i; \
-}while(0)
 			switch(byte_size){
 			case 1:
-				_HANDLE_BITFIELDS(uint8_t, 0xff);
+				_STRUCTURE_HANDLE_BITFIELDS(uint8_t, 0xff);
 				break;
 			case 2:
-				_HANDLE_BITFIELDS(uint16_t, 0xffff);
+				_STRUCTURE_HANDLE_BITFIELDS(uint16_t, 0xffff);
 				break;
 			case 4:
-				_HANDLE_BITFIELDS(uint32_t, 0xffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS(uint32_t, 0xffffffff);
 				break;
 			case 8:
-				_HANDLE_BITFIELDS(uint64_t, 0xffffffffffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS(uint64_t, 0xffffffffffffffff);
 				break;
 			default:
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
@@ -501,7 +521,6 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			}
 		}
 	}
-
 	return 0;
 }
 

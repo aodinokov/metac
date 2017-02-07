@@ -17,6 +17,53 @@
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
 
+/*
+ * UT helper macros
+ */
+#define DUMP_MEM(_text_, _start_, _size_) \
+	do { \
+		int i; \
+		unsigned char * p = (unsigned char *)_start_; \
+		printf("%s", _text_); \
+		for (i=0; i<(_size_); i++) { \
+			printf("%02x ", (int)*p++); \
+		} \
+		printf("\n"); \
+	}while(0)
+
+#define BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_...) \
+		do { \
+			struct metac_object * res; \
+			_type_	res_data, expected_value = _expected_value_; \
+			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL for %s", _json_str_); \
+			fail_unless(res->ptr != NULL, "Ptr is NULL"); \
+			res_data = (_type_)*((_type_*)res->ptr);
+
+#define BASIC_TYPE_JSON_DES11N_POSITIVE_END() \
+			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
+		}while(0); \
+		mark_point();
+
+#define BASIC_TYPE_JSON_DES11N_NEGATIVE(_type_, _json_str_) \
+		do { \
+			fail_unless((metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) == NULL, "metac_json2object must return NULL for %s", _json_str_); \
+		}while(0); \
+		mark_point();
+
+/*
+ * Generate meta-info for some basic types and their typedefs
+ * and perform some UTs
+ */
+#define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_...) \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless((res_data) == (expected_value), "unexpected data for %s, expected %s", _json_str_, #_expected_value_); \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
+
+#define PCHAR_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		fail_unless(strcmp((res_data), (expected_value)) == 0, "unexpected data for %s", _json_str_); \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
+
 METAC_TYPE_GENERATE(char);
 METAC_TYPE_GENERATE(short);
 METAC_TYPE_GENERATE(int);
@@ -43,35 +90,6 @@ typedef enum _enum_{
 METAC_TYPE_GENERATE(enum_t);
 typedef char* pchar_t;
 METAC_TYPE_GENERATE(pchar_t);
-
-#define BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
-		do { \
-			struct metac_object * res; \
-			_type_	res_data, expected_value = _expected_value_; \
-			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL for %s", _json_str_); \
-			fail_unless(res->ptr != NULL, "Ptr is NULL"); \
-			res_data = (_type_)*((_type_*)res->ptr);
-
-#define BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_) \
-			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
-		}while(0); \
-		mark_point();
-
-#define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
-		fail_unless((res_data) == (expected_value), "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_)
-
-#define BASIC_TYPE_JSON_DES11N_NEGATIVE(_type_, _json_str_) \
-		do { \
-			fail_unless((metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) == NULL, "metac_json2object must return NULL for %s", _json_str_); \
-		}while(0); \
-		mark_point();
-
-#define PCHAR_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
-		fail_unless(strcmp((res_data), (expected_value)) == 0, "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
-		BASIC_TYPE_JSON_DES11N_POSITIVE_END(_type_, _json_str_, _expected_value_)
 
 START_TEST(basic_type_json_des11n){
 	char buf[30];
@@ -368,152 +386,75 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "{\"xx\": \"xy\"}");
 
 	/*pchar_t*/
-	//PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "\"string1234\"", "string1234");
+	PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "\"string1234\"", "string1234");
 
 }END_TEST
 
-typedef char char_t;
-typedef long long int llongint_t;
-typedef char_t char_array5_t[5];
-METAC_TYPE_GENERATE(char_array5_t);
+/*
+ * Generate meta-info for some struct types and their typedefs
+ * and perform some UTs
+ */
 
-/* bit fields */
-typedef struct _bit_fields_
-{
-  unsigned int widthValidated : 9;
-  unsigned int heightValidated : 12;
-}bit_fields_t;
-METAC_TYPE_GENERATE(bit_fields_t);
+#define STRUCT_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_...) \
+		BASIC_TYPE_JSON_DES11N_POSITIVE_START(_type_, _json_str_, _expected_value_) \
+		if (memcmp((_type_*)res->ptr, &expected_value, sizeof(expected_value))!=0) { \
+			DUMP_MEM("data         : ", res->ptr, sizeof(expected_value)); \
+			DUMP_MEM("expected data: ", &expected_value, sizeof(expected_value)); \
+			fail_unless(0, "unexpected data for %s, expected %s", _json_str_, #_expected_value_); \
+		}\
+		BASIC_TYPE_JSON_DES11N_POSITIVE_END()
 
-typedef struct _bit_fields_for_longer_than32_bit
-{
-  unsigned int widthValidated : 9;
-  unsigned int heightValidated : 12;
-  int heightValidated1 : 30;
-  llongint_t heightValidated2 : 63;
-}bit_fields_for_longer_than32_bit_t;
-METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+#define STRUCT_TYPE_JSON_DES11N_NEGATIVE BASIC_TYPE_JSON_DES11N_NEGATIVE
 
-typedef struct _struct1_
+typedef struct struct1
 {
-  unsigned int x;
-  unsigned int y;
+	int x;
+	unsigned int y;
 }struct1_t;
+METAC_TYPE_GENERATE(struct1_t);
 
-typedef struct _struct2_
+typedef struct bit_fields1
+{
+	unsigned int field_15b: 15;
+	unsigned int field_17b: 17;
+}bit_fields1_t;
+METAC_TYPE_GENERATE(bit_fields1_t);
+typedef struct bit_fields2
+{
+	unsigned int field_9b: 9;
+	unsigned int field_12b: 12;
+	long field_36b: 36;
+	long field_63b: 63;
+}bit_fields2_t;
+METAC_TYPE_GENERATE(bit_fields2_t);
+typedef struct struct2
 {
 	struct1_t * str1;
 }struct2_t;
 METAC_TYPE_GENERATE(struct2_t);
 
-
-START_TEST(metac_json_deserialization) {
-	struct metac_object * res;
+START_TEST(structure_type_json_des11n) {
+	/*struct1_t*/
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(struct1_t, "{}", {});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(struct1_t, "{\"x\": -1}", {.x = -1});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(struct1_t, "{\"y\": 1}", {.y = 1});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(struct1_t, "{\"x\": -1, \"y\": 1}", {.x = -1, .y = 1});
+	STRUCT_TYPE_JSON_DES11N_NEGATIVE(struct1_t, "{\"y\": -1}");
+	/*bit_fields1_t*/
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields1_t, "{}", {});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields1_t, "{\"field_15b\": 6}", {.field_15b = 6});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields1_t, "{\"field_17b\": 6000}", {.field_17b = 6000});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields1_t, "{\"field_15b\": 6, \"field_17b\": 100}",
+			{.field_15b = 6, .field_17b = 100});
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields1_t, "{\"field_15b\": 16384, \"field_17b\": 65536}",
+			{.field_15b = 16384, .field_17b = 65536});
+	STRUCT_TYPE_JSON_DES11N_NEGATIVE(bit_fields1_t, "{\"field_15b\": -6}");
+	/*bit_fields2_t*/
+	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields2_t, "{\"field_9b\": 6, \"field_12b\": 100, \"field_36b\": -1, \"field_63b\": 1000}",
+			{.field_9b = 6, .field_12b = 100, .field_36b = -1, .field_63b = 1000});
+	/*struct2_t*/
 	do {
-		char_array5_t *pres;
-		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (char_array5_t*)res->ptr;
-		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-/*
-	typedef struct _bit_fields_
-	{
-	  unsigned int widthValidated : 9;
-	  unsigned int heightValidated : 12;
-	}bit_fields_t;
-	METAC_TYPE_GENERATE(bit_fields_t);
-*/
-
-
-	do {
-		int i;
-		unsigned char * p;
-		bit_fields_t *pres;
-		bit_fields_t eres = {.widthValidated = 6, .heightValidated = 100};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (bit_fields_t*)res->ptr;
-/*
-printf("result:\n");
-p = (unsigned char *) pres;
-for (i=0; i<sizeof(bit_fields_t); i++){
-printf("%02x ", (int)*p);
-p++;
-}
-printf("\n");
-printf("expected:\n");
-p = (unsigned char *) &eres;
-for (i=0; i<sizeof(bit_fields_t); i++){
-printf("%02x ", (int)*p);
-p++;
-}
-printf("\n");
-*/
-
-		fail_unless(
-				pres->widthValidated == eres.widthValidated &&
-				pres->heightValidated == eres.heightValidated, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-/*
-typedef struct _bit_fields_for_longer_than32_bit
-{
-  unsigned int widthValidated : 9;
-  unsigned int heightValidated : 12;
-  int heightValidated1 : 30;
-  llongint_t heightValidated2 : 63;
-}bit_fields_for_longer_than32_bit_t;
-METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
- */
-	do {
-		int i;
-		unsigned char * p;
-		bit_fields_for_longer_than32_bit_t *pres;
-		bit_fields_for_longer_than32_bit_t eres = {
-				.widthValidated = 6,
-				.heightValidated = 100,
-				.heightValidated1 = -1,
-				.heightValidated2 = 10000000};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_for_longer_than32_bit_t),
-				"{\"widthValidated\": 6, \"heightValidated\": 100, \"heightValidated1\": -1, \"heightValidated2\": 10000000}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (bit_fields_for_longer_than32_bit_t*)res->ptr;
-//printf("result:\n");
-//p = (unsigned char *) pres;
-//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
-//printf("expected:\n");
-//p = (unsigned char *) &eres;
-//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
-		fail_unless(
-				pres->widthValidated == eres.widthValidated &&
-				pres->heightValidated == eres.heightValidated /*&&
-				pres->heightValidated1 == eres.heightValidated1 &&
-				pres->heightValidated2 == eres.heightValidated2*/
-				, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-
-
-	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
-	 * 		"metac_json2object returned NULL");*/
-	do {
+		struct metac_object * res;
 		struct2_t *pres;
 		struct1_t str1 = {.x = 1, .y = 8};
 		struct2_t eres = {.str1 = &str1};
@@ -528,7 +469,31 @@ METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
 		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
 	}while(0);
 	mark_point();
+	STRUCT_TYPE_JSON_DES11N_NEGATIVE(struct2_t, "{\"str1\":\"string\"}");
 
+}END_TEST
+
+
+typedef char char_t;
+typedef long long int llongint_t;
+typedef char_t char_array5_t[5];
+METAC_TYPE_GENERATE(char_array5_t);
+
+START_TEST(metac_json_deserialization) {
+	struct metac_object * res;
+	do {
+		char_array5_t *pres;
+		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
+		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
+				"metac_json2object returned NULL");
+		pres = (char_array5_t*)res->ptr;
+		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
+		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+	}while(0);
+	mark_point();
+
+	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
+	 * 		"metac_json2object returned NULL");*/
 }END_TEST
 
 int main(void){
@@ -537,6 +502,7 @@ int main(void){
 			ADD_CASE(
 				START_CASE(type_smoke){
 					ADD_TEST(basic_type_json_des11n);
+					ADD_TEST(structure_type_json_des11n);
 					ADD_TEST(metac_json_deserialization);
 				}END_CASE
 			);

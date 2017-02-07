@@ -35,8 +35,8 @@ metac_s11n_json_ut_001: -lcheck -lm -lrt -ljson
 
 %.run: % _always_
 	#./$<
-	#which valgrind && CK_FORK=no valgrind --leak-check=full ./$< || ./$< 
-	which valgrind && valgrind --trace-children=yes --show-leak-kinds=all --leak-check=full ./$< || ./$<
+	which valgrind && CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$< || ./$< 
+	#which valgrind && valgrind --trace-children=yes --leak-check=full --show-leak-kinds=all --track-origins=yes./$< || ./$<
 
 # documentation
 doc: _always_
