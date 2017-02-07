@@ -459,24 +459,27 @@ METAC_TYPE_GENERATE(char_array5_t);
 typedef char* pchar_array5_t[5];
 METAC_TYPE_GENERATE(pchar_array5_t);
 /*flexible array - pattern 1 - with null last element*/
-typedef char char_array_flex_t[];
-METAC_TYPE_GENERATE(char_array_flex_t);
-/*flexible array - pattern 2 - with <name>_len basic_type sibling with singed/unsigned encoding*/
 typedef struct struct3 {
-	int flex_arr2_len;
-	char flex_arr2[];
+	int x;
+	char flex_arr3[];
 }struct3_t;
 METAC_TYPE_GENERATE(struct3_t);
+/*flexible array - pattern 2 - with <name>_len basic_type sibling with singed/unsigned encoding*/
+typedef struct struct4 {
+	int flex_arr4_len;
+	char flex_arr4[];
+}struct4_t;
+METAC_TYPE_GENERATE(struct4_t);
 
 #define ARRAY_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE
 #define ARRAY_TYPE_JSON_DES11N_NEGATIVE STRUCT_TYPE_JSON_DES11N_NEGATIVE
 
 START_TEST(array_type_json_des11n) {
 	/*char_array5_t*/
-	ARRAY_TYPE_JSON_DES11N_POSITIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e'});
-	ARRAY_TYPE_JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\"]");
+	ARRAY_TYPE_JSON_DES11N_POSITIVE(char_array5_t, "[\"a\",\"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e'});
+	ARRAY_TYPE_JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]");
 	/*pchar_array5_t*/
-	JSON_DES11N_POSITIVE_START(pchar_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {"a", "b", "c", "d", "e"}) {
+	JSON_DES11N_POSITIVE_START(pchar_array5_t, "[\"a\",\"b\",\"c\",\"d\",\"e\"]", {"a", "b", "c", "d", "e"}) {
 		int i;
 		for (i = 0; i < sizeof(expected_value)/sizeof(expected_value[0]); ++i) {
 			char * element = (*((pchar_array5_t*)res->ptr))[i];
@@ -484,13 +487,17 @@ START_TEST(array_type_json_des11n) {
 		}
 	}JSON_DES11N_POSITIVE_END();
 	/*char_array_flex_t - doesn't work like this*/
-//	JSON_DES11N_POSITIVE_START(char_array_flex_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e', 0}) {
-//		int i;
-//		for (i = 0; i < 6/*sizeof(expected_value)/sizeof(expected_value[0])*/; ++i) {
-//			char * element = (*((pchar_array5_t*)res->ptr))[i];
-//			fail_unless(strcmp(element, expected_value[i]) == 0, "got incorrect value %s, expected %s", element, expected_value[i]);
-//		}
-//	}JSON_DES11N_POSITIVE_END();
+	{
+		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
+		JSON_DES11N_POSITIVE_START(struct3_t, "{\"flex_arr3\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}", {}) {
+			int i;
+			struct3_t * _struct3 = (struct3_t*)res->ptr;
+			for (i = 0; i < 6/*sizeof(expected_value)/sizeof(expected_value[0])*/; ++i) {
+				fail_unless(_struct3->flex_arr3[i] == expected_struct3.flex_arr3[i], "got incorrect value %c, expected %c",
+						_struct3->flex_arr3[i], expected_struct3.flex_arr3[i]);
+			}
+		}JSON_DES11N_POSITIVE_END();
+	}
 
 }END_TEST
 
