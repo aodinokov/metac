@@ -95,19 +95,19 @@ static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object
 }
 
 static int _metac_fill_basic_type_from_double(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
-	double val = json_object_get_double(jobj);
+	double val = (long double)json_object_get_double(jobj);
 
 	switch(type->p_at.p_at_encoding->encoding) {
 	case DW_ATE_float:
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(float):
-			*((float*)ptr) = val;
+			*((float*)ptr) = (float)val;
 			break;
 		case sizeof(double):
-			*((double*)ptr) = val;
+			*((double*)ptr) = (double)val;
 			break;
 		case sizeof(long double):
-			*((long double*)ptr) = val;
+			*((long double*)ptr) = (long double)val;
 			break;
 		default:
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
@@ -242,22 +242,23 @@ static int _metac_fill_basic_type_from_string(struct metac_type * type, json_obj
 		}
 		break;
 	case DW_ATE_float: {
+			char suffix;
 			long double val;
 
-			if (sscanf(string, "%Lf", &val) != 1) {
+			if (sscanf(string, "%Lf%c", &val, &suffix) != 1) {
 				msg_stderr("Wasn't able to read string \"%s\"to data\n", string);
 				return -EFAULT;
 			}
 
 			switch(type->p_at.p_at_byte_size->byte_size) {
 			case sizeof(float):
-				*((float*)ptr) = val;
+				*((float*)ptr) = (float)val;
 				break;
 			case sizeof(double):
-				*((double*)ptr) = val;
+				*((double*)ptr) = (double)val;
 				break;
 			case sizeof(long double):
-				*((long double*)ptr) = val;
+				*((long double*)ptr) = (long double)val;
 				break;
 			default:
 				msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
@@ -302,7 +303,7 @@ static int _metac_fill_basic_type(struct metac_type * type, json_object * jobj, 
 static int _metac_fill_enumeration_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int res = -EINVAL;
 	metac_num_t i;
-	metac_const_value_t	const_value;
+	metac_const_value_t const_value;
 	enum json_type jtype;
 	struct metac_type_enumeration_type_info info;
 	struct metac_type_enumerator_info einfo;
@@ -318,45 +319,74 @@ static int _metac_fill_enumeration_type(struct metac_type * type, json_object * 
 	}
 
 	jtype = json_object_get_type(jobj);
-	if (jtype != json_type_string) {
-		msg_stderr("expected string in json\n");
+	switch(jtype) {
+	case json_type_int: {
+			int64_t val;
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+			val = json_object_get_int(jobj);
+#else
+			val = json_object_get_int64(jobj);
+#endif
+			for (i = 0; i < info.enumerators_count; i++) {
+				if (metac_type_enumeration_type_enumerator_info(type, i, &einfo) != 0) {
+					msg_stderr("metac_type_enumeration_type_enumerator_info error\n");
+					return -EFAULT;
+				}
+				if (val == einfo.const_value) {
+					res = 0;
+					const_value = einfo.const_value;
+					break;
+				}
+			}
+			if (res != 0) {
+				msg_stderr("wasn't able to find enumerator for %ld\n", val);
+				return -EFAULT;
+			}
+		}
+		break;
+	case json_type_string: {
+			const char * string = json_object_get_string(jobj);
+			for (i = 0; i < info.enumerators_count; i++) {
+				if (metac_type_enumeration_type_enumerator_info(type, i, &einfo) != 0) {
+					msg_stderr("metac_type_enumeration_type_enumerator_info error\n");
+					return -EFAULT;
+				}
+				if (strcmp(string, einfo.name) == 0) {
+					res = 0;
+					const_value = einfo.const_value;
+					break;
+				}
+			}
+			if (res != 0) {
+				msg_stderr("wasn't able to find value for %s\n", string);
+				return -EFAULT;
+			}
+		}
+		break;
+	default:
+		msg_stderr("Can't convert from json_type_%d to basic type\n",(int)jtype);
 		return -EFAULT;
 	}
 
-	for (i = 0; i < info.enumerators_count; i++) {
-		if (metac_type_enumeration_type_enumerator_info(type, i, &einfo) != 0) {
-			msg_stderr("metac_type_enumeration_type_enumerator_info error\n");
-			return -EINVAL;
-		}
-		if (strcmp(json_object_get_string(jobj), einfo.name) == 0) {
-			res = 0;
-			const_value = einfo.const_value;
-			break;
-		}
+	switch(byte_size){
+	case sizeof(int8_t):
+		*((int8_t*)ptr) = (int8_t)const_value;
+		break;
+	case sizeof(int16_t):
+		*((int16_t*)ptr) = (int16_t)const_value;
+		break;
+	case sizeof(int32_t):
+		*((int32_t*)ptr) = (int32_t)const_value;
+		break;
+	case sizeof(int64_t):
+		*((int64_t*)ptr) = (int64_t)const_value;
+		break;
+	default:
+		msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
+		return -EFAULT;
 	}
-	if (res == 0) {
-		/*store const_value to ptr*/
-		/*TODO: Can we find easier way than this vvv?*/
-		switch(byte_size){
-		case 1:
-			*((int8_t*)ptr) = (int8_t)const_value;
-			break;
-		case 2:
-			*((int16_t*)ptr) = (int16_t)const_value;
-			break;
-		case 4:
-			*((int32_t*)ptr) = (int32_t)const_value;
-			break;
-		case 8: /*TODO: probably need to make appropriate ifdef */
-			*((int64_t*)ptr) = (int64_t)const_value;
-			break;
-		default:
-			msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
-			res = -EINVAL;
-			break;
-		}
-	}
-	return res;
+
+	return 0;
 }
 
 static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {

@@ -48,10 +48,11 @@ METAC_TYPE_GENERATE(enum_t);
 #define BASIC_TYPE_JSON_DES11N_POSITIVE(_type_, _json_str_, _expected_value_) \
 		do { \
 			struct metac_object * res; \
-			_type_ * res_data_ptr; \
+			_type_	res_data, expected_value = _expected_value_; \
 			fail_unless((res = metac_json2object(&METAC_TYPE_NAME(_type_), _json_str_)) != NULL, "metac_json2object returned NULL for %s", _json_str_); \
-			res_data_ptr = (_type_*)res->ptr; \
-			fail_unless((*res_data_ptr) == (_expected_value_), "unexpected data for %s", _json_str_); \
+			fail_unless(res->ptr != NULL, "Ptr is NULL"); \
+			res_data = (_type_)*((_type_*)res->ptr); \
+			fail_unless((res_data) == (expected_value), "unexpected data for %s", _json_str_/*, *res_data_ptr, _expected_value_*/); \
 			fail_unless(metac_object_put(res) != 0, "Couldn't delete created object"); \
 		}while(0); \
 		mark_point();
@@ -67,24 +68,15 @@ START_TEST(basic_type_json_des11n){
 
 	/*known issues:*/
 	/* old versions of libjson trace for this tests:*/
-//	BASIC_TYPE_JSON_DES11N_NEGATIVE(short, ".9");
-//	BASIC_TYPE_JSON_DES11N_NEGATIVE(int, ".9");
-//	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, ".9");
+#if JSON_C_MAJOR_VERSION > 0 || JSON_C_MINOR_VERSION >= 10
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(int, ".9");
+#endif
 	/* current version of libjson should return error for this tests:*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(short, "-7,9", -7); /*FIXME: looks like a bug in libjson*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(int, "-7,9", -7); /*FIXME: looks like a bug in libjson*/
-	/* current version of libjson truncates uint64_t to int64_t*/
-//	snprintf(buf, sizeof(buf), "%lu", (long)UINT64_MAX);
-//	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, buf, UINT64_MAX);
-	/* truncated int data */
-//	snprintf(buf, sizeof(buf), "%u", UINT32_MAX);
-//	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT32_MAX);
-//	snprintf(buf, sizeof(buf), "%ld", INT64_MIN);
-//	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MIN);
-//	snprintf(buf, sizeof(buf), "%ld", (long)INT64_MAX);
-//	BASIC_TYPE_JSON_DES11N_POSITIVE(long, buf, INT64_MAX);
-//	snprintf(buf, sizeof(buf), "%u", UINT64_MAX);
-//	BASIC_TYPE_JSON_DES11N_POSITIVE(uint_t, buf, UINT64_MAX);
+	/* current version of libjson truncates uint64_t to int64_t (and older truncates even more - see below)*/
+	/*snprintf(buf, sizeof(buf), "%lu", (long)UINT64_MAX);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ulong_t, buf, UINT64_MAX);*/
 
 	/*char*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"c\"", 'c');
@@ -275,15 +267,90 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "-7.9");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "[\"xx\", \"xy\"]");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(ulong_t, "{\"xx\": \"xy\"}");
+	/*float*/
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "-0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "1234", 1234);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "0.7", 0.7f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "-0.7", -0.7f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"0.7\"", 0.7f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"0.76234\"", 0.76234f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"-1024.934\"", -1024.934f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"-07\"", -07.0f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"-076234\"", -076234.0f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"-0xa.0\"", -10.0f);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(float, "\"-0x80000000\"", -2147483648.0f);
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"-0a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"-01a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"-0x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"-x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"c\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "\"cc\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "[\"xx\", \"xy\"]");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(float, "{\"xx\": \"xy\"}");
+
+	/*double*/
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "-0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "1234", 1234);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "0.7", 0.7);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "-0.7", -0.7);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"0.7\"", 0.7);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"0.76234\"", 0.76234);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"-1024.934\"", -1024.934);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"-07\"", -07.0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"-076234\"", -076234.0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"-0xa.0\"", -10.0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(double, "\"-0x80000000\"", -2147483648.0);
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"-0a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"-01a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"-0x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"-x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"c\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "\"cc\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "[\"xx\", \"xy\"]");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(double, "{\"xx\": \"xy\"}");
+
+	/*ldouble_t*/
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "-0", 0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "1234", 1234);
+	/* For the next 2 tests:
+	 * 0.7L/-0.7L will not work because libjson returns double and we convert it to long double
+	 * and it will not be equal to 0.7L (some difference in lower bits)
+	 */
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "0.7", 0.7);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "-0.7", -0.7);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"0.7\"", 0.7L);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"0.76234\"", 0.76234L);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"-1024.934\"", -1024.934L);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"-07\"", -07.0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"-076234\"", -076234.0);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"-0xa.0\"", -10.0L);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(ldouble_t, "\"-0x80000000\"", -2147483648.0);
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"-0a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"-01a\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"-0x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"-x\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"c\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "\"cc\"");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "[\"xx\", \"xy\"]");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(ldouble_t, "{\"xx\": \"xy\"}");
+
 	/*enum_t*/
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eZero\"", _eZero);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eOne\"", _eOne);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eTen\"", _eTen);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eEleven\"", _eEleven);
 	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "\"_eTwelve\"", _eTwelve);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "0", _eZero);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "1", _eOne);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "10", _eTen);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "11", _eEleven);
+	BASIC_TYPE_JSON_DES11N_POSITIVE(enum_t, "12", _eTwelve);
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "13");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "\"_eZerox\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "\"x_eZero\"");
-	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "0");	/*FIXME: we can allow int values that present in enum*/
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "\"c\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "\"cc\"");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "-7.9");
