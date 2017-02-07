@@ -624,9 +624,9 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 			if (type->p_at.p_at_type) {
 				void *_ptr = *((void**)ptr);
 				res = _metac_delete(type->p_at.p_at_type->type, _ptr);
+				if (_ptr)
+					free(_ptr);
 			}
-			if (ptr)
-				free(ptr);
 			return res;
 		}
 	case DW_TAG_array_type: {
@@ -693,6 +693,8 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 static int _metac_object_delete(struct metac_object * object) {
 	if (object) {
 		int res = _metac_delete(object->type, object->ptr);
+		if (object->ptr)
+			free(object->ptr);
 		free(object);
 		return res;
 	}
