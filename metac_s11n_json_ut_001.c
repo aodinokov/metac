@@ -400,28 +400,24 @@ START_TEST(basic_type_json_des11n){
 
 #define STRUCT_TYPE_JSON_DES11N_NEGATIVE BASIC_TYPE_JSON_DES11N_NEGATIVE
 
-typedef struct struct1
-{
+typedef struct struct1 {
 	int x;
 	unsigned int y;
 }struct1_t;
 METAC_TYPE_GENERATE(struct1_t);
-typedef struct bit_fields1
-{
+typedef struct bit_fields1 {
 	unsigned int field_15b: 15;
 	unsigned int field_17b: 17;
 }bit_fields1_t;
 METAC_TYPE_GENERATE(bit_fields1_t);
-typedef struct bit_fields2
-{
+typedef struct bit_fields2 {
 	unsigned int field_9b: 9;
 	unsigned int field_12b: 12;
 	long field_36b: 36;
 	long field_63b: 63;
 }bit_fields2_t;
 METAC_TYPE_GENERATE(bit_fields2_t);
-typedef struct struct2
-{
+typedef struct struct2 {
 	struct1_t * str1;
 }struct2_t;
 METAC_TYPE_GENERATE(struct2_t);
@@ -445,35 +441,57 @@ START_TEST(structure_type_json_des11n) {
 	/*bit_fields2_t*/
 	STRUCT_TYPE_JSON_DES11N_POSITIVE(bit_fields2_t, "{\"field_9b\": 6, \"field_12b\": 100, \"field_36b\": -1, \"field_63b\": 1000}",
 			{.field_9b = 6, .field_12b = 100, .field_36b = -1, .field_63b = 1000});
-	/*struct2_t*/
-	do {
-		struct metac_object * res;
-		struct2_t *pres;
+	/*struct2_t*/ {
 		struct1_t str1 = {.x = 1, .y = 8};
 		struct2_t eres = {.str1 = &str1};
-
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (struct2_t*)res->ptr;
-		fail_unless(pres->str1 != NULL, "pointer wasn't initialized");
-		fail_unless(
-				pres->str1->x == eres.str1->x &&
-				pres->str1->y == eres.str1->y, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
+		JSON_DES11N_POSITIVE_START(struct2_t, "{\"str1\":{\"x\": 1, \"y\": 8}}", {}) {
+			struct2_t * pres = (struct2_t*)res->ptr;
+			fail_unless(
+					pres->str1->x == eres.str1->x &&
+					pres->str1->y == eres.str1->y, "unexpected data");
+		}JSON_DES11N_POSITIVE_END();
+	}
 	STRUCT_TYPE_JSON_DES11N_NEGATIVE(struct2_t, "{\"str1\":\"string\"}");
 }END_TEST
 
 typedef char char_array5_t[5];
 METAC_TYPE_GENERATE(char_array5_t);
+typedef char* pchar_array5_t[5];
+METAC_TYPE_GENERATE(pchar_array5_t);
+/*flexible array - pattern 1 - with null last element*/
+typedef char char_array_flex_t[];
+METAC_TYPE_GENERATE(char_array_flex_t);
+/*flexible array - pattern 2 - with <name>_len basic_type sibling with singed/unsigned encoding*/
+typedef struct struct3 {
+	int flex_arr2_len;
+	char flex_arr2[];
+}struct3_t;
+METAC_TYPE_GENERATE(struct3_t);
 
 #define ARRAY_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE
 #define ARRAY_TYPE_JSON_DES11N_NEGATIVE STRUCT_TYPE_JSON_DES11N_NEGATIVE
 
 START_TEST(array_type_json_des11n) {
+	/*char_array5_t*/
 	ARRAY_TYPE_JSON_DES11N_POSITIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e'});
-	//ARRAY_TYPE_JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\"]");
+	ARRAY_TYPE_JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\"]");
+	/*pchar_array5_t*/
+	JSON_DES11N_POSITIVE_START(pchar_array5_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {"a", "b", "c", "d", "e"}) {
+		int i;
+		for (i = 0; i < sizeof(expected_value)/sizeof(expected_value[0]); ++i) {
+			char * element = (*((pchar_array5_t*)res->ptr))[i];
+			fail_unless(strcmp(element, expected_value[i]) == 0, "got incorrect value %s, expected %s", element, expected_value[i]);
+		}
+	}JSON_DES11N_POSITIVE_END();
+	/*char_array_flex_t - doesn't work like this*/
+//	JSON_DES11N_POSITIVE_START(char_array_flex_t, "[\"a\", \"b\",\"c\",\"d\",\"e\"]", {'a', 'b', 'c', 'd', 'e', 0}) {
+//		int i;
+//		for (i = 0; i < 6/*sizeof(expected_value)/sizeof(expected_value[0])*/; ++i) {
+//			char * element = (*((pchar_array5_t*)res->ptr))[i];
+//			fail_unless(strcmp(element, expected_value[i]) == 0, "got incorrect value %s, expected %s", element, expected_value[i]);
+//		}
+//	}JSON_DES11N_POSITIVE_END();
+
 }END_TEST
 
 int main(void){

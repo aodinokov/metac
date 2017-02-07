@@ -526,17 +526,26 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 
 static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int res = 0;
-	metac_num_t i;
+	int i;
 	struct metac_type_array_info info;
 	struct metac_type_element_info einfo;
 	json_object * ejobj;
 	metac_byte_size_t ebyte_size;
 
-	enum json_type jtype = json_object_get_type(jobj);
-	assert(jtype == json_type_array);
+	if (json_object_get_type(jobj) != json_type_array) {
+		msg_stderr("expeted json array\n");
+		return -EINVAL;
+	}
 
 	if (metac_type_array_info(type, &info) != 0) {
 		msg_stderr("metac_type_array_info returned error\n");
+		return -EINVAL;
+	}
+
+	/*todo: check if the array is flexible. also check if they are last in the structs*/
+
+	if (json_object_array_length(jobj) > info.elements_count) {
+		msg_stderr("array is too big\n");
 		return -EINVAL;
 	}
 
@@ -546,13 +555,13 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 		return -EINVAL;
 	}
 
-	for (i = 0; i < info.elements_count; i++) {
+	for (i = 0; i < json_object_array_length(jobj); i++) {
 		if (metac_type_array_element_info(type, i, &einfo) != 0) {
 			msg_stderr("metac_type_array_element_info returned error\n");
 			return -EINVAL;
 		}
 
-		ejobj = json_object_array_get_idx(jobj, (int)i);
+		ejobj = json_object_array_get_idx(jobj, i);
 		if (ejobj == NULL) { /*TODO: may be we must init this objects by default*/
 			msg_stderr("Can't find indx %d in json\n", (int)i);
 			return -EINVAL;
@@ -563,7 +572,6 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 			msg_stderr("_metac_fill_recursevly returned error for array element %d\n", (int)i);
 			return res;
 		}
-
 	}
 	return 0;
 }
