@@ -495,10 +495,13 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		/* this is a bit slow, but it's fine for now */
 		byte_size = metac_type_byte_size(minfo.type);
 		if (	byte_size == 0 ) {
-			if (metac_type_id(minfo.type) == DW_TAG_array_type &&
-				child_id == metac_type_child_num(type) - 1) {
-				msg_stddbg("looks like %s is flexible array\n", minfo.name);
-				/*possible to continue and fill it as the last element*/
+			if (metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_array_type &&
+				child_id == metac_type_child_num(type) - 1 /*TBD: better to check member offset - it must be the last:
+				cnxt.byte_size == *minfo.p_data_member_location???*/) {
+				msg_stddbg("looks like %s is flexible array (byte_size == 0 is acceptable for that case)\n", minfo.name);
+				/*TBD: possible to continue and fill all elements first and fill this element as the last element.
+				 * but since for unions it will not work, it's better to make a simplified function for parent_struct_context_t
+				 * to get int value of any field by name. -1 will be returned in case of any error*/
 			}else {
 				msg_stderr("metac_type_byte_size returned 0 for member %s\n", minfo.name);
 				return -EFAULT;

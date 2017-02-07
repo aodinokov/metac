@@ -486,7 +486,7 @@ START_TEST(array_type_json_des11n) {
 			fail_unless(strcmp(element, expected_value[i]) == 0, "got incorrect value %s, expected %s", element, expected_value[i]);
 		}
 	}JSON_DES11N_POSITIVE_END();
-	/*char_array_flex_t - doesn't work like this*/
+	/*struct3_t*/
 	{
 		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
 		JSON_DES11N_POSITIVE_START(struct3_t, "{\"flex_arr3\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}", {}) {
