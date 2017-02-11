@@ -23,6 +23,7 @@ typedef struct _parent_struct_context {
 	void *ptr;
 	metac_byte_size_t byte_size;
 	char *field_name;
+	json_object *field_jobj;
 }parent_struct_context_t;
 
 typedef struct _flex_array_context {
@@ -479,6 +480,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		json_object *mjobj = (json_object *)entry->v;	/*field value*/
 
 		cnxt.field_name = key;
+		cnxt.field_jobj = mjobj;
 
 		/*try to find field with name in structure*/
 		child_id = metac_type_child_id_by_name(type, key);
@@ -559,13 +561,102 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 	}
 	return 0;
 }
+/*
+ * get's or initializes (if not specified in json) number of array elements if it's stored in a sibling variable
+ * field_postfix - what must be added to the array variable name to get sibling name with len
+ * returns number of elements for flexible array
+ */
+static long _metac_handle_array_type_len_sibling(parent_struct_context_t * cnxt, char * field_postfix) {
+	int res;
+	int child_id;
+	metac_byte_size_t	byte_size;
+	struct metac_type_member_info minfo;
+	char * field_name;
+	size_t cnxt_field_name_len;
+	int init_len_by_json = 0;
+	long buf = 0;
+
+	if (cnxt == NULL || field_postfix == NULL) {
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
+	}
+
+	cnxt_field_name_len = strlen(cnxt->field_name);
+	field_name = calloc(1, cnxt_field_name_len + strlen(field_postfix)+1);
+	if (field_name == NULL){
+		msg_stderr("can't allocate mem for field_name\n");
+		return -EINVAL;
+	}
+	strcpy(field_name, cnxt->field_name);
+	strcpy(field_name + cnxt_field_name_len, field_postfix);
+
+	/*try to find field with name in structure*/
+	child_id = metac_type_child_id_by_name(cnxt->type, field_name);
+	if (child_id < 0) {
+		msg_stderr("Can't find member %s in structure\n", field_name);
+		free(field_name);
+		return -EFAULT;
+	}
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	if (!json_object_object_get(cnxt->jobj, field_name)) {
+#else
+	if (!json_object_object_get_ex(cnxt->jobj, field_name, NULL)) {
+#endif
+		msg_stddbg("Field %s isn't inintialized in json\n", field_name);
+		init_len_by_json = 1;
+	}
+	free(field_name);
+
+	if (metac_type_structure_member_info(cnxt->type, child_id, &minfo) != 0) {
+		msg_stderr("metac_type_structure_member_info returned error\n");
+		return -EINVAL;
+	}
+	byte_size = metac_type_byte_size(minfo.type);
+
+	assert(byte_size <= sizeof(long));
+	assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
+
+	if (init_len_by_json == 0) {
+		res = _metac_fill_recursevly(minfo.type, cnxt->jobj, &buf, byte_size, NULL, NULL);
+		if (res != 0) {
+			msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);
+			return res;
+		}
+
+		return buf;
+	} else {
+		int val = json_object_array_length(cnxt->field_jobj);
+		void *ptr = cnxt->ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0);
+		assert(minfo.type->p_at.p_at_encoding->encoding == DW_ATE_unsigned ||
+			minfo.type->p_at.p_at_encoding->encoding ==DW_ATE_signed);
+		/*this should be put into macro of function*/
+		switch(byte_size){
+		case sizeof(int8_t):
+			*((int8_t*)ptr) = (int8_t)val;
+			break;
+		case sizeof(int16_t):
+			*((int16_t*)ptr) = (int16_t)val;
+			break;
+		case sizeof(int32_t):
+			*((int32_t*)ptr) = (int32_t)val;
+			break;
+		case sizeof(int64_t):
+			*((int64_t*)ptr) = (int64_t)val;
+			break;
+		default:
+			msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
+			return -EFAULT;
+		}
+		return val;
+	}
+}
 
 static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt) {
 	void *_ptr = ptr;
 	int res = 0;
-	int is_flexible = 0;
+	int skip_len_check = 0;
 	int i;
 	struct metac_type_array_info info;
 	struct metac_type_element_info einfo;
@@ -596,23 +687,35 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 			msg_stderr("metac_type_array_subrange_info returned error\n");
 			return -EINVAL;
 		}
-		msg_stddbg("subrange %p %p\n", sinfo.p_lower_bound, sinfo.p_upper_bound);
+
 		if (sinfo.p_lower_bound == NULL &&
 			sinfo.p_upper_bound == NULL) {
+			long val;
 			void * flex_ptr;
 			int flex_len;
 			msg_stddbg("flexible array is detected\n");
 			assert(byte_size == 0);
-			is_flexible = 1;
+			skip_len_check = 1;
 
 			if (flexarr_cnxt == NULL) {
 				msg_stderr("found flexible array, but flexarr_cnxt is NULL\n");
 				return -EINVAL;
 			}
 
-			/*todo: check sibling with name == <parentstr_cnxt->field_name>_len and get it's value; else*/
-			flex_len = json_object_array_length(jobj) + 1; /*last element must be initialized with zeros*/
-			flex_ptr = calloc(flex_len, ebyte_size);	/*TODO: check if memleak*/
+			/*check sibling with name == <parentstr_cnxt->field_name>_len and get it's value;*/
+			val = _metac_handle_array_type_len_sibling(parentstr_cnxt,"_len");
+			if (val >= 0) {
+				flex_len = val;
+			}else {	/*pattern with zeroed element at the end */
+				flex_len = json_object_array_length(jobj) + 1; /*last element must be initialized with zeros*/
+			}
+
+			if (json_object_array_length(jobj) > flex_len) {
+				msg_stderr("array is too big\n");
+				return -EINVAL;
+			}
+
+			flex_ptr = calloc(flex_len, ebyte_size);
 			if (flex_ptr == NULL) {
 				msg_stderr("can't allocate mem for flexible array\n");
 				return -ENOMEM;
@@ -624,7 +727,7 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 		}
 	}
 
-	if (is_flexible == 0 &&
+	if (skip_len_check == 0 &&
 		json_object_array_length(jobj) > info.elements_count) {
 		msg_stderr("array is too big\n");
 		return -EINVAL;
@@ -685,7 +788,6 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_object * jobj, void **ptr) {
 	int res = 0;
 	metac_byte_size_t byte_size;
-
 	flex_array_context_t cnxt = {.flexarr_ptr = NULL, .flexarr_byte_size = 0};
 
 	if (type == NULL || ptr == NULL)
@@ -697,9 +799,6 @@ static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_objec
 		return -EINVAL;
 	}
 
-	/* TODO: 27. Flexible Array: _metac_alloc_and_fill_recursevly - modify implementation to check if type has array with zero length and has
-	 * siblings with <array_name>_len that sets dynamically length of array*/
-
 	*ptr = (void *)calloc(1, byte_size);
 	if ((*ptr) == NULL) {
 		msg_stderr("Can't allocate memory\n");
@@ -709,6 +808,11 @@ static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_objec
 	res = _metac_fill_recursevly(type, jobj, *ptr, byte_size, NULL, &cnxt);
 	if (res != 0){
 		msg_stderr("_metac_fill_recursevly returned error\n");
+		if (cnxt.flexarr_ptr != NULL) {
+			free(cnxt.flexarr_ptr);
+			cnxt.flexarr_ptr = NULL;
+			cnxt.flexarr_byte_size = 0;
+		}
 		free(*ptr);
 		*ptr = NULL;
 	}
@@ -717,8 +821,13 @@ static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_objec
 		void *_ptr;
 		_ptr = realloc(*ptr, byte_size + cnxt.flexarr_byte_size);
 		if (_ptr == NULL) {
-			/*tbd: need to free all data recursevly*/
+			/*FIXME: need to free all data recursevly - current implementation has mem leaks if realloc is failed*/
 			msg_stderr("_metac_fill_recursevly returned error\n");
+			if (cnxt.flexarr_ptr != NULL) { /**/
+				free(cnxt.flexarr_ptr);
+				cnxt.flexarr_ptr = NULL;
+				cnxt.flexarr_byte_size = 0;
+			}
 			free(*ptr);
 			*ptr = NULL;
 			return -ENOMEM;

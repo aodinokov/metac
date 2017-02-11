@@ -498,6 +498,37 @@ START_TEST(array_type_json_des11n) {
 			}
 		}JSON_DES11N_POSITIVE_END();
 	}
+	/*TBD: ut with 0 elements */
+
+	/*struct4_t*/
+	{
+		static struct4_t expected_struct4 = {.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}};
+		JSON_DES11N_POSITIVE_START(struct4_t, "{\"flex_arr4_len\": 5, \"flex_arr4\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}", {}) {
+			int i;
+			struct4_t * _struct4 = (struct4_t*)res->ptr;
+			fail_unless(_struct4->flex_arr4_len == expected_struct4.flex_arr4_len, "Len must be equial %d, %d",
+					(int)_struct4->flex_arr4_len, (int)expected_struct4.flex_arr4_len);
+			for (i = 0; i < _struct4->flex_arr4_len; ++i) {
+				fail_unless(_struct4->flex_arr4[i] == expected_struct4.flex_arr4[i], "got incorrect value %c, expected %c",
+						_struct4->flex_arr4[i], expected_struct4.flex_arr4[i]);
+			}
+		}JSON_DES11N_POSITIVE_END();
+	}
+	/*struct4_t case with self initialized flex_arr4_len if present*/
+	{
+		static struct4_t expected_struct4 = {.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}};
+		JSON_DES11N_POSITIVE_START(struct4_t, "{\"flex_arr4\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}", {}) {
+			int i;
+			struct4_t * _struct4 = (struct4_t*)res->ptr;
+			fail_unless(_struct4->flex_arr4_len == expected_struct4.flex_arr4_len, "Len must be equial %d, %d",
+					(int)_struct4->flex_arr4_len, (int)expected_struct4.flex_arr4_len);
+			for (i = 0; i < _struct4->flex_arr4_len; ++i) {
+				fail_unless(_struct4->flex_arr4[i] == expected_struct4.flex_arr4[i], "got incorrect value %c, expected %c",
+						_struct4->flex_arr4[i], expected_struct4.flex_arr4[i]);
+			}
+		}JSON_DES11N_POSITIVE_END();
+	}
+
 
 }END_TEST
 
