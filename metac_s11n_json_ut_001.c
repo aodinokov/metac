@@ -381,6 +381,7 @@ START_TEST(basic_type_json_des11n){
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(enum_t, "{\"xx\": \"xy\"}");
 	/*pchar_t*/
 	PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "\"string1234\"", "string1234");
+	PCHAR_TYPE_JSON_DES11N_POSITIVE(pchar_t, "[\"s\", \"t\", \"r\", \"i\", \"n\", \"g\", \"1\", \"2\", \"3\" ,\"4\", 0]", "string1234");
 
 }END_TEST
 

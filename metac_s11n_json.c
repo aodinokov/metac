@@ -32,6 +32,7 @@ typedef struct _flex_array_context {
 }flex_array_context_t;
 
 static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_object * jobj, void **ptr);
+static int _metac_alloc_and_fill_recursevly_array(struct metac_type * type, json_object * jobj, void **ptr);
 static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt);
@@ -421,7 +422,7 @@ static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj
 
 	mtype = type->p_at.p_at_type->type;
 	if (	json_object_get_type(jobj) == json_type_string &&
-			metac_type_id(mtype)== DW_TAG_base_type &&
+			metac_type_id(metac_type_typedef_skip(mtype)) == DW_TAG_base_type &&
 			mtype->p_at.p_at_byte_size->bit_size == sizeof(uint8_t) &&
 			(mtype->p_at.p_at_encoding->encoding == DW_ATE_unsigned_char ||
 			mtype->p_at.p_at_encoding->encoding == DW_ATE_signed_char)) {
@@ -433,6 +434,9 @@ static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj
 		}
 		*((char**)ptr) = string;
 		return 0;
+	}
+	if (	json_object_get_type(jobj) == json_type_array) {
+		return _metac_alloc_and_fill_recursevly_array(mtype, jobj, (void**)ptr);
 	}
 
 	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
@@ -783,6 +787,45 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 		return -1;
 	}
 	return 0;
+}
+
+static int _metac_alloc_and_fill_recursevly_array(struct metac_type * type, json_object * jobj, void **ptr) {
+	int i;
+	int res = 0;
+	metac_byte_size_t byte_size;
+
+	if (type == NULL || ptr == NULL)
+		return -EINVAL;
+
+	if (json_object_get_type(jobj) != json_type_array) {
+		msg_stderr("expeted json array\n");
+		return -EINVAL;
+	}
+
+	byte_size = metac_type_byte_size(type);
+	if (byte_size == 0) {
+		msg_stderr("Can't determine byte_size for type\n");
+		return -EINVAL;
+	}
+
+	*ptr = (void *)calloc(json_object_array_length(jobj), byte_size);
+	if ((*ptr) == NULL) {
+		msg_stderr("Can't allocate memory\n");
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < json_object_array_length(jobj); i++) {
+		res = _metac_fill_recursevly(type, json_object_array_get_idx(jobj, i), (*ptr) + i*byte_size, byte_size, NULL, NULL);
+		if (res != 0) {
+			msg_stderr("_metac_fill_recursevly returned error in _metac_alloc_and_fill_recursevly_array\n");
+			/*fixme: need to de-init [0; i-1]*/
+			free(*ptr);
+			*ptr = NULL;
+			break;
+		}
+	}
+
+	return res;
 }
 
 static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_object * jobj, void **ptr) {
