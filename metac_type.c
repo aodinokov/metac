@@ -366,7 +366,12 @@ int metac_type_structure_member_info(struct metac_type *type, unsigned int i,
 		return -1;
 	}
 	metac_type_member = metac_type_child(type, i);
-	assert(metac_type_id(metac_type_member) == DW_TAG_member);
+	//FIXME: assert(metac_type_id(metac_type_member) == DW_TAG_member);
+	if (metac_type_id(metac_type_member) != DW_TAG_member){
+		msg_stderr("Warning: member %d isn't TAG_member. something was declared in struct\n", (int)i);
+		return -1;
+	}
+
 	if (metac_type_member == NULL) {
 		msg_stderr("i is incorrect\n");
 		return -1;
@@ -680,8 +685,8 @@ static int _metac_delete(struct metac_type *type, void *ptr){
 		}
 	case DW_TAG_union_type:
 		/*TODO: don't know what to do here */
-		assert(0);
-		return -1;
+		//assert(0);
+		return 0;
 	}
 
 	return 0;

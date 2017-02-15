@@ -533,6 +533,36 @@ START_TEST(array_type_json_des11n) {
 
 }END_TEST
 
+typedef struct struct5 {
+	int u_descriminator;
+	union {
+		struct {
+			uint8_t byte[4];
+		}b;
+		struct {
+			uint16_t word[2];
+		}w;
+		struct {
+			uint32_t dword[1];
+		}dw;
+	}u;
+}struct5_t;
+METAC_TYPE_GENERATE(struct5_t);
+
+#define UNION_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE
+#define UNION_TYPE_JSON_DES11N_NEGATIVE STRUCT_TYPE_JSON_DES11N_NEGATIVE
+
+START_TEST(union_type_json_des11n) {
+	/*struct5_t*/
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
+			{ .u_descriminator = 0, .u= {.b = {.byte = {1, 2, 3, 4}}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u\": {\"w\": {\"word\": [1, 2]}}}",
+			{ .u_descriminator = 0/*FIXME: must be 1*/, .u= {.w = {.word = {1, 2}}}});
+
+}END_TEST
+
 int main(void){
 	return run_suite(
 		START_SUITE(type_suite){
@@ -541,6 +571,7 @@ int main(void){
 					ADD_TEST(basic_type_json_des11n);
 					ADD_TEST(structure_type_json_des11n);
 					ADD_TEST(array_type_json_des11n);
+					ADD_TEST(union_type_json_des11n);
 				}END_CASE
 			);
 		}END_SUITE

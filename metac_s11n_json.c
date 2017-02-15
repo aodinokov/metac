@@ -758,6 +758,69 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 	return 0;
 }
 
+static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
+		parent_struct_context_t *parentstr_cnxt,
+		flex_array_context_t *flexarr_cnxt) {
+	int res;
+	struct lh_table* table;
+	struct lh_entry* entry;
+	struct metac_type_member_info minfo;
+	if (json_object_get_type(jobj) != json_type_object) {
+		msg_stderr("expected json object\n");
+		return -EINVAL;
+	}
+
+	table = json_object_get_object(jobj);
+	if (table == NULL) {
+		msg_stderr("json_object_get_object returned NULL\n");
+		return -EFAULT;
+	}
+
+	lh_foreach(table, entry) {
+		int child_id;
+		metac_byte_size_t byte_size;
+		char *key = (char *)entry->k;	/*field name*/
+		json_object *mjobj = (json_object *)entry->v;	/*field value*/
+
+		/*try to find field with name in union*/
+		child_id = metac_type_child_id_by_name(type, key);
+		if (child_id < 0) {
+			msg_stderr("Can't find member %s in structure\n", key);
+			return -EFAULT;
+		}
+
+		if (metac_type_union_member_info(type, child_id, &minfo) != 0) {
+			msg_stderr("metac_type_structure_member_info returned error\n");
+			return -EINVAL;
+		}
+
+		/* this is a bit slow, but it's fine for now */
+		byte_size = metac_type_byte_size(minfo.type);
+		if (	byte_size == 0 ) {
+			if (metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_array_type &&
+				child_id == metac_type_child_num(type) - 1 /*TBD: better to check member offset - it must be the last:
+				cnxt.byte_size == *minfo.p_data_member_location???*/) {
+				msg_stddbg("looks like %s is flexible array (byte_size == 0 is acceptable for that case)\n", minfo.name);
+				/*TBD: possible to continue and fill all elements first and fill this element as the last element.
+				 * but since for unions it will not work, it's better to make a simplified function for parent_struct_context_t
+				 * to get int value of any field by name. -1 will be returned in case of any error*/
+			}else {
+				msg_stderr("metac_type_byte_size returned 0 for member %s\n", minfo.name);
+				return -EFAULT;
+			}
+		}
+
+		/*not bit-fields*/
+		res = _metac_fill_recursevly(minfo.type, mjobj, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0), byte_size,
+				NULL, flexarr_cnxt);
+		if (res != 0) {
+			msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);
+			return res;
+		}
+	}
+	return 0;
+}
+
 static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt) {
@@ -780,9 +843,7 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 	case DW_TAG_structure_type:
 		return _metac_fill_structure_type(type, jobj, ptr, byte_size, flexarr_cnxt);
 	case DW_TAG_union_type:
-		/*TODO: don't know what to do here */
-		assert(0);
-		return -1;
+		return _metac_fill_union_type(type, jobj, ptr, byte_size, parentstr_cnxt, flexarr_cnxt);
 	default:
 		return -1;
 	}
