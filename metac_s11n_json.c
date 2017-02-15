@@ -489,6 +489,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		/*try to find field with name in structure*/
 		child_id = metac_type_child_id_by_name(type, key);
 		if (child_id < 0) {
+			/*fixme: check if this struct has children field without name (union)- search there as well*/
 			msg_stderr("Can't find member %s in structure\n", key);
 			return -EFAULT;
 		}
@@ -770,6 +771,11 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 		return -EINVAL;
 	}
 
+	if (json_object_object_length(jobj) > 1){
+		msg_stderr("Warning: only 1 field can be used in union at once\n");
+		return -EINVAL;
+	}
+
 	table = json_object_get_object(jobj);
 	if (table == NULL) {
 		msg_stderr("json_object_get_object returned NULL\n");
@@ -785,12 +791,12 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 		/*try to find field with name in union*/
 		child_id = metac_type_child_id_by_name(type, key);
 		if (child_id < 0) {
-			msg_stderr("Can't find member %s in structure\n", key);
+			msg_stderr("Can't find member %s in union\n", key);
 			return -EFAULT;
 		}
 
 		if (metac_type_union_member_info(type, child_id, &minfo) != 0) {
-			msg_stderr("metac_type_structure_member_info returned error\n");
+			msg_stderr("metac_type_union_member_info returned error\n");
 			return -EINVAL;
 		}
 
