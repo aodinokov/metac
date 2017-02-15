@@ -602,7 +602,7 @@ static long _metac_handle_array_type_len_sibling(parent_struct_context_t * cnxt,
 #else
 	if (!json_object_object_get_ex(cnxt->jobj, field_name, NULL)) {
 #endif
-		msg_stddbg("Field %s isn't inintialized in json\n", field_name);
+		msg_stddbg("Field %s isn't initialized in json\n", field_name);
 		init_len_by_json = 1;
 	}
 	free(field_name);
