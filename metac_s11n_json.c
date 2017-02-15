@@ -444,13 +444,63 @@ static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj
 	return _metac_alloc_and_fill_recursevly(mtype, jobj, (void**)ptr);
 }
 
+/*todo: move it to metac_type.c?*/
+static int _metac_find_structure_member_recurcevly(struct metac_type *type, metac_name_t name,
+		struct metac_type_member_info *p_info,
+		metac_data_member_location_t *	p_data_member_location) {
+	assert(type && name && p_info && p_data_member_location);
+
+	int i = metac_type_child_id_by_name(type, name);
+	if (i >= 0) {
+		switch(metac_type_id(type)){
+		case DW_TAG_structure_type:
+			if (metac_type_structure_member_info(type, i, p_info) != 0) {
+				msg_stderr("metac_type_structure_member_info returned error\n");
+				return -EINVAL;
+			}
+			*p_data_member_location = (p_info->p_data_member_location?(*p_info->p_data_member_location):0);
+			return 0;
+		case DW_TAG_union_type:
+			if (metac_type_union_member_info(type, i, p_info) != 0) {
+				msg_stderr("metac_type_structure_member_info returned error\n");
+				return -EINVAL;
+			}
+			*p_data_member_location = (p_info->p_data_member_location?(*p_info->p_data_member_location):0);
+			return 0;
+		default:
+			msg_stderr("found some strange type\n");
+			return -EINVAL;
+		}
+	}
+
+	type = metac_type_typedef_skip(type);
+	for (i = 0; i < type->child_num; i++) {
+		struct metac_type_member_info minfo;
+		if (metac_type_id(type) == DW_TAG_structure_type?
+				metac_type_structure_member_info(type, i, &minfo) != 0:
+				metac_type_union_member_info(type, i, &minfo) != 0) {
+			continue;
+		}
+		if (	minfo.name == NULL && (
+				metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_union_type ||
+				metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_structure_type)) {
+			if (_metac_find_structure_member_recurcevly(minfo.type, name, p_info, p_data_member_location) == 0) {
+				*p_data_member_location += (minfo.p_data_member_location?(*minfo.p_data_member_location):0);
+				return 0;
+			}
+		}
+	}
+	msg_stderr("can't find field %s\n", name);
+	return -EINVAL;
+}
+
 #define _STRUCTURE_HANDLE_BITFIELDS(_type_, _mask_) do{ \
 	metac_bit_offset_t lshift = (byte_size << 3) - \
 			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
 	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
 	_type_ _i = *(_type_*)buffer; \
 	_i = (_i & mask) << lshift;\
-	*((_type_*)(ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0))) ^= _i; \
+	*((_type_*)(ptr + data_member_location)) ^= _i; \
 }while(0)
 
 static int _metac_fill_structure_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
@@ -478,7 +528,8 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 	cnxt.jobj = jobj;
 
 	lh_foreach(table, entry) {
-		int child_id;
+//		int child_id;
+		metac_data_member_location_t data_member_location = 0;
 		metac_byte_size_t byte_size;
 		char *key = (char *)entry->k;	/*field name*/
 		json_object *mjobj = (json_object *)entry->v;	/*field value*/
@@ -487,23 +538,27 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		cnxt.field_jobj = mjobj;
 
 		/*try to find field with name in structure*/
-		child_id = metac_type_child_id_by_name(type, key);
-		if (child_id < 0) {
-			/*fixme: check if this struct has children field without name (union)- search there as well*/
-			msg_stderr("Can't find member %s in structure\n", key);
-			return -EFAULT;
-		}
-
-		if (metac_type_structure_member_info(type, child_id, &minfo) != 0) {
-			msg_stderr("metac_type_structure_member_info returned error\n");
+//		child_id = metac_type_child_id_by_name(type, key);
+//		if (child_id < 0) {
+//			/*fixme: check if this struct has children field without name (union)- search there as well*/
+//			msg_stderr("Can't find member %s in structure\n", key);
+//			return -EFAULT;
+//		}
+//
+//		if (metac_type_structure_member_info(type, child_id, &minfo) != 0) {
+//			msg_stderr("metac_type_structure_member_info returned error\n");
+//			return -EINVAL;
+//		}
+		if (_metac_find_structure_member_recurcevly(type, key, &minfo, &data_member_location) != 0) {
+			msg_stderr("_metac_find_structure_member_recurcevly returned error\n");
 			return -EINVAL;
 		}
 
 		/* this is a bit slow, but it's fine for now */
 		byte_size = metac_type_byte_size(minfo.type);
 		if (	byte_size == 0 ) {
-			if (metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_array_type &&
-				child_id == metac_type_child_num(type) - 1 /*TBD: better to check member offset - it must be the last:
+			if (metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_array_type /*&&
+				child_id == metac_type_child_num(type) - 1*/ /*TBD: better to check member offset - it must be the last:
 				cnxt.byte_size == *minfo.p_data_member_location???*/) {
 				msg_stddbg("looks like %s is flexible array (byte_size == 0 is acceptable for that case)\n", minfo.name);
 				/*TBD: possible to continue and fill all elements first and fill this element as the last element.
@@ -556,7 +611,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			}
 		}else {
 			/*not bit-fields*/
-			res = _metac_fill_recursevly(minfo.type, mjobj, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0), byte_size,
+			res = _metac_fill_recursevly(minfo.type, mjobj, ptr + data_member_location, byte_size,
 					&cnxt, flexarr_cnxt);
 			if (res != 0) {
 				msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);

@@ -309,7 +309,7 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 		return -1;
 	}
 
-	if (type->p_at.p_at_name == NULL ||
+	if (/*type->p_at.p_at_name == NULL ||*/
 		type->p_at.p_at_type == NULL /*||
 		type->p_at.p_at_data_member_location == NULL*/) {
 		msg_stderr("mandatory fields are absent\n");
@@ -317,7 +317,7 @@ int metac_type_member_info(struct metac_type *type, struct metac_type_member_inf
 	}
 
 	if (p_member_info != NULL) {
-		p_member_info->name = type->p_at.p_at_name->name;
+		p_member_info->name = type->p_at.p_at_name!=NULL?type->p_at.p_at_name->name:NULL;
 		p_member_info->type = type->p_at.p_at_type->type;
 		p_member_info->p_data_member_location = type->p_at.p_at_data_member_location!=NULL?
 				&type->p_at.p_at_data_member_location->data_member_location:NULL;

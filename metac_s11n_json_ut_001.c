@@ -595,16 +595,16 @@ START_TEST(union_type_json_des11n) {
 	/*struct5_t*/
 	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
 			"{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
-			{ .u_descriminator = 0, .u= {.b = {.byte = {1, 2, 3, 4}}}});
+			{ .u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}});
 	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
 			"{\"u\": {\"w\": {\"word\": [1, 2]}}}",
-			{ .u_descriminator = 0/*FIXME: must be 1*/, .u= {.w = {.word = {1, 2}}}});
+			{ .u_descriminator = 0/*FIXME: must be 1*/, .u = {.w = {.word = {1, 2}}}});
 
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}, \"w\": {\"word\": [1, 2]}}}");
 	/*struct6_t*/
-//	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
-//			"{\"descriminator\": 0, \"b\": {\"byte\": [1, 2, 3, 4]}}",
-//			{ .descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
+			"{\"descriminator\": 0, \"b\": {\"byte\": [1, 2, 3, 4]}}",
+			{ .descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
 
 }END_TEST
 
