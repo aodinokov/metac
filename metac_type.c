@@ -563,49 +563,34 @@ struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, m
 	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)
 		return NULL;
-
 	/*binary search*/
 	metac_num_t min = 0, max = array->number-1;
-
 	do {
-		metac_num_t i = (min+max)/2;
-		/*msg_stddbg("min %d max %d, i = %d\n", min, max, i);*/
+		metac_num_t i = min + (max - min)/2;
 		int cmp_res = strcmp(array->item[i].name, name);
-		if (cmp_res == 0)return array->item[i].ptr;
-
-		if (min==max)break;
-
-		if (cmp_res > 0)
-			max = i-1;
-		else
-			min = i+1;
-	}while(1);
-
+		switch((cmp_res>0)?(1):((cmp_res<0)?(-1):(0))) {
+		case 0: return array->item[i].ptr;
+		case 1: max = i-1; break;
+		case -1: min = i+1; break;
+		}
+	}while(min<=max);
 	return NULL;
 }
 
 struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name) {
-	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)
 		return NULL;
-
 	/*binary search*/
 	metac_num_t min = 0, max = array->number-1;
-
 	do {
-		metac_num_t i = (min+max)/2;
-		/*msg_stddbg("min %d max %d, i = %d\n", min, max, i);*/
+		metac_num_t i = min + (max - min)/2;
 		int cmp_res = strcmp(array->item[i].name, name);
-		if (cmp_res == 0)return array->item[i].ptr;
-
-		if (min==max)break;
-
-		if (cmp_res > 0)
-			max = i-1;
-		else
-			min = i+1;
-	}while(1);
-
+		switch((cmp_res>0)?(1):((cmp_res<0)?(-1):(0))) {
+		case 0: return array->item[i].ptr;
+		case 1: max = i-1; break;
+		case -1: min = i+1; break;
+		}
+	}while(min<=max);
 	return NULL;
 }
 
