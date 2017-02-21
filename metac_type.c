@@ -347,6 +347,7 @@ int metac_type_structure_info(struct metac_type *type, struct metac_type_structu
 	if (p_info != NULL) {
 		p_info->name = type->p_at.p_at_name != NULL?type->p_at.p_at_name->name:NULL;
 		p_info->byte_size = type->p_at.p_at_byte_size->byte_size;
+		/*fixme: need to members_count can be less that child_num if other types defined in the union or struct*/
 		p_info->members_count = metac_type_child_num(type);
 	}
 	return 0;
@@ -397,6 +398,7 @@ int metac_type_union_info(struct metac_type *type, struct metac_type_union_info 
 	if (p_info != NULL) {
 		p_info->name = type->p_at.p_at_name != NULL?type->p_at.p_at_name->name:NULL;
 		p_info->byte_size = type->p_at.p_at_byte_size->byte_size;
+		/*fixme: need to members_count can be less that child_num if other types defined in the union or struct*/
 		p_info->members_count = metac_type_child_num(type);
 	}
 	return 0;
@@ -416,7 +418,7 @@ int metac_type_union_member_info(struct metac_type *type, unsigned int i,
 		return -1;
 	}
 	metac_type_member = metac_type_child(type, i);
-	assert(metac_type_id(metac_type_member) == DW_TAG_member);
+	//FIXME: assert(metac_type_id(metac_type_member) == DW_TAG_member);
 	if (metac_type_member == NULL) {
 		msg_stderr("i is incorrect\n");
 		return -1;
@@ -560,7 +562,6 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i, struc
 }
 
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
-	/*msg_stddbg("name %s\n", name);*/
 	if (array == NULL || name == NULL)
 		return NULL;
 	/*binary search*/

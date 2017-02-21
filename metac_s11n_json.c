@@ -614,7 +614,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
  * field_postfix - what must be added to the array variable name to get sibling name with len
  * returns number of elements for flexible array
  */
-static long _metac_handle_array_type_len_sibling(parent_struct_context_t * cnxt, char * field_postfix) {
+static long _handle_array_type_len_sibling(parent_struct_context_t * cnxt, char * field_postfix) {
 	int res;
 	int child_id;
 	metac_byte_size_t	byte_size;
@@ -751,7 +751,7 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 			}
 
 			/*check sibling with name == <parentstr_cnxt->field_name>_len and get it's value;*/
-			val = _metac_handle_array_type_len_sibling(parentstr_cnxt,"_len");
+			val = _handle_array_type_len_sibling(parentstr_cnxt,"_len"); /*TODO: _len must be configurable */
 			if (val >= 0) {
 				flex_len = val;
 			}else {	/*pattern with zeroed element at the end */
@@ -809,6 +809,9 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 	struct lh_table* table;
 	struct lh_entry* entry;
 	struct metac_type_member_info minfo;
+
+	assert(metac_type_id(type) == DW_TAG_union_type);
+
 	if (json_object_get_type(jobj) != json_type_object) {
 		msg_stderr("expected json object\n");
 		return -EINVAL;
@@ -825,9 +828,13 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 #else
 	if (json_object_object_length(jobj) > 1) {
 #endif
+		/*TODO: in fact gcc and clang allows this with disabled -Werr. in future this should be configured as setting */
 		msg_stderr("Warning: only 1 field can be used in union at once\n");
 		return -EINVAL;
 	}
+
+	//val = _handle_union_type_descriminator_sibling(parentstr_cnxt, "_descriminator"); /*TODO: _descriminator must be configurable */
+
 
 	lh_foreach(table, entry) {
 		int child_id;
