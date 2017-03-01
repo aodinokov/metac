@@ -31,6 +31,10 @@ typedef struct _flex_array_context {
 	metac_byte_size_t flexarr_byte_size;
 }flex_array_context_t;
 
+static int _get_union_type_descriminator_id(struct metac_type *type, metac_name_t name);
+static long _handle_union_type_descriminator_sibling(parent_struct_context_t * cnxt,
+		char * field_postfix, int descriminator_id);
+
 static int _metac_alloc_and_fill_recursevly(struct metac_type * type, json_object * jobj, void **ptr);
 static int _metac_alloc_and_fill_recursevly_array(struct metac_type * type, json_object * jobj, void **ptr);
 static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
@@ -444,8 +448,9 @@ static int _metac_fill_pointer_type(struct metac_type * type, json_object * jobj
 	return _metac_alloc_and_fill_recursevly(mtype, jobj, (void**)ptr);
 }
 
-/*todo: move it to metac_type.c?*/
-static int _metac_find_structure_member_recurcevly(struct metac_type *type, metac_name_t name,
+/*todo: move it to metac_type.c? - for now it's not an option, because we make some additional step - update union descriminator*/
+static int _metac_find_structure_member_recurcevly(parent_struct_context_t *parentstr_cnxt,
+		struct metac_type *type, metac_name_t name,
 		struct metac_type_member_info *p_info,
 		metac_data_member_location_t *	p_data_member_location) {
 	assert(type && name && p_info && p_data_member_location);
@@ -460,13 +465,34 @@ static int _metac_find_structure_member_recurcevly(struct metac_type *type, meta
 			}
 			*p_data_member_location = (p_info->p_data_member_location?(*p_info->p_data_member_location):0);
 			return 0;
-		case DW_TAG_union_type:
+		case DW_TAG_union_type: {
+			parent_struct_context_t cnxt;
+			int descriminator_id = _get_union_type_descriminator_id(type, name);
+			if (descriminator_id < 0) {
+				msg_stderr("Can't find member %s in union\n", name);
+				return -EFAULT;
+			}
 			if (metac_type_union_member_info(type, i, p_info) != 0) {
 				msg_stderr("metac_type_structure_member_info returned error\n");
 				return -EINVAL;
 			}
+
+			cnxt.byte_size = parentstr_cnxt->byte_size; /*?*/
+			cnxt.ptr = parentstr_cnxt->ptr;
+			cnxt.jobj = parentstr_cnxt->jobj;
+			cnxt.field_jobj = parentstr_cnxt->field_jobj;
+			cnxt.type = parentstr_cnxt->type;
+			cnxt.field_name = "";
+
+			long val = _handle_union_type_descriminator_sibling(&cnxt, "_descriminator", descriminator_id);
+			if (val < 0) {
+				msg_stderr("_handle_union_type_descriminator_sibling returned error\n");
+				return -EFAULT;
+			}
+
 			*p_data_member_location = (p_info->p_data_member_location?(*p_info->p_data_member_location):0);
 			return 0;
+		}
 		default:
 			msg_stderr("found some strange type\n");
 			return -EINVAL;
@@ -484,7 +510,7 @@ static int _metac_find_structure_member_recurcevly(struct metac_type *type, meta
 		if (	minfo.name == NULL && (
 				metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_union_type ||
 				metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_structure_type)) {
-			if (_metac_find_structure_member_recurcevly(minfo.type, name, p_info, p_data_member_location) == 0) {
+			if (_metac_find_structure_member_recurcevly(parentstr_cnxt, minfo.type, name, p_info, p_data_member_location) == 0) {
 				*p_data_member_location += (minfo.p_data_member_location?(*minfo.p_data_member_location):0);
 				return 0;
 			}
@@ -537,7 +563,7 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 		cnxt.field_jobj = mjobj;
 
 		/*try to find field with name in structure*/
-		if (_metac_find_structure_member_recurcevly(type, key, &minfo, &data_member_location) != 0) {
+		if (_metac_find_structure_member_recurcevly(&cnxt, type, key, &minfo, &data_member_location) != 0) {
 			msg_stderr("_metac_find_structure_member_recurcevly returned error\n");
 			return -EINVAL;
 		}
@@ -620,6 +646,7 @@ static long _handle_array_type_len_sibling(parent_struct_context_t * cnxt, char 
 	metac_byte_size_t	byte_size;
 	struct metac_type_member_info minfo;
 	char * field_name;
+	struct json_object* field_json_obj;
 	size_t cnxt_field_name_len;
 	int init_len_by_json = 0;
 	long buf = 0;
@@ -646,9 +673,9 @@ static long _handle_array_type_len_sibling(parent_struct_context_t * cnxt, char 
 		return -EFAULT;
 	}
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
-	if (!json_object_object_get(cnxt->jobj, field_name)) {
+	if (!(field_json_obj = json_object_object_get(cnxt->jobj, field_name))) {
 #else
-	if (!json_object_object_get_ex(cnxt->jobj, field_name, NULL)) {
+	if (!json_object_object_get_ex(cnxt->jobj, field_name, &field_json_obj)) {
 #endif
 		msg_stddbg("Field %s isn't initialized in json\n", field_name);
 		init_len_by_json = 1;
@@ -665,7 +692,7 @@ static long _handle_array_type_len_sibling(parent_struct_context_t * cnxt, char 
 	assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
 
 	if (init_len_by_json == 0) {
-		res = _metac_fill_recursevly(minfo.type, cnxt->jobj, &buf, byte_size, NULL, NULL);
+		res = _metac_fill_recursevly(minfo.type, field_json_obj, &buf, byte_size, NULL, NULL);
 		if (res != 0) {
 			msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);
 			return res;
@@ -802,6 +829,126 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 	return 0;
 }
 
+/*
+ * get's or initializes (if not specified in json) union descriminator if it's stored in a sibling variable
+ * field_postfix - what must be added to the array variable name to get sibling name with id
+ * returns current descriminator value
+ */
+static long _handle_union_type_descriminator_sibling(parent_struct_context_t * cnxt,
+		char * field_postfix, int descriminator_id) {
+	int res;
+	int child_id;
+	metac_byte_size_t	byte_size;
+	struct metac_type_member_info minfo;
+	char * field_name;
+	struct json_object* field_json_obj;
+	size_t cnxt_field_name_len;
+	int init_descr_by_json = 0;
+	long buf = 0;
+
+	if (cnxt == NULL || field_postfix == NULL) {
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
+	}
+
+	cnxt_field_name_len = strlen(cnxt->field_name);
+	field_name = calloc(1, cnxt_field_name_len + strlen(field_postfix)+1);
+	if (field_name == NULL){
+		msg_stderr("can't allocate mem for field_name\n");
+		return -EINVAL;
+	}
+	strcpy(field_name, cnxt->field_name);
+	strcpy(field_name + cnxt_field_name_len, field_postfix);
+
+	/*try to find field with name in structure*/
+	child_id = metac_type_child_id_by_name(cnxt->type, field_name);
+	if (child_id < 0) {
+		msg_stderr("Can't find member %s in structure\n", field_name);
+		free(field_name);
+		return -EFAULT;
+	}
+#if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
+	if (!(field_json_obj = json_object_object_get(cnxt->jobj, field_name))) {
+#else
+	if (!json_object_object_get_ex(cnxt->jobj, field_name, &field_json_obj)) {
+#endif
+		msg_stddbg("Field %s isn't initialized in json\n", field_name);
+		init_descr_by_json = 1;
+	}
+	free(field_name);
+
+	if (metac_type_structure_member_info(cnxt->type, child_id, &minfo) != 0) {
+		msg_stderr("metac_type_structure_member_info returned error\n");
+		return -EINVAL;
+	}
+	byte_size = metac_type_byte_size(minfo.type);
+
+	assert(byte_size <= sizeof(long));
+	assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
+
+	if (init_descr_by_json == 0) {
+		res = _metac_fill_recursevly(minfo.type, field_json_obj, &buf, byte_size, NULL, NULL);
+		if (res != 0) {
+			msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);
+			return res;
+		}
+
+		if (descriminator_id != buf) {
+			msg_stderr("Warning: descriminator_id identified by union (%d) != real descriminator value (%d)\n", descriminator_id, buf);
+			return -EINVAL;
+		}
+
+		return buf;
+	} else {
+		int val = descriminator_id;
+		void *ptr = cnxt->ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0);
+		assert(minfo.type->p_at.p_at_encoding->encoding == DW_ATE_unsigned ||
+			minfo.type->p_at.p_at_encoding->encoding ==DW_ATE_signed);
+		/*this should be put into macro of function*/
+		switch(byte_size){
+		case sizeof(int8_t):
+			*((int8_t*)ptr) = (int8_t)val;
+			break;
+		case sizeof(int16_t):
+			*((int16_t*)ptr) = (int16_t)val;
+			break;
+		case sizeof(int32_t):
+			*((int32_t*)ptr) = (int32_t)val;
+			break;
+		case sizeof(int64_t):
+			*((int64_t*)ptr) = (int64_t)val;
+			break;
+		default:
+			msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
+			return -EFAULT;
+		}
+		return val;
+	}
+}
+
+static int _get_union_type_descriminator_id(struct metac_type *type, metac_name_t name) {
+	unsigned int i;
+	int res = 0;
+
+	if (type == NULL || name == NULL)
+		return -1;
+
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	for (i = 0; i < type->child_num; i++) {
+		struct metac_type *child_type = type->child[i];
+		metac_name_t child_name = metac_type_name(child_type);
+		if (metac_type_id(child_type) == DW_TAG_member) {
+			if (	child_name != NULL &&
+					strcmp(child_name, name) == 0)
+				return res;
+			++res;
+		}
+	}
+	return -1;
+}
+
 static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size,
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt) {
@@ -833,11 +980,10 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 		return -EINVAL;
 	}
 
-	//val = _handle_union_type_descriminator_sibling(parentstr_cnxt, "_descriminator"); /*TODO: _descriminator must be configurable */
-
-
 	lh_foreach(table, entry) {
+		long val;
 		int child_id;
+		int descriminator_id;
 		metac_byte_size_t byte_size;
 		char *key = (char *)entry->k;	/*field name*/
 		json_object *mjobj = (json_object *)entry->v;	/*field value*/
@@ -846,6 +992,18 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 		child_id = metac_type_child_id_by_name(type, key);
 		if (child_id < 0) {
 			msg_stderr("Can't find member %s in union\n", key);
+			return -EFAULT;
+		}
+
+		descriminator_id = _get_union_type_descriminator_id(type, key);
+		if (descriminator_id < 0) {
+			msg_stderr("Can't find member %s in union\n", key);
+			return -EFAULT;
+		}
+
+		val = _handle_union_type_descriminator_sibling(parentstr_cnxt, "_descriminator", descriminator_id);
+		if (val < 0) {
+			msg_stderr("_handle_union_type_descriminator_sibling returned error\n");
 			return -EFAULT;
 		}
 
@@ -870,13 +1028,13 @@ static int _metac_fill_union_type(struct metac_type * type, json_object * jobj, 
 			}
 		}
 
-		/*not bit-fields*/
 		res = _metac_fill_recursevly(minfo.type, mjobj, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0), byte_size,
 				NULL, flexarr_cnxt);
 		if (res != 0) {
 			msg_stderr("_metac_fill_recursevly returned error for member %s\n", minfo.name);
 			return res;
 		}
+		break;
 	}
 	return 0;
 }

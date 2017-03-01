@@ -550,7 +550,7 @@ typedef struct struct5 {
 METAC_TYPE_GENERATE(struct5_t);
 
 typedef struct struct6 {
-	int descriminator;
+	int _descriminator;
 	union {
 		struct {
 			uint8_t byte[4];
@@ -597,14 +597,49 @@ START_TEST(union_type_json_des11n) {
 			"{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
 			{ .u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}});
 	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
+			{ .u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 1, \"u\": {\"w\": {\"word\": [1, 2]}}}",
+			{ .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
 			"{\"u\": {\"w\": {\"word\": [1, 2]}}}",
-			{ .u_descriminator = 0/*FIXME: must be 1*/, .u = {.w = {.word = {1, 2}}}});
+			{ .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 2, \"u\": {\"dw\": {\"dword\": [1]}}}",
+			{ .u_descriminator = 2, .u = {.dw = {.dword = {1}}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct5_t,
+			"{\"u\": {\"dw\": {\"dword\": [1]}}}",
+			{ .u_descriminator = 2, .u = {.dw = {.dword = {1}}}});
 
+
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 1, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}");
+	BASIC_TYPE_JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 0, \"u\": {\"w\": {\"word\": [1, 2]}}}");
 	BASIC_TYPE_JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}, \"w\": {\"word\": [1, 2]}}}");
 	/*struct6_t*/
 	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
-			"{\"descriminator\": 0, \"b\": {\"byte\": [1, 2, 3, 4]}}",
-			{ .descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+			"{\"_descriminator\": 0, \"b\": {\"byte\": [1, 2, 3, 4]}}",
+			{ ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
+			"{\"b\": {\"byte\": [1, 2, 3, 4]}}",
+			{ ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
+			"{\"_descriminator\": 1, \"w\": {\"word\": [1, 2]}}",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
+			"{\"w\": {\"word\": [1, 2]}}",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}});
+	UNION_TYPE_JSON_DES11N_POSITIVE(struct6_t,
+			"{\"w\": {\"word\": [1, 2]}, \"w1\": {\"word\": [3, 4]}}",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}, .w1 = {.word = {3, 4}}});
+	/*TBD:
+	 * BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}");
+	 *  must be error, because we're writing into the same descriminator twice - and put different values
+	 * to implement this we'll need to invent something like:
+	 * 1. structs must remember if the field has been already inintialized and with what value. if the same field
+	 *    inintialized for the second time and using different value - need to report error.
+	 * 2.?
+	 * */
 
 }END_TEST
 
