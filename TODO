@@ -6,6 +6,7 @@
 31. to limit the recursion - instead of calling _metac_alloc_and_fill_recursevly in recursion, put adding to queue in _metac_fill_pointer_type
 
 32. BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}"); - see metac_s11n_json_ut_001.c
+3
 
 11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details - _HANDLE_BITFIELDS - make it separate
 5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
@@ -15,6 +16,17 @@
 22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
 23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
 24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
+
+33. 2d array
+34. DW_ATE_complex_float
+35. typedef enum __attribute__((packed, aligned(16)))_enum_{
+    _eZero = 0,
+    _eOne,
+    _eTen = 10,
+    _eEleven,
+    _eTwelve,
+}enum_t;
+
 
 Documentation
 26. make doxygen doc generation
