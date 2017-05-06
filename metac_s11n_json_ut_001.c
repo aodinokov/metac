@@ -16,6 +16,7 @@
 
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
+const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr);
 
 /*
  * UT helper macros
@@ -643,16 +644,29 @@ START_TEST(union_type_json_des11n) {
 
 }END_TEST
 
+START_TEST(basic_type_json_s11n) {
+	//BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"c\"", 'c');
+	char data = 'c';
+	const char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(char), &data);
+	fail_unless(json_string != NULL, "Got Null instead of json_string");
+	fail_unless(strcmp(json_string, "\"c\"") == 0, "Expected %s, and got %s", "\"c\"", json_string);
+	free(json_string);
+}END_TEST
+
 int main(void){
 	return run_suite(
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
+					/*de-serialization*/
 					ADD_TEST(basic_type_json_des11n);
 					ADD_TEST(structure_type_json_des11n);
 					ADD_TEST(array_type_json_des11n);
 					ADD_TEST(union_type_json_des11n);
-				}END_CASE
+					/*serialization*/
+					//ADD_TEST(basic_type_json_s11n);
+
+			}END_CASE
 			);
 		}END_SUITE
 	);

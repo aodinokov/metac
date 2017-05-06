@@ -17,6 +17,7 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
+/*De-serialization*/
 typedef struct _parent_struct_context {
 	struct metac_type * type;
 	json_object * jobj;
@@ -1201,4 +1202,44 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
 	return NULL;
 }
 
+/*Serialization*/
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {
+	return NULL;
+}
+
+const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr) {
+	json_object * jobj = metac_type_and_ptr2json_object(type, ptr);
+
+	if (jobj == NULL) {
+		msg_stderr("metac_type_and_ptr2json_object has failed\n");
+		return NULL;
+	}
+
+	return json_object_to_json_string(jobj);
+}
+
+static json_object * metac_object2json_object(struct metac_object * mobj) {
+	if (mobj == NULL) {
+		return NULL;
+	}
+
+	if (mobj->ptr == NULL ||
+		mobj->type == NULL) {
+		msg_stderr("metac_object2json got incorrect mobj\n");
+		return NULL;
+	}
+
+	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr);
+}
+
+
+const char * metac_object2json_string(struct metac_object * mobj) {
+	json_object * jobj = metac_object2json_object(mobj);
+	if (jobj == NULL) {
+		msg_stderr("metac_type_and_ptr2json_object has failed\n");
+		return NULL;
+	}
+
+	return json_object_to_json_string(jobj);
+}
 
