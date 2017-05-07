@@ -665,7 +665,7 @@ START_TEST(basic_type_json_s11n) {
 
 #define STRUCTURE_TYPE_JSON_S11N_POSITIVE BASIC_TYPE_JSON_S11N_POSITIVE
 START_TEST(structure_type_json_s11n) {
-	//STRUCTURE_TYPE_JSON_S11N_POSITIVE(struct1_t, {.x = -1}, "{\"x\": -1}");
+//	STRUCTURE_TYPE_JSON_S11N_POSITIVE(struct1_t, {.x = -1}, "{\"x\": -1}");
 }END_TEST
 
 
