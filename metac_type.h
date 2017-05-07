@@ -146,7 +146,7 @@ struct metac_type_structure_info {
 	metac_num_t						members_count;				/* number of members */
 };
 int metac_type_structure_info(struct metac_type *type, struct metac_type_structure_info *p_info);		/*< returns subprogram type info*/
-int metac_type_structure_member_info(struct metac_type *type, unsigned int i,
+int metac_type_structure_member_info(struct metac_type *type, metac_num_t i,
 		struct metac_type_member_info *p_info);		/*< returns subprogram parameter info*/
 
 /*

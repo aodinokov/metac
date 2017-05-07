@@ -1204,6 +1204,8 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
 
 /*Serialization*/
 static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+	char buf[32] = {0,};
+
 	if (type->p_at.p_at_name == NULL ||
 		type->p_at.p_at_encoding == NULL ||
 		type->p_at.p_at_byte_size == NULL)
@@ -1220,30 +1222,48 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	case DW_ATE_unsigned_char:
 	case DW_ATE_signed_char:
 		switch(type->p_at.p_at_byte_size->byte_size) {
-		case sizeof(int8_t): {
-			char buf[2] = {0,};
+		case sizeof(int8_t):
 			buf[0] = *((char*)ptr);
-			return json_object_new_string(buf);
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return NULL;
 		}
+		break;
+	case DW_ATE_signed:
+		/*store all in text format to keep unsigned long long case. TBD: be smarter - use different format for smaller types*/
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t):
+			sprintf(buf, "%"SCNi8"", *((int8_t*)ptr));
+			break;
+		case sizeof(int16_t):
+			sprintf(buf, "%"SCNi16"", *((int16_t*)ptr));
+			break;
+		case sizeof(int32_t):
+			sprintf(buf, "%"SCNi32"", *((int32_t*)ptr));
+			break;
+		case sizeof(int64_t):
+			sprintf(buf, "%"SCNi64"", *((int64_t*)ptr));
+			break;
 		default:
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
 			return NULL;
 		}
 		break;
 	case DW_ATE_unsigned:
-	case DW_ATE_signed:
+		/*store all in text format to keep unsigned long long case. TBD: be smarter - use different format for smaller types*/
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(int8_t):
-			//*((int8_t*)ptr) = val;
+			sprintf(buf, "%"SCNu8"", *((uint8_t*)ptr));
 			break;
 		case sizeof(int16_t):
-			//*((int16_t*)ptr) = val;
+			sprintf(buf, "%"SCNu16"", *((uint16_t*)ptr));
 			break;
 		case sizeof(int32_t):
-			//*((int32_t*)ptr) = val;
+			sprintf(buf, "%"SCNu32"", *((uint32_t*)ptr));
 			break;
 		case sizeof(int64_t):
-			//*((int64_t*)ptr) = val;
+			sprintf(buf, "%"SCNu64"", *((uint64_t*)ptr));
 			break;
 		default:
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
@@ -1253,13 +1273,13 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	case DW_ATE_float:
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(float):
-			//*((float*)ptr) = val;
+			sprintf(buf, "%Lf", (long double)*((float*)ptr));
 			break;
 		case sizeof(double):
-			//*((double*)ptr) = val;
+			sprintf(buf, "%Lf", (long double)*((double*)ptr));
 			break;
 		case sizeof(long double):
-			//*((long double*)ptr) = val;
+			sprintf(buf, "%Lf", (long double)*((long double*)ptr));
 			break;
 		default:
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
@@ -1271,9 +1291,54 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 		return NULL;
 	}
 
-	return NULL;
+	return json_object_new_string(buf);
 }
 
+//#define _STRUCTURE_HANDLE_BITFIELDS(_type_, _mask_) do{ \
+//	metac_bit_offset_t lshift = (byte_size << 3) - \
+//			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
+//	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
+//	_type_ _i = *(_type_*)buffer; \
+//	_i = (_i & mask) << lshift;\
+//	*((_type_*)(ptr + data_member_location)) ^= _i; \
+//}while(0)
+static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+	json_object * jobj = json_object_new_object();
+	metac_num_t i;
+	int r;
+	struct metac_type_structure_info info;
+	struct metac_type_member_info minfo;
+
+	r = metac_type_structure_info(type, &info);
+	if (r!=0) {
+		msg_stderr("metac_type_structure_info returned error");
+		json_object_put(jobj);
+		return NULL;
+	}
+
+	for (i = 0; i < info.members_count; i++) {
+		r = metac_type_structure_member_info(type, i, &minfo);
+		if (r!=0) {
+			msg_stderr("metac_type_structure_member_info returned error");
+			json_object_put(jobj);
+			return NULL;
+		}
+		if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL) {
+			/* bit-fields only possible for integral types (that means that minfo type will be base_type of its typedef)
+			 * long long heightValidated2 : 64 will not have bit offset and size, but
+			 * long long heightValidated2 : 63 will have
+			 * the idea is to make array (8 byte max) and use it for _metac_fill_recursevly (instead of pointers)
+			 * */
+			unsigned char buffer[8] = {0,};
+			//assert(byte_size <= 8); /*TBD:*/
+			assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
+		}else{
+
+		}
+	}
+
+	return NULL;
+}
 
 static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {
 	type = metac_type_typedef_skip(type);
@@ -1289,7 +1354,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 	case DW_TAG_union_type:
 		break;
 	case DW_TAG_structure_type:
-		break;
+		return _metac_structure_type_s11n(type, ptr);
 	case DW_TAG_enumeration_type:
 		break;
 	}
@@ -1297,7 +1362,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 
 }
 
-const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr) {
+char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr) {
 	char * res = NULL;
 	json_object * jobj = metac_type_and_ptr2json_object(type, ptr);
 
@@ -1326,7 +1391,7 @@ static json_object * metac_object2json_object(struct metac_object * mobj) {
 }
 
 
-const char * metac_object2json_string(struct metac_object * mobj) {
+char * metac_object2json_string(struct metac_object * mobj) {
 	char * res = NULL;
 	json_object * jobj = metac_object2json_object(mobj);
 	if (jobj == NULL) {

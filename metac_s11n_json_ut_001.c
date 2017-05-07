@@ -16,7 +16,7 @@
 
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
-const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr);
+char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr);
 
 /*
  * UT helper macros
@@ -644,14 +644,30 @@ START_TEST(union_type_json_des11n) {
 
 }END_TEST
 
+#define BASIC_TYPE_JSON_S11N_POSITIVE(_type_, _val_, _json_) do { \
+		_type_ data = _val_; \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &data); \
+		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
+		fail_unless(strcmp(json_string, _json_) == 0, "Expected %s, and got %s", _json_, json_string); \
+		free(json_string); \
+	}while(0)
+
 START_TEST(basic_type_json_s11n) {
-	//BASIC_TYPE_JSON_DES11N_POSITIVE(char, "\"c\"", 'c');
-	char data = 'c';
-	const char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(char), &data);
-	fail_unless(json_string != NULL, "Got Null instead of json_string");
-	fail_unless(strcmp(json_string, "\"c\"") == 0, "Expected %s, and got %s", "\"c\"", json_string);
-	free(json_string);
+	BASIC_TYPE_JSON_S11N_POSITIVE(char, 'c', "\"c\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(short, 1235, "\"1235\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(int, -165635, "\"-165635\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(long, 365635165635, "\"365635165635\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(uchar_t, 'c', "\"c\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(ushort_t, 1235, "\"1235\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(uint_t, 165635, "\"165635\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(ulong_t, 365635165635, "\"365635165635\"");
 }END_TEST
+
+#define STRUCTURE_TYPE_JSON_S11N_POSITIVE BASIC_TYPE_JSON_S11N_POSITIVE
+START_TEST(structure_type_json_s11n) {
+	//STRUCTURE_TYPE_JSON_S11N_POSITIVE(struct1_t, {.x = -1}, "{\"x\": -1}");
+}END_TEST
+
 
 int main(void){
 	return run_suite(
@@ -665,7 +681,7 @@ int main(void){
 					ADD_TEST(union_type_json_des11n);
 					/*serialization*/
 					ADD_TEST(basic_type_json_s11n);
-
+					ADD_TEST(structure_type_json_s11n);
 			}END_CASE
 			);
 		}END_SUITE
