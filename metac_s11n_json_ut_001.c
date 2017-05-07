@@ -664,7 +664,7 @@ int main(void){
 					ADD_TEST(array_type_json_des11n);
 					ADD_TEST(union_type_json_des11n);
 					/*serialization*/
-					//ADD_TEST(basic_type_json_s11n);
+					ADD_TEST(basic_type_json_s11n);
 
 			}END_CASE
 			);

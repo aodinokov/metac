@@ -1203,11 +1203,102 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
 }
 
 /*Serialization*/
-static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {
+static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+	if (type->p_at.p_at_name == NULL ||
+		type->p_at.p_at_encoding == NULL ||
+		type->p_at.p_at_byte_size == NULL)
+		return NULL;
+
+/*hasn't decided if I need byte_size*/
+//	if ((metac_byte_size_t)type->p_at.p_at_byte_size->byte_size != byte_size) {
+//		msg_stderr("expected byte_size %d instead of %d to store %s\n",
+//				(int)type->p_at.p_at_byte_size->byte_size, (int)byte_size, type->p_at.p_at_name->name);
+//		return -EFAULT;
+//	}
+
+	switch(type->p_at.p_at_encoding->encoding) {
+	case DW_ATE_unsigned_char:
+	case DW_ATE_signed_char:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t): {
+			char buf[2] = {0,};
+			buf[0] = *((char*)ptr);
+			return json_object_new_string(buf);
+		}
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return NULL;
+		}
+		break;
+	case DW_ATE_unsigned:
+	case DW_ATE_signed:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(int8_t):
+			//*((int8_t*)ptr) = val;
+			break;
+		case sizeof(int16_t):
+			//*((int16_t*)ptr) = val;
+			break;
+		case sizeof(int32_t):
+			//*((int32_t*)ptr) = val;
+			break;
+		case sizeof(int64_t):
+			//*((int64_t*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return NULL;
+		}
+		break;
+	case DW_ATE_float:
+		switch(type->p_at.p_at_byte_size->byte_size) {
+		case sizeof(float):
+			//*((float*)ptr) = val;
+			break;
+		case sizeof(double):
+			//*((double*)ptr) = val;
+			break;
+		case sizeof(long double):
+			//*((long double*)ptr) = val;
+			break;
+		default:
+			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
+			return NULL;
+		}
+		break;
+	default:
+		msg_stderr("Unsupported encoding %d\n",(int)type->p_at.p_at_encoding->encoding);
+		return NULL;
+	}
+
 	return NULL;
 }
 
+
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	switch (type->id){
+	case DW_TAG_base_type:
+		return _metac_basic_type_s11n(type, ptr);
+	case DW_TAG_pointer_type:
+		break;
+	case DW_TAG_array_type:
+		break;
+	case DW_TAG_union_type:
+		break;
+	case DW_TAG_structure_type:
+		break;
+	case DW_TAG_enumeration_type:
+		break;
+	}
+	return NULL;
+
+}
+
 const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr) {
+	char * res = NULL;
 	json_object * jobj = metac_type_and_ptr2json_object(type, ptr);
 
 	if (jobj == NULL) {
@@ -1215,7 +1306,9 @@ const char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr
 		return NULL;
 	}
 
-	return json_object_to_json_string(jobj);
+	res = strdup(json_object_to_json_string(jobj));
+	json_object_put(jobj);
+	return res;
 }
 
 static json_object * metac_object2json_object(struct metac_object * mobj) {
@@ -1234,12 +1327,15 @@ static json_object * metac_object2json_object(struct metac_object * mobj) {
 
 
 const char * metac_object2json_string(struct metac_object * mobj) {
+	char * res = NULL;
 	json_object * jobj = metac_object2json_object(mobj);
 	if (jobj == NULL) {
 		msg_stderr("metac_type_and_ptr2json_object has failed\n");
 		return NULL;
 	}
 
-	return json_object_to_json_string(jobj);
+	res = strdup(json_object_to_json_string(jobj));
+	json_object_put(jobj);
+	return res;
 }
 
