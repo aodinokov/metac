@@ -28,6 +28,10 @@
 }enum_t;
 
 
+36. it's possible to make a special macro to create extra param. It will require an additional scan in nm: metac_<type>_extra.
+this can be used to pass some params instead of guessing them: discriminator name, mode how to work with flex arrays (with/without len field)
+37. use approach from metaresc to generate only 1 struct per type (integrate at and children into it)
+
 Documentation
 26. make doxygen doc generation
 
