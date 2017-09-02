@@ -30,6 +30,16 @@
 
 36. it's possible to make a special macro to create extra param. It will require an additional scan in nm: metac_<type>_extra.
 this can be used to pass some params instead of guessing them: discriminator name, mode how to work with flex arrays (with/without len field)
+e.g.
+#define METAC_TYPEEXTRA_NAME(name) METAC(typeextra, name)
+#define METAC_TYPE_EXTRA(name) struct metac_typeextra METAC_TYPEEXTRA_NAME(name)
+
+metac__typeextra_pchar_ = {
+{key: TE_DISCRIMINATOR, value: (void*){...link discr and union}}. also allow or deny multiple fields in the same union.
+{key: TE_FLEXARRAY, value: (void*){TE_FLEXARRAY_MODE_WITH_LEN_FIELD, len_field_name: ""}
+};
+modify metac.awk to add this field to the type if it was defined
+
 37. use approach from metaresc to generate only 1 struct per type (integrate at and children into it)
 
 Documentation
