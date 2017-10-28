@@ -42,6 +42,8 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt);
 
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr);
+
 static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int64_t val;
 #if JSON_C_MAJOR_VERSION == 0 && JSON_C_MINOR_VERSION < 10
@@ -521,12 +523,12 @@ static int _metac_find_structure_member_recurcevly(parent_struct_context_t *pare
 	return -EINVAL;
 }
 
-#define _STRUCTURE_HANDLE_BITFIELDS(_type_, _mask_) do{ \
-	metac_bit_offset_t lshift = (byte_size << 3) - \
+#define _STRUCTURE_HANDLE_BITFIELDS_DES11N(_type_, _mask_) do{ \
+	metac_bit_offset_t shift = (byte_size << 3) - \
 			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
 	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
 	_type_ _i = *(_type_*)buffer; \
-	_i = (_i & mask) << lshift;\
+	_i = (_i & mask) << shift;\
 	*((_type_*)(ptr + data_member_location)) ^= _i; \
 }while(0)
 
@@ -608,16 +610,16 @@ static int _metac_fill_structure_type(struct metac_type * type, json_object * jo
 			 */
 			switch(byte_size){
 			case 1:
-				_STRUCTURE_HANDLE_BITFIELDS(uint8_t, 0xff);
+				_STRUCTURE_HANDLE_BITFIELDS_DES11N(uint8_t, 0xff);
 				break;
 			case 2:
-				_STRUCTURE_HANDLE_BITFIELDS(uint16_t, 0xffff);
+				_STRUCTURE_HANDLE_BITFIELDS_DES11N(uint16_t, 0xffff);
 				break;
 			case 4:
-				_STRUCTURE_HANDLE_BITFIELDS(uint32_t, 0xffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS_DES11N(uint32_t, 0xffffffff);
 				break;
 			case 8:
-				_STRUCTURE_HANDLE_BITFIELDS(uint64_t, 0xffffffffffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS_DES11N(uint64_t, 0xffffffffffffffff);
 				break;
 			default:
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
@@ -1211,7 +1213,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 		type->p_at.p_at_byte_size == NULL)
 		return NULL;
 
-/*hasn't decided if I need byte_size*/
+/*hasn't decided if I need byte_size. probably I should do it.. but later :)*/
 //	if ((metac_byte_size_t)type->p_at.p_at_byte_size->byte_size != byte_size) {
 //		msg_stderr("expected byte_size %d instead of %d to store %s\n",
 //				(int)type->p_at.p_at_byte_size->byte_size, (int)byte_size, type->p_at.p_at_name->name);
@@ -1294,14 +1296,14 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	return json_object_new_string(buf);
 }
 
-//#define _STRUCTURE_HANDLE_BITFIELDS(_type_, _mask_) do{ \
-//	metac_bit_offset_t lshift = (byte_size << 3) - \
-//			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
-//	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
-//	_type_ _i = *(_type_*)buffer; \
-//	_i = (_i & mask) << lshift;\
-//	*((_type_*)(ptr + data_member_location)) ^= _i; \
-//}while(0)
+#define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_) do{ \
+	metac_bit_offset_t shift = (byte_size << 3) - \
+			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
+	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
+	_type_ _i = *((_type_*)(ptr + data_member_location)); \
+	_i = (_i >> shift) & mask;\
+	*(_type_*)buffer = _i; \
+}while(0)
 static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
 	json_object * jobj = json_object_new_object();
 	metac_num_t i;
@@ -1330,14 +1332,40 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 			 * the idea is to make array (8 byte max) and use it for _metac_fill_recursevly (instead of pointers)
 			 * */
 			unsigned char buffer[8] = {0,};
-			//assert(byte_size <= 8); /*TBD:*/
+			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
+			metac_byte_size_t byte_size = metac_type_byte_size(minfo.type);
+			assert(byte_size <= 8); /*TBD:*/
 			assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
-		}else{
+
+			switch(byte_size){
+			case sizeof(uint8_t):
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint8_t, 0xff);
+				break;
+			case sizeof(uint16_t):
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint16_t, 0xffff);
+				break;
+			case sizeof(uint32_t):
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint32_t, 0xffffffff);
+				break;
+			case sizeof(uint64_t):
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint64_t, 0xffffffffffffffff);
+				break;
+			default:
+				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
+				return NULL;
+			}
+			json_object_object_add(jobj, minfo.name,
+								metac_type_and_ptr2json_object(minfo.type, buffer));
+
+		} else { /* case without bit fields*/
+			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
+			json_object_object_add(jobj, minfo.name,
+					metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location));
 
 		}
 	}
 
-	return NULL;
+	return jobj;
 }
 
 static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {

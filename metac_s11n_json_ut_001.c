@@ -10,6 +10,7 @@
 #include "metac_type.h"
 #include <stdint.h>	/*INT32_MIN, INT32_MAX*/
 #include <stdio.h>	/*sprintf*/
+#include <string.h> /*strdupa*/
 
 #include <json/json.h>	/*to get version of lib*/
 
@@ -637,19 +638,21 @@ START_TEST(union_type_json_des11n) {
 	 * BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}");
 	 *  must be error, because we're writing into the same descriminator twice - and put different values
 	 * to implement this we'll need to invent something like:
-	 * 1. structs must remember if the field has been already inintialized and with what value. if the same field
-	 *    inintialized for the second time and using different value - need to report error.
+	 * 1. structs must remember if the field has been already initialized and with what value. if the same field
+	 *    initialized for the second time and using different value - need to report error.
 	 * 2.?
 	 * */
 
 }END_TEST
 
 #define BASIC_TYPE_JSON_S11N_POSITIVE(_type_, _val_, _json_) do { \
+		char * _json_string; \
 		_type_ data = _val_; \
 		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &data); \
 		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
-		fail_unless(strcmp(json_string, _json_) == 0, "Expected %s, and got %s", _json_, json_string); \
-		free(json_string); \
+		_json_string = strdupa(json_string); \
+		free(json_string); json_string = NULL;\
+		fail_unless(strcmp(_json_string, _json_) == 0, "Expected %s, and got %s", _json_, _json_string); \
 	}while(0)
 
 START_TEST(basic_type_json_s11n) {
@@ -663,9 +666,13 @@ START_TEST(basic_type_json_s11n) {
 	BASIC_TYPE_JSON_S11N_POSITIVE(ulong_t, 365635165635, "\"365635165635\"");
 }END_TEST
 
-#define STRUCTURE_TYPE_JSON_S11N_POSITIVE BASIC_TYPE_JSON_S11N_POSITIVE
+#define STRUCT_TYPE_JSON_S11N_POSITIVE BASIC_TYPE_JSON_S11N_POSITIVE
 START_TEST(structure_type_json_s11n) {
-//	STRUCTURE_TYPE_JSON_S11N_POSITIVE(struct1_t, {.x = -1}, "{\"x\": -1}");
+	STRUCT_TYPE_JSON_S11N_POSITIVE(struct1_t, {.x = -1}, "{ \"x\": \"-1\", \"y\": \"0\" }");
+
+	STRUCT_TYPE_JSON_S11N_POSITIVE(bit_fields1_t, {.field_15b = 6}, "{ \"field_15b\": \"6\", \"field_17b\": \"0\" }");
+	STRUCT_TYPE_JSON_S11N_POSITIVE(bit_fields1_t, {.field_17b = 6000}, "{ \"field_15b\": \"0\", \"field_17b\": \"6000\" }");
+
 }END_TEST
 
 
