@@ -40,6 +40,7 @@ function dump_at(data_id, at_id, res) {
         case "DW_AT_encoding":
         case "DW_AT_lower_bound":
         case "DW_AT_upper_bound":
+        case "DW_AT_count":
         case "DW_AT_const_value":
             res[1]++;
             res[2] = "\t{.id = " at_id ", ." arr0[1] " = " data[data_id][at_id] "},\n"

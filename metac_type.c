@@ -446,6 +446,8 @@ int metac_type_subrange_info(struct metac_type *type, struct metac_type_subrange
 				&type->p_at.p_at_lower_bound->lower_bound:NULL;
 		p_subrange_info->p_upper_bound = type->p_at.p_at_upper_bound!=NULL?
 				&type->p_at.p_at_upper_bound->upper_bound:NULL;
+		p_subrange_info->p_count = type->p_at.p_at_count!=NULL?
+				&type->p_at.p_at_count->count:NULL;
 	}
 	return 0;
 }
@@ -478,19 +480,23 @@ int metac_type_array_info(struct metac_type *type, struct metac_type_array_info 
 
 		if (p_info->subranges_count > 0) {
 			struct metac_type_subrange_info subrange_info;
+			/*check if we need to use upper_bound or count param of subrange*/
+			if (metac_type_array_subrange_info(type, p_info->subranges_count - 1, &subrange_info) == 0) { /*we have subranges*/
+				if (subrange_info.p_count != NULL) {
+					/*in general we need to calc all subranges. with with our assumption about number of subranges we'll take count*/
+					p_info->elements_count = *subrange_info.p_count;
+				} else { /*we can get upper and substitute lower*/
+					if (subrange_info.p_upper_bound != NULL)
+						p_info->p_upper_bound = subrange_info.p_upper_bound;
 
-			if (metac_type_array_subrange_info(type, 0, &subrange_info) == 0){
-				if (subrange_info.p_lower_bound != NULL)
-					p_info->lower_bound = *subrange_info.p_lower_bound;
-			}
-
-			if (metac_type_array_subrange_info(type, p_info->subranges_count - 1, &subrange_info) == 0){
-				if (subrange_info.p_upper_bound != NULL)
-					p_info->p_upper_bound = subrange_info.p_upper_bound;
-			}
-
-			if (p_info->p_upper_bound != NULL) {
-				p_info->elements_count = *(p_info->p_upper_bound) + 1 - p_info->lower_bound;
+					if (metac_type_array_subrange_info(type, 0, &subrange_info) == 0){
+						if (subrange_info.p_lower_bound != NULL)
+							p_info->lower_bound = *subrange_info.p_lower_bound;
+					}
+					if (p_info->p_upper_bound != NULL) {
+						p_info->elements_count = *(p_info->p_upper_bound) + 1 - p_info->lower_bound;
+					}
+				}
 			}
 		}
 	}

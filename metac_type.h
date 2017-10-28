@@ -23,6 +23,7 @@ typedef metac_data_location_t			metac_data_member_location_t;
 typedef unsigned int					metac_bit_offset_t;
 typedef unsigned int					metac_bit_size_t;
 typedef unsigned int					metac_bound_t;
+typedef unsigned int					metac_count_t;
 typedef long							metac_const_value_t;
 
 typedef int								metac_type_id_t;
@@ -47,6 +48,7 @@ struct metac_type_at {
 		metac_bit_size_t				bit_size;					/* bit-field member bit size in structs and unions */
 		metac_bound_t					lower_bound;				/* for array_ranges*/
 		metac_bound_t					upper_bound;				/* for array_ranges*/
+		metac_count_t					count;						/* for array_ranges*/
 		metac_const_value_t				const_value;				/* for enums*/
 	};
 };
@@ -61,6 +63,7 @@ struct metac_type_p_at {
 	struct metac_type_at *				p_at_bit_size;				/* bit-field member bit size in structs and unions */
 	struct metac_type_at *				p_at_lower_bound;			/* for array_ranges*/
 	struct metac_type_at *				p_at_upper_bound;			/* for array_ranges*/
+	struct metac_type_at *				p_at_count;					/* for array_ranges*/
 	struct metac_type_at *				p_at_const_value;			/* for enums*/
 };
 
@@ -166,6 +169,7 @@ int metac_type_union_member_info(struct metac_type *type, unsigned int i,
  */
 struct metac_type_subrange_info {
 	metac_type_t *					type;					/* type of index */
+	metac_count_t *					p_count;				/* number of elements in subrange */
 	metac_bound_t *					p_lower_bound;			/* min index in subrange */
 	metac_bound_t *					p_upper_bound;			/* max index in subrange */
 };
@@ -178,7 +182,7 @@ struct metac_type_array_info {
 	metac_num_t						subranges_count;		/* number of subranges */
 	metac_bound_t					lower_bound;			/* min index in the array (0 by default) */
 	metac_bound_t *					p_upper_bound;			/* max index in the array */
-	metac_bound_t					elements_count;			/* based on min and max - length of the array */
+	metac_count_t					elements_count;			/* based on min and max or count - length of the array */
 };
 int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
 int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
