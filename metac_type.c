@@ -541,44 +541,6 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i, struc
 		return 0;
 	}
 	return -1;
-	//	metac_num_t id;
-//	unsigned int data_location = 0;
-//
-//	if (type == NULL)
-//		return -1;
-//
-//	type = metac_type_typedef_skip(type);
-//	assert(type);
-//	if (metac_type_id(type) != DW_TAG_array_type) {
-//		msg_stderr("expected type DW_TAG_array_type\n");
-//		return -1;
-//	}
-//
-//	for (id = 0; id < metac_type_child_num(type); id++) {
-//		struct metac_type_subrange_info subrange_info;
-//		if (metac_type_array_subrange_info(type, id, &subrange_info) != 0) {
-//			msg_stderr("metac_type_subrange_info returned error\n");
-//			return -1;
-//		}
-//		if (	(id == 0 && subrange_info.p_upper_bound == NULL) || /* allow arrays without bounds to calc Nth element */
-//				(((subrange_info.p_lower_bound == NULL) ||
-//				(subrange_info.p_lower_bound != NULL  && *(subrange_info.p_lower_bound) <= i)) &&
-//				*(subrange_info.p_upper_bound) >= i)) { /* found range */
-//			data_location +=i;
-//			if (p_element_info) {
-//				p_element_info->type = type->p_at.p_at_type->type;
-//				assert(p_element_info->type != NULL);
-//				p_element_info->data_location = data_location * metac_type_byte_size(p_element_info->type);
-//			}
-//			return 0;
-//		}
-//
-//		data_location += *(subrange_info.p_upper_bound) + 1;
-//		if (subrange_info.p_lower_bound != NULL)
-//			data_location -= *(subrange_info.p_lower_bound);
-//
-//	}
-//	return -1;
 }
 
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {

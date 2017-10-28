@@ -1,4 +1,4 @@
-clang 3.9.0 added
+clang 3.9.0 added - done
 /* Skip {.id = DW_AT_count, .count = 0x00000005}, */
 for arrays
 and priviously we had   {.id = DW_AT_upper_bound, .upper_bound = 4},
