@@ -540,7 +540,7 @@ START_TEST(array_type_smoke) {
 		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
 		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
 		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
-		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info must fail");
+		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info for flex array must not fail");
 	}while(0);
 
 }END_TEST
