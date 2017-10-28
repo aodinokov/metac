@@ -1,3 +1,11 @@
+clang 3.9.0 added
+/* Skip {.id = DW_AT_count, .count = 0x00000005}, */
+for arrays
+and priviously we had   {.id = DW_AT_upper_bound, .upper_bound = 4},
+need to support this field
+
+
+
 29. expand UT
     rename metac_type_ut_001.c - it's a set of smoke tests.
 
