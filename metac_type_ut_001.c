@@ -504,10 +504,14 @@ START_TEST(array_type_smoke) {
 		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
 				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
 		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
-		fail_unless(subrange_info.p_upper_bound != NULL, "subrange_info.p_upper_bound must present");
+		fail_unless(subrange_info.p_upper_bound != NULL || subrange_info.p_count != NULL, "subrange_info.p_upper_bound or subrange_info.p_count must present");
+		if (subrange_info.p_upper_bound != NULL) {
 		fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
 				"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
-
+		} else {
+			fail_unless(*(subrange_info.p_count) == (sizeof(reference_object)/sizeof(reference_object[0])) ,
+					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_count), (int)(sizeof(reference_object)/sizeof(reference_object[0])));
+		}
 		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
 
 		fail_unless(metac_type_array_element_info(type, *(subrange_info.p_upper_bound), &element_info) == 0, "metac_type_array_element_info returned error");

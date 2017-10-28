@@ -767,7 +767,8 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 		}
 
 		if (sinfo.p_lower_bound == NULL &&
-			sinfo.p_upper_bound == NULL) {
+			sinfo.p_upper_bound == NULL &&
+			sinfo.p_count == NULL) {
 			long val;
 			void * flex_ptr;
 			int flex_len;
