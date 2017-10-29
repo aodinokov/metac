@@ -685,6 +685,40 @@ START_TEST(structure_type_json_s11n) {
 
 }END_TEST
 
+#define ARRAY_TYPE_JSON_S11N_POSITIVE(_type_, _json_, _val_...) do { \
+		char * _json_string; \
+		_type_ data = _val_; \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), data); \
+		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
+		_json_string = strdupa(json_string); \
+		free(json_string); json_string = NULL;\
+		fail_unless(strcmp(_json_string, _json_) == 0, "Expected %s, and got %s", _json_, _json_string); \
+	}while(0); \
+	mark_point();
+
+#define JSON_S11N_POSITIVE_START(_type_, _json_, _data_) do { \
+		char * _json_string; \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), _data_); \
+		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
+		_json_string = strdupa(json_string); \
+		free(json_string); json_string = NULL;\
+		fail_unless(strcmp(_json_string, _json_) == 0, "Expected %s, and got %s", _json_, _json_string); \
+
+#define JSON_S11N_POSITIVE_END() \
+	}while(0); \
+	mark_point();
+
+START_TEST(array_type_json_s11n) {
+	ARRAY_TYPE_JSON_S11N_POSITIVE(char_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {'a', 'b', 'c', 'd', 'e'});
+	ARRAY_TYPE_JSON_S11N_POSITIVE(pchar_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {"a", "b", "c", "d", "e"});
+//	/*struct3_t - flexible array doesn't work*/
+//	{
+//		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
+//		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &expected_struct3){
+//		}JSON_S11N_POSITIVE_END();
+//	}
+
+}END_TEST
 
 int main(void){
 	return run_suite(
@@ -699,6 +733,7 @@ int main(void){
 					/*serialization*/
 					ADD_TEST(basic_type_json_s11n);
 					ADD_TEST(structure_type_json_s11n);
+					ADD_TEST(array_type_json_s11n);
 			}END_CASE
 			);
 		}END_SUITE

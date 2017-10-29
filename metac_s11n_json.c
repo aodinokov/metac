@@ -1226,7 +1226,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	case DW_ATE_signed_char:
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(int8_t):
-			buf[0] = *((char*)ptr);
+			buf[0] = *((char*)ptr);	/*TODO: this is incorrect for non-printed chars, like \0*/
 			break;
 		default:
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
@@ -1368,6 +1368,58 @@ static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *pt
 	return metac_type_and_ptr2json_object(mtype, data);
 }
 
+static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size,
+		parent_struct_context_t *parentstr_cnxt,
+		flex_array_context_t *flexarr_cnxt*/) {
+	json_object *jobj;
+	json_object *jobj_element;
+	metac_count_t i;
+	struct metac_type_array_info info;
+	struct metac_type_element_info einfo;
+	json_object * ejobj;
+	metac_byte_size_t ebyte_size;
+
+	if (metac_type_array_info(type, &info) != 0) {
+		msg_stderr("metac_type_array_info returned error\n");
+		return NULL;
+	}
+
+	ebyte_size = metac_type_byte_size(info.type);
+	if (ebyte_size == 0) {
+		msg_stderr("metac_type_byte_size returned 0 as array element type\n");
+		return NULL;
+	}
+
+	/* check if the array is flexible. also check if they are last in the structs */
+	msg_stderr("subrange count %d elements_count %d\n", (int)info.subranges_count, (int)info.elements_count);
+	if (info.subranges_count > 1) {
+		msg_stderr("subranges_count > 1 - not supported\n");
+		return NULL;
+	}
+
+	/*TODO: to check if it's flexible array and what is stop criteria */
+
+	jobj = json_object_new_array();
+	for (i = 0; /*info.elements_count == 0 && i < 5 || *//*flexible array*/ i < info.elements_count; i++) {
+		if (metac_type_array_element_info(type, i, &einfo) != 0) {
+			msg_stderr("metac_type_array_element_info returned error\n");
+			json_object_put(jobj);
+			return NULL;
+		}
+
+		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location);
+		msg_stderr("jobj_element %p\n", jobj_element);
+		if (jobj_element ==  NULL) {
+			break;	/*if we got NULL - this will be the last element of array - we'll support flex array this way for now*/
+//			msg_stderr("metac_type_and_ptr2json_object returned error for array element %d\n", (int)i);
+//			json_object_put(jobj);
+//			return NULL;
+		}
+		json_object_array_add(jobj, jobj_element);
+	}
+	return jobj;
+}
+
 #define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_) do{ \
 	metac_bit_offset_t shift = (byte_size << 3) - \
 			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
@@ -1453,7 +1505,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 	case DW_TAG_pointer_type:
 		return _metac_pointer_type_s11n(type, ptr);
 	case DW_TAG_array_type:
-		break;
+		return _metac_array_type_s11n(type, ptr);
 	case DW_TAG_union_type:
 		break;
 	case DW_TAG_structure_type:
