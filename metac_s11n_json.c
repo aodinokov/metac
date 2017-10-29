@@ -1297,6 +1297,48 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	return json_object_new_string(buf);
 }
 
+static json_object * _metac_enumeration_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+	metac_num_t i;
+	metac_const_value_t const_value;
+	enum json_type jtype;
+	struct metac_type_enumeration_type_info info;
+	struct metac_type_enumerator_info einfo;
+
+	if (metac_type_enumeration_type_info(type, &info) != 0) {
+		msg_stderr("metac_type_enumeration_type_info returned error\n");
+		return NULL;
+	}
+
+	switch(info.byte_size){
+	case sizeof(int8_t):
+		const_value = *((int8_t*)ptr);
+		break;
+	case sizeof(int16_t):
+		const_value = *((int16_t*)ptr);
+		break;
+	case sizeof(int32_t):
+		const_value = *((int32_t*)ptr);
+		break;
+	case sizeof(int64_t):
+		const_value = *((int64_t*)ptr);
+		break;
+	default:
+		msg_stderr("byte_size %d isn't supported\n", (int)info.byte_size);
+		return NULL;
+	}
+
+	for (i = 0; i < info.enumerators_count; i++) {
+		if (metac_type_enumeration_type_enumerator_info(type, i, &einfo) != 0) {
+			msg_stderr("metac_type_enumeration_type_enumerator_info error\n");
+			return NULL;
+		}
+		if (const_value == einfo.const_value) {
+			return json_object_new_string(einfo.name);
+		}
+	}
+	return NULL;
+}
+
 static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
 	struct metac_type * mtype;
 	void *data;
@@ -1417,7 +1459,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 	case DW_TAG_structure_type:
 		return _metac_structure_type_s11n(type, ptr);
 	case DW_TAG_enumeration_type:
-		break;
+		return _metac_enumeration_type_s11n(type, ptr);
 	}
 	return NULL;
 

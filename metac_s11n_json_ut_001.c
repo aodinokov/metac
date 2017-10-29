@@ -668,6 +668,12 @@ START_TEST(basic_type_json_s11n) {
 	BASIC_TYPE_JSON_S11N_POSITIVE(pchar_t, "string1234", "\"string1234\"");
 	//BASIC_TYPE_JSON_S11N_NEGATIVE(pchar_t, NULL, "\"string1234\""); /*TBD*/
 
+	BASIC_TYPE_JSON_S11N_POSITIVE(enum_t, _eZero, "\"_eZero\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(enum_t, _eOne, "\"_eOne\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(enum_t, _eTen, "\"_eTen\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(enum_t, _eEleven, "\"_eEleven\"");
+	BASIC_TYPE_JSON_S11N_POSITIVE(enum_t, _eTwelve, "\"_eTwelve\"");
+
 }END_TEST
 
 #define STRUCT_TYPE_JSON_S11N_POSITIVE BASIC_TYPE_JSON_S11N_POSITIVE
