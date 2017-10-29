@@ -834,9 +834,9 @@ static int _metac_fill_array_type(struct metac_type * type, json_object * jobj, 
 }
 
 /*
- * get's or initializes (if not specified in json) union descriminator if it's stored in a sibling variable
+ * get's or initializes (if not specified in json) union discriminator if it's stored in a sibling variable
  * field_postfix - what must be added to the array variable name to get sibling name with id
- * returns current descriminator value
+ * returns current discriminator value
  */
 static long _handle_union_type_descriminator_sibling(parent_struct_context_t * cnxt,
 		char * field_postfix, int descriminator_id) {
@@ -898,7 +898,7 @@ static long _handle_union_type_descriminator_sibling(parent_struct_context_t * c
 		}
 
 		if (descriminator_id != buf) {
-			msg_stderr("Warning: descriminator_id identified by union (%d) != real descriminator value (%d)\n", descriminator_id, buf);
+			msg_stderr("Warning: descriminator_id identified by union (%d) != real descriminator value (%d)\n", descriminator_id, (int)buf);
 			return -EINVAL;
 		}
 
@@ -1297,6 +1297,35 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	return json_object_new_string(buf);
 }
 
+static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+	struct metac_type * mtype;
+	void *data;
+
+	if (type->p_at.p_at_type == NULL) {
+		msg_stderr("Can't serialize from void*\n");
+		return NULL;
+	}
+
+	/*check if value is NULL - skip this - return NULL*/
+	data = *((void**)ptr);
+	if (data == NULL)
+		return NULL; /*the pointer points to NULL*/
+
+	mtype = type->p_at.p_at_type->type;
+	if (	metac_type_id(metac_type_typedef_skip(mtype)) == DW_TAG_base_type &&
+			mtype->p_at.p_at_byte_size->bit_size == sizeof(uint8_t) &&
+			(mtype->p_at.p_at_encoding->encoding == DW_ATE_unsigned_char ||
+			mtype->p_at.p_at_encoding->encoding == DW_ATE_signed_char)) {
+		/* handle json_type_string if type is ptr to char or uchar*/
+		return json_object_new_string((char *)data);
+	}
+	/*TBD: here can be discriminator for this field if this pointer point to array*/
+	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
+	/*TBD: if we want to limit the recursion - instead of calling this - put here adding to queue*/
+
+	return metac_type_and_ptr2json_object(mtype, data);
+}
+
 #define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_) do{ \
 	metac_bit_offset_t shift = (byte_size << 3) - \
 			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
@@ -1307,6 +1336,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 }while(0)
 static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
 	json_object * jobj = json_object_new_object();
+	json_object * jobj2add = NULL;
 	metac_num_t i;
 	int r;
 	struct metac_type_structure_info info;
@@ -1335,7 +1365,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 			unsigned char buffer[8] = {0,};
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
 			metac_byte_size_t byte_size = metac_type_byte_size(minfo.type);
-			assert(byte_size <= 8); /*TBD:*/
+			assert(byte_size <= 8);
 			assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
 
 			switch(byte_size){
@@ -1355,13 +1385,15 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
 				return NULL;
 			}
-			json_object_object_add(jobj, minfo.name,
-								metac_type_and_ptr2json_object(minfo.type, buffer));
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer);
+			if (jobj2add != NULL)
+				json_object_object_add(jobj, minfo.name, jobj2add);
 
 		} else { /* case without bit fields*/
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
-			json_object_object_add(jobj, minfo.name,
-					metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location));
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location);
+			if (jobj2add != NULL)
+				json_object_object_add(jobj, minfo.name, jobj2add);
 
 		}
 	}
@@ -1377,7 +1409,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 	case DW_TAG_base_type:
 		return _metac_basic_type_s11n(type, ptr);
 	case DW_TAG_pointer_type:
-		break;
+		return _metac_pointer_type_s11n(type, ptr);
 	case DW_TAG_array_type:
 		break;
 	case DW_TAG_union_type:

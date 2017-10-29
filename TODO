@@ -53,6 +53,12 @@ modify metac.awk to add this field to the type if it was defined
 Documentation
 26. make doxygen doc generation
 
+38. In case we're serializing from pointer  - the pointer can also point to array, but we don't have this info. 
+TBD - we need to pass this info via extra-info somehow.
+
+39. we should understand the difference
+when we return NULL in s11n and it's not the error:
+e.g. _metac_pointer_type_s11n returns NULL if the pointer is it gets is NULL.
 
 
 
