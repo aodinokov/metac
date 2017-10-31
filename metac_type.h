@@ -68,7 +68,7 @@ struct metac_type_p_at {
 };
 
 /*type param*/
-struct metac_type_parameter {
+struct metac_type_specification {
 	const char *key,*value;
 };
 
@@ -80,7 +80,7 @@ struct metac_type {
 	metac_type_at_t *					at;							/* pointer to array of attributes */
 
 	struct metac_type_p_at				p_at;						/* pre-calculated attributes by name*/
-	struct metac_type_parameter	*		parameters;					/* pointer to explicit parameters array for this type*/
+	struct metac_type_specification	*	specifications;				/* pointer to explicit specifications array for this type*/
 };
 
 /* some basic functions to navigate in structure metac_type */
@@ -201,9 +201,9 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 #define METAC_TYPE_NAME(name) METAC(type, name)
 #define METAC_TYPE_GENERATE(name) extern struct metac_type METAC_TYPE_NAME(name)
 
-#define METAC_TYPE_PARAMETER_DECLARE(name) extern struct metac_type_parameter METAC(typeparameter, name)[];
-#define METAC_TYPE_PARAMETER_BEGIN(name) struct metac_type_parameter METAC(typeparameter, name)[] = {
-#define METAC_TYPE_PARAMETER_END {NULL, NULL}}
+#define METAC_TYPE_SPECIFICATION_DECLARE(name) extern struct metac_type_specification METAC(typespec, name)[];
+#define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
+#define METAC_TYPE_SPECIFICATION_END {NULL, NULL}}
 
 
 struct metac_type_sorted_array {

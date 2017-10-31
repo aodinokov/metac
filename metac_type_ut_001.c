@@ -207,9 +207,9 @@ typedef struct _struct_with_struct_with_flexible_array_and_len{
 	struct _struct_with_flexible_array_and_len str1;
 }struct_with_struct_with_flexible_array_and_len_t;
 METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
-METAC_TYPE_PARAMETER_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
+METAC_TYPE_SPECIFICATION_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
 	{.key = "discrimitator_name", .value = "arral_len"},
-METAC_TYPE_PARAMETER_END;
+METAC_TYPE_SPECIFICATION_END;
 
 /*TODO: some combinations??? */
 
@@ -252,8 +252,8 @@ do{ \
 	fail_unless(type_from_array == type, "metac_type_by_name returned incorrect value %p", type_from_array);\
 	mark_point(); \
 	\
-	fail_unless(type->parameters == NULL || \
-			(strcmp(type->parameters[0].key, "discrimitator_name")==0 && strcmp(type->parameters[0].value, "arral_len")==0), \
+	fail_unless(type->specifications == NULL || \
+			(strcmp(type->specifications[0].key, "discrimitator_name")==0 && strcmp(type->specifications[0].value, "arral_len")==0), \
 			"check for type parameters didn't pass for %s", metac_type_name(type));\
 	mark_point(); \
 } while(0)

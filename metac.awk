@@ -99,8 +99,8 @@ BEGIN {
     # init empty arrays
     task4types[0] = "";
     delete task4types[0];
-    task4parameters[0] = "";
-    delete task4parameters[0];
+    task4specs[0] = "";
+    delete task4specs[0];
     task4objects[0] = "";
     delete task4objects[0];
     types_array[0] = "";
@@ -115,8 +115,8 @@ BEGIN {
             case "type":
                 task4types[x[2]] = x[1];
                 break;
-            case "typeparameter":
-                task4parameters[x[2]] = x[1];
+            case "typespec":
+                task4specs[x[2]] = x[1];
                 break;
             case "object":
                 task4objects[x[2]] = x[1];
@@ -155,8 +155,8 @@ END {
     print "#include <stdio.h>  /* NULL */"
     print "\n/* explicit type parameters declarations */"
     
-    for (i in task4parameters) {
-        print "METAC_TYPE_PARAMETER_DECLARE(" i "); /**/";
+    for (i in task4specs) {
+        print "METAC_TYPE_SPECIFICATION_DECLARE(" i ");";
     }
     
     print "\n\n/* early declaration */"
@@ -209,8 +209,8 @@ END {
             print "\t.at = data_" i "_at,";
             print "\t.p_at = {\n" p_at "\t},";
         }
-        if ( type_name(data[i]["DW_AT_name"]) in task4parameters) {
-            print "\t.parameters = METAC(typeparameter," type_name(data[i]["DW_AT_name"]) "),"
+        if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
+            print "\t.specifications = METAC(typespec," type_name(data[i]["DW_AT_name"]) "),"
         }
         print "};"
         
