@@ -76,6 +76,18 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_a
 	return NULL;
 }
 
+const char*	metac_type_specification(struct metac_type *type, const char *key) {
+	int i = 0;
+	if (type == NULL)
+		return NULL;
+	while (type->specifications[i].key) {
+		if (strcmp(type->specifications[i].key, key) == 0)
+			return type->specifications[i].value;
+		++i;
+	}
+	return NULL;
+}
+
 struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
 	if (type == NULL)
 		return NULL;

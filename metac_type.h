@@ -91,6 +91,7 @@ metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
 struct metac_type_p_at*	metac_type_p_at(struct metac_type *type);
 struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);	/* find id for the first child with the given name */
+const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 
 /* basic example that use metac_type_at_by_key */
