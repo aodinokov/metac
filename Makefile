@@ -1,6 +1,6 @@
 CFLAGS+=-g3 -o0 -D_GNU_SOURCE
 
-all: metac_type_ut_001.run metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c #metac_type_ut_001.metac.c
+all: metac_type_ut_001.run metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c metac_type_ut_001.metac.c
 #all: metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c #metac_type_ut_001.metac.c
 
 _always_:

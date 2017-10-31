@@ -67,6 +67,10 @@ struct metac_type_p_at {
 	struct metac_type_at *				p_at_const_value;			/* for enums*/
 };
 
+/*type param*/
+struct metac_type_parameter {
+	const char *key,*value;
+};
 
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
@@ -76,6 +80,7 @@ struct metac_type {
 	metac_type_at_t *					at;							/* pointer to array of attributes */
 
 	struct metac_type_p_at				p_at;						/* pre-calculated attributes by name*/
+	struct metac_type_parameter	*		parameters;					/* pointer to explicit parameters array for this type*/
 };
 
 /* some basic functions to navigate in structure metac_type */
@@ -192,9 +197,14 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
-/* macroses to export C type definitions in code*/
+/* macroses to export C type definitions and their params in code*/
 #define METAC_TYPE_NAME(name) METAC(type, name)
 #define METAC_TYPE_GENERATE(name) extern struct metac_type METAC_TYPE_NAME(name)
+
+#define METAC_TYPE_PARAMETER_DECLARE(name) extern struct metac_type_parameter METAC(typeparameter, name)[];
+#define METAC_TYPE_PARAMETER_BEGIN(name) struct metac_type_parameter METAC(typeparameter, name)[] = {
+#define METAC_TYPE_PARAMETER_END {NULL, NULL}}
+
 
 struct metac_type_sorted_array {
 	metac_num_t number;
@@ -212,13 +222,20 @@ struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, m
 struct metac_object {
 	struct metac_type *		type;
 	void *					ptr;
+	int 					fixed_part_byte_size;
+	int 					flexible_part_byte_size;
 	/*todo: reference count (0 for objects that were initialized by METAC_OBJECT/METAC_FUNCTION)*/
 	int						ref_count;
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
 	METAC_TYPE_GENERATE(_type_); \
-	struct metac_object METAC_OBJECT_NAME(_name_) = {.type = &METAC_TYPE_NAME(_type_), .ptr = &_name_}
+	struct metac_object METAC_OBJECT_NAME(_name_) = {\
+			.type = &METAC_TYPE_NAME(_type_),\
+			.ptr = &_name_,\
+			.fixed_part_byte_size = sizeof(_type_), \
+			.flexible_part_byte_size = sizeof(_name_) - sizeof(_type_),\
+	}
 #define METAC_FUNCTION(_name_) METAC_OBJECT(_name_, _name_)
 
 struct metac_object_sorted_array {
