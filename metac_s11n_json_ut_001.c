@@ -473,6 +473,14 @@ typedef struct struct4 {
 	char flex_arr4[];
 }struct4_t;
 METAC_TYPE_GENERATE(struct4_t);
+METAC_TYPE_SPECIFICATION_BEGIN(struct4_t)
+_METAC_TYPE_SPECIFICATION("flexible_array_len", "flex_arr4_len")
+/*or*/
+_METAC_TYPE_SPECIFICATION("flexible_array_len_fieldname_pattern", "%s_len")
+/*or*/
+_METAC_TYPE_SPECIFICATION("flexible_array_last_0", NULL)
+METAC_TYPE_SPECIFICATION_END;
+
 
 #define ARRAY_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE
 #define ARRAY_TYPE_JSON_DES11N_NEGATIVE STRUCT_TYPE_JSON_DES11N_NEGATIVE
@@ -550,6 +558,9 @@ typedef struct struct5 {
 	}u;
 }struct5_t;
 METAC_TYPE_GENERATE(struct5_t);
+METAC_TYPE_SPECIFICATION_BEGIN(struct5_t)
+_METAC_TYPE_SPECIFICATION("union_discrimitator(u)", "u_descriminator")
+METAC_TYPE_SPECIFICATION_END;
 
 typedef struct struct6 {
 	int _descriminator;
@@ -588,6 +599,10 @@ typedef struct struct6 {
 	};
 }struct6_t;
 METAC_TYPE_GENERATE(struct6_t);
+METAC_TYPE_SPECIFICATION_BEGIN(struct6_t)
+_METAC_TYPE_SPECIFICATION("union_discrimitator(*)", "_descriminator")
+METAC_TYPE_SPECIFICATION_END;
+
 
 
 #define UNION_TYPE_JSON_DES11N_POSITIVE STRUCT_TYPE_JSON_DES11N_POSITIVE

@@ -208,8 +208,8 @@ typedef struct _struct_with_struct_with_flexible_array_and_len{
 }struct_with_struct_with_flexible_array_and_len_t;
 METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
 METAC_TYPE_SPECIFICATION_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
-	{.key = "discrimitator_name", .value = "array_len"},
-METAC_TYPE_SPECIFICATION_END;
+_METAC_TYPE_SPECIFICATION("discrimitator_name", "array_len")
+METAC_TYPE_SPECIFICATION_END
 
 /*TODO: some combinations??? */
 

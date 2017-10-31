@@ -204,7 +204,8 @@ int metac_type_array_element_info(struct metac_type *type, unsigned int i,
 
 #define METAC_TYPE_SPECIFICATION_DECLARE(name) extern struct metac_type_specification METAC(typespec, name)[];
 #define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
-#define METAC_TYPE_SPECIFICATION_END {NULL, NULL}}
+#define _METAC_TYPE_SPECIFICATION(_key_, _value_) {.key = _key_, .value = _value_},
+#define METAC_TYPE_SPECIFICATION_END {NULL, NULL}};
 
 
 struct metac_type_sorted_array {
