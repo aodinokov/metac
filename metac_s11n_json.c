@@ -42,7 +42,7 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt);
 
-static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr);
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr, metac_byte_size_t byte_size);
 
 static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int64_t val;
@@ -1206,7 +1206,7 @@ struct metac_object * metac_json2object(struct metac_type * mtype, char *string)
 }
 
 /*Serialization*/
-static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size) {
 	char buf[32] = {0,};
 
 	if (type->p_at.p_at_name == NULL ||
@@ -1297,7 +1297,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr/
 	return json_object_new_string(buf);
 }
 
-static json_object * _metac_enumeration_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+static json_object * _metac_enumeration_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size) {
 	metac_num_t i;
 	metac_const_value_t const_value;
 	enum json_type jtype;
@@ -1306,6 +1306,11 @@ static json_object * _metac_enumeration_type_s11n(struct metac_type * type, void
 
 	if (metac_type_enumeration_type_info(type, &info) != 0) {
 		msg_stderr("metac_type_enumeration_type_info returned error\n");
+		return NULL;
+	}
+
+	if (byte_size < info.byte_size) {
+		msg_stderr("expected byte_size %d instead of %d to read enum\n", (int)info.byte_size, (int)byte_size);
 		return NULL;
 	}
 
@@ -1339,7 +1344,7 @@ static json_object * _metac_enumeration_type_s11n(struct metac_type * type, void
 	return NULL;
 }
 
-static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size) {
 	struct metac_type * mtype;
 	void *data;
 
@@ -1365,10 +1370,10 @@ static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *pt
 	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
 	/*TBD: if we want to limit the recursion - instead of calling this - put here adding to queue*/
 
-	return metac_type_and_ptr2json_object(mtype, data);
+	return metac_type_and_ptr2json_object(mtype, data, metac_type_byte_size(mtype));
 }
 
-static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size,
+static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size/*,
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt*/) {
 	json_object *jobj;
@@ -1407,7 +1412,7 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr/
 			return NULL;
 		}
 
-		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location);
+		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location, ebyte_size);
 		msg_stderr("jobj_element %p\n", jobj_element);
 		if (jobj_element ==  NULL) {
 			break;	/*if we got NULL - this will be the last element of array - we'll support flex array this way for now*/
@@ -1428,7 +1433,7 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr/
 	_i = (_i >> shift) & mask;\
 	*(_type_*)buffer = _i; \
 }while(0)
-static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr/*, metac_byte_size_t byte_size*/) {
+static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size) {
 	json_object * jobj = json_object_new_object();
 	json_object * jobj2add = NULL;
 	metac_num_t i;
@@ -1479,13 +1484,14 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
 				return NULL;
 			}
-			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer);
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer, byte_size);
 			if (jobj2add != NULL)
 				json_object_object_add(jobj, minfo.name, jobj2add);
 
 		} else { /* case without bit fields*/
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
-			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location);
+			metac_byte_size_t byte_size = metac_type_byte_size(minfo.type);
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, byte_size);
 			if (jobj2add != NULL)
 				json_object_object_add(jobj, minfo.name, jobj2add);
 
@@ -1495,31 +1501,30 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 	return jobj;
 }
 
-static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr) {
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr, metac_byte_size_t byte_size) {
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
 	switch (type->id){
 	case DW_TAG_base_type:
-		return _metac_basic_type_s11n(type, ptr);
+		return _metac_basic_type_s11n(type, ptr, byte_size);
 	case DW_TAG_pointer_type:
-		return _metac_pointer_type_s11n(type, ptr);
+		return _metac_pointer_type_s11n(type, ptr, byte_size);
 	case DW_TAG_array_type:
-		return _metac_array_type_s11n(type, ptr);
+		return _metac_array_type_s11n(type, ptr, byte_size);
 	case DW_TAG_union_type:
 		break;
 	case DW_TAG_structure_type:
-		return _metac_structure_type_s11n(type, ptr);
+		return _metac_structure_type_s11n(type, ptr, byte_size);
 	case DW_TAG_enumeration_type:
-		return _metac_enumeration_type_s11n(type, ptr);
+		return _metac_enumeration_type_s11n(type, ptr, byte_size);
 	}
 	return NULL;
-
 }
 
-char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr) {
+char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr, metac_byte_size_t byte_size) {
 	char * res = NULL;
-	json_object * jobj = metac_type_and_ptr2json_object(type, ptr);
+	json_object * jobj = metac_type_and_ptr2json_object(type, ptr, byte_size);
 
 	if (jobj == NULL) {
 		msg_stderr("metac_type_and_ptr2json_object has failed\n");
@@ -1542,7 +1547,7 @@ static json_object * metac_object2json_object(struct metac_object * mobj) {
 		return NULL;
 	}
 
-	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr);
+	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr, mobj->fixed_part_byte_size+mobj->flexible_part_byte_size);
 }
 
 
