@@ -726,12 +726,12 @@ START_TEST(structure_type_json_s11n) {
 START_TEST(array_type_json_s11n) {
 	ARRAY_TYPE_JSON_S11N_POSITIVE(char_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {'a', 'b', 'c', 'd', 'e'});
 	ARRAY_TYPE_JSON_S11N_POSITIVE(pchar_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {"a", "b", "c", "d", "e"});
-//	/*struct3_t - flexible array doesn't work*/
-//	{
-//		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
-//		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &expected_struct3){
-//		}JSON_S11N_POSITIVE_END();
-//	}
+	/*struct3_t - flexible array doesn't work*/
+	{
+		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
+		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &expected_struct3){
+		}JSON_S11N_POSITIVE_END();
+	}
 
 }END_TEST
 

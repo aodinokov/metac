@@ -1383,6 +1383,7 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr,
 	struct metac_type_element_info einfo;
 	json_object * ejobj;
 	metac_byte_size_t ebyte_size;
+	int flexible_array;
 
 	if (metac_type_array_info(type, &info) != 0) {
 		msg_stderr("metac_type_array_info returned error\n");
@@ -1402,23 +1403,43 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr,
 		return NULL;
 	}
 
-	/*TODO: to check if it's flexible array and what is stop criteria */
+	/*check if it's flexible array and what is stop criteria */
+	flexible_array = (info.elements_count == 0);
 
 	jobj = json_object_new_array();
-	for (i = 0; /*info.elements_count == 0 && i < 5 || *//*flexible array*/ i < info.elements_count; i++) {
+	for (i = 0;  flexible_array || i < info.elements_count; i++) {
 		if (metac_type_array_element_info(type, i, &einfo) != 0) {
 			msg_stderr("metac_type_array_element_info returned error\n");
 			json_object_put(jobj);
 			return NULL;
 		}
 
+		if (flexible_array) {
+			metac_byte_size_t j = 0;
+			unsigned char * arr = ptr + einfo.data_location;
+			int arr_zero = 1;
+
+			/*check if we are out of array range*/
+			if (einfo.data_location + ebyte_size > byte_size)
+				break;
+
+			/*TODO: to check specification*/
+			/*default: last element must be all zeroes*/
+			for (j = 0; j < ebyte_size; j++) {
+				if (arr[j]!=0) {
+					arr_zero = 0;
+					break;
+				}
+			}
+			if (arr_zero != 0) break;
+		}
+
 		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location, ebyte_size);
 		msg_stderr("jobj_element %p\n", jobj_element);
 		if (jobj_element ==  NULL) {
-			break;	/*if we got NULL - this will be the last element of array - we'll support flex array this way for now*/
-//			msg_stderr("metac_type_and_ptr2json_object returned error for array element %d\n", (int)i);
-//			json_object_put(jobj);
-//			return NULL;
+			msg_stderr("metac_type_and_ptr2json_object returned error for array element %d\n", (int)i);
+			json_object_put(jobj);
+			return NULL;
 		}
 		json_object_array_add(jobj, jobj_element);
 	}
@@ -1490,8 +1511,12 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 
 		} else { /* case without bit fields*/
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
-			metac_byte_size_t byte_size = metac_type_byte_size(minfo.type);
-			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, byte_size);
+			metac_byte_size_t ebyte_size = metac_type_byte_size(minfo.type);
+
+			if (ebyte_size == 0)	/*typically if it's flexible array as a member*/
+				ebyte_size = byte_size - data_member_location;
+
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, ebyte_size);
 			if (jobj2add != NULL)
 				json_object_object_add(jobj, minfo.name, jobj2add);
 
@@ -1547,7 +1572,7 @@ static json_object * metac_object2json_object(struct metac_object * mobj) {
 		return NULL;
 	}
 
-	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr, mobj->fixed_part_byte_size+mobj->flexible_part_byte_size);
+	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr, mobj->fixed_part_byte_size + mobj->flexible_part_byte_size);
 }
 
 
