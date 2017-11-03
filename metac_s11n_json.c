@@ -13,6 +13,7 @@
 #include <assert.h>	/*assert*/
 #include <errno.h>	/*EINVAL &etc*/
 #include <inttypes.h>	/* sscanf support for int8_t - int64_t*/
+#include <ctype.h>	/*isprint*/
 
 #include "metac_type.h"
 #include "metac_debug.h"
@@ -42,7 +43,9 @@ static int _metac_fill_recursevly(struct metac_type * type, json_object * jobj, 
 		parent_struct_context_t *parentstr_cnxt,
 		flex_array_context_t *flexarr_cnxt);
 
-static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr, metac_byte_size_t byte_size);
+struct _metac_s11n_parent_struct_context;
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr, metac_byte_size_t byte_size,
+		struct _metac_s11n_parent_struct_context * p_context);
 
 static int _metac_fill_basic_type_from_int(struct metac_type * type, json_object * jobj, void *ptr, metac_byte_size_t byte_size) {
 	int64_t val;
@@ -1232,7 +1235,9 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
 			return NULL;
 		}
-		break;
+		if (isprint(buf[0]))
+			break;
+		/*else - fallback to std approach*/
 	case DW_ATE_signed:
 		/*store all in text format to keep unsigned long long case. TBD: be smarter - use different format for smaller types*/
 		switch(type->p_at.p_at_byte_size->byte_size) {
@@ -1370,7 +1375,7 @@ static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *pt
 	/*use jobj without changes, but allocate memory for new object and store pointer by ptr address*/
 	/*TBD: if we want to limit the recursion - instead of calling this - put here adding to queue*/
 
-	return metac_type_and_ptr2json_object(mtype, data, metac_type_byte_size(mtype));
+	return metac_type_and_ptr2json_object(mtype, data, metac_type_byte_size(mtype), NULL);
 }
 
 static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size/*,
@@ -1434,7 +1439,7 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr,
 			if (arr_zero != 0) break;
 		}
 
-		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location, ebyte_size);
+		jobj_element = metac_type_and_ptr2json_object(info.type, ptr + einfo.data_location, ebyte_size, NULL);
 		msg_stderr("jobj_element %p\n", jobj_element);
 		if (jobj_element ==  NULL) {
 			msg_stderr("metac_type_and_ptr2json_object returned error for array element %d\n", (int)i);
@@ -1445,6 +1450,16 @@ static json_object * _metac_array_type_s11n(struct metac_type * type, void *ptr,
 	}
 	return jobj;
 }
+
+struct _metac_s11n_parent_struct_context {
+	/*struct s11n arguments*/
+	struct metac_type * 			struct_type;
+	void *							struct_ptr;
+	metac_byte_size_t 				struct_byte_size;
+	/**/
+	metac_num_t 					current_member_id;
+	struct metac_type_member_info *	p_current_member_info;
+};
 
 #define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_) do{ \
 	metac_bit_offset_t shift = (byte_size << 3) - \
@@ -1469,13 +1484,26 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 		return NULL;
 	}
 
+	struct _metac_s11n_parent_struct_context context = {
+			.struct_type = type,
+			.struct_ptr = ptr,
+			.struct_byte_size = byte_size,1
+	};
+
 	for (i = 0; i < info.members_count; i++) {
+		if (metac_type_id(metac_type_typedef_skip(metac_type_child(type, i))) != DW_TAG_member)
+			continue;
+
 		r = metac_type_structure_member_info(type, i, &minfo);
 		if (r!=0) {
-			msg_stderr("metac_type_structure_member_info returned error");
+			msg_stderr("metac_type_structure_member_info returned error\n");
 			json_object_put(jobj);
 			return NULL;
 		}
+
+		context.current_member_id = i;
+		context.p_current_member_info = &minfo;
+
 		if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL) {
 			/* bit-fields only possible for integral types (that means that minfo type will be base_type of its typedef)
 			 * long long heightValidated2 : 64 will not have bit offset and size, but
@@ -1505,7 +1533,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
 				return NULL;
 			}
-			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer, byte_size);
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer, byte_size, NULL);
 			if (jobj2add != NULL)
 				json_object_object_add(jobj, minfo.name, jobj2add);
 
@@ -1516,7 +1544,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 			if (ebyte_size == 0)	/*typically if it's flexible array as a member*/
 				ebyte_size = byte_size - data_member_location;
 
-			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, ebyte_size);
+			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, ebyte_size, &context);
 			if (jobj2add != NULL)
 				json_object_object_add(jobj, minfo.name, jobj2add);
 
@@ -1526,7 +1554,98 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 	return jobj;
 }
 
-static json_object * metac_type_and_ptr2json_object(struct metac_type * type, void * ptr, metac_byte_size_t byte_size) {
+static json_object * _metac_union_type_s11n(struct metac_type * type,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct _metac_s11n_parent_struct_context * p_context) {
+	char * discriminator_postfix = "_descriminator";	/*TBD: to fix this*/
+	struct metac_type_member_info minfo;
+	int discriminator_child_id;
+	int discriminator_val = 0;
+	int child_id = 0;
+
+	assert(metac_type_id(type) == DW_TAG_union_type);
+
+	if (p_context == NULL && metac_type_child_num(type) > 1){
+		msg_stderr("Error: Got union with several elements, but don't have upper structure\n");
+		return NULL;
+	}
+
+	if (metac_type_child_num(type) > 1) { /*get value of discriminator*/
+		/*TBD: very similar to _handle_union_type_descriminator_sibling */
+		metac_byte_size_t discriminator_byte_size;
+		struct metac_type_member_info discriminator_info;
+		int discriminator_len = strlen(p_context->p_current_member_info->name) + strlen(discriminator_postfix) + 1;
+		char * discriminator_name = alloca(discriminator_len);
+		sprintf(discriminator_name, "%s%s", p_context->p_current_member_info->name, discriminator_postfix);
+
+		/* try to find field _descriminator in the upper structure */
+		discriminator_child_id = metac_type_child_id_by_name(p_context->struct_type, discriminator_name);
+		if (discriminator_child_id < 0) {
+			msg_stderr("Can't find member %s in structure\n", discriminator_name);
+			return NULL;
+		}
+		/*found field - need to read it*/
+		if (metac_type_structure_member_info(p_context->struct_type, discriminator_child_id, &discriminator_info) != 0) {
+			msg_stderr("metac_type_structure_member_info returned error\n");
+			return NULL;
+		}
+		discriminator_byte_size = metac_type_byte_size(discriminator_info.type);
+
+		assert(byte_size <= sizeof(long));
+		assert(metac_type_id(metac_type_typedef_skip(discriminator_info.type)) == DW_TAG_base_type);
+
+		{
+			void *ptr = p_context->struct_ptr + (discriminator_info.p_data_member_location?(*discriminator_info.p_data_member_location):0);
+			assert(discriminator_info.type->p_at.p_at_encoding->encoding == DW_ATE_unsigned ||
+					discriminator_info.type->p_at.p_at_encoding->encoding ==DW_ATE_signed);
+			/*this should be put into macro of function*/
+			switch(discriminator_byte_size){
+			case sizeof(int8_t):
+				discriminator_val = *((int8_t*)ptr);
+				break;
+			case sizeof(int16_t):
+				discriminator_val = *((int16_t*)ptr);
+				break;
+			case sizeof(int32_t):
+				discriminator_val = *((int32_t*)ptr);
+				break;
+			case sizeof(int64_t):
+				discriminator_val = *((int64_t*)ptr);
+				break;
+			default:
+				msg_stderr("byte_size %d isn't supported\n", (int)discriminator_byte_size);
+				return NULL;
+			}
+		}
+	}
+
+	/*convert discriminator_val to child_num (we need id of discriminator_val with type DW_TAG_member)*/
+	for (child_id = 0; child_id < metac_type_child_num(type); child_id++) {
+		if (metac_type_id(metac_type_child(type, child_id)) == DW_TAG_member) {
+			if (discriminator_val == 0) break;
+			--discriminator_val;
+		}
+	}
+
+	/*take member with number discriminator_val*/
+	if (metac_type_union_member_info(type, child_id, &minfo) != 0) {
+		msg_stderr("metac_type_union_member_info returned error for child_id %d\n", child_id);
+		return NULL;
+	}
+
+	{
+		json_object * jobj = json_object_new_object();
+		json_object * jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr, byte_size, NULL);
+		if (jobj2add != NULL)
+			json_object_object_add(jobj, minfo.name, jobj2add);
+		return jobj;
+	}
+}
+
+static json_object * metac_type_and_ptr2json_object(struct metac_type * type,
+		void * ptr, metac_byte_size_t byte_size,
+		struct _metac_s11n_parent_struct_context * p_context) {
 	type = metac_type_typedef_skip(type);
 	assert(type);
 
@@ -1538,7 +1657,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 	case DW_TAG_array_type:
 		return _metac_array_type_s11n(type, ptr, byte_size);
 	case DW_TAG_union_type:
-		break;
+		return _metac_union_type_s11n(type, ptr, byte_size, p_context);
 	case DW_TAG_structure_type:
 		return _metac_structure_type_s11n(type, ptr, byte_size);
 	case DW_TAG_enumeration_type:
@@ -1549,7 +1668,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type, vo
 
 char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr, metac_byte_size_t byte_size) {
 	char * res = NULL;
-	json_object * jobj = metac_type_and_ptr2json_object(type, ptr, byte_size);
+	json_object * jobj = metac_type_and_ptr2json_object(type, ptr, byte_size, NULL);
 
 	if (jobj == NULL) {
 		msg_stderr("metac_type_and_ptr2json_object has failed\n");
@@ -1572,7 +1691,7 @@ static json_object * metac_object2json_object(struct metac_object * mobj) {
 		return NULL;
 	}
 
-	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr, mobj->fixed_part_byte_size + mobj->flexible_part_byte_size);
+	return metac_type_and_ptr2json_object(mobj->type, mobj->ptr, mobj->fixed_part_byte_size + mobj->flexible_part_byte_size, NULL);
 }
 
 

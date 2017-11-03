@@ -60,18 +60,18 @@ TBD - we need to pass this info via extra-info somehow.
 when we return NULL in s11n and it's not the error:
 e.g. _metac_pointer_type_s11n returns NULL if the pointer is it gets is NULL.
 
-40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop)
+40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop) - done
 
-41. not clear hot to be with symbols that can't be part of json string e.g. \0
+41. not clear hot to be with symbols that can't be part of json string e.g. \0 -
 currently we're tyring to put it, but it will be empty string
 e.g. if I have char c='\0' and try to serialize it - it will be serialized to ""
 if c = '\t' it will be serialized to "  " that is also not clear. probably for serializing of chars we must use normal representation for printable char and 
 \%d notattion for non-printable chars. we also need to make sure we accept this for des11n
 
-we can't support  flexible array until we didn't fix 40 and 41
+we can't support  flexible array until we didn't fix 40 and 41 - done
 serializing of char * is handled in the different place - there should be an issue with that. 
 
-42. rethink if we need metac_objects.
+42. rethink if we need metac_objects - done
 if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to unserstand the implications from des11n side.
 
 

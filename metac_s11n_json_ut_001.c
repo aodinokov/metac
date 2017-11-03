@@ -719,21 +719,46 @@ START_TEST(structure_type_json_s11n) {
 		free(json_string); json_string = NULL;\
 		fail_unless(strcmp(_json_string, _json_) == 0, "Expected %s, and got %s", _json_, _json_string); \
 
-#define JSON_S11N_POSITIVE_END() \
+#define JSON_S11N_POSITIVE_END \
 	}while(0); \
 	mark_point();
 
 START_TEST(array_type_json_s11n) {
 	ARRAY_TYPE_JSON_S11N_POSITIVE(char_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {'a', 'b', 'c', 'd', 'e'});
 	ARRAY_TYPE_JSON_S11N_POSITIVE(pchar_array5_t, "[ \"a\", \"b\", \"c\", \"d\", \"e\" ]", {"a", "b", "c", "d", "e"});
-	/*struct3_t - flexible array doesn't work*/
+	/*struct3_t - flexible array with NULL*/
 	{
-		static struct3_t expected_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
-		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &expected_struct3){
-		}JSON_S11N_POSITIVE_END();
+		static struct3_t input_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
+		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &input_struct3)
+		JSON_S11N_POSITIVE_END;
 	}
-
+	/*struct4_t - flexible array with len*/
+	{
+		static struct4_t input_struct4 = {.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}};
+		JSON_S11N_POSITIVE_START(struct4_t, "{ \"flex_arr4_len\": \"5\", \"flex_arr4\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &input_struct4)
+		JSON_S11N_POSITIVE_END;
+	}
 }END_TEST
+
+START_TEST(union_type_json_s11n) {
+	/*struct5_t*/
+	{
+		static struct5_t input_struct5 = {.u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}};
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ \"1\", \"2\", \"3\", \"4\" ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_END;
+	}
+	{
+		static struct5_t input_struct5 = { .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}};
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_END;
+	}
+	{
+		static struct5_t input_struct5 = { .u_descriminator = 2, .u = {.dw = {.dword = {1}}}};
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_END;
+	}
+}END_TEST
+
 
 int main(void){
 	return run_suite(
@@ -749,6 +774,7 @@ int main(void){
 					ADD_TEST(basic_type_json_s11n);
 					ADD_TEST(structure_type_json_s11n);
 					ADD_TEST(array_type_json_s11n);
+					ADD_TEST(union_type_json_s11n);
 			}END_CASE
 			);
 		}END_SUITE
