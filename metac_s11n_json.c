@@ -1235,7 +1235,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
 			return NULL;
 		}
-		if (isprint(buf[0]))
+		if (isalpha(buf[0]))
 			break;
 		/*else - fallback to std approach*/
 	case DW_ATE_signed:

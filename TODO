@@ -67,6 +67,8 @@ currently we're tyring to put it, but it will be empty string
 e.g. if I have char c='\0' and try to serialize it - it will be serialized to ""
 if c = '\t' it will be serialized to "  " that is also not clear. probably for serializing of chars we must use normal representation for printable char and 
 \%d notattion for non-printable chars. we also need to make sure we accept this for des11n
+UPDATE: "0" is ambiguous for char- it may be really zero, or it may be 0x30
+fixed in serialization, but still not sure if it will be correctly d11ed 
 
 we can't support  flexible array until we didn't fix 40 and 41 - done
 serializing of char * is handled in the different place - there should be an issue with that. 
