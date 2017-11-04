@@ -1456,6 +1456,7 @@ struct _metac_s11n_parent_struct_context {
 	struct metac_type * 			struct_type;
 	void *							struct_ptr;
 	metac_byte_size_t 				struct_byte_size;
+	json_object * 					struct_jobj;
 	/**/
 	metac_num_t 					current_member_id;
 	struct metac_type_member_info *	p_current_member_info;
@@ -1469,8 +1470,9 @@ struct _metac_s11n_parent_struct_context {
 	_i = (_i >> shift) & mask;\
 	*(_type_*)buffer = _i; \
 }while(0)
-static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size) {
-	json_object * jobj = json_object_new_object();
+static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size,
+		struct _metac_s11n_parent_struct_context * p_context) {
+	json_object * jobj = NULL;
 	json_object * jobj2add = NULL;
 	metac_num_t i;
 	int r;
@@ -1480,15 +1482,26 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 	r = metac_type_structure_info(type, &info);
 	if (r!=0) {
 		msg_stderr("metac_type_structure_info returned error");
-		json_object_put(jobj);
 		return NULL;
 	}
 
 	struct _metac_s11n_parent_struct_context context = {
 			.struct_type = type,
 			.struct_ptr = ptr,
-			.struct_byte_size = byte_size,1
+			.struct_byte_size = byte_size,
+			.struct_jobj = jobj,
 	};
+
+	if (p_context != NULL && p_context->p_current_member_info->name == NULL) { /*it's anonymous element*/
+		context.struct_jobj = p_context->struct_jobj;
+	}else {
+		jobj = json_object_new_object();
+		if (jobj == NULL) {
+			msg_stderr("Can't allocate new json object\n");
+			return NULL;
+		}
+		context.struct_jobj = jobj;
+	}
 
 	for (i = 0; i < info.members_count; i++) {
 		if (metac_type_id(metac_type_typedef_skip(metac_type_child(type, i))) != DW_TAG_member)
@@ -1497,7 +1510,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 		r = metac_type_structure_member_info(type, i, &minfo);
 		if (r!=0) {
 			msg_stderr("metac_type_structure_member_info returned error\n");
-			json_object_put(jobj);
+			if (jobj)json_object_put(jobj);
 			return NULL;
 		}
 
@@ -1535,7 +1548,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 			}
 			jobj2add = metac_type_and_ptr2json_object(minfo.type, buffer, byte_size, NULL);
 			if (jobj2add != NULL)
-				json_object_object_add(jobj, minfo.name, jobj2add);
+				json_object_object_add(context.struct_jobj, minfo.name, jobj2add);
 
 		} else { /* case without bit fields*/
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
@@ -1546,7 +1559,7 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 
 			jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr + data_member_location, ebyte_size, &context);
 			if (jobj2add != NULL)
-				json_object_object_add(jobj, minfo.name, jobj2add);
+				json_object_object_add(context.struct_jobj, minfo.name, jobj2add);
 
 		}
 	}
@@ -1575,9 +1588,13 @@ static json_object * _metac_union_type_s11n(struct metac_type * type,
 		/*TBD: very similar to _handle_union_type_descriminator_sibling */
 		metac_byte_size_t discriminator_byte_size;
 		struct metac_type_member_info discriminator_info;
-		int discriminator_len = strlen(p_context->p_current_member_info->name) + strlen(discriminator_postfix) + 1;
+		int discriminator_len =
+				p_context->p_current_member_info->name?strlen(p_context->p_current_member_info->name):0 +
+						strlen(discriminator_postfix) + 1;
 		char * discriminator_name = alloca(discriminator_len);
-		sprintf(discriminator_name, "%s%s", p_context->p_current_member_info->name, discriminator_postfix);
+		sprintf(discriminator_name, "%s%s",
+				p_context->p_current_member_info->name?p_context->p_current_member_info->name:"",
+						discriminator_postfix);
 
 		/* try to find field _descriminator in the upper structure */
 		discriminator_child_id = metac_type_child_id_by_name(p_context->struct_type, discriminator_name);
@@ -1634,7 +1651,12 @@ static json_object * _metac_union_type_s11n(struct metac_type * type,
 		return NULL;
 	}
 
-	{
+	if (p_context != NULL && p_context->p_current_member_info->name == NULL) { /*if it's anonymous union*/
+		json_object * jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr, byte_size, NULL);
+		if (jobj2add != NULL)
+			json_object_object_add(p_context->struct_jobj, minfo.name, jobj2add);
+		return NULL;
+	} else {
 		json_object * jobj = json_object_new_object();
 		json_object * jobj2add = metac_type_and_ptr2json_object(minfo.type, ptr, byte_size, NULL);
 		if (jobj2add != NULL)
@@ -1659,7 +1681,7 @@ static json_object * metac_type_and_ptr2json_object(struct metac_type * type,
 	case DW_TAG_union_type:
 		return _metac_union_type_s11n(type, ptr, byte_size, p_context);
 	case DW_TAG_structure_type:
-		return _metac_structure_type_s11n(type, ptr, byte_size);
+		return _metac_structure_type_s11n(type, ptr, byte_size, p_context);
 	case DW_TAG_enumeration_type:
 		return _metac_enumeration_type_s11n(type, ptr, byte_size);
 	}
