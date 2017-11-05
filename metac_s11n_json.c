@@ -1227,6 +1227,7 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 	switch(type->p_at.p_at_encoding->encoding) {
 	case DW_ATE_unsigned_char:
 	case DW_ATE_signed_char:
+		msg_stderr("DW_ATE_signed_char\n");
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(int8_t):
 			buf[0] = *((char*)ptr);	/*TODO: this is incorrect for non-printed chars, like \0*/
@@ -1235,9 +1236,11 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 			msg_stderr("Unsupported byte_size %d\n",(int)type->p_at.p_at_byte_size->byte_size);
 			return NULL;
 		}
-		if (isalpha(buf[0]))
+		if (isprint(buf[0]))
 			break;
 		/*else - fallback to std approach*/
+		msg_stderr("fallback to DW_ATE_signed\n");
+		return json_object_new_int((int)*((int8_t*)ptr));
 	case DW_ATE_signed:
 		/*store all in text format to keep unsigned long long case. TBD: be smarter - use different format for smaller types*/
 		switch(type->p_at.p_at_byte_size->byte_size) {

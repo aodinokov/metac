@@ -1,10 +1,13 @@
-clang 3.9.0 added - done
-/* Skip {.id = DW_AT_count, .count = 0x00000005}, */
-for arrays
-and priviously we had   {.id = DW_AT_upper_bound, .upper_bound = 4},
-need to support this field
 
 
+re-factoring plan:
+1. UT for json: make it abstract:
+positive test:
+c-data0 -> json -> c-data1 (c-data0 and c-data1 must be identical)
+but this will not cover everything - there are many ways to set json for the same cdata, better:
+json0->cdata0->json1->cdata1 (jsons will not be identical)
+negative test:
+s11n and des11n should have different macroses
 
 29. expand UT
     rename metac_type_ut_001.c - it's a set of smoke tests.
@@ -68,12 +71,13 @@ e.g. if I have char c='\0' and try to serialize it - it will be serialized to ""
 if c = '\t' it will be serialized to "  " that is also not clear. probably for serializing of chars we must use normal representation for printable char and 
 \%d notattion for non-printable chars. we also need to make sure we accept this for des11n
 UPDATE: "0" is ambiguous for char- it may be really zero, or it may be 0x30
-fixed in serialization, but still not sure if it will be correctly d11ed 
+fixed in serialization, but still not sure if it will be correctly d11ed
+we need a set of tests that shows that some data is correctly serialized (to some data)  and de-serialized to the previous data. 
 
 we can't support  flexible array until we didn't fix 40 and 41 - done
 serializing of char * is handled in the different place - there should be an issue with that. 
 
 42. rethink if we need metac_objects - done
-if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to unserstand the implications from des11n side.
+if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to understand the implications from des11n side.
 
 

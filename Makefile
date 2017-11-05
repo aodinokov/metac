@@ -1,7 +1,6 @@
 CFLAGS+=-g3 -o0 -D_GNU_SOURCE
 
-all: metac_type_ut_001.run metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c metac_type_ut_001.metac.c
-#all: metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c #metac_type_ut_001.metac.c
+all:
 
 _always_:
 
@@ -29,10 +28,18 @@ _always_:
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 metac_type_ut_001: metac_type.o metac_s11n_json.o metac_type_ut_001.o metac_type_ut_001.metac.o
 metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson
+all: metac_type_ut_001.run metac_type_ut_001.metac.c 
+
 
 metac_s11n_json_ut_001: LDFLAGS=-pthread
 metac_s11n_json_ut_001: metac_type.o metac_s11n_json.o metac_s11n_json_ut_001.o metac_s11n_json_ut_001.metac.o
 metac_s11n_json_ut_001: -lcheck -lm -lrt -ljson
+all: metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c
+
+metac_s11n_json_ut_002: LDFLAGS=-pthread
+metac_s11n_json_ut_002: metac_type.o metac_s11n_json.o metac_s11n_json_ut_002.o metac_s11n_json_ut_002.metac.o
+metac_s11n_json_ut_002: -lcheck -lm -lrt -ljson
+all: metac_s11n_json_ut_002.run
 
 %.run: % _always_
 	#./$<

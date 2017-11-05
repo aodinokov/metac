@@ -743,44 +743,44 @@ START_TEST(array_type_json_s11n) {
 START_TEST(union_type_json_s11n) {
 	/*struct5_t*/
 	{
-		static struct5_t input_struct5 = {.u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}};
-		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ \"1\", \"2\", \"3\", \"4\" ] } } }", &input_struct5)
+		struct5_t input_struct5 = {.u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}};
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ 1, 2, 3, 4 ] } } }", &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
-		static struct5_t input_struct5 = { .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}};
+		struct5_t input_struct5 = { .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}};
 		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }", &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
-		static struct5_t input_struct5 = { .u_descriminator = 2, .u = {.dw = {.dword = {1}}}};
+		struct5_t input_struct5 = { .u_descriminator = 2, .u = {.dw = {.dword = {1}}}};
 		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }", &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	/*struct6_t*/
 	{
-		static struct6_t input_struct6 = { ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}};
+		struct6_t input_struct6 = { ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}};
 		JSON_S11N_POSITIVE_START(struct6_t,
 				"{ \"_descriminator\": \"0\", "
-					"\"b\": { \"byte\": [ \"1\", \"2\", \"3\", \"4\" ] }, "
-					"\"b1\": { \"byte\": [ \"0\", \"0\", \"0\", \"0\" ] }, "
-					"\"b2\": { \"byte\": [ \"0\", \"0\", \"0\", \"0\" ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+					"\"b\": { \"byte\": [ 1, 2, 3, 4 ] }, "
+					"\"b1\": { \"byte\": [ 0, 0, 0, 0 ] }, "
+					"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
-		static struct6_t input_struct6 = { ._descriminator = 1, .w = {.word = {1, 2}}};
+		struct6_t input_struct6 = { ._descriminator = 1, .w = {.word = {1, 2}}};
 		JSON_S11N_POSITIVE_START(struct6_t, "{ \"_descriminator\": \"1\", "
 				"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
 				"\"w1\": { \"word\": [ \"0\", \"0\" ] }, "
-				"\"b2\": { \"byte\": [ \"0\", \"0\", \"0\", \"0\" ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
-		static struct6_t input_struct6 = { ._descriminator = 1, .w = {.word = {1, 2}}, .w1 = {.word = {3, 4}}};
+		struct6_t input_struct6 = { ._descriminator = 1, .w = {.word = {1, 2}}, .w1 = {.word = {3, 4}}};
 		JSON_S11N_POSITIVE_START(struct6_t, "{ \"_descriminator\": \"1\", "
 				"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
 				"\"w1\": { \"word\": [ \"3\", \"4\" ] }, "
-				"\"b2\": { \"byte\": [ \"0\", \"0\", \"0\", \"0\" ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 }END_TEST
