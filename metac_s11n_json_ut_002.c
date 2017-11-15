@@ -261,7 +261,6 @@ START_TEST(ut_int){
 	BASIC_TYPE_JSON_POSITIVE(int, "\"-0xa\"", "\"-10\"", -0xa);
 	BASIC_TYPE_JSON_POSITIVE(int, "\"0x7fffffff\"", "\"2147483647\"", 0x7fffffff);
 	BASIC_TYPE_JSON_POSITIVE(int, "\"-0x80000000\"", "\"-2147483648\"", -0x80000000);
-
 	JSON_DES11N_NEGATIVE(int, "\"-0a\"");
 	JSON_DES11N_NEGATIVE(int, "\"-01a\"");
 	JSON_DES11N_NEGATIVE(int, "\"-0x\"");
@@ -271,7 +270,6 @@ START_TEST(ut_int){
 	JSON_DES11N_NEGATIVE(int, "-7.9");
 	JSON_DES11N_NEGATIVE(int, "[\"xx\", \"xy\"]");
 	JSON_DES11N_NEGATIVE(int, "{\"xx\": \"xy\"}");
-
 	JSON_S11N_NEGATIVE_WITH_LEN(int, 0, 7);
 	JSON_S11N_NEGATIVE_WITH_LEN(int, 1, 7);
 	JSON_S11N_NEGATIVE_WITH_LEN(int, 2, 7);
@@ -279,6 +277,138 @@ START_TEST(ut_int){
 	JSON_S11N_NEGATIVE_WITH_LEN(int, 5, 7);
 }END_TEST
 
+/*****************************************************************************/
+typedef unsigned int uint_t;
+METAC_TYPE_GENERATE(uint_t);
+
+START_TEST(ut_uint_t){
+	char buf1[30], buf2[30];
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "-0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "1234", "\"1234\"", 1234);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "\"0\"", "\"0\"", 0);
+#if JSON_C_MAJOR_VERSION > 0 || JSON_C_MINOR_VERSION >= 10
+	snprintf(buf1, sizeof(buf1), "%u", UINT32_MAX);
+	snprintf(buf2, sizeof(buf2), "\"%u\"", UINT32_MAX);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, buf, UINT32_MAX);
+#endif
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "\"07\"", "\"7\"", 07);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "\"076234\"", "\"31900\"", 076234);
+	BASIC_TYPE_JSON_POSITIVE(uint_t, "\"0xffffffff\"", "\"4294967295\"", 0xffffffff);
+	JSON_DES11N_NEGATIVE(uint_t, "-10");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-7\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-07\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-076234\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-0xa\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-0x80000000\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-0a\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-01a\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-0x\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"-x\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"c\"");
+	JSON_DES11N_NEGATIVE(uint_t, "\"cc\"");
+	JSON_DES11N_NEGATIVE(uint_t, "-7.9");
+	JSON_DES11N_NEGATIVE(uint_t, "[\"xx\", \"xy\"]");
+	JSON_DES11N_NEGATIVE(uint_t, "{\"xx\": \"xy\"}");
+	JSON_S11N_NEGATIVE_WITH_LEN(uint_t, 0, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(uint_t, 1, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(uint_t, 2, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(uint_t, 3, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(uint_t, 5, 7);
+}END_TEST
+
+/*****************************************************************************/
+METAC_TYPE_GENERATE(long);
+
+START_TEST(ut_long){
+	char buf1[30], buf2[30];
+	BASIC_TYPE_JSON_POSITIVE(long, "0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(long, "-0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(long, "1234", "\"1234\"", 1234);
+	BASIC_TYPE_JSON_POSITIVE(long, "-10", "\"-10\"", -10);
+
+#if JSON_C_MAJOR_VERSION > 0 || JSON_C_MINOR_VERSION >= 10
+	snprintf(buf1, sizeof(buf1), "%ld", INT64_MIN);
+	snprintf(buf2, sizeof(buf2), "%ld", INT64_MIN);
+	BASIC_TYPE_JSON_POSITIVE(long, buf, INT64_MIN);
+	snprintf(buf1, sizeof(buf1), "%ld", (long)INT64_MAX);
+	snprintf(buf2, sizeof(buf2), "\"%ld\"", (long)INT64_MAX);
+	BASIC_TYPE_JSON_POSITIVE(long, buf, INT64_MAX);
+#endif
+
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-7\"", "\"-7\"", -7);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-0\"", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-07\"", "\"-7\"", -07);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"07\"", "\"7\"", 07);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"076234\"", "\"31900\"", 076234);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-076234\"", "\"-31900\"", -076234);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-0xa\"", "\"-10\"", -0xa);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"0x7fffffff\"", "\"2147483647\"", 0x7fffffff);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-0x80000000\"", "\"-2147483648\"", -0x80000000L);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"0x7fffffffffffffff\"", "\"9223372036854775807\"", 0x7fffffffffffffffL);
+	BASIC_TYPE_JSON_POSITIVE(long, "\"-0x8000000000000000\"", "\"-9223372036854775808\"", -0x8000000000000000L);
+	JSON_DES11N_NEGATIVE(long, "\"-0a\"");
+	JSON_DES11N_NEGATIVE(long, "\"-01a\"");
+	JSON_DES11N_NEGATIVE(long, "\"-0x\"");
+	JSON_DES11N_NEGATIVE(long, "\"-x\"");
+	JSON_DES11N_NEGATIVE(long, "\"c\"");
+	JSON_DES11N_NEGATIVE(long, "\"cc\"");
+	JSON_DES11N_NEGATIVE(long, "-7.9");
+	JSON_DES11N_NEGATIVE(long, "[\"xx\", \"xy\"]");
+	JSON_DES11N_NEGATIVE(long, "{\"xx\": \"xy\"}");
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 0, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 1, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 2, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 3, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 4, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 5, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 6, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 7, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 9, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(long, 10, 7);
+}END_TEST
+
+
+/*****************************************************************************/
+typedef unsigned long ulong_t;
+METAC_TYPE_GENERATE(ulong_t);
+
+START_TEST(ut_ulong_t){
+	char buf1[30], buf2[30];
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "-0", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "1234", "\"1234\"", 1234);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "\"0\"", "\"0\"", 0);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "\"07\"", "\"7\"", 07);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "\"076234\"", "\"31900\"", 076234);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "\"0xffffffff\"", "\"4294967295\"", 0xffffffff);
+	BASIC_TYPE_JSON_POSITIVE(ulong_t, "\"0xffffffffffffffff\"", "\"18446744073709551615\"", 0xffffffffffffffffL);
+	JSON_DES11N_NEGATIVE(ulong_t, "-10");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-7\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-07\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-076234\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-0xa\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-0x80000000\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-0a\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-01a\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-0x\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"-x\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"c\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "\"cc\"");
+	JSON_DES11N_NEGATIVE(ulong_t, "-7.9");
+	JSON_DES11N_NEGATIVE(ulong_t, "[\"xx\", \"xy\"]");
+	JSON_DES11N_NEGATIVE(ulong_t, "{\"xx\": \"xy\"}");
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 0, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 1, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 2, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 3, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 4, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 5, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 6, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 7, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 9, 7);
+	JSON_S11N_NEGATIVE_WITH_LEN(ulong_t, 10, 7);
+}END_TEST
 
 /*****************************************************************************/
 
@@ -292,6 +422,9 @@ int main(void){
 					ADD_TEST(ut_short);
 					ADD_TEST(ut_ushort_t);
 					ADD_TEST(ut_int);
+					ADD_TEST(ut_uint_t);
+					ADD_TEST(ut_long);
+					ADD_TEST(ut_ulong_t);
 //					ADD_TEST(structure_type_json);
 //					ADD_TEST(array_type_json);
 //					ADD_TEST(union_type_json);
