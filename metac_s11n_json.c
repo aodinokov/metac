@@ -1217,12 +1217,11 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 		type->p_at.p_at_byte_size == NULL)
 		return NULL;
 
-/*hasn't decided if I need byte_size. probably I should do it.. but later :)*/
-//	if ((metac_byte_size_t)type->p_at.p_at_byte_size->byte_size != byte_size) {
-//		msg_stderr("expected byte_size %d instead of %d to store %s\n",
-//				(int)type->p_at.p_at_byte_size->byte_size, (int)byte_size, type->p_at.p_at_name->name);
-//		return -EFAULT;
-//	}
+	if ((metac_byte_size_t)type->p_at.p_at_byte_size->byte_size != byte_size) {
+		msg_stderr("expected byte_size %d instead of %d to store %s\n",
+				(int)type->p_at.p_at_byte_size->byte_size, (int)byte_size, type->p_at.p_at_name->name);
+		return NULL;
+	}
 
 	switch(type->p_at.p_at_encoding->encoding) {
 	case DW_ATE_unsigned_char:
@@ -1239,8 +1238,13 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 		if (isprint(buf[0]))
 			break;
 		/*else - fallback to std approach*/
-		msg_stderr("fallback to DW_ATE_signed\n");
-		return json_object_new_int((int)*((int8_t*)ptr));
+		if (type->p_at.p_at_encoding->encoding == DW_ATE_signed_char) {
+			msg_stderr("fallback to DW_ATE_signed\n");
+			return json_object_new_int((int)*((int8_t*)ptr));
+		}else {
+			msg_stderr("fallback to DW_ATE_unsigned\n");
+			return json_object_new_int((int)*((uint8_t*)ptr));
+		}
 	case DW_ATE_signed:
 		/*store all in text format to keep unsigned long long case. TBD: be smarter - use different format for smaller types*/
 		switch(type->p_at.p_at_byte_size->byte_size) {

@@ -17,7 +17,7 @@
 
 /*serialization - move to another file*/
 struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
-char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr);
+char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr, metac_byte_size_t byte_size);
 
 /*
  * UT helper macros
@@ -663,7 +663,7 @@ START_TEST(union_type_json_des11n) {
 #define BASIC_TYPE_JSON_S11N_POSITIVE(_type_, _val_, _json_) do { \
 		char * _json_string; \
 		_type_ data = _val_; \
-		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &data); \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &data, sizeof(data)); \
 		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
 		_json_string = strdupa(json_string); \
 		free(json_string); json_string = NULL;\
@@ -703,7 +703,7 @@ START_TEST(structure_type_json_s11n) {
 #define ARRAY_TYPE_JSON_S11N_POSITIVE(_type_, _json_, _val_...) do { \
 		char * _json_string; \
 		_type_ data = _val_; \
-		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), data); \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), data, sizeof(data)); \
 		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
 		_json_string = strdupa(json_string); \
 		free(json_string); json_string = NULL;\
@@ -711,9 +711,9 @@ START_TEST(structure_type_json_s11n) {
 	}while(0); \
 	mark_point();
 
-#define JSON_S11N_POSITIVE_START(_type_, _json_, _data_) do { \
+#define JSON_S11N_POSITIVE_START(_type_, _json_, _data_size_, _data_) do { \
 		char * _json_string; \
-		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), _data_); \
+		char * json_string =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), _data_, _data_size_); \
 		fail_unless(json_string != NULL, "Got Null instead of json_string"); \
 		_json_string = strdupa(json_string); \
 		free(json_string); json_string = NULL;\
@@ -729,13 +729,13 @@ START_TEST(array_type_json_s11n) {
 	/*struct3_t - flexible array with NULL*/
 	{
 		static struct3_t input_struct3 = {.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}};
-		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &input_struct3)
+		JSON_S11N_POSITIVE_START(struct3_t, "{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", sizeof(input_struct3) + 6, &input_struct3)
 		JSON_S11N_POSITIVE_END;
 	}
 	/*struct4_t - flexible array with len*/
 	{
 		static struct4_t input_struct4 = {.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}};
-		JSON_S11N_POSITIVE_START(struct4_t, "{ \"flex_arr4_len\": \"5\", \"flex_arr4\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", &input_struct4)
+		JSON_S11N_POSITIVE_START(struct4_t, "{ \"flex_arr4_len\": \"5\", \"flex_arr4\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }", sizeof(input_struct4) + 5, &input_struct4)
 		JSON_S11N_POSITIVE_END;
 	}
 }END_TEST
@@ -744,17 +744,17 @@ START_TEST(union_type_json_s11n) {
 	/*struct5_t*/
 	{
 		struct5_t input_struct5 = {.u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}};
-		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ 1, 2, 3, 4 ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ 1, 2, 3, 4 ] } } }", sizeof(input_struct5), &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
 		struct5_t input_struct5 = { .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}};
-		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }", sizeof(input_struct5), &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
 		struct5_t input_struct5 = { .u_descriminator = 2, .u = {.dw = {.dword = {1}}}};
-		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }", &input_struct5)
+		JSON_S11N_POSITIVE_START(struct5_t, "{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }", sizeof(input_struct5), &input_struct5)
 		JSON_S11N_POSITIVE_END;
 	}
 	/*struct6_t*/
@@ -764,7 +764,7 @@ START_TEST(union_type_json_s11n) {
 				"{ \"_descriminator\": \"0\", "
 					"\"b\": { \"byte\": [ 1, 2, 3, 4 ] }, "
 					"\"b1\": { \"byte\": [ 0, 0, 0, 0 ] }, "
-					"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+					"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", sizeof(input_struct6), &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
@@ -772,7 +772,7 @@ START_TEST(union_type_json_s11n) {
 		JSON_S11N_POSITIVE_START(struct6_t, "{ \"_descriminator\": \"1\", "
 				"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
 				"\"w1\": { \"word\": [ \"0\", \"0\" ] }, "
-				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", sizeof(input_struct6), &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 	{
@@ -780,7 +780,7 @@ START_TEST(union_type_json_s11n) {
 		JSON_S11N_POSITIVE_START(struct6_t, "{ \"_descriminator\": \"1\", "
 				"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
 				"\"w1\": { \"word\": [ \"3\", \"4\" ] }, "
-				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", &input_struct6)
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }", sizeof(input_struct6), &input_struct6)
 		JSON_S11N_POSITIVE_END;
 	}
 }END_TEST
