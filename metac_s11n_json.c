@@ -1288,10 +1288,10 @@ static json_object * _metac_basic_type_s11n(struct metac_type * type, void *ptr,
 	case DW_ATE_float:
 		switch(type->p_at.p_at_byte_size->byte_size) {
 		case sizeof(float):
-			sprintf(buf, "%Lf", (long double)*((float*)ptr));
+			sprintf(buf, "%f", *((float*)ptr));
 			break;
 		case sizeof(double):
-			sprintf(buf, "%Lf", (long double)*((double*)ptr));
+			sprintf(buf, "%f", *((double*)ptr));
 			break;
 		case sizeof(long double):
 			sprintf(buf, "%Lf", (long double)*((long double*)ptr));
