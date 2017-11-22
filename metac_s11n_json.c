@@ -1365,6 +1365,12 @@ static json_object * _metac_pointer_type_s11n(struct metac_type * type, void *pt
 		return NULL;
 	}
 
+	if (byte_size != sizeof(void*)) {
+		msg_stderr("expected byte_size %d instead of %d to store %s\n",
+				(int)sizeof(void*), (int)byte_size, type->p_at.p_at_name?type->p_at.p_at_name->name:"(no name)");
+		return NULL;
+	}
+
 	/*check if value is NULL - skip this - return NULL*/
 	data = *((void**)ptr);
 	if (data == NULL)
