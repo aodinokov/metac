@@ -17,6 +17,7 @@
 
 #include "metac_type.h"
 #include "metac_debug.h"
+#include "metac_s11n_json.h"
 
 /*De-serialization*/
 typedef struct _parent_struct_context {

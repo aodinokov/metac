@@ -14,10 +14,7 @@
 
 #include <json/json.h>	/*to get version of lib*/
 
-
-/*serialization - move to another file*/
-struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
-char * metac_type_and_ptr2json_string(struct metac_type * type, void * ptr, metac_byte_size_t byte_size);
+#include "metac_s11n_json.h"
 
 /*
  * UT helper macros
