@@ -34,7 +34,7 @@
 #define JSON_POSITIVE_BEGIN(_type_, _json0_, _json1_, _expected_data_...) \
 	do { \
 		int i; \
-		static _type_ expected_data = _expected_data_; \
+		/*static*/ _type_ expected_data = _expected_data_; \
 		struct metac_object * cdata, * _cdata[2]; \
 		char * json, * _json[2] = {_json0_, _json1_}; \
 		char * json1, *_json1; \
@@ -75,6 +75,7 @@
 			DUMP_MEM("data         : ", cdata->ptr, sizeof(expected_data)); \
 			DUMP_MEM("expected data: ", &expected_data, sizeof(expected_data)); \
 			fail_unless(0, "Des11n: unexpected data for %s, expected %s", json, #_expected_data_); \
+		} \
 	JSON_POSITIVE_END
 
 #define ARRAY_TYPE_JSON_POSITIVE STRUCT_TYPE_JSON_POSITIVE
@@ -373,7 +374,6 @@ typedef unsigned long ulong_t;
 METAC_TYPE_GENERATE(ulong_t);
 
 START_TEST(ut_ulong_t){
-	char buf1[30], buf2[30];
 	BASIC_TYPE_JSON_POSITIVE(ulong_t, "0", "\"0\"", 0);
 	BASIC_TYPE_JSON_POSITIVE(ulong_t, "-0", "\"0\"", 0);
 	BASIC_TYPE_JSON_POSITIVE(ulong_t, "1234", "\"1234\"", 1234);
@@ -485,7 +485,6 @@ typedef long double ldouble_t;
 METAC_TYPE_GENERATE(ldouble_t);
 
 START_TEST(ut_ldouble_t){
-	char buf1[30], buf2[30];
 	BASIC_TYPE_JSON_POSITIVE(ldouble_t, "0", "\"0.000000\"", 0);
 	BASIC_TYPE_JSON_POSITIVE(ldouble_t, "-0", "\"0.000000\"", 0);
 	BASIC_TYPE_JSON_POSITIVE(ldouble_t, "1234", "\"1234.000000\"", 1234);
@@ -547,8 +546,6 @@ typedef enum _enum_{
 METAC_TYPE_GENERATE(enum_t);
 
 START_TEST(ut_enum_t){
-	char buf1[30], buf2[30];
-	/*enum_t*/
 	BASIC_TYPE_JSON_POSITIVE(enum_t, "\"_eZero\"", "\"_eZero\"", _eZero);
 	BASIC_TYPE_JSON_POSITIVE(enum_t, "\"_eOne\"", "\"_eOne\"", _eOne);
 	BASIC_TYPE_JSON_POSITIVE(enum_t, "\"_eTen\"", "\"_eTen\"", _eTen);
@@ -573,6 +570,91 @@ START_TEST(ut_enum_t){
 }END_TEST
 
 /*****************************************************************************/
+typedef struct struct1 {
+	int x;
+	unsigned int y;
+}struct1_t;
+METAC_TYPE_GENERATE(struct1_t);
+
+START_TEST(ut_struct1_t){
+	STRUCT_TYPE_JSON_POSITIVE(struct1_t, "{}", "{ \"x\": \"0\", \"y\": \"0\" }", {});
+	STRUCT_TYPE_JSON_POSITIVE(struct1_t, "{\"x\": -1}", "{ \"x\": \"-1\", \"y\": \"0\" }", {.x = -1});
+	STRUCT_TYPE_JSON_POSITIVE(struct1_t, "{\"y\": 1}", "{ \"x\": \"0\", \"y\": \"1\" }", {.y = 1});
+	STRUCT_TYPE_JSON_POSITIVE(struct1_t, "{\"x\": -1, \"y\": 1}", "{ \"x\": \"-1\", \"y\": \"1\" }", {.x = -1, .y = 1});
+	JSON_DES11N_NEGATIVE(struct1_t, "{\"y\": -1}");
+}END_TEST
+
+/*****************************************************************************/
+typedef struct struct2 {
+	struct1_t * str1;
+}struct2_t;
+METAC_TYPE_GENERATE(struct2_t);
+
+START_TEST(ut_struct2_t){
+	struct1_t struct1 = {.x = 1, .y = 8};
+	JSON_POSITIVE_BEGIN(struct2_t,
+			"{\"str1\":{\"x\": 1, \"y\": 8}}",
+			"{ \"str1\": { \"x\": \"1\", \"y\": \"8\" } }",
+			{.str1 = &struct1} ) {
+		struct2_t *real_data = (struct2_t*)cdata->ptr;
+		fail_unless(
+				expected_data.str1->x == real_data->str1->x &&
+				expected_data.str1->y == real_data->str1->y, "unexpected data");
+	}JSON_POSITIVE_END;
+	JSON_DES11N_NEGATIVE(struct2_t, "{\"str1\":\"string\"}");
+}END_TEST
+
+/*****************************************************************************/
+typedef struct bit_fields1 {
+	unsigned int field_15b: 15;
+	unsigned int field_17b: 17;
+}bit_fields1_t;
+METAC_TYPE_GENERATE(bit_fields1_t);
+
+START_TEST(ut_bit_fields1_t){
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields1_t,
+			"{}",
+			"{ \"field_15b\": \"0\", \"field_17b\": \"0\" }",
+			{});
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields1_t,
+			"{\"field_15b\": 6}",
+			"{ \"field_15b\": \"6\", \"field_17b\": \"0\" }",
+			{.field_15b = 6});
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields1_t,
+			"{\"field_17b\": 6000}",
+			"{ \"field_15b\": \"0\", \"field_17b\": \"6000\" }",
+			{.field_17b = 6000});
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields1_t, "{\"field_15b\": 6, \"field_17b\": 100}",
+			"{ \"field_15b\": \"6\", \"field_17b\": \"100\" }",
+			{.field_15b = 6, .field_17b = 100});
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields1_t,
+			"{\"field_15b\": 16384, \"field_17b\": 65536}",
+			"{ \"field_15b\": \"16384\", \"field_17b\": \"65536\" }",
+			{.field_15b = 16384, .field_17b = 65536});
+	JSON_DES11N_NEGATIVE(bit_fields1_t, "{\"field_15b\": -6}");
+}END_TEST
+
+/*****************************************************************************/
+typedef struct bit_fields2 {
+	unsigned int field_9b: 9;
+	unsigned int field_12b: 12;
+	long field_36b: 36;
+	long field_63b: 63;
+}bit_fields2_t;
+METAC_TYPE_GENERATE(bit_fields2_t);
+
+START_TEST(ut_bit_fields2_t){
+	STRUCT_TYPE_JSON_POSITIVE(bit_fields2_t,
+			"{\"field_9b\": 6, \"field_12b\": 100, \"field_36b\": -1, \"field_63b\": 1000}",
+			"{ \"field_9b\": \"6\", \"field_12b\": \"100\", \"field_36b\": \"-1\", \"field_63b\": \"1000\" }",
+			{.field_9b = 6, .field_12b = 100, .field_36b = -1, .field_63b = 1000});
+
+}END_TEST
+
+/*****************************************************************************/
+/*****************************************************************************/
+/*****************************************************************************/
+/*****************************************************************************/
 
 int main(void){
 	return run_suite(
@@ -592,6 +674,10 @@ int main(void){
 					ADD_TEST(ut_ldouble_t);
 					ADD_TEST(ut_pchar_t);
 					ADD_TEST(ut_enum_t);
+					ADD_TEST(ut_struct1_t);
+					ADD_TEST(ut_struct2_t);
+					ADD_TEST(ut_bit_fields1_t);
+					ADD_TEST(ut_bit_fields2_t);
 //					ADD_TEST(structure_type_json);
 //					ADD_TEST(array_type_json);
 //					ADD_TEST(union_type_json);

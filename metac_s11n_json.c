@@ -1476,12 +1476,16 @@ struct _metac_s11n_parent_struct_context {
 	struct metac_type_member_info *	p_current_member_info;
 };
 
-#define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_) do{ \
+#define _STRUCTURE_HANDLE_BITFIELDS_S11N(_type_, _mask_, _signed_) do{ \
 	metac_bit_offset_t shift = (byte_size << 3) - \
 			((minfo.p_bit_size?(*minfo.p_bit_size):0) + (minfo.p_bit_offset?(*minfo.p_bit_offset):0)); \
 	_type_ mask = ~(((_type_)_mask_) << (minfo.p_bit_size?(*minfo.p_bit_size):0)); \
 	_type_ _i = *((_type_*)(ptr + data_member_location)); \
-	_i = (_i >> shift) & mask;\
+	_i = (_i >> shift) & mask; \
+	msg_stddbg("signed %d has sign %d\n" , (int)_signed_, (int)_signed_ && (_i & (1 << (minfo.p_bit_size?(*minfo.p_bit_size):0)))); \
+	if (_signed_ && (_i & (1 << (minfo.p_bit_size?(*minfo.p_bit_size):0)))) { \
+		_i = (mask << ((minfo.p_bit_size?(*minfo.p_bit_size):0))) ^ _i;\
+	} \
 	*(_type_*)buffer = _i; \
 }while(0)
 static json_object * _metac_structure_type_s11n(struct metac_type * type, void *ptr, metac_byte_size_t byte_size,
@@ -1540,21 +1544,26 @@ static json_object * _metac_structure_type_s11n(struct metac_type * type, void *
 			unsigned char buffer[8] = {0,};
 			metac_data_location_t data_member_location = (minfo.p_data_member_location != NULL)?(*minfo.p_data_member_location):0;
 			metac_byte_size_t byte_size = metac_type_byte_size(minfo.type);
+			struct metac_type * element_type = metac_type_typedef_skip(minfo.type);
+			int element_is_signed = element_type->p_at.p_at_encoding == NULL?0:
+					(element_type->p_at.p_at_encoding->encoding == DW_ATE_signed ||
+					 element_type->p_at.p_at_encoding->encoding == DW_ATE_signed_char);
+
 			assert(byte_size <= 8);
-			assert(metac_type_id(metac_type_typedef_skip(minfo.type)) == DW_TAG_base_type);
+			assert(metac_type_id(element_type) == DW_TAG_base_type);
 
 			switch(byte_size){
 			case sizeof(uint8_t):
-				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint8_t, 0xff);
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint8_t, 0xff, element_is_signed);
 				break;
 			case sizeof(uint16_t):
-				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint16_t, 0xffff);
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint16_t, 0xffff, element_is_signed);
 				break;
 			case sizeof(uint32_t):
-				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint32_t, 0xffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint32_t, 0xffffffff, element_is_signed);
 				break;
 			case sizeof(uint64_t):
-				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint64_t, 0xffffffffffffffff);
+				_STRUCTURE_HANDLE_BITFIELDS_S11N(uint64_t, 0xffffffffffffffff, element_is_signed);
 				break;
 			default:
 				msg_stderr("byte_size %d isn't supported\n", (int)byte_size);
