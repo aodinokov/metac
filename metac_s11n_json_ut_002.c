@@ -31,15 +31,16 @@
 /**
  * json0->cdata0->json1->cdata1 (json0 and 1 will not be identical, there are many ways to set json)
  */
-#define JSON_POSITIVE_BEGIN(_type_, _json0_, _json1_, _expected_data_...) \
+#define JSON_POSITIVE_BEGIN_WITH_LEN(_static_, _type_, _json0_, _json1_, _expected_data_len_, _expected_data_...) \
 	do { \
 		int i; \
-		/*static*/ _type_ expected_data = _expected_data_; \
+		_static_ _type_ expected_data = _expected_data_; \
 		struct metac_object * cdata, * _cdata[2]; \
 		char * json, * _json[2] = {_json0_, _json1_}; \
 		char * json1, *_json1; \
 		_cdata[0] = metac_json2object(&METAC_TYPE_NAME(_type_), _json0_); \
-		_json1 =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &expected_data, sizeof(expected_data)); \
+		_json1 =  metac_type_and_ptr2json_string(&METAC_TYPE_NAME(_type_), &expected_data, \
+				(_expected_data_len_ == -1)?sizeof(expected_data):(_expected_data_len_)); \
 		json1 = _json1?strdupa(_json1):NULL; free(_json1); _json1= NULL; \
 		_cdata[1] = metac_json2object(&METAC_TYPE_NAME(_type_), _json1_); \
 		fail_unless(_cdata[0] != NULL, "Des11n: metac_json2object returned NULL for %s", _json0_); \
@@ -52,6 +53,9 @@
 			cdata = _cdata[i]; \
 			json = _json[i];
 
+#define JSON_POSITIVE_BEGIN(_static_, _type_, _json0_, _json1_, _expected_data_...) \
+		JSON_POSITIVE_BEGIN_WITH_LEN(_static_, _type_, _json0_, _json1_, -1, _expected_data_)
+
 #define JSON_POSITIVE_END \
 			fail_unless(metac_object_put(cdata) != 0, "Couldn't delete created object cdata%d", i); \
 		}\
@@ -60,17 +64,17 @@
 
 /* special cases for positive UTs */
 #define BASIC_TYPE_JSON_POSITIVE(_type_, _json0_, _json1_, _expected_data_...) \
-	JSON_POSITIVE_BEGIN(_type_, _json0_, _json1_, _expected_data_) \
+	JSON_POSITIVE_BEGIN(static, _type_, _json0_, _json1_, _expected_data_) \
 		fail_unless((*((_type_*)cdata->ptr)) == (_expected_data_), "Des11n: unexpected data for %s: %Lf, expected %s", json, (long double)(*((_type_*)cdata->ptr)), #_expected_data_); \
 	JSON_POSITIVE_END
 
 #define PCHAR_TYPE_JSON_POSITIVE(_type_, _json0_, _json1_, _expected_data_...) \
-	JSON_POSITIVE_BEGIN(_type_, _json0_, _json1_, _expected_data_) \
+	JSON_POSITIVE_BEGIN(static,_type_, _json0_, _json1_, _expected_data_) \
 		fail_unless(strcmp((*((_type_*)cdata->ptr)), (expected_data)) == 0, "Des11n: unexpected data for %s", json); \
 	JSON_POSITIVE_END
 
 #define STRUCT_TYPE_JSON_POSITIVE(_type_, _json0_, _json1_, _expected_data_...) \
-	JSON_POSITIVE_BEGIN(_type_, _json0_, _json1_, _expected_data_) \
+	JSON_POSITIVE_BEGIN(static, _type_, _json0_, _json1_, _expected_data_) \
 		if (memcmp((_type_*)cdata->ptr, &expected_data, sizeof(expected_data))!=0) { \
 			DUMP_MEM("data         : ", cdata->ptr, sizeof(expected_data)); \
 			DUMP_MEM("expected data: ", &expected_data, sizeof(expected_data)); \
@@ -592,7 +596,7 @@ METAC_TYPE_GENERATE(struct2_t);
 
 START_TEST(ut_struct2_t){
 	struct1_t struct1 = {.x = 1, .y = 8};
-	JSON_POSITIVE_BEGIN(struct2_t,
+	JSON_POSITIVE_BEGIN(, struct2_t,
 			"{\"str1\":{\"x\": 1, \"y\": 8}}",
 			"{ \"str1\": { \"x\": \"1\", \"y\": \"8\" } }",
 			{.str1 = &struct1} ) {
@@ -652,8 +656,220 @@ START_TEST(ut_bit_fields2_t){
 }END_TEST
 
 /*****************************************************************************/
+typedef char char_array5_t[5];
+METAC_TYPE_GENERATE(char_array5_t);
+
+START_TEST(ut_char_array5_t){
+	ARRAY_TYPE_JSON_POSITIVE(char_array5_t,
+			"[\"a\",\"b\",\"c\",\"d\",\"e\"]",
+			"[ \"a\", \"b\", \"c\", \"d\", \"e\" ]",
+			{'a', 'b', 'c', 'd', 'e'});
+	JSON_DES11N_NEGATIVE(char_array5_t, "[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]");
+}END_TEST
+
 /*****************************************************************************/
+typedef char* pchar_array5_t[5];
+METAC_TYPE_GENERATE(pchar_array5_t);
+
+START_TEST(ut_pchar_array5_t){
+	JSON_POSITIVE_BEGIN(, pchar_array5_t,
+			"[\"a\",\"b\",\"c\",\"d\",\"e\"]",
+			"[ \"a\", \"b\", \"c\", \"d\", \"e\" ]",
+			{"a", "b", "c", "d", "e"}) {
+		int i;
+		for (i = 0; i < sizeof(expected_data)/sizeof(expected_data[0]); ++i) {
+			char * element = (*((pchar_array5_t*)cdata->ptr))[i];
+			fail_unless(strcmp(element, expected_data[i]) == 0, "got incorrect value %s, expected %s", element, expected_data[i]);
+		}
+	}JSON_POSITIVE_END;
+}END_TEST
+
+
 /*****************************************************************************/
+typedef struct struct3 {
+	int x;
+	char flex_arr3[];
+}struct3_t;
+METAC_TYPE_GENERATE(struct3_t);
+
+START_TEST(ut_struct3_t){
+	JSON_POSITIVE_BEGIN_WITH_LEN(static, struct3_t,
+			"{\"flex_arr3\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}",
+			"{ \"x\": \"0\", \"flex_arr3\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }",
+			sizeof(struct3_t) + 6,
+			{.flex_arr3 = {'a', 'b', 'c', 'd', 'e', 0}}) {
+		int i;
+		struct3_t * _struct3 = (struct3_t*)cdata->ptr;
+		for (i = 0; i < 6; ++i) {
+			fail_unless(_struct3->flex_arr3[i] == expected_data.flex_arr3[i], "got incorrect value %c, expected %c",
+					_struct3->flex_arr3[i], expected_data.flex_arr3[i]);
+		}
+	}JSON_POSITIVE_END;
+}END_TEST
+
+/*****************************************************************************/
+typedef struct struct4 {
+	int flex_arr4_len;
+	char flex_arr4[];
+}struct4_t;
+METAC_TYPE_GENERATE(struct4_t);
+
+START_TEST(ut_struct4_t){
+	JSON_POSITIVE_BEGIN_WITH_LEN(static, struct4_t,
+			"{\"flex_arr4_len\": 5, \"flex_arr4\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}",
+			"{ \"flex_arr4_len\": \"5\", \"flex_arr4\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }",
+			sizeof(struct4_t) + 5,
+			{.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}}) {
+		int i;
+		struct4_t * _struct4 = (struct4_t*)cdata->ptr;
+		fail_unless(_struct4->flex_arr4_len == expected_data.flex_arr4_len, "Len must be equal %d, %d",
+				(int)_struct4->flex_arr4_len, (int)expected_data.flex_arr4_len);
+		for (i = 0; i < _struct4->flex_arr4_len; ++i) {
+			fail_unless(_struct4->flex_arr4[i] == expected_data.flex_arr4[i], "got incorrect value %c, expected %c",
+					_struct4->flex_arr4[i], expected_data.flex_arr4[i]);
+		}
+	}JSON_POSITIVE_END;
+	JSON_POSITIVE_BEGIN_WITH_LEN(static, struct4_t,
+			"{\"flex_arr4\": [\"a\", \"b\", \"c\", \"d\", \"e\"]}",
+			"{ \"flex_arr4_len\": \"5\", \"flex_arr4\": [ \"a\", \"b\", \"c\", \"d\", \"e\" ] }",
+			sizeof(struct4_t) + 5,
+			{.flex_arr4_len = 5, .flex_arr4 = {'a', 'b', 'c', 'd', 'e'}}) {
+		int i;
+		struct4_t * _struct4 = (struct4_t*)cdata->ptr;
+		fail_unless(_struct4->flex_arr4_len == expected_data.flex_arr4_len, "Len must be equal %d, %d",
+				(int)_struct4->flex_arr4_len, (int)expected_data.flex_arr4_len);
+		for (i = 0; i < _struct4->flex_arr4_len; ++i) {
+			fail_unless(_struct4->flex_arr4[i] == expected_data.flex_arr4[i], "got incorrect value %c, expected %c",
+					_struct4->flex_arr4[i], expected_data.flex_arr4[i]);
+		}
+	}JSON_POSITIVE_END;
+}END_TEST
+
+/*****************************************************************************/
+typedef struct struct5 {
+	int u_descriminator;
+	union {
+		struct {
+			uint8_t byte[4];
+		}b;
+		struct {
+			uint16_t word[2];
+		}w;
+		struct {
+			uint32_t dword[1];
+		}dw;
+	}u;
+}struct5_t;
+METAC_TYPE_GENERATE(struct5_t);
+
+START_TEST(ut_struct5_t){
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
+			"{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ 1, 2, 3, 4 ] } } }",
+			{ .u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}",
+			"{ \"u_descriminator\": \"0\", \"u\": { \"b\": { \"byte\": [ 1, 2, 3, 4 ] } } }",
+			{ .u_descriminator = 0, .u = {.b = {.byte = {1, 2, 3, 4}}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 1, \"u\": {\"w\": {\"word\": [1, 2]}}}",
+			"{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }",
+			{ .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u\": {\"w\": {\"word\": [1, 2]}}}",
+			"{ \"u_descriminator\": \"1\", \"u\": { \"w\": { \"word\": [ \"1\", \"2\" ] } } }",
+			{ .u_descriminator = 1, .u = {.w = {.word = {1, 2}}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u_descriminator\": 2, \"u\": {\"dw\": {\"dword\": [1]}}}",
+			"{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }",
+			{ .u_descriminator = 2, .u = {.dw = {.dword = {1}}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct5_t,
+			"{\"u\": {\"dw\": {\"dword\": [1]}}}",
+			"{ \"u_descriminator\": \"2\", \"u\": { \"dw\": { \"dword\": [ \"1\" ] } } }",
+			{ .u_descriminator = 2, .u = {.dw = {.dword = {1}}}});
+	JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 1, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}}}");
+	JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 0, \"u\": {\"w\": {\"word\": [1, 2]}}}");
+	JSON_DES11N_NEGATIVE(struct5_t, "{\"u_descriminator\": 0, \"u\": {\"b\": {\"byte\": [1, 2, 3, 4]}, \"w\": {\"word\": [1, 2]}}}");
+
+}END_TEST
+
+/*****************************************************************************/
+typedef struct struct6 {
+	int _descriminator;
+	union {
+		struct {
+			uint8_t byte[4];
+		}b;
+		struct {
+			uint16_t word[2];
+		}w;
+		struct {
+			uint32_t dword[1];
+		}dw;
+	};
+	union {
+		struct {
+			uint8_t byte[4];
+		}b1;
+		struct {
+			uint16_t word[2];
+		}w1;
+		struct {
+			uint32_t dword[1];
+		}dw1;
+	};
+	struct {
+		struct {
+			uint8_t byte[4];
+		}b2;
+		struct {
+			uint16_t word[2];
+		}w2;
+		struct {
+			uint32_t dword[1];
+		}dw2;
+	};
+}struct6_t;
+METAC_TYPE_GENERATE(struct6_t);
+
+START_TEST(ut_struct6_t){
+	STRUCT_TYPE_JSON_POSITIVE(struct6_t,
+			"{\"_descriminator\": 0, \"b\": {\"byte\": [1, 2, 3, 4]}}",
+			"{ \"_descriminator\": \"0\", "
+				"\"b\": { \"byte\": [ 1, 2, 3, 4 ] }, "
+				"\"b1\": { \"byte\": [ 0, 0, 0, 0 ] }, "
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }",
+			{ ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct6_t,
+			"{\"b\": {\"byte\": [1, 2, 3, 4]}}",
+			"{ \"_descriminator\": \"0\", "
+				"\"b\": { \"byte\": [ 1, 2, 3, 4 ] }, "
+				"\"b1\": { \"byte\": [ 0, 0, 0, 0 ] }, "
+				"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }",
+			{ ._descriminator = 0, .b = {.byte = {1, 2, 3, 4}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct6_t,
+			"{\"_descriminator\": 1, \"w\": {\"word\": [1, 2]}}",
+			"{ \"_descriminator\": \"1\", "
+			"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
+			"\"w1\": { \"word\": [ \"0\", \"0\" ] }, "
+			"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct6_t,
+			"{\"w\": {\"word\": [1, 2]}}",
+			"{ \"_descriminator\": \"1\", "
+			"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
+			"\"w1\": { \"word\": [ \"0\", \"0\" ] }, "
+			"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}});
+	STRUCT_TYPE_JSON_POSITIVE(struct6_t,
+			"{\"w\": {\"word\": [1, 2]}, \"w1\": {\"word\": [3, 4]}}",
+			"{ \"_descriminator\": \"1\", "
+			"\"w\": { \"word\": [ \"1\", \"2\" ] }, "
+			"\"w1\": { \"word\": [ \"3\", \"4\" ] }, "
+			"\"b2\": { \"byte\": [ 0, 0, 0, 0 ] }, \"w2\": { \"word\": [ \"0\", \"0\" ] }, \"dw2\": { \"dword\": [ \"0\" ] } }",
+			{ ._descriminator = 1, .w = {.word = {1, 2}}, .w1 = {.word = {3, 4}}});
+}END_TEST
+
 /*****************************************************************************/
 
 int main(void){
@@ -678,9 +894,12 @@ int main(void){
 					ADD_TEST(ut_struct2_t);
 					ADD_TEST(ut_bit_fields1_t);
 					ADD_TEST(ut_bit_fields2_t);
-//					ADD_TEST(structure_type_json);
-//					ADD_TEST(array_type_json);
-//					ADD_TEST(union_type_json);
+					ADD_TEST(ut_char_array5_t);
+					ADD_TEST(ut_pchar_array5_t);
+					ADD_TEST(ut_struct3_t);
+					ADD_TEST(ut_struct4_t);
+					ADD_TEST(ut_struct5_t);
+					ADD_TEST(ut_struct6_t);
 			}END_CASE
 			);
 		}END_SUITE
