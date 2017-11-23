@@ -5,14 +5,13 @@
  *      Author: mralex
  */
 
-#include "check_ext.h"
-#include "metac_type.h"
-
 #include <stdint.h>	/*INT32_MIN, INT32_MAX*/
 #include <stdio.h>	/*sprintf*/
 #include <string.h> /*strdupa*/
 
 #include "metac_s11n_json.h"
+
+#include "check_ext.h"
 
 /*
  * UT helper macros - > to debug
