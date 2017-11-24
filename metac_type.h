@@ -54,8 +54,8 @@ struct metac_type_at {
 };
 
 struct metac_type_p_at {
-	struct metac_type_at *				p_at_name;					/* universal field */
-	struct metac_type_at *				p_at_type;					/* universal field */
+	struct metac_type_at *				p_at_name;					/* universal field - name */
+	struct metac_type_at *				p_at_type;					/* universal field - type */
 	struct metac_type_at *				p_at_byte_size;				/* type size */
 	struct metac_type_at *				p_at_encoding;				/* type encoding (DW_ATE_signed etc) */
 	struct metac_type_at *				p_at_data_member_location;	/* member offset in structs and unions */

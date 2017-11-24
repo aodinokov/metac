@@ -71,6 +71,7 @@ struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_a
 	HANDLE_KEY(bit_size);
 	HANDLE_KEY(lower_bound);
 	HANDLE_KEY(upper_bound);
+	HANDLE_KEY(count);
 	HANDLE_KEY(const_value);
 	}
 	return NULL;

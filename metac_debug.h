@@ -8,7 +8,7 @@
 #ifndef METAC_DEBUG_H_
 #define METAC_DEBUG_H_
 
-#include <stdio.h>
+#include <stdio.h> /* fprintf, stderr */
 
 #ifdef __cplusplus
 #define __LOG_FUNCTION__ __PRETTY_FUNCTION__
