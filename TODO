@@ -31,6 +31,50 @@ after that we may follow the plan
 2. not sure that the current library for json is ok to support JSON-RPC. - we need somehow to understand that we read the whole msg
 experiment
 
+notes:
+3d arrays - create several subranges
+typedef char _3darray_t[5][4][3]; ->
+/* --0x00000930--*/
+static struct metac_type *data_0x00000930_child[] = {
+    &data_0x00000939,
+    &data_0x0000093f,
+    &data_0x00000945,
+};
+...
+static struct metac_type_at data_0x00000939_at[] = {
+    {.id = DW_AT_upper_bound, .upper_bound = 4},
+    {.id = DW_AT_type, .type = &data_0x00000046},
+};
+...
+static struct metac_type_at data_0x0000093f_at[] = {
+    {.id = DW_AT_upper_bound, .upper_bound = 3},
+    {.id = DW_AT_type, .type = &data_0x00000046},
+};
+...
+static struct metac_type_at data_0x00000945_at[] = {
+    {.id = DW_AT_upper_bound, .upper_bound = 2},
+    {.id = DW_AT_type, .type = &data_0x00000046},
+};
+need to check new clang (with p_at_count)... 
+
+COMPLEX DOUBLE - it's a special encoding
+static struct metac_type_at data_0x00000829_at[] = {
+    {.id = DW_AT_encoding, .encoding = DW_ATE_complex_float},
+    {.id = DW_AT_byte_size, .byte_size = 0x00000010},
+    {.id = DW_AT_name, .name = "complex double"},
+};
+static struct metac_type data_0x00000829 = {
+    .id = DW_TAG_base_type,
+    .at_num = 3,
+    .at = data_0x00000829_at,
+    .p_at = {
+        .p_at_encoding = &data_0x00000829_at[0],
+        .p_at_byte_size = &data_0x00000829_at[1],
+        .p_at_name = &data_0x00000829_at[2],
+    },
+};
+
+
 go further:
 1. RPC scenario:
    20. Easy PoC serialization/de-serialization. e.g. to serialize function call params to json (based on the function arguments) and de-serialize them
@@ -129,47 +173,3 @@ improve documentation Documentation
 
 
 40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop) - done
-
-::::::::::::::::::Done::::::::::::::::::::::::::::::::
-re-factoring plan:
-1. UT for json: make it abstract:
-positive test:
-c-data0 -> json -> c-data1 (c-data0 and c-data1 must be identical) - done
-but this will not cover everything - there are many ways to set json for the same cdata, better:
-json0->cdata0->json1->cdata1 (jsons will not be identical)  - done
-negative test:
-s11n and des11n should have different macroses  - done
-
-32. BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}"); - see metac_s11n_json_ut_001.c
-
-
-36. it's possible to make a special macro to create extra param. It will require an additional scan in nm: metac_<type>_extra.
-this can be used to pass some params instead of guessing them: discriminator name, mode how to work with flex arrays (with/without len field)
-e.g.
-#define METAC_TYPEEXTRA_NAME(name) METAC(typeextra, name)
-#define METAC_TYPE_EXTRA(name) struct metac_typeextra METAC_TYPEEXTRA_NAME(name)
-
-metac__typeextra_pchar_ = {
-{key: TE_DISCRIMINATOR, value: (void*){...link discr and union}}. also allow or deny multiple fields in the same union.
-{key: TE_FLEXARRAY, value: (void*){TE_FLEXARRAY_MODE_WITH_LEN_FIELD, len_field_name: ""}
-};
-modify metac.awk to add this field to the type if it was defined
-- done. may be to rethink 
-
-
-we can't support  flexible array until we didn't fix 40 and 41 - done
-serializing of char * is handled in the different place - there should be an issue with that. 
-
-42. rethink if we need metac_objects - done
-if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to understand the implications from des11n side.
-
-
-41. not clear hot to be with symbols that can't be part of json string e.g. \0 -
-currently we're tyring to put it, but it will be empty string
-e.g. if I have char c='\0' and try to serialize it - it will be serialized to ""
-if c = '\t' it will be serialized to "  " that is also not clear. probably for serializing of chars we must use normal representation for printable char and 
-\%d notattion for non-printable chars. we also need to make sure we accept this for des11n
-UPDATE: "0" is ambiguous for char- it may be really zero, or it may be 0x30
-fixed in serialization, but still not sure if it will be correctly d11ed
-we need a set of tests that shows that some data is correctly serialized (to some data)  and de-serialized to the previous data. 
-- looks like done - at least we don't have any issue with UT

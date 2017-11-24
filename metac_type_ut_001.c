@@ -10,6 +10,7 @@
 #include "metac_type.h"
 
 #include <dlfcn.h>
+#include <complex.h>	/*complex*/
 
 /*
  * ideas for UT:
@@ -132,6 +133,10 @@ METAC_TYPE_GENERATE(double_t);
 typedef long double ldouble_t;
 METAC_TYPE_GENERATE(ldouble_t);
 
+/*complex*/
+typedef double complex doublecomplex_t;
+METAC_TYPE_GENERATE(doublecomplex_t);
+
 /* pointers */
 typedef void* voidptr_t;
 typedef void** voidptrptr_t;
@@ -150,7 +155,7 @@ typedef enum _enum_{
 	_eEleven,
 	_eTwelve,
 }enum_t;
-
+METAC_TYPE_GENERATE(enum_t);
 typedef enum{
 	aeMinus = -1,
 	aeZero = 0,
@@ -159,12 +164,25 @@ typedef enum{
 	aeEleven,
 	aeTwelve,
 }anon_enum_t;
-METAC_TYPE_GENERATE(enum_t);
 METAC_TYPE_GENERATE(anon_enum_t);
+typedef enum __attribute__((packed, aligned(16)))_aligned_enum_{
+    al_eZero = 0,
+    al_eOne,
+	al_eTen = 10,
+	al_eEleven,
+	al_eTwelve,
+}aligned_enum_t;
+METAC_TYPE_GENERATE(aligned_enum_t);
 
 /* arrays */
 typedef char_t char_array5_t[5];
 METAC_TYPE_GENERATE(char_array5_t);
+
+typedef char _2darray_t[2][3];
+METAC_TYPE_GENERATE(_2darray_t);
+typedef char _3darray_t[5][4][3];
+METAC_TYPE_GENERATE(_3darray_t);
+
 
 /* unions */
 typedef union _union_{
@@ -233,6 +251,7 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 
 #define GENERAL_TYPE_SMOKE(_type_, _s_type_) \
 do{ \
+	mark_point(); \
 	_type_ *ptr = NULL; \
 	struct metac_type *type = &METAC_TYPE_NAME(_type_), *type_from_array; \
 	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
@@ -303,14 +322,19 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(double_t, DW_TAG_base_type);
 	GENERAL_TYPE_SMOKE(ldouble_t, DW_TAG_base_type);
 
+	GENERAL_TYPE_SMOKE(doublecomplex_t, DW_TAG_base_type);
+
 	GENERAL_TYPE_SMOKE(voidptr_t, DW_TAG_pointer_type);
 	GENERAL_TYPE_SMOKE(voidptrptr_t, DW_TAG_pointer_type);
 	GENERAL_TYPE_SMOKE(charptr_t, DW_TAG_pointer_type);
 
 	GENERAL_TYPE_SMOKE(enum_t, DW_TAG_enumeration_type);
 	GENERAL_TYPE_SMOKE(anon_enum_t, DW_TAG_enumeration_type);
+	GENERAL_TYPE_SMOKE(aligned_enum_t, DW_TAG_enumeration_type);
 
 	GENERAL_TYPE_SMOKE(char_array5_t, DW_TAG_array_type);
+//	GENERAL_TYPE_SMOKE(_2darray_t, DW_TAG_array_type);
+//	GENERAL_TYPE_SMOKE(_3darray_t, DW_TAG_array_type);
 
 	GENERAL_TYPE_SMOKE(union_t, DW_TAG_union_type);
 
@@ -565,7 +589,7 @@ do { \
 	fail_unless(metac_type_enumeration_type_info(enum_type, &et_info) == 0, "metac_type_enumeration_type_info: expected success"); \
     \
 	fail_unless((et_info.name == NULL && et_name == NULL) || strcmp(et_info.name, et_name) == 0, "invalid name %s instead of %s", et_info.name, et_name); \
-	fail_unless(et_info.byte_size > 0 && et_info.byte_size <= 8, "expected byte_size in the range(0,8] instead of %u", et_info.byte_size); \
+	fail_unless(et_info.byte_size > 0 /*&& et_info.byte_size <= 8*/, "expected byte_size in the range(0,*] instead of %u", et_info.byte_size);/* - not valid assumption*/ \
 	fail_unless(et_info.enumerators_count == sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), "children number must be %u instead of %u", \
 			sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), et_info.enumerators_count); \
     \
@@ -595,9 +619,17 @@ START_TEST(enum_type_smoke) {
 			{.name = "aeEleven", .const_value = 11},
 			{.name = "aeTwelve", .const_value = 12},
 	};
-
+	struct metac_type *aligned_enum_type = &METAC_TYPE_NAME(aligned_enum_t);
+	struct metac_type_enumerator_info aligned_enum_type_expected_e_info_values[] = {
+			{.name = "al_eZero", .const_value = 0},
+			{.name = "al_eOne", .const_value = 1},
+			{.name = "al_eTen", .const_value = 10},
+			{.name = "al_eEleven", .const_value = 11},
+			{.name = "al_eTwelve", .const_value = 12},
+	};
 	ENUM_TYPE_SMOKE(enum_type, "_enum_", enum_type_expected_e_info_values);
 	ENUM_TYPE_SMOKE(anon_enum_type, NULL, anon_enum_type_expected_e_info_values);
+	ENUM_TYPE_SMOKE(aligned_enum_type, "_aligned_enum_", aligned_enum_type_expected_e_info_values);
 
 }END_TEST
 

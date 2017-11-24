@@ -39,7 +39,7 @@ all: metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c
 metac_s11n_json_ut_002: LDFLAGS=-pthread
 metac_s11n_json_ut_002: metac_type.o metac_s11n_json.o metac_s11n_json_ut_002.o metac_s11n_json_ut_002.metac.o
 metac_s11n_json_ut_002: -lcheck -lm -lrt -ljson
-all: metac_s11n_json_ut_002.run
+all: metac_s11n_json_ut_002.run metac_s11n_json_ut_002.metac.c
 
 %.run: % _always_
 	#./$<

@@ -210,7 +210,7 @@ END {
             print "\t.p_at = {\n" p_at "\t},";
         }
         if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
-            print "\t.specifications = METAC(typespec," type_name(data[i]["DW_AT_name"]) "),"
+            print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
         }
         print "};"
         
