@@ -23,31 +23,31 @@ int metac_type_id(struct metac_type *type) {
 unsigned int metac_type_child_num(struct metac_type *type) {
 	if (type == NULL)
 		return 0;
-	return type->child_num;
+	return type->dwarf_info.child_num;
 }
 
 struct metac_type* metac_type_child(struct metac_type *type, unsigned int i) {
 	if (type == NULL)
 		return NULL;
-	if (i >= type->child_num)
+	if (i >= type->dwarf_info.child_num)
 		return NULL;
 
-	return type->child[i];
+	return type->dwarf_info.child[i];
 }
 
 unsigned int metac_type_at_num(struct metac_type *type) {
 	if (type == NULL)
 		return 0;
-	return type->at_num;
+	return type->dwarf_info.at_num;
 }
 
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i)  {
 	if (type == NULL)
 		return NULL;
-	if (i >= type->at_num)
+	if (i >= type->dwarf_info.at_num)
 		return NULL;
 
-	return &type->at[i];
+	return &type->dwarf_info.at[i];
 }
 
 //struct metac_type_p_at*	metac_type_p_at(struct metac_type *type) {

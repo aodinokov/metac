@@ -10,7 +10,7 @@ extern "C" {
 /* declaration of C type in C */
 struct metac_type;
 struct metac_type_at;
-struct metac_type_p_at;
+struct metac_type_specification;
 
 /* definition of types used for attributes */
 typedef char *							metac_name_t;
@@ -30,45 +30,10 @@ typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
 typedef unsigned int					metac_num_t;
 
-
-/**
- * definition of C type attributes in C (based on DWARF)
- * defined here because these types are used by metac.awk during generation of type structure
- * possible to move to metac_impl.h
- **/
-struct metac_type_at {
-	metac_type_at_id_t					id;
-	union {
-		metac_name_t					name;						/* universal field */
-		metac_type_t *					type;						/* universal field */
-		metac_byte_size_t				byte_size;					/* type size */
-		metac_encoding_t				encoding;					/* type encoding (DW_ATE_signed etc) */
-		metac_data_member_location_t	data_member_location;		/* member offset in structs and unions */
-		metac_bit_offset_t				bit_offset;					/* bit-field member bit offset in structs and unions */
-		metac_bit_size_t				bit_size;					/* bit-field member bit size in structs and unions */
-		metac_bound_t					lower_bound;				/* for array_ranges*/
-		metac_bound_t					upper_bound;				/* for array_ranges*/
-		metac_count_t					count;						/* for array_ranges*/
-		metac_const_value_t				const_value;				/* for enums*/
-	};
-};
-
-/*type additional specifications (alignment and etc) */
-struct metac_type_specification {
-	const char *key,*value;
-};
-
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
 
-	/* RAW DWARF data */
-	metac_num_t							child_num;					/* number of children */
-	metac_type_t **						child;						/* pointer to array of children */
-	metac_num_t							at_num;						/* number of attributes */
-	metac_type_at_t *					at;							/* pointer to array of attributes */
-
 	/* METAC specific data */
-	struct metac_type_specification	*	specifications;				/* pointer to explicit specifications array for this type*/
 	union {
 		/* .id == DW_TAG_base_type */
 		struct {
@@ -142,6 +107,39 @@ struct metac_type {
 			}*subranges;
 		}array_type_info;
 	};
+
+	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
+	struct metac_type_specification {
+		const char *key,*value;
+	}*specifications;												/* pointer to explicit specifications array for this type*/
+
+	/**
+	 * RAW DWARF data
+	 * definition of C type attributes in C (based on DWARF)
+	 * defined here because these types are used by metac.awk during generation of type structure
+	 * possible to move to metac_impl.h
+	 **/
+	struct {
+		metac_num_t							child_num;				/* number of children */
+		metac_type_t **						child;					/* pointer to array of children */
+		metac_num_t							at_num;					/* number of attributes */
+		struct metac_type_at {
+			metac_type_at_id_t					id;
+			union {
+				metac_name_t					name;				/* universal field */
+				metac_type_t *					type;				/* universal field */
+				metac_byte_size_t				byte_size;			/* type size */
+				metac_encoding_t				encoding;			/* type encoding (DW_ATE_signed etc) */
+				metac_data_member_location_t	data_member_location;		/* member offset in structs and unions */
+				metac_bit_offset_t				bit_offset;			/* bit-field member bit offset in structs and unions */
+				metac_bit_size_t				bit_size;			/* bit-field member bit size in structs and unions */
+				metac_bound_t					lower_bound;		/* for array_ranges*/
+				metac_bound_t					upper_bound;		/* for array_ranges*/
+				metac_count_t					count;				/* for array_ranges*/
+				metac_const_value_t				const_value;		/* for enums*/
+			};
+		}*at;														/* pointer to array of attributes */
+	}dwarf_info;
 };
 
 /* some basic functions to navigate in structure metac_type */

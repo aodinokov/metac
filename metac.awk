@@ -17,24 +17,24 @@ function dump_dwarf_at_data(type, i) {
     res = "";
     at_rows = 0;
     at_num = 0;
-    at_res = "\t.at = (metac_type_at_t[]) {\n";
+    at_res = "\t\t.at = (metac_type_at_t[]) {\n";
     for (j in data[i]) {
         if (match(j, "DW_AT_(.*)", arr0)) {
             #intentionally don't do check of attributes and type - compiler will do it and compilation will fail if we have a problem
             switch(j){
                 case "DW_AT_name":
-                    at_res = at_res "\t\t{.id = " j ", ." arr0[1] " = \"" data[i][j] "\"},\n";
+                    at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = \"" data[i][j] "\"},\n";
                     ++at_num;
                     break;
                 case "DW_AT_data_member_location":
                     if (match(data[i][j], "([0-9]+).*", arr)) {
-                        at_res = at_res "\t\t{.id = " j ", ." arr0[1] " = " arr[1] "/*" data[i][j] "*/},\n";
+                        at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = " arr[1] "/*" data[i][j] "*/},\n";
                         ++at_num;
                     }
                     break;
                 case "DW_AT_type":
                     if (match(data[i][j], "<([^>]+)>", arr)) {
-                        at_res = at_res "\t\t{.id = " j ", ." arr0[1] " = &" type_variable_name(arr[1]) "},\n";
+                        at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = &" type_variable_name(arr[1]) "},\n";
                         ++at_num;
                     }
                     break;
@@ -46,18 +46,18 @@ function dump_dwarf_at_data(type, i) {
                 case "DW_AT_upper_bound":
                 case "DW_AT_count":
                 case "DW_AT_const_value":
-                    at_res = at_res "\t\t{.id = " j ", ." arr0[1] " = " data[i][j] "},\n"
+                    at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = " data[i][j] "},\n"
                     ++at_num;
                     break;
                 default:
-                    at_res = at_res "\t\t/* Skip {.id = " j ", ." arr0[1] " = " data[i][j] "}, */\n"
+                    at_res = at_res "\t\t\t/* Skip {.id = " j ", ." arr0[1] " = " data[i][j] "}, */\n"
             }
             ++at_rows;
         }
     }
-    at_res = at_res "\t},"
+    at_res = at_res "\t\t},"
     if (at_num > 0)
-        res = res "\t.at_num = " at_num ",\n";
+        res = res "\t\t.at_num = " at_num ",\n";
     if (at_rows > 0)
         res = res at_res;
     return res;
@@ -67,13 +67,13 @@ function dump_dwarf_child_data(type, i) {
     res = "";
     if ("child" in data[i]) {
         child_num = 0;
-        child_res = "\t.child = (struct metac_type*[]) {\n"
+        child_res = "\t\t.child = (struct metac_type*[]) {\n"
         for (k in data[i]["child"]) {
-            child_res = child_res "\t\t&" type_variable_name(data[i]["child"][k]) ",\n";
+            child_res = child_res "\t\t\t&" type_variable_name(data[i]["child"][k]) ",\n";
             ++child_num;
         }
-        child_res = child_res "\t},"
-        res = res "\t.child_num = " child_num ",\n" child_res;
+        child_res = child_res "\t\t},"
+        res = res "\t\t.child_num = " child_num ",\n" child_res;
     }
     return res;
 }
@@ -374,9 +374,6 @@ END {
         if ("type" in data[i]) {
             print "\t.id = " data[i]["type"] ","
         }
-        #dwarf data 
-        text = dump_dwarf_at_data(arr0[1], i); if (length(text) > 0)print text;
-        text = dump_dwarf_child_data(arr0[1], i); if (length(text) > 0)print text;
         # special logic to print everything about the type and its parts
         if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
             print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
@@ -384,6 +381,15 @@ END {
         #specifications
         if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
             print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
+        }
+        #dwarf data 
+        at_text = dump_dwarf_at_data(arr0[1], i) 
+        child_text = dump_dwarf_child_data(arr0[1], i);
+        if (length(at_text) > 0 || length(child_text) > 0) {
+            print "\t.dwarf_info = {"
+            if (length(at_text) > 0)print at_text;
+            if (length(child_text) > 0)print child_text;
+            print "\t},"
         }
         print "};"
         
