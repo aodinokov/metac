@@ -53,102 +53,6 @@ struct metac_type_at {
 	};
 };
 
-///*
-// * for metac_type_id(type) == DW_TAG_base_type
-// */
-//struct metac_type_base_type_info {
-//	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-//	metac_byte_size_t	byte_size;				/* mandatory field */
-//	metac_encoding_t	encoding;				/* type encoding (DW_ATE_signed etc) */
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_pointer_type
-// */
-//struct metac_type_pointer_type_info {
-//	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-//	metac_byte_size_t	byte_size;				/* ?mandatory field */
-//	metac_type_t *		type;					/* universal field */
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_typedef
-// */
-//struct metac_type_typedef_info {
-//	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-//	metac_type_t *		type;					/* universal field */
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_enumeration_type
-// */
-//struct metac_type_enumeration_type_info {
-//	metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-//	metac_byte_size_t	byte_size;				/* mandatory field */
-//	metac_num_t			enumerators_count;		/* mandatory field */
-//	struct {
-//		metac_name_t		name;					/* enumerator name */
-//		metac_const_value_t	const_value;			/* enumerator value */
-//	}enumerators[];
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_subprogram
-// */
-//struct metac_type_subprogram_info {
-//	metac_type_t *	type;			/* function return type (NULL if void) */
-//	metac_name_t	name;					/* function name */
-//	metac_num_t		parameters_count;		/* number of parameters */
-//	struct {
-//		int				unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
-//		metac_type_t *	type;					/* parameter type */
-//		metac_name_t	name;					/* parameter name */
-//	}parameters[];
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_structure_type
-// */
-//struct metac_type_structure_info {
-//	metac_name_t					name;						/* name of the structure (may be NULL)*/
-//	metac_byte_size_t				byte_size;					/* size of the structure in bytes */
-//	metac_num_t						members_count;				/* number of members */
-//	struct {
-//		metac_type_t *					type;						/* type of the member (mandatory) */
-//		metac_name_t					name;						/* name of the member (mandatory) */
-//		metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
-//		metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-//		metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
-//	}members[];
-//};
-///*
-// * for metac_type_id(type) == DW_TAG_union_type
-// */
-//struct metac_type_union_info {
-//	metac_name_t					name;						/* name of the union (may be NULL)*/
-//	metac_byte_size_t				byte_size;					/* size of the union in bytes */
-//	metac_num_t						members_count;				/* number of members */
-//	struct {
-//		metac_type_t *					type;						/* type of the member (mandatory) */
-//		metac_name_t					name;						/* name of the member (mandatory) */
-//		metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
-//		metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-//		metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
-//	}members[];
-//};
-///*
-// * special functions to work with arrays when metac_type_id(type) == DW_TAG_array_type (array)
-// */
-//struct metac_type_array_info {
-//	metac_type_t *					type;					/* type of elements */
-//	int 							is_flexible;			/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
-//	metac_count_t					elements_count;			/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
-//	metac_num_t						subranges_count;		/* number of subranges ( >1 if array is multi-dimensional) */
-//	struct {
-//		metac_type_t *					type;					/* type of index */
-//		metac_count_t *					p_count;				/* number of elements in subrange */
-//		metac_bound_t *					p_lower_bound;			/* min index in subrange */
-//		metac_bound_t *					p_upper_bound;			/* max index in subrange */
-//	}subranges[];
-//};
-
-
-
 /*type additional specifications (alignment and etc) */
 struct metac_type_specification {
 	const char *key,*value;
@@ -168,73 +72,73 @@ struct metac_type {
 	union {
 		/* .id == DW_TAG_base_type */
 		struct {
-			metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-			metac_byte_size_t	byte_size;				/* mandatory field */
-			metac_encoding_t	encoding;				/* type encoding (DW_ATE_signed etc) */
+			metac_name_t				name;						/* name of type (can be NULL for anonymous enums) */
+			metac_byte_size_t			byte_size;					/* mandatory field */
+			metac_encoding_t			encoding;					/* type encoding (DW_ATE_signed etc) */
 		}base_type_info;
 		/* .id == DW_TAG_pointer_type */
 		struct {
-			metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-			metac_byte_size_t	byte_size;				/* ?mandatory field */
-			metac_type_t *		type;					/* universal field */
+			metac_name_t				name;						/* name of type (can be NULL for anonymous enums) */
+			metac_byte_size_t			byte_size;					/* ?mandatory field */
+			metac_type_t *				type;						/* universal field */
 		}pointer_type_info;
 		/* .id == DW_TAG_typedef */
 		struct {
-			metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-			metac_type_t *		type;					/* universal field */
+			metac_name_t				name;						/* name of type (can be NULL for anonymous enums) */
+			metac_type_t *				type;						/* universal field */
 		}typedef_info;
 		/* .id == DW_TAG_enumeration_type */
 		struct {
-			metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
-			metac_byte_size_t	byte_size;				/* mandatory field */
-			metac_num_t			enumerators_count;		/* mandatory field */
+			metac_name_t				name;						/* name of type (can be NULL for anonymous enums) */
+			metac_byte_size_t			byte_size;					/* mandatory field */
+			metac_num_t					enumerators_count;			/* mandatory field */
 			struct enumerator_info {
-				metac_name_t		name;					/* enumerator name */
-				metac_const_value_t	const_value;			/* enumerator value */
+				metac_name_t			name;						/* enumerator name */
+				metac_const_value_t		const_value;				/* enumerator value */
 			}*enumerators;
 		}enumeration_type_info;
 		/* .id == DW_TAG_subprogram */
 		struct {
-			metac_type_t *	type;					/* function return type (NULL if void) */
-			metac_name_t	name;					/* function name */
-			metac_num_t		parameters_count;		/* number of parameters */
+			metac_type_t *				type;						/* function return type (NULL if void) */
+			metac_name_t				name;						/* function name */
+			metac_num_t					parameters_count;			/* number of parameters */
 			struct subprogram_parameter {
-				int				unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
-				metac_type_t *	type;					/* parameter type */
-				metac_name_t	name;					/* parameter name */
+				int						unspecified_parameters;		/* if 1 - after that it's possible to have a lot of arguments*/
+				metac_type_t *			type;						/* parameter type */
+				metac_name_t			name;						/* parameter name */
 			}*parameters;
 		}subprogram_info;
 		/* .id = DW_TAG_structure_type */
 		struct {
-			metac_name_t					name;						/* name of the structure (may be NULL)*/
-			metac_byte_size_t				byte_size;					/* size of the structure in bytes */
-			metac_num_t						members_count;				/* number of members */
+			metac_name_t				name;						/* name of the structure (may be NULL)*/
+			metac_byte_size_t			byte_size;					/* size of the structure in bytes */
+			metac_num_t					members_count;				/* number of members */
 			struct member_info {
-				metac_type_t *					type;						/* type of the member (mandatory) */
-				metac_name_t					name;						/* name of the member (mandatory) */
+				metac_type_t *			type;						/* type of the member (mandatory) */
+				metac_name_t			name;						/* name of the member (mandatory) */
 				metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
-				metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-				metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
+				metac_bit_offset_t *	p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
+				metac_bit_size_t *		p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
 			}*members;
 		}structure_type_info;
 		/* .id == DW_TAG_union_type */
 		struct {
-			metac_name_t					name;						/* name of the union (may be NULL)*/
-			metac_byte_size_t				byte_size;					/* size of the union in bytes */
-			metac_num_t						members_count;				/* number of members */
+			metac_name_t				name;						/* name of the union (may be NULL)*/
+			metac_byte_size_t			byte_size;					/* size of the union in bytes */
+			metac_num_t					members_count;				/* number of members */
 			struct member_info *members;
 		}union_type_info;
 		/* .id == DW_TAG_array_type */
 		struct {
-			metac_type_t *					type;					/* type of elements */
-			int 							is_flexible;			/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
-			metac_count_t					elements_count;			/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
-			metac_num_t						subranges_count;		/* number of subranges ( >1 if array is multi-dimensional) */
+			metac_type_t *				type;						/* type of elements */
+			int 						is_flexible;				/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
+			metac_count_t				elements_count;				/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
+			metac_num_t					subranges_count;			/* number of subranges ( >1 if array is multi-dimensional) */
 			struct subrange_info {
-				metac_type_t *					type;					/* type of index */
-				metac_count_t *					p_count;				/* number of elements in subrange */
-				metac_bound_t *					p_lower_bound;			/* min index in subrange */
-				metac_bound_t *					p_upper_bound;			/* max index in subrange */
+				metac_type_t *			type;						/* type of index */
+				metac_count_t *			p_count;					/* number of elements in subrange */
+				metac_bound_t *			p_lower_bound;				/* min index in subrange */
+				metac_bound_t *			p_upper_bound;				/* max index in subrange */
 			}*subranges;
 		}array_type_info;
 	};
@@ -242,12 +146,13 @@ struct metac_type {
 
 /* some basic functions to navigate in structure metac_type */
 metac_type_id_t			metac_type_id(struct metac_type *type);
+
+/* DWARF RAW data - obsolete*/
 metac_num_t				metac_type_child_num(struct metac_type *type);
 struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
 metac_num_t				metac_type_at_num(struct metac_type *type);
 struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
-struct metac_type_p_at*	metac_type_p_at(struct metac_type *type);
-struct metac_type_at*	metac_type_at_by_id(struct metac_type *type, metac_type_at_id_t id);	/* find id for the first child with the given name */
+
 const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 
