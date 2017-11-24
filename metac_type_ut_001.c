@@ -254,29 +254,30 @@ do{ \
 	mark_point(); \
 	_type_ *ptr = NULL; \
 	struct metac_type *type = &METAC_TYPE_NAME(_type_), *type_from_array; \
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-	char * type_name = metac_type_name(type); \
-	char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
-		 * tmp = strchr(type_name_copy, ' '); \
-	if (tmp != NULL)*tmp = '\0'; /*workaround for long int and short int - get only first word*/ \
-	\
-	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value for " #_type_); \
-	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
-	fail_unless(strcmp(type_name_copy, #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
-	\
-	free(type_name_copy);\
-	mark_point(); \
-	\
-	type_from_array = metac_type_by_name(&METAC_TYPES_ARRAY, #_type_);\
-	fail_unless(type_from_array == type, "metac_type_by_name returned incorrect value %p", type_from_array);\
-	mark_point(); \
-	\
-	fail_unless(type->specifications == NULL || (\
-			metac_type_specification(type, "discrimitator_name") != NULL && \
-			strcmp(metac_type_specification(type, "discrimitator_name"), "array_len") == 0), \
-			"check for type parameters didn't pass for %s", metac_type_name(type));\
-	mark_point(); \
 } while(0)
+
+//	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+//	char * type_name = metac_type_name(type); \
+//	char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
+//		 * tmp = strchr(type_name_copy, ' '); \
+//	if (tmp != NULL)*tmp = '\0'; /*workaround for long int and short int - get only first word*/ \
+//	\
+//	fail_unless(metac_type_byte_size(type) == sizeof(_type_), "metac_type_byte_size returned incorrect value for " #_type_); \
+//	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
+//	fail_unless(strcmp(type_name_copy, #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
+//	\
+//	free(type_name_copy);\
+//	mark_point(); \
+//	\
+//	type_from_array = metac_type_by_name(&METAC_TYPES_ARRAY, #_type_);\
+//	fail_unless(type_from_array == type, "metac_type_by_name returned incorrect value %p", type_from_array);\
+//	mark_point(); \
+//	\
+//	fail_unless(type->specifications == NULL || (\
+//			metac_type_specification(type, "discrimitator_name") != NULL && \
+//			strcmp(metac_type_specification(type, "discrimitator_name"), "array_len") == 0), \
+//			"check for type parameters didn't pass for %s", metac_type_name(type));\
+//	mark_point(); \
 
 
 START_TEST(general_type_smoke) {
@@ -346,478 +347,478 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(func_ptr_t, DW_TAG_pointer_type);
 }END_TEST
 
-#define UNION_TYPE_SMOKE_START(_type_, fields_number) \
-do{ \
-	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-	_type_ struct_; \
-	struct metac_type_union_info _info_;\
-	fail_unless(metac_type_union_info(type, &_info_) == 0, "get info returned error");\
-	fail_unless(_info_.members_count == (fields_number), \
-			"metac_type_union_member_count incorrect value for " #_type_ ": %d", fields_number); \
-
-
-#define UNION_TYPE_SMOKE_MEMBER(_member_name_) \
-	do { \
-		struct metac_type_member_info member_info; \
-		int i = metac_type_child_id_by_name(type, #_member_name_); \
-		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_union_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-		/* check name*/\
-		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-				member_info.name, #_member_name_); \
-		/* check type*/\
-		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-		/* check offset */\
-		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == \
-				(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
-				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
-				(int)(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
-				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
-		\
-	} while(0)
-
-#define UNION_TYPE_SMOKE_END \
-	mark_point(); \
-} while(0)
-
-#define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
-do{ \
-	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-	_type_ struct_; \
-	struct metac_type_structure_info _info_;\
-	fail_unless(metac_type_structure_info(type, &_info_) == 0, "get info returned error");\
-	fail_unless(_info_.members_count == (fields_number), \
-			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
-
-#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_) \
-	do { \
-		struct metac_type_member_info member_info; \
-		int i = metac_type_child_id_by_name(type, #_member_name_); \
-		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-		/* check name*/ \
-		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-				member_info.name, #_member_name_); \
-		/* check type*/\
-		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-		/* check offset */\
-		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
-		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
-				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
-				(int)*member_info.p_data_member_location,\
-				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
-		\
-	} while(0)
-
-#define STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(_member_name_) \
-	do { \
-		int bit_size = 0; \
-		unsigned int mask; /*will take number of bits*/ \
-		struct metac_type_member_info member_info; \
-		int i = metac_type_child_id_by_name(type, #_member_name_); \
-		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-		/* check name*/\
-		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-				member_info.name, #_member_name_); \
-		/* check type*/\
-		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-		/* check offset */\
-		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
-		/* check bit_size*/ \
-		memset(&struct_, 0xff, sizeof(struct_)); \
-		mask = struct_._member_name_; \
-		struct_.heightValidated = 0; \
-		\
-		while (mask != 0) { \
-			mask >>= 1; \
-			bit_size++; \
-		} \
-		fail_unless(*member_info.p_bit_size == bit_size, "bit_size is incorrect %d instead of %d", \
-				(int)*member_info.p_bit_size, (int)bit_size); \
-		/*TODO: make check for bit_offset and data_member_location (for big/little endian) - depends on implementation*/ \
-	} while(0)
-
-#define STRUCT_TYPE_SMOKE_END \
-	mark_point(); \
-} while(0)
-
-START_TEST(struct_type_smoke) {
-	UNION_TYPE_SMOKE_START(union_t, 2)
-		UNION_TYPE_SMOKE_MEMBER(d);
-		UNION_TYPE_SMOKE_MEMBER(f);
-	UNION_TYPE_SMOKE_END;
-
-	STRUCT_TYPE_SMOKE_START(struct_t, 2)
-		STRUCT_TYPE_SMOKE_MEMBER(heightValidated);
-		STRUCT_TYPE_SMOKE_MEMBER(widthValidated);
-	STRUCT_TYPE_SMOKE_END;
-
-	STRUCT_TYPE_SMOKE_START(bit_fields_t, 2)
-		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(heightValidated);
-		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(widthValidated);
-	STRUCT_TYPE_SMOKE_END;
-}END_TEST
-
-#define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
-do{ \
-	unsigned int i; \
-	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-	struct metac_type_subprogram_info s_info; \
-	struct metac_type_parameter_info p_info; \
-	struct metac_object * p_object; \
-	\
-	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
-	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
-			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
-	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
-	\
-	mark_point(); \
-	\
-	fail_unless(metac_type_subprogram_info(type, &s_info) == 0, "metac_type_subprogram_info: expected success"); \
-	\
-	fail_unless(strcmp(s_info.name, #_type_) == 0, "invalid name %s instead of %s", s_info.name, #_type_); \
-	fail_unless(s_info.type == expected_return_type, "not expected return type %p instead of %p", s_info.type, expected_return_type); \
-	fail_unless(s_info.parameters_count == sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), "params number must be %u instead of %u", \
-			sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), s_info.parameters_count); \
-	\
-	for (i = 0; i < s_info.parameters_count; i++) { \
-		fail_unless(metac_type_subprogram_parameter_info(type, i, &p_info) == 0, "expected success"); \
-		fail_unless(p_info.unspecified_parameters == expected_parameter_info_values[i].unspecified_parameters, "expected %d instead of %d", expected_parameter_info_values[i].unspecified_parameters, p_info.unspecified_parameters); \
-		if (p_info.unspecified_parameters == 0) { \
-			fail_unless(strcmp(p_info.name, expected_parameter_info_values[i].name) == 0, "expected %s instead of %s", expected_parameter_info_values[i].name, p_info.name); \
-			fail_unless(p_info.type == expected_parameter_info_values[i].type, "wrong parameter type: expected %p instead of %p", expected_parameter_info_values[i].type, p_info.type); \
-		}\
-	}\
-	\
-	mark_point(); \
-	\
-	p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, #_type_);\
-	fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
-	fail_unless(p_object->type == type, "p_object_info.type must be == type");\
-	fail_unless(p_object->flexible_part_byte_size == 0, "p_object_info.flexible_part_byte_size must be == 0");\
-	mark_point(); \
-} while(0)
-
-START_TEST(func_type_smoke) {
-	struct metac_type_parameter_info func_t_expected_parameter_info_values[] = {
-			{.unspecified_parameters = 0, .name = "arg", .type = &METAC_TYPE_NAME(p_bit_fields_t)},
-	};
-	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
-			{.unspecified_parameters = 0, .name = "format", .type = &METAC_TYPE_NAME(cchar_t)},
-#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
-/* Workaround: looks like clang3.4 doesn't have ability to show if function has unspecified parameter. See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472*/
-			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
-#endif
-	};
-
-	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, &METAC_TYPE_NAME(int_t), func_t_expected_parameter_info_values);
-	FUNC_TYPE_SMOKE(func_printf, DW_TAG_subprogram, NULL, func_printf_expected_parameter_info_values);
-
-}END_TEST
-
-/* arrays */
-typedef char_t char_array_t[0];
-METAC_TYPE_GENERATE(char_array_t);
-
-
-START_TEST(array_type_smoke) {
-	/* test for array with bounds */
-	do {
-		char_array5_t reference_object;
-		metac_bound_t upper_bound;
-		struct metac_type_array_info array_info;
-		struct metac_type_element_info element_info;
-		struct metac_type_subrange_info subrange_info;
-		struct metac_type *type = &METAC_TYPE_NAME(char_array5_t);
-		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
-		fail_unless(array_info.subranges_count > 0, "subranges_count must be more than 0");
-		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
-				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
-		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
-		fail_unless(subrange_info.p_upper_bound != NULL || subrange_info.p_count != NULL, "subrange_info.p_upper_bound or subrange_info.p_count must present");
-		if (subrange_info.p_upper_bound != NULL) {
-			upper_bound = *(subrange_info.p_upper_bound);
-			fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
-					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
-		} else {
-			upper_bound = *(subrange_info.p_count) - 1;
-			fail_unless(*(subrange_info.p_count) == (sizeof(reference_object)/sizeof(reference_object[0])) ,
-					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_count), (int)(sizeof(reference_object)/sizeof(reference_object[0])));
-		}
-		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
-
-		fail_unless(metac_type_array_element_info(type, upper_bound, &element_info) == 0, "metac_type_array_element_info returned error");
-		fail_unless((((char*)&reference_object[upper_bound]) - ((char*)&reference_object[0]) == element_info.data_location),
-				"incorrect element location %d instead of %d",
-				(int)element_info.data_location,
-				(int)(((char*)(&reference_object[upper_bound])) - ((char*)(&reference_object[0]))));
-
-		fail_unless(metac_type_array_element_info(type, upper_bound + 1, &element_info) != 0, "metac_type_array_element_info must fail");
-	}while(0);
-	/* test for array without bounds */
-	do {
-		char_array_t reference_object;
-		struct metac_type_array_info array_info;
-		struct metac_type_element_info element_info;
-		struct metac_type_subrange_info subrange_info;
-		struct metac_type *type = &METAC_TYPE_NAME(char_array_t);
-		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
-		fail_unless(array_info.subranges_count > 0, "subrange_count must be more than 0");
-		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
-				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
-		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
-		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
-		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
-		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
-		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info for flex array must not fail");
-	}while(0);
-
-}END_TEST
-
-#define ENUM_TYPE_SMOKE(enum_type, _et_name_, expected_e_info_values) \
-do { \
-	unsigned int i; \
-	char *et_name = _et_name_; \
-	struct metac_type_enumeration_type_info et_info; \
-	struct metac_type_enumerator_info e_info; \
-    \
-	fail_unless(metac_type_enumeration_type_info(enum_type, &et_info) == 0, "metac_type_enumeration_type_info: expected success"); \
-    \
-	fail_unless((et_info.name == NULL && et_name == NULL) || strcmp(et_info.name, et_name) == 0, "invalid name %s instead of %s", et_info.name, et_name); \
-	fail_unless(et_info.byte_size > 0 /*&& et_info.byte_size <= 8*/, "expected byte_size in the range(0,*] instead of %u", et_info.byte_size);/* - not valid assumption*/ \
-	fail_unless(et_info.enumerators_count == sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), "children number must be %u instead of %u", \
-			sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), et_info.enumerators_count); \
-    \
-	for (i = 0; i < et_info.enumerators_count; i++) { \
-		fail_unless(metac_type_enumeration_type_enumerator_info(enum_type, i, &e_info) == 0, "expected success"); \
-		fail_unless(strcmp(e_info.name, expected_e_info_values[i].name) == 0, "expected %s instead of %s", expected_e_info_values[i].name, e_info.name); \
-		fail_unless((int)e_info.const_value == expected_e_info_values[i].const_value, "expected %d instead of %d", expected_e_info_values[i].const_value, e_info.const_value); \
-	}\
-}while(0)
-
-
-START_TEST(enum_type_smoke) {
-	struct metac_type *enum_type = &METAC_TYPE_NAME(enum_t);
-	struct metac_type_enumerator_info enum_type_expected_e_info_values[] = {
-			{.name = "_eZero", .const_value = 0},
-			{.name = "_eOne", .const_value = 1},
-			{.name = "_eTen", .const_value = 10},
-			{.name = "_eEleven", .const_value = 11},
-			{.name = "_eTwelve", .const_value = 12},
-	};
-	struct metac_type *anon_enum_type = &METAC_TYPE_NAME(anon_enum_t);
-	struct metac_type_enumerator_info anon_enum_type_expected_e_info_values[] = {
-			{.name = "aeMinus", .const_value = -1},
-			{.name = "aeZero", .const_value = 0},
-			{.name = "aeOne", .const_value = 1},
-			{.name = "aeTen", .const_value = 10},
-			{.name = "aeEleven", .const_value = 11},
-			{.name = "aeTwelve", .const_value = 12},
-	};
-	struct metac_type *aligned_enum_type = &METAC_TYPE_NAME(aligned_enum_t);
-	struct metac_type_enumerator_info aligned_enum_type_expected_e_info_values[] = {
-			{.name = "al_eZero", .const_value = 0},
-			{.name = "al_eOne", .const_value = 1},
-			{.name = "al_eTen", .const_value = 10},
-			{.name = "al_eEleven", .const_value = 11},
-			{.name = "al_eTwelve", .const_value = 12},
-	};
-	ENUM_TYPE_SMOKE(enum_type, "_enum_", enum_type_expected_e_info_values);
-	ENUM_TYPE_SMOKE(anon_enum_type, NULL, anon_enum_type_expected_e_info_values);
-	ENUM_TYPE_SMOKE(aligned_enum_type, "_aligned_enum_", aligned_enum_type_expected_e_info_values);
-
-}END_TEST
-
-START_TEST(metac_array_symbols) {
-	mark_point();
-	mark_point();
-	void * handle = dlopen(NULL, RTLD_NOW);
-	void * types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
-	void * objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
-	dlclose(handle);
-	fail_unless(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p", METAC_TYPES_ARRAY_SYMBOL, types_array);
-	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
-}END_TEST
-
-/*serialization - move to another file*/
-struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
-
-typedef struct _struct1_
-{
-  unsigned int x;
-  unsigned int y;
-}struct1_t;
-
-typedef struct _struct2_
-{
-	struct1_t * str1;
-}struct2_t;
-METAC_TYPE_GENERATE(struct2_t);
-
-START_TEST(metac_json_deserialization) {
-	struct metac_object * res;
-	do {
-		char * pres;
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
-		pres = (char*)res->ptr;
-		fail_unless(*pres == 'c', "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-	do {
-		int *pres;
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
-		pres = (int*)res->ptr;
-		fail_unless(*pres == 7, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-	do {
-		int_t *pres;
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
-		pres = (int_t*)res->ptr;
-		fail_unless(*pres == 7777, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-	do {
-		enum_t *pres;
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
-		pres = (enum_t*)res->ptr;
-		fail_unless(*pres == _eOne, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"x_eOne\"")) != NULL, "metac_json2object returned NULL");*/
-
-	do {
-		char_array5_t *pres;
-		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (char_array5_t*)res->ptr;
-		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-/*
-	typedef struct _bit_fields_
-	{
-	  unsigned int widthValidated : 9;
-	  unsigned int heightValidated : 12;
-	}bit_fields_t;
-	METAC_TYPE_GENERATE(bit_fields_t);
-*/
-
-
-	do {
-		int i;
-		unsigned char * p;
-		bit_fields_t *pres;
-		bit_fields_t eres = {.widthValidated = 6, .heightValidated = 100};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (bit_fields_t*)res->ptr;
-/*
-printf("result:\n");
-p = (unsigned char *) pres;
-for (i=0; i<sizeof(bit_fields_t); i++){
-printf("%02x ", (int)*p);
-p++;
-}
-printf("\n");
-printf("expected:\n");
-p = (unsigned char *) &eres;
-for (i=0; i<sizeof(bit_fields_t); i++){
-printf("%02x ", (int)*p);
-p++;
-}
-printf("\n");
-*/
-
-		fail_unless(
-				pres->widthValidated == eres.widthValidated &&
-				pres->heightValidated == eres.heightValidated, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-/*
-typedef struct _bit_fields_for_longer_than32_bit
-{
-  unsigned int widthValidated : 9;
-  unsigned int heightValidated : 12;
-  int heightValidated1 : 30;
-  llongint_t heightValidated2 : 63;
-}bit_fields_for_longer_than32_bit_t;
-METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
- */
-	do {
-		int i;
-		unsigned char * p;
-		bit_fields_for_longer_than32_bit_t *pres;
-		bit_fields_for_longer_than32_bit_t eres = {
-				.widthValidated = 6,
-				.heightValidated = 100,
-				.heightValidated1 = -1,
-				.heightValidated2 = 10000000};
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_for_longer_than32_bit_t),
-				"{\"widthValidated\": 6, \"heightValidated\": 100, \"heightValidated1\": -1, \"heightValidated2\": 10000000}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (bit_fields_for_longer_than32_bit_t*)res->ptr;
+//#define UNION_TYPE_SMOKE_START(_type_, fields_number) \
+//do{ \
+//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+//	_type_ struct_; \
+//	struct metac_type_union_info _info_;\
+//	fail_unless(metac_type_union_info(type, &_info_) == 0, "get info returned error");\
+//	fail_unless(_info_.members_count == (fields_number), \
+//			"metac_type_union_member_count incorrect value for " #_type_ ": %d", fields_number); \
+//
+//
+//#define UNION_TYPE_SMOKE_MEMBER(_member_name_) \
+//	do { \
+//		struct metac_type_member_info member_info; \
+//		int i = metac_type_child_id_by_name(type, #_member_name_); \
+//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+//		fail_unless(metac_type_union_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
+//		/* check name*/\
+//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+//				member_info.name, #_member_name_); \
+//		/* check type*/\
+//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+//		/* check offset */\
+//		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == \
+//				(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
+//				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
+//				(int)(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
+//				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
+//		\
+//	} while(0)
+//
+//#define UNION_TYPE_SMOKE_END \
+//	mark_point(); \
+//} while(0)
+//
+//#define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
+//do{ \
+//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+//	_type_ struct_; \
+//	struct metac_type_structure_info _info_;\
+//	fail_unless(metac_type_structure_info(type, &_info_) == 0, "get info returned error");\
+//	fail_unless(_info_.members_count == (fields_number), \
+//			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
+//
+//#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_) \
+//	do { \
+//		struct metac_type_member_info member_info; \
+//		int i = metac_type_child_id_by_name(type, #_member_name_); \
+//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+//		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
+//		/* check name*/ \
+//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+//				member_info.name, #_member_name_); \
+//		/* check type*/\
+//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+//		/* check offset */\
+//		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
+//		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
+//				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
+//				(int)*member_info.p_data_member_location,\
+//				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
+//		\
+//	} while(0)
+//
+//#define STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(_member_name_) \
+//	do { \
+//		int bit_size = 0; \
+//		unsigned int mask; /*will take number of bits*/ \
+//		struct metac_type_member_info member_info; \
+//		int i = metac_type_child_id_by_name(type, #_member_name_); \
+//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
+//		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
+//		/* check name*/\
+//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
+//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
+//				member_info.name, #_member_name_); \
+//		/* check type*/\
+//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
+//		/* check offset */\
+//		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
+//		/* check bit_size*/ \
+//		memset(&struct_, 0xff, sizeof(struct_)); \
+//		mask = struct_._member_name_; \
+//		struct_.heightValidated = 0; \
+//		\
+//		while (mask != 0) { \
+//			mask >>= 1; \
+//			bit_size++; \
+//		} \
+//		fail_unless(*member_info.p_bit_size == bit_size, "bit_size is incorrect %d instead of %d", \
+//				(int)*member_info.p_bit_size, (int)bit_size); \
+//		/*TODO: make check for bit_offset and data_member_location (for big/little endian) - depends on implementation*/ \
+//	} while(0)
+//
+//#define STRUCT_TYPE_SMOKE_END \
+//	mark_point(); \
+//} while(0)
+//
+//START_TEST(struct_type_smoke) {
+//	UNION_TYPE_SMOKE_START(union_t, 2)
+//		UNION_TYPE_SMOKE_MEMBER(d);
+//		UNION_TYPE_SMOKE_MEMBER(f);
+//	UNION_TYPE_SMOKE_END;
+//
+//	STRUCT_TYPE_SMOKE_START(struct_t, 2)
+//		STRUCT_TYPE_SMOKE_MEMBER(heightValidated);
+//		STRUCT_TYPE_SMOKE_MEMBER(widthValidated);
+//	STRUCT_TYPE_SMOKE_END;
+//
+//	STRUCT_TYPE_SMOKE_START(bit_fields_t, 2)
+//		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(heightValidated);
+//		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(widthValidated);
+//	STRUCT_TYPE_SMOKE_END;
+//}END_TEST
+//
+//#define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
+//do{ \
+//	unsigned int i; \
+//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+//	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+//	struct metac_type_subprogram_info s_info; \
+//	struct metac_type_parameter_info p_info; \
+//	struct metac_object * p_object; \
+//	\
+//	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
+//	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
+//			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
+//	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
+//	\
+//	mark_point(); \
+//	\
+//	fail_unless(metac_type_subprogram_info(type, &s_info) == 0, "metac_type_subprogram_info: expected success"); \
+//	\
+//	fail_unless(strcmp(s_info.name, #_type_) == 0, "invalid name %s instead of %s", s_info.name, #_type_); \
+//	fail_unless(s_info.type == expected_return_type, "not expected return type %p instead of %p", s_info.type, expected_return_type); \
+//	fail_unless(s_info.parameters_count == sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), "params number must be %u instead of %u", \
+//			sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), s_info.parameters_count); \
+//	\
+//	for (i = 0; i < s_info.parameters_count; i++) { \
+//		fail_unless(metac_type_subprogram_parameter_info(type, i, &p_info) == 0, "expected success"); \
+//		fail_unless(p_info.unspecified_parameters == expected_parameter_info_values[i].unspecified_parameters, "expected %d instead of %d", expected_parameter_info_values[i].unspecified_parameters, p_info.unspecified_parameters); \
+//		if (p_info.unspecified_parameters == 0) { \
+//			fail_unless(strcmp(p_info.name, expected_parameter_info_values[i].name) == 0, "expected %s instead of %s", expected_parameter_info_values[i].name, p_info.name); \
+//			fail_unless(p_info.type == expected_parameter_info_values[i].type, "wrong parameter type: expected %p instead of %p", expected_parameter_info_values[i].type, p_info.type); \
+//		}\
+//	}\
+//	\
+//	mark_point(); \
+//	\
+//	p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, #_type_);\
+//	fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
+//	fail_unless(p_object->type == type, "p_object_info.type must be == type");\
+//	fail_unless(p_object->flexible_part_byte_size == 0, "p_object_info.flexible_part_byte_size must be == 0");\
+//	mark_point(); \
+//} while(0)
+//
+//START_TEST(func_type_smoke) {
+//	struct metac_type_parameter_info func_t_expected_parameter_info_values[] = {
+//			{.unspecified_parameters = 0, .name = "arg", .type = &METAC_TYPE_NAME(p_bit_fields_t)},
+//	};
+//	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
+//			{.unspecified_parameters = 0, .name = "format", .type = &METAC_TYPE_NAME(cchar_t)},
+//#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
+///* Workaround: looks like clang3.4 doesn't have ability to show if function has unspecified parameter. See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472*/
+//			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
+//#endif
+//	};
+//
+//	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, &METAC_TYPE_NAME(int_t), func_t_expected_parameter_info_values);
+//	FUNC_TYPE_SMOKE(func_printf, DW_TAG_subprogram, NULL, func_printf_expected_parameter_info_values);
+//
+//}END_TEST
+//
+///* arrays */
+//typedef char_t char_array_t[0];
+//METAC_TYPE_GENERATE(char_array_t);
+//
+//
+//START_TEST(array_type_smoke) {
+//	/* test for array with bounds */
+//	do {
+//		char_array5_t reference_object;
+//		metac_bound_t upper_bound;
+//		struct metac_type_array_info array_info;
+//		struct metac_type_element_info element_info;
+//		struct metac_type_subrange_info subrange_info;
+//		struct metac_type *type = &METAC_TYPE_NAME(char_array5_t);
+//		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
+//		fail_unless(array_info.subranges_count > 0, "subranges_count must be more than 0");
+//		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
+//				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
+//		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
+//		fail_unless(subrange_info.p_upper_bound != NULL || subrange_info.p_count != NULL, "subrange_info.p_upper_bound or subrange_info.p_count must present");
+//		if (subrange_info.p_upper_bound != NULL) {
+//			upper_bound = *(subrange_info.p_upper_bound);
+//			fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
+//					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
+//		} else {
+//			upper_bound = *(subrange_info.p_count) - 1;
+//			fail_unless(*(subrange_info.p_count) == (sizeof(reference_object)/sizeof(reference_object[0])) ,
+//					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_count), (int)(sizeof(reference_object)/sizeof(reference_object[0])));
+//		}
+//		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
+//
+//		fail_unless(metac_type_array_element_info(type, upper_bound, &element_info) == 0, "metac_type_array_element_info returned error");
+//		fail_unless((((char*)&reference_object[upper_bound]) - ((char*)&reference_object[0]) == element_info.data_location),
+//				"incorrect element location %d instead of %d",
+//				(int)element_info.data_location,
+//				(int)(((char*)(&reference_object[upper_bound])) - ((char*)(&reference_object[0]))));
+//
+//		fail_unless(metac_type_array_element_info(type, upper_bound + 1, &element_info) != 0, "metac_type_array_element_info must fail");
+//	}while(0);
+//	/* test for array without bounds */
+//	do {
+//		char_array_t reference_object;
+//		struct metac_type_array_info array_info;
+//		struct metac_type_element_info element_info;
+//		struct metac_type_subrange_info subrange_info;
+//		struct metac_type *type = &METAC_TYPE_NAME(char_array_t);
+//		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
+//		fail_unless(array_info.subranges_count > 0, "subrange_count must be more than 0");
+//		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
+//				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
+//		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
+//		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
+//		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
+//		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
+//		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info for flex array must not fail");
+//	}while(0);
+//
+//}END_TEST
+//
+//#define ENUM_TYPE_SMOKE(enum_type, _et_name_, expected_e_info_values) \
+//do { \
+//	unsigned int i; \
+//	char *et_name = _et_name_; \
+//	struct metac_type_enumeration_type_info et_info; \
+//	struct metac_type_enumerator_info e_info; \
+//    \
+//	fail_unless(metac_type_enumeration_type_info(enum_type, &et_info) == 0, "metac_type_enumeration_type_info: expected success"); \
+//    \
+//	fail_unless((et_info.name == NULL && et_name == NULL) || strcmp(et_info.name, et_name) == 0, "invalid name %s instead of %s", et_info.name, et_name); \
+//	fail_unless(et_info.byte_size > 0 /*&& et_info.byte_size <= 8*/, "expected byte_size in the range(0,*] instead of %u", et_info.byte_size);/* - not valid assumption*/ \
+//	fail_unless(et_info.enumerators_count == sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), "children number must be %u instead of %u", \
+//			sizeof(expected_e_info_values)/sizeof(struct metac_type_enumerator_info), et_info.enumerators_count); \
+//    \
+//	for (i = 0; i < et_info.enumerators_count; i++) { \
+//		fail_unless(metac_type_enumeration_type_enumerator_info(enum_type, i, &e_info) == 0, "expected success"); \
+//		fail_unless(strcmp(e_info.name, expected_e_info_values[i].name) == 0, "expected %s instead of %s", expected_e_info_values[i].name, e_info.name); \
+//		fail_unless((int)e_info.const_value == expected_e_info_values[i].const_value, "expected %d instead of %d", expected_e_info_values[i].const_value, e_info.const_value); \
+//	}\
+//}while(0)
+//
+//
+//START_TEST(enum_type_smoke) {
+//	struct metac_type *enum_type = &METAC_TYPE_NAME(enum_t);
+//	struct metac_type_enumerator_info enum_type_expected_e_info_values[] = {
+//			{.name = "_eZero", .const_value = 0},
+//			{.name = "_eOne", .const_value = 1},
+//			{.name = "_eTen", .const_value = 10},
+//			{.name = "_eEleven", .const_value = 11},
+//			{.name = "_eTwelve", .const_value = 12},
+//	};
+//	struct metac_type *anon_enum_type = &METAC_TYPE_NAME(anon_enum_t);
+//	struct metac_type_enumerator_info anon_enum_type_expected_e_info_values[] = {
+//			{.name = "aeMinus", .const_value = -1},
+//			{.name = "aeZero", .const_value = 0},
+//			{.name = "aeOne", .const_value = 1},
+//			{.name = "aeTen", .const_value = 10},
+//			{.name = "aeEleven", .const_value = 11},
+//			{.name = "aeTwelve", .const_value = 12},
+//	};
+//	struct metac_type *aligned_enum_type = &METAC_TYPE_NAME(aligned_enum_t);
+//	struct metac_type_enumerator_info aligned_enum_type_expected_e_info_values[] = {
+//			{.name = "al_eZero", .const_value = 0},
+//			{.name = "al_eOne", .const_value = 1},
+//			{.name = "al_eTen", .const_value = 10},
+//			{.name = "al_eEleven", .const_value = 11},
+//			{.name = "al_eTwelve", .const_value = 12},
+//	};
+//	ENUM_TYPE_SMOKE(enum_type, "_enum_", enum_type_expected_e_info_values);
+//	ENUM_TYPE_SMOKE(anon_enum_type, NULL, anon_enum_type_expected_e_info_values);
+//	ENUM_TYPE_SMOKE(aligned_enum_type, "_aligned_enum_", aligned_enum_type_expected_e_info_values);
+//
+//}END_TEST
+//
+//START_TEST(metac_array_symbols) {
+//	mark_point();
+//	mark_point();
+//	void * handle = dlopen(NULL, RTLD_NOW);
+//	void * types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
+//	void * objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
+//	dlclose(handle);
+//	fail_unless(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p", METAC_TYPES_ARRAY_SYMBOL, types_array);
+//	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
+//}END_TEST
+//
+///*serialization - move to another file*/
+//struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
+//
+//typedef struct _struct1_
+//{
+//  unsigned int x;
+//  unsigned int y;
+//}struct1_t;
+//
+//typedef struct _struct2_
+//{
+//	struct1_t * str1;
+//}struct2_t;
+//METAC_TYPE_GENERATE(struct2_t);
+//
+//START_TEST(metac_json_deserialization) {
+//	struct metac_object * res;
+//	do {
+//		char * pres;
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
+//		pres = (char*)res->ptr;
+//		fail_unless(*pres == 'c', "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//	do {
+//		int *pres;
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
+//		pres = (int*)res->ptr;
+//		fail_unless(*pres == 7, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//	do {
+//		int_t *pres;
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
+//		pres = (int_t*)res->ptr;
+//		fail_unless(*pres == 7777, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//
+//	do {
+//		enum_t *pres;
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
+//		pres = (enum_t*)res->ptr;
+//		fail_unless(*pres == _eOne, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"x_eOne\"")) != NULL, "metac_json2object returned NULL");*/
+//
+//	do {
+//		char_array5_t *pres;
+//		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
+//				"metac_json2object returned NULL");
+//		pres = (char_array5_t*)res->ptr;
+//		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//
+///*
+//	typedef struct _bit_fields_
+//	{
+//	  unsigned int widthValidated : 9;
+//	  unsigned int heightValidated : 12;
+//	}bit_fields_t;
+//	METAC_TYPE_GENERATE(bit_fields_t);
+//*/
+//
+//
+//	do {
+//		int i;
+//		unsigned char * p;
+//		bit_fields_t *pres;
+//		bit_fields_t eres = {.widthValidated = 6, .heightValidated = 100};
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
+//				"metac_json2object returned NULL");
+//		pres = (bit_fields_t*)res->ptr;
+///*
 //printf("result:\n");
 //p = (unsigned char *) pres;
-//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+//for (i=0; i<sizeof(bit_fields_t); i++){
 //printf("%02x ", (int)*p);
 //p++;
 //}
 //printf("\n");
 //printf("expected:\n");
 //p = (unsigned char *) &eres;
-//for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+//for (i=0; i<sizeof(bit_fields_t); i++){
 //printf("%02x ", (int)*p);
 //p++;
 //}
 //printf("\n");
-		fail_unless(
-				pres->widthValidated == eres.widthValidated &&
-				pres->heightValidated == eres.heightValidated /*&&
-				pres->heightValidated1 == eres.heightValidated1 &&
-				pres->heightValidated2 == eres.heightValidated2*/
-				, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-
-
-	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
-	 * 		"metac_json2object returned NULL");*/
-	GENERAL_TYPE_SMOKE(struct2_t, DW_TAG_structure_type);
-	do {
-		struct2_t *pres;
-		struct1_t str1 = {.x = 1, .y = 8};
-		struct2_t eres = {.str1 = &str1};
-
-		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
-				"metac_json2object returned NULL");
-		pres = (struct2_t*)res->ptr;
-		fail_unless(pres->str1 != NULL, "pointer wasn't initialized");
-		fail_unless(
-				pres->str1->x == eres.str1->x &&
-				pres->str1->y == eres.str1->y, "unexpected data");
-		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-	}while(0);
-	mark_point();
-
-}END_TEST
+//*/
+//
+//		fail_unless(
+//				pres->widthValidated == eres.widthValidated &&
+//				pres->heightValidated == eres.heightValidated, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//
+///*
+//typedef struct _bit_fields_for_longer_than32_bit
+//{
+//  unsigned int widthValidated : 9;
+//  unsigned int heightValidated : 12;
+//  int heightValidated1 : 30;
+//  llongint_t heightValidated2 : 63;
+//}bit_fields_for_longer_than32_bit_t;
+//METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+// */
+//	do {
+//		int i;
+//		unsigned char * p;
+//		bit_fields_for_longer_than32_bit_t *pres;
+//		bit_fields_for_longer_than32_bit_t eres = {
+//				.widthValidated = 6,
+//				.heightValidated = 100,
+//				.heightValidated1 = -1,
+//				.heightValidated2 = 10000000};
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_for_longer_than32_bit_t),
+//				"{\"widthValidated\": 6, \"heightValidated\": 100, \"heightValidated1\": -1, \"heightValidated2\": 10000000}")) != NULL,
+//				"metac_json2object returned NULL");
+//		pres = (bit_fields_for_longer_than32_bit_t*)res->ptr;
+////printf("result:\n");
+////p = (unsigned char *) pres;
+////for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+////printf("%02x ", (int)*p);
+////p++;
+////}
+////printf("\n");
+////printf("expected:\n");
+////p = (unsigned char *) &eres;
+////for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
+////printf("%02x ", (int)*p);
+////p++;
+////}
+////printf("\n");
+//		fail_unless(
+//				pres->widthValidated == eres.widthValidated &&
+//				pres->heightValidated == eres.heightValidated /*&&
+//				pres->heightValidated1 == eres.heightValidated1 &&
+//				pres->heightValidated2 == eres.heightValidated2*/
+//				, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//
+//
+//
+//	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
+//	 * 		"metac_json2object returned NULL");*/
+//	GENERAL_TYPE_SMOKE(struct2_t, DW_TAG_structure_type);
+//	do {
+//		struct2_t *pres;
+//		struct1_t str1 = {.x = 1, .y = 8};
+//		struct2_t eres = {.str1 = &str1};
+//
+//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
+//				"metac_json2object returned NULL");
+//		pres = (struct2_t*)res->ptr;
+//		fail_unless(pres->str1 != NULL, "pointer wasn't initialized");
+//		fail_unless(
+//				pres->str1->x == eres.str1->x &&
+//				pres->str1->y == eres.str1->y, "unexpected data");
+//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
+//	}while(0);
+//	mark_point();
+//
+//}END_TEST
 
 int main(void){
 	return run_suite(
@@ -825,12 +826,12 @@ int main(void){
 			ADD_CASE(
 				START_CASE(type_smoke){
 					ADD_TEST(general_type_smoke);
-					ADD_TEST(struct_type_smoke);
-					ADD_TEST(func_type_smoke);
-					ADD_TEST(array_type_smoke);
-					ADD_TEST(enum_type_smoke);
-					ADD_TEST(metac_array_symbols);
-					ADD_TEST(metac_json_deserialization);
+//					ADD_TEST(struct_type_smoke);
+//					ADD_TEST(func_type_smoke);
+//					ADD_TEST(array_type_smoke);
+//					ADD_TEST(enum_type_smoke);
+//					ADD_TEST(metac_array_symbols);
+//					ADD_TEST(metac_json_deserialization);
 				}END_CASE
 			);
 		}END_SUITE

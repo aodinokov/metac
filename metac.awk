@@ -53,6 +53,61 @@ function dump_at(data_id, at_id, res) {
     return res[1];
 }
 
+function dump_main_types(type, i) {
+    res = "";
+    #print "/* --" i "--*/"
+    for (j in data[i]) {
+        if (match(j, "DW_AT_(.*)", arr0)) {
+            #print "/* --" j "--*/"
+            #intentionally don't do check of attributes and type - compiler will do it and compilation will fail if we have a problem
+            switch(j){
+            case "DW_AT_name":
+                res = res "\t\t." arr0[1] " = \"" data[i][j] "\",\n";
+                break;
+            case "DW_AT_data_member_location":
+                if (match(data[i][j], "([0-9]+).*", arr)) {
+                    res = res "\t\t." arr0[1] " = " arr[1] "/*" data[i][j] "*/,\n";
+                }
+                break;
+            case "DW_AT_type":
+                if (match(data[i][j], "<([^>]+)>", arr)) {
+                    res = res "\t\t." arr0[1] " = &" type_variable_name(arr[1]) ",\n";
+                }
+                break;
+            case "DW_AT_byte_size":
+            case "DW_AT_bit_offset":
+            case "DW_AT_bit_size":
+            case "DW_AT_encoding":
+            case "DW_AT_lower_bound":
+            case "DW_AT_upper_bound":
+            case "DW_AT_count":
+            case "DW_AT_const_value":
+                res = res "\t\t." arr0[1] " = " data[i][j] ",\n"
+                
+                break;
+            default:
+                #res = res "\t\t/* Skip ." arr0[1] " = " data[i][j] ", */\n"
+            }
+        }
+    }
+    switch (type) {
+        case "enumeration_type":
+            # set enumerators_count and enumerators
+        break;
+        case "subprogram":
+            # analogy of enumberation_type etc
+        break;
+        case "structure_type":
+        break;
+        case "union_type":
+        break;
+        case "array_type":
+            # analogy of enumberation_type + some precalculated params (number of elements and etc)
+        break;
+    }
+    return res;
+}
+
 function type_name(name) {
     if (name == "long int")
         return "long";
@@ -136,6 +191,15 @@ BEGIN {
 }
 
 END {
+    main_type_ids["base_type"] = "base_type";
+    main_type_ids["pointer_type"] = "pointer_type";
+    main_type_ids["typedef"] = "typedef";
+    main_type_ids["enumeration_type"] = "enumeration_type";
+    main_type_ids["subprogram"] = "subprogram";
+    main_type_ids["structure_type"] = "structure_type";
+    main_type_ids["union_type"] = "union_type";
+    main_type_ids["array_type"] = "array_type";
+    
     for (i in data) {
         if ((length(task4types) == 0) ||
             ("DW_AT_name" in data[i] && type_name(data[i]["DW_AT_name"]) in task4types))
@@ -186,8 +250,10 @@ END {
             if (match(j, "DW_AT_(.*)", arr0)) {
                 string_res[2] = "";
                 dump_res = dump_at(i, j, string_res);
-                if (dump_res > 0)
-                    p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n"
+                if (dump_res > 0) {
+                    #p_at= p_at "\t\t.p_at_" arr0[1] " = &data_" i "_at[" at_num "],\n"
+                    
+                }
                 at = at string_res[2];
                 at_num += dump_res;
             }
@@ -207,7 +273,11 @@ END {
         if (at_num > 0) {
             print "\t.at_num = " at_num ",";
             print "\t.at = data_" i "_at,";
-            print "\t.p_at = {\n" p_at "\t},";
+            #print "\t.p_at = {\n" p_at "\t},";
+            # special logic to print everything about the type and its parts
+            if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
+                print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
+            }
         }
         if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
             print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
