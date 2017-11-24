@@ -1,35 +1,57 @@
+the plan without risk management:
+
+refactoring of the reflection implementation/API - APIv0.2
+add normal logging to reflection - not only errors
+add errno.h and a way to get the latest error msg.
+
+json serialization of not covered types: complex, types with attributes, 2D-arrays/nD-arrays?
+
+make general approach for serialization (walker-pattern?)
+adding parameterers for serialization/deserializations and use typespecs (aligned, union_discriminator, flex_array_NULL stop)
+
+json-rpc
+bash binding:
+cmodule list modules
+cmodule open <pseudoname>, path
+cmodule list types (do we need this??? probably it's better to show type info)
+cmodule list objects
+object, type, size (what do we have in the object??)
+cmodule close <pseudoname>
+metac_module_close
+
+cmodule call <pseudoname> <functionname> <json-params>
+CMODULE_CALL_RESULT
 
 
-re-factoring plan:
-1. UT for json: make it abstract:
-positive test:
-c-data0 -> json -> c-data1 (c-data0 and c-data1 must be identical)
-but this will not cover everything - there are many ways to set json for the same cdata, better:
-json0->cdata0->json1->cdata1 (jsons will not be identical)
-negative test:
-s11n and des11n should have different macroses
+plan with risk management:
+risks:
+1. I don't know how to support types that were not covered: complex, types with attributes, 2D-arrays/nD-arrays? - this may affect API
+Plan - to add UT for these types (without serialization for now). once this is done it'll be possible to say what do we need to add to API
+after that we may follow the plan
+2. not sure that the current library for json is ok to support JSON-RPC. - we need somehow to understand that we read the whole msg
+experiment
 
-29. expand UT
-    rename metac_type_ut_001.c - it's a set of smoke tests.
-
-30. include errorno.h to metac_type and return normal error code
-
-31. to limit the recursion - instead of calling _metac_alloc_and_fill_recursevly in recursion, put adding to queue in _metac_fill_pointer_type
-
-32. BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}"); - see metac_s11n_json_ut_001.c
-3
-
-11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details - _HANDLE_BITFIELDS - make it separate
-5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
-10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
-20. Easy PoC serialization/de-serialization. e.g. to serialize function call params to json (based on the function arguments) and de-serialize them
-21. What to do with pointers and cycles?
-22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
-23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
-24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
-
+go further:
+1. RPC scenario:
+   20. Easy PoC serialization/de-serialization. e.g. to serialize function call params to json (based on the function arguments) and de-serialize them
+   json-rpc2.0: http://www.jsonrpc.org/specification
+   24. use libffi to construct calls based on serialized data (need to somehow include this into 20/22).
+2. Binding to bash. like ctypes.sh, but with modules and rpc (apparently - the std module)  
+   
+3. dynamic type generator (to construct and include types)??? - ctypes.sh has this feature for cases it's not possible to get info about type.
+workaround - create a module with type - it will generate everything
+   
+Improve serialization:
+1. support more serialization formats:
+   22. improve serialization by adding different types of data format: json, xml?, asn.1(what sub-types - depends on lib to use), xdr(rpc), xml-rpc/json-rpc????, rest?????
+2. try to improve performance for s11n
+   23. try to make serialization/deserialization possible to compile, like regexp can be compiled to improve performance
+   based on the current experience - serialization is possible to make as a vm with special commands and operations.
+   de-sericalization will depend on the source
+4. serialization of:
 33. 2d array
-34. DW_ATE_complex_float
+34. DW_ATE_complex_float,
+fixed ???
 35. typedef enum __attribute__((packed, aligned(16)))_enum_{
     _eZero = 0,
     _eOne,
@@ -37,6 +59,88 @@ s11n and des11n should have different macroses
     _eEleven,
     _eTwelve,
 }enum_t;
+
+38. In case we're serializing from pointer - the pointer can also point to array, but we don't have this info. 
+TBD - we need to pass this info via extra-info somehow. use type-specs
+stop on pointers for serialzaion/deserializations like in ctypes?
+
+39. we should understand the difference
+when we return NULL in s11n and it's not the error:
+e.g. _metac_pointer_type_s11n returns NULL if the pointer is it gets is NULL.
+
+xx. sometimes, when we serialize we need to override serialization rules
+and some of serialization rules should be taken from type-specs (not implemented yet)
+
+ 
+
+improve reflection:
+29. expand UT
+    rename metac_type_ut_001.c - it's a set of smoke tests.
+30. include errorno.h to metac_type and return normal error code
+31. to limit the recursion - instead of calling _metac_alloc_and_fill_recursevly in recursion, put adding to queue in _metac_fill_pointer_type
+37. use approach from metaresc to generate only 1 struct per type (integrate at and children into it)
+11. create function to read/write bit fields (arch independent). See STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD for more details - _HANDLE_BITFIELDS - make it separate
+5. make some highlevel API to get global offset(including bif fields)/type/size e.g. of field in struct in union in array (with C-syntax)
+10. minor - expand metac_type.h by metac_type_array.h metac_type_union.h metac_type_struct.h metac_type_enum.h metac_type_subprogram.h
+21. What to do with pointers and cycles?
+
+some ideas for refactoring of reflection API/implementation:
+mt_compile()/mt_check_sanity() - should be done on .metac.c generation
+
+mt_alloc(member_info.type, 0 /*flex len*/, &buffer, &buffer_len);
+mt_object_alloc(member_info.type, 0 /*flex len*/); ??? may be better use flex_array len
+mt_create_from_json_object(member_info.type, jobj, &buffer, &buffer_len);
+mt_free(member_info.type, buffer, buffer_len)
+mt_dump_to_json_object(member_info.type, buffer, buffer_len)
+mt_dump_to_json_string(member_info.type, buffer, buffer_len)
+
+
+mt_data_member_location_present(member_info)?mt_data_member_location_get(member_info):0
+member_info_data_location_present
+
+if mt_structure_member_info_has_data_member_location(member_info)
+if mt_structure_member_has_offset(member_info)
+mt_structure_member_get_offset(member_info) ? - static inline 
+
+if mt_structure_member_info_has_offset(member_info)
+
+mt_get_structure_member_info(type, i, &member_info);
+
+
+
+
+#define mt_structure_member_get_mparam(member_info, what) ((member_info).##what)
+#define mt_structure_member_has_oparam(member_info, what) ((member_info).p_##what != NULL)
+#define mt_structure_member_get_oparam(member_info, what) ((member_info).p_##what)
+
+
+
+static inline int mt_structure_member_is_bitfield(member_info) {
+return mt_structure_member_has_oparam(*member_info, bit_offset) || 
+       mt_structure_member_has_oparam(*member_info, bit_size)
+}
+mt_structure_member_get_param(*member_info, bit_size)
+mt_pointer_get_type
+
+
+improve documentation Documentation
+26. make doxygen doc generation
+
+
+
+40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop) - done
+
+::::::::::::::::::Done::::::::::::::::::::::::::::::::
+re-factoring plan:
+1. UT for json: make it abstract:
+positive test:
+c-data0 -> json -> c-data1 (c-data0 and c-data1 must be identical) - done
+but this will not cover everything - there are many ways to set json for the same cdata, better:
+json0->cdata0->json1->cdata1 (jsons will not be identical)  - done
+negative test:
+s11n and des11n should have different macroses  - done
+
+32. BASIC_TYPE_JSON_DES11N_NEGATIVE(struct6_t, "{\"w\": {\"word\": [1, 2]}, \"b1\": {\"byte\": [1, 2, 3, 4]}}"); - see metac_s11n_json_ut_001.c
 
 
 36. it's possible to make a special macro to create extra param. It will require an additional scan in nm: metac_<type>_extra.
@@ -50,20 +154,15 @@ metac__typeextra_pchar_ = {
 {key: TE_FLEXARRAY, value: (void*){TE_FLEXARRAY_MODE_WITH_LEN_FIELD, len_field_name: ""}
 };
 modify metac.awk to add this field to the type if it was defined
+- done. may be to rethink 
 
-37. use approach from metaresc to generate only 1 struct per type (integrate at and children into it)
 
-Documentation
-26. make doxygen doc generation
+we can't support  flexible array until we didn't fix 40 and 41 - done
+serializing of char * is handled in the different place - there should be an issue with that. 
 
-38. In case we're serializing from pointer  - the pointer can also point to array, but we don't have this info. 
-TBD - we need to pass this info via extra-info somehow.
+42. rethink if we need metac_objects - done
+if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to understand the implications from des11n side.
 
-39. we should understand the difference
-when we return NULL in s11n and it's not the error:
-e.g. _metac_pointer_type_s11n returns NULL if the pointer is it gets is NULL.
-
-40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop) - done
 
 41. not clear hot to be with symbols that can't be part of json string e.g. \0 -
 currently we're tyring to put it, but it will be empty string
@@ -73,11 +172,4 @@ if c = '\t' it will be serialized to "  " that is also not clear. probably for s
 UPDATE: "0" is ambiguous for char- it may be really zero, or it may be 0x30
 fixed in serialization, but still not sure if it will be correctly d11ed
 we need a set of tests that shows that some data is correctly serialized (to some data)  and de-serialized to the previous data. 
-
-we can't support  flexible array until we didn't fix 40 and 41 - done
-serializing of char * is handled in the different place - there should be an issue with that. 
-
-42. rethink if we need metac_objects - done
-if we are going to pass byte_size to to s11n functions (to support flexible arrays), we need to understand the implications from des11n side.
-
-
+- looks like done - at least we don't have any issue with UT
