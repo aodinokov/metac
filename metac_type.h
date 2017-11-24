@@ -209,26 +209,20 @@ struct metac_type {
 			metac_name_t					name;						/* name of the structure (may be NULL)*/
 			metac_byte_size_t				byte_size;					/* size of the structure in bytes */
 			metac_num_t						members_count;				/* number of members */
-			struct {
+			struct member_info {
 				metac_type_t *					type;						/* type of the member (mandatory) */
 				metac_name_t					name;						/* name of the member (mandatory) */
 				metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
 				metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
 				metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
-			}members[];
+			}*members;
 		}structure_type_info;
 		/* .id == DW_TAG_union_type */
 		struct {
 			metac_name_t					name;						/* name of the union (may be NULL)*/
 			metac_byte_size_t				byte_size;					/* size of the union in bytes */
 			metac_num_t						members_count;				/* number of members */
-			struct {
-				metac_type_t *					type;						/* type of the member (mandatory) */
-				metac_name_t					name;						/* name of the member (mandatory) */
-				metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
-				metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-				metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
-			}members[];
+			struct member_info *members;
 		}union_type_info;
 		/* .id == DW_TAG_array_type */
 		struct {
@@ -236,12 +230,12 @@ struct metac_type {
 			int 							is_flexible;			/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
 			metac_count_t					elements_count;			/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
 			metac_num_t						subranges_count;		/* number of subranges ( >1 if array is multi-dimensional) */
-			struct {
+			struct subrange_info {
 				metac_type_t *					type;					/* type of index */
 				metac_count_t *					p_count;				/* number of elements in subrange */
 				metac_bound_t *					p_lower_bound;			/* min index in subrange */
 				metac_bound_t *					p_upper_bound;			/* max index in subrange */
-			}subranges[];
+			}*subranges;
 		}array_type_info;
 	};
 };

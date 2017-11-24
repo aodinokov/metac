@@ -90,6 +90,7 @@ function dump_main_types(type, i) {
             }
         }
     }
+    # processing children for some types
     switch (type) {
         case "enumeration_type":
             if ("child" in data[i]) {
@@ -115,7 +116,6 @@ function dump_main_types(type, i) {
                     switch (data[child_i]["type"]) {
                     case "DW_TAG_formal_parameter":
                         if (match(data[child_i]["DW_AT_type"], "<([^>]+)>", arr)) {
-                            #res = res "\t\t." arr0[1] " = &" type_variable_name(arr[1]) ",\n";
                             res1 = res1 "\t\t\t{.name = \"" data[child_i]["DW_AT_name"] "\", .type = &" type_variable_name(arr[1]) "},\n";
                             ++count;
                         }
@@ -131,11 +131,87 @@ function dump_main_types(type, i) {
             }
         break;
         case "structure_type":
-        break;
         case "union_type":
-        break;
+            if ("child" in data[i]) {
+                count = 0;
+                res1 = "\t\t.members = (struct member_info[]) {\n"
+                for (k in data[i]["child"]) {
+                    child_i = data[i]["child"][k];
+                    switch (data[child_i]["type"]) {
+                    case "DW_TAG_member":
+                        res1 = res1 "\t\t\t{\n";
+                        res1 = res1 "\t\t\t\t.name = \"" data[child_i]["DW_AT_name"] "\",\n";
+                        if (match(data[child_i]["DW_AT_type"], "<([^>]+)>", arr)) {
+                            res1 = res1 "\t\t\t\t.type = &" type_variable_name(arr[1]) ",\n";
+                        }
+                        #optional attributes:
+                        if ("DW_AT_data_member_location" in data[child_i] && 
+                             match(data[child_i]["DW_AT_data_member_location"], "([0-9]+).*", arr)) {
+                            res1 = res1 "\t\t\t\t.p_data_member_location = (metac_data_member_location_t[]){" arr[1] "/*"data[child_i]["DW_AT_data_member_location"] "*/},\n";
+                        }
+                        if ("DW_AT_bit_offset" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_bit_offset = (metac_bit_offset_t[]){" data[child_i]["DW_AT_bit_offset"] "},\n";
+                        }
+                        if ("DW_AT_bit_size" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_bit_size = (metac_bit_size_t[]){" data[child_i]["DW_AT_bit_size"] "},\n";
+                        }
+                        res1 = res1 "\t\t\t},\n";
+                        ++count;
+                        break;
+                    }
+                }
+                res1 = res1 "\t\t},\n"
+                res = res "\t\t.members_count = "count ",\n" res1;
+            }
+        break;        
         case "array_type":
             # analogy of enumberation_type + some precalculated params (number of elements and etc)
+            if ("child" in data[i]) {
+                count = 0;
+                elements_count = "1";
+                is_flexible = 0;
+                res1 = "\t\t.subranges = (struct subrange_info []) {\n"
+                for (k in data[i]["child"]) {
+                    child_i = data[i]["child"][k];
+                    switch (data[child_i]["type"]) {
+                    case "DW_TAG_subrange_type":
+                        res1 = res1 "\t\t\t{\n";
+                        if (match(data[child_i]["DW_AT_type"], "<([^>]+)>", arr)) {
+                            res1 = res1 "\t\t\t\t.type = &" type_variable_name(arr[1]) ",\n";
+                        }
+                        #optional attributes:
+                        if ("DW_AT_count" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_count = (metac_count_t[]){" data[child_i]["DW_AT_count"] "},\n";
+                        }
+                        if ("DW_AT_lower_bound" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_lower_bound = (metac_bound_t[]){" data[child_i]["DW_AT_lower_bound"] "},\n";
+                        }
+                        if ("DW_AT_upper_bound" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_upper_bound = (metac_bound_t[]){" data[child_i]["DW_AT_upper_bound"] "},\n";
+                        }
+                        res1 = res1 "\t\t\t},\n";
+                        # calc length
+                        if ("DW_AT_count" in data[child_i])
+                            elements_count = elements_count " * " data[child_i]["DW_AT_count"]
+                        else if ("DW_AT_upper_bound" in data[child_i]) {
+                            elements_count = elements_count " * (" data[child_i]["DW_AT_upper_bound"] " + 1";
+                            if ("DW_AT_lower_bound" in data[child_i])
+                                elements_count = elements_count " - " data[child_i]["DW_AT_lower_bound"];
+                            elements_count = elements_count ")";
+                        } else {
+                            is_flexible = 1;
+                        }
+                        ++count;
+                        break;
+                    }
+                }
+                res1 = res1 "\t\t},\n"
+                if (is_flexible == 1)
+                    res = res "\t\t.is_flexible = 1,\n"
+                else
+                    res = res "\t\t.elements_count = " elements_count ",\n"
+                res = res "\t\t.subranges_count = "count ",\n" res1;
+            }
         break;
     }
     return res;

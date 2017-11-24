@@ -334,8 +334,8 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_SMOKE(aligned_enum_t, DW_TAG_enumeration_type);
 
 	GENERAL_TYPE_SMOKE(char_array5_t, DW_TAG_array_type);
-//	GENERAL_TYPE_SMOKE(_2darray_t, DW_TAG_array_type);
-//	GENERAL_TYPE_SMOKE(_3darray_t, DW_TAG_array_type);
+	GENERAL_TYPE_SMOKE(_2darray_t, DW_TAG_array_type);
+	GENERAL_TYPE_SMOKE(_3darray_t, DW_TAG_array_type);
 
 	GENERAL_TYPE_SMOKE(union_t, DW_TAG_union_type);
 
