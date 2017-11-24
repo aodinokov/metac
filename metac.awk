@@ -92,10 +92,43 @@ function dump_main_types(type, i) {
     }
     switch (type) {
         case "enumeration_type":
-            # set enumerators_count and enumerators
+            if ("child" in data[i]) {
+                count = 0;
+                res1 = "\t\t.enumerators = (struct enumerator_info[]) {\n"
+                for (k in data[i]["child"]) {
+                    child_i = data[i]["child"][k];
+                    if (data[child_i]["type"] == "DW_TAG_enumerator") {
+                        res1 = res1 "\t\t\t{.name = \"" data[child_i]["DW_AT_name"] "\", .const_value = " data[child_i]["DW_AT_const_value"] "},\n";
+                        ++count;
+                    }
+                }
+                res1 = res1 "\t\t},\n"
+                res = res "\t\t.enumerators_count = "count ",\n" res1;
+            }
         break;
         case "subprogram":
-            # analogy of enumberation_type etc
+            if ("child" in data[i]) {
+                count = 0;
+                res1 = "\t\t.parameters = (struct subprogram_parameter[]) {\n"
+                for (k in data[i]["child"]) {
+                    child_i = data[i]["child"][k];
+                    switch (data[child_i]["type"]) {
+                    case "DW_TAG_formal_parameter":
+                        if (match(data[child_i]["DW_AT_type"], "<([^>]+)>", arr)) {
+                            #res = res "\t\t." arr0[1] " = &" type_variable_name(arr[1]) ",\n";
+                            res1 = res1 "\t\t\t{.name = \"" data[child_i]["DW_AT_name"] "\", .type = &" type_variable_name(arr[1]) "},\n";
+                            ++count;
+                        }
+                        break;
+                    case "DW_TAG_unspecified_parameters":
+                        res1 = res1 "\t\t\t{.unspecified_parameters = 1},\n";
+                        ++count;
+                        break;
+                    }
+                }
+                res1 = res1 "\t\t},\n"
+                res = res "\t\t.parameters_count = "count ",\n" res1;
+            }
         break;
         case "structure_type":
         break;

@@ -74,6 +74,7 @@ static struct metac_type data_0x00000829 = {
     },
 };
 
+To add .dwarf_raw_type = for struct enumerator_info  and etc?
 
 go further:
 1. RPC scenario:

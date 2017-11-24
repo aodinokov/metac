@@ -24,7 +24,7 @@ typedef unsigned int					metac_bit_offset_t;
 typedef unsigned int					metac_bit_size_t;
 typedef unsigned int					metac_bound_t;
 typedef unsigned int					metac_count_t;
-typedef long							metac_const_value_t;
+typedef unsigned long					metac_const_value_t;
 
 typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
@@ -188,21 +188,21 @@ struct metac_type {
 			metac_name_t		name;					/* name of type (can be NULL for anonymous enums) */
 			metac_byte_size_t	byte_size;				/* mandatory field */
 			metac_num_t			enumerators_count;		/* mandatory field */
-			struct {
+			struct enumerator_info {
 				metac_name_t		name;					/* enumerator name */
 				metac_const_value_t	const_value;			/* enumerator value */
-			}enumerators[];
+			}*enumerators;
 		}enumeration_type_info;
 		/* .id == DW_TAG_subprogram */
 		struct {
 			metac_type_t *	type;					/* function return type (NULL if void) */
 			metac_name_t	name;					/* function name */
 			metac_num_t		parameters_count;		/* number of parameters */
-			struct {
+			struct subprogram_parameter {
 				int				unspecified_parameters;	/*if 1 - after that it's possible to have a lot of arguments*/
 				metac_type_t *	type;					/* parameter type */
 				metac_name_t	name;					/* parameter name */
-			}parameters[];
+			}*parameters;
 		}subprogram_info;
 		/* .id = DW_TAG_structure_type */
 		struct {
