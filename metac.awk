@@ -117,7 +117,7 @@ function dump_main_types(type, i) {
         case "enumeration_type":
             if ("child" in data[i]) {
                 count = 0;
-                res1 = "\t\t.enumerators = (struct enumerator_info[]) {\n"
+                res1 = "\t\t.enumerators = (struct metac_type_enumerator_info[]) {\n"
                 for (k in data[i]["child"]) {
                     child_i = data[i]["child"][k];
                     if (data[child_i]["type"] == "DW_TAG_enumerator") {
@@ -132,7 +132,7 @@ function dump_main_types(type, i) {
         case "subprogram":
             if ("child" in data[i]) {
                 count = 0;
-                res1 = "\t\t.parameters = (struct subprogram_parameter[]) {\n"
+                res1 = "\t\t.parameters = (struct metac_type_subprogram_parameter[]) {\n"
                 for (k in data[i]["child"]) {
                     child_i = data[i]["child"][k];
                     switch (data[child_i]["type"]) {
@@ -156,7 +156,7 @@ function dump_main_types(type, i) {
         case "union_type":
             if ("child" in data[i]) {
                 count = 0;
-                res1 = "\t\t.members = (struct member_info[]) {\n"
+                res1 = "\t\t.members = (struct metac_type_member_info[]) {\n"
                 for (k in data[i]["child"]) {
                     child_i = data[i]["child"][k];
                     switch (data[child_i]["type"]) {
@@ -192,7 +192,7 @@ function dump_main_types(type, i) {
                 count = 0;
                 elements_count = "1";
                 is_flexible = 0;
-                res1 = "\t\t.subranges = (struct subrange_info []) {\n"
+                res1 = "\t\t.subranges = (struct metac_type_subrange_info []) {\n"
                 for (k in data[i]["child"]) {
                     child_i = data[i]["child"][k];
                     switch (data[child_i]["type"]) {

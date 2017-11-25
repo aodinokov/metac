@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>		/*uint64_t etc*/
 #include <assert.h>
 #include <errno.h>
 
@@ -50,33 +51,6 @@ struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i)  {
 	return &type->dwarf_info.at[i];
 }
 
-//struct metac_type_p_at*	metac_type_p_at(struct metac_type *type) {
-//	if (type == NULL)
-//		return NULL;
-//	return &type->p_at;
-//}
-
-//struct metac_type_at* metac_type_at_by_key(struct metac_type *type, metac_type_at_id_t id) {
-//	if (type == NULL)
-//		return NULL;
-//
-//	switch (id) {
-//#define HANDLE_KEY(_key_) case DW_AT_ ##_key_ : return type->p_at.p_at_ ## _key_
-//	HANDLE_KEY(name);
-//	HANDLE_KEY(type);
-//	HANDLE_KEY(byte_size);
-//	HANDLE_KEY(encoding);
-//	HANDLE_KEY(data_member_location);
-//	HANDLE_KEY(bit_offset);
-//	HANDLE_KEY(bit_size);
-//	HANDLE_KEY(lower_bound);
-//	HANDLE_KEY(upper_bound);
-//	HANDLE_KEY(count);
-//	HANDLE_KEY(const_value);
-//	}
-//	return NULL;
-//}
-
 const char*	metac_type_specification(struct metac_type *type, const char *key) {
 	int i = 0;
 	if (type == NULL)
@@ -89,76 +63,116 @@ const char*	metac_type_specification(struct metac_type *type, const char *key) {
 	return NULL;
 }
 
-//struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
-//	if (type == NULL)
-//		return NULL;
-//
-//	if (type->id == DW_TAG_typedef) {
-//		if (type->p_at.p_at_type == NULL || type->p_at.p_at_type->type == NULL) {
-//			msg_stderr("typedef has to contain type in attributes\n");
-//			return NULL;
-//		}
-//		return metac_type_typedef_skip(type->p_at.p_at_type->type);
-//	}
-//	return type;
-//}
-//
-//metac_name_t metac_type_name(struct metac_type *type) {
-//	if (type == NULL || type->p_at.p_at_name == NULL)
-//		return NULL;
-//	return type->p_at.p_at_name->name;
-//}
-//
-//int metac_type_child_id_by_name(struct metac_type *type, metac_name_t name) {
-//	unsigned int i;
-//
-//	if (type == NULL || name == NULL)
-//		return -1;
-//
-//	type = metac_type_typedef_skip(type);
-//	assert(type);
-//
-//	for (i = 0; i < type->child_num; i++) {
-//		metac_name_t child_name = metac_type_name(type->child[i]);
-//		if (	child_name != NULL &&
-//				strcmp(child_name, name) == 0)
-//			return (int)i;
-//	}
-//	return -1;
-//}
-//
-//metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
-//	if (type == NULL)
-//		return 0;
-//
-//	type = metac_type_typedef_skip(type);
-//	assert(type);
-//
-//	switch(type->id) {
-//	case DW_TAG_base_type:
-//	case DW_TAG_enumeration_type:
-//	case DW_TAG_structure_type:
-//	case DW_TAG_union_type:
-//		assert(type->p_at.p_at_byte_size);
-//		return type->p_at.p_at_byte_size->byte_size;
-//	case DW_TAG_pointer_type:
-//		if (type->p_at.p_at_byte_size != NULL)
-//			return type->p_at.p_at_byte_size->byte_size;
-//		return sizeof(void*);
-//	case DW_TAG_array_type:
-//		{
-//			struct metac_type_array_info array_info;
-//			if (metac_type_array_info(type, &array_info) != 0) {
-//				msg_stderr("metac_type_array_info error\n");
-//				return 0;
-//			}
-//			return array_info.elements_count * metac_type_byte_size(array_info.type);
-//		}
-//	case DW_TAG_subprogram:
-//		return 1;	/*sizeof function == 1*/
-//	}
-//	return 0;
-//}
+struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
+	if (type == NULL){
+		msg_stderr("invalid argument value: return NULL\n");
+		return NULL;
+	}
+	if (type->id == DW_TAG_typedef) {
+		if (type->typedef_info.type == NULL) {
+			msg_stderr("typedef has to contain type in attributes: return NULL\n");
+			return NULL;
+		}
+		return metac_type_typedef_skip(type->typedef_info.type);
+	}
+	return type;
+}
+
+metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
+	if (type == NULL)
+		return 0;
+
+	type = metac_type_typedef_skip(type);
+	assert(type);
+
+	switch(type->id) {
+	case DW_TAG_base_type:
+		return type->base_type_info.byte_size;
+	case DW_TAG_enumeration_type:
+		return type->enumeration_type_info.byte_size;
+	case DW_TAG_structure_type:
+		return type->structure_type_info.byte_size;
+	case DW_TAG_union_type:
+		return type->union_type_info.byte_size;
+	case DW_TAG_pointer_type:
+		if (type->pointer_type_info.byte_size > 0)
+			return type->pointer_type_info.byte_size;
+		return sizeof(void*);
+	case DW_TAG_array_type:
+		return type->array_type_info.elements_count * metac_type_byte_size(type->array_type_info.type);
+	case DW_TAG_subprogram:
+		return 1;	/*sizeof function == 1*/
+	}
+	return 0;
+}
+metac_name_t metac_type_name(struct metac_type *type) {
+	if (type == NULL)
+		return NULL;
+
+	switch(type->id) {
+	case DW_TAG_base_type:
+		return type->base_type_info.name;
+	case DW_TAG_typedef:
+		return type->typedef_info.name;
+	case DW_TAG_enumeration_type:
+		return type->enumeration_type_info.name;
+	case DW_TAG_structure_type:
+		return type->structure_type_info.name;
+	case DW_TAG_union_type:
+		return type->union_type_info.name;
+	case DW_TAG_pointer_type:
+		return type->pointer_type_info.name;
+	case DW_TAG_array_type:
+		return NULL;
+	case DW_TAG_subprogram:
+		return type->subprogram_info.name;
+	}
+	return NULL;
+}
+
+int	metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value) {
+	metac_num_t i;
+	if (type == NULL) {
+		msg_stderr("invalid argument value: return NULL\n");
+		return -1;
+	}
+	if (type->id != DW_TAG_enumeration_type) {
+		msg_stderr("invalid argument type: return NULL\n");
+		return -1;
+	}
+
+	for (i = 0; i < type->enumeration_type_info.enumerators_count; ++i) {
+		if (strcmp(name, type->enumeration_type_info.enumerators[i].name) == 0) {
+			if (p_const_value != NULL)
+				*p_const_value = type->enumeration_type_info.enumerators[i].const_value;
+			return 0;
+		}
+	}
+
+	msg_stddbg("wan't able to find const_value for %s\n", name);
+	return -1;
+}
+metac_name_t metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value) {
+	metac_num_t i;
+	if (type == NULL) {
+		msg_stderr("invalid argument value: return NULL\n");
+		return NULL;
+	}
+	if (type->id != DW_TAG_enumeration_type) {
+		msg_stderr("invalid argument type: return NULL\n");
+		return NULL;
+	}
+
+	for (i = 0; i < type->enumeration_type_info.enumerators_count; ++i) {
+		if (type->enumeration_type_info.enumerators[i].const_value == const_value) {
+			return type->enumeration_type_info.enumerators[i].name;
+		}
+	}
+
+	msg_stddbg("Wan't able to find const_value for 0x%Lx\n", (unsigned long long)const_value);
+	return NULL;
+}
+
 //
 //int metac_type_subprogram_info(struct metac_type *type,
 //		struct metac_type_subprogram_info *p_info) {
@@ -556,22 +570,22 @@ const char*	metac_type_specification(struct metac_type *type, const char *key) {
 //	return -1;
 //}
 //
-//struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
-//	if (array == NULL || name == NULL)
-//		return NULL;
-//	/*binary search*/
-//	metac_num_t min = 0, max = array->number-1;
-//	do {
-//		metac_num_t i = min + (max - min)/2;
-//		int cmp_res = strcmp(array->item[i].name, name);
-//		switch((cmp_res>0)?(1):((cmp_res<0)?(-1):(0))) {
-//		case 0: return array->item[i].ptr;
-//		case 1: max = i-1; break;
-//		case -1: min = i+1; break;
-//		}
-//	}while(min<=max);
-//	return NULL;
-//}
+struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
+	if (array == NULL || name == NULL)
+		return NULL;
+	/*binary search*/
+	metac_num_t min = 0, max = array->number-1;
+	do {
+		metac_num_t i = min + (max - min)/2;
+		int cmp_res = strcmp(array->item[i].name, name);
+		switch((cmp_res>0)?(1):((cmp_res<0)?(-1):(0))) {
+		case 0: return array->item[i].ptr;
+		case 1: max = i-1; break;
+		case -1: min = i+1; break;
+		}
+	}while(min<=max);
+	return NULL;
+}
 //
 //struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name) {
 //	if (array == NULL || name == NULL)
