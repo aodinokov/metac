@@ -19,10 +19,10 @@ typedef struct metac_type_at			metac_type_at_t;
 typedef unsigned int					metac_byte_size_t;
 typedef unsigned int					metac_encoding_t;
 typedef unsigned int					metac_data_location_t;
-typedef metac_data_location_t			metac_data_member_location_t;
+typedef metac_data_location_t			metac_data_member_location_t;	/*make it as metac_byte_size_t - we're multiplying byte_size with index in array*/
 typedef unsigned int					metac_bit_offset_t;
 typedef unsigned int					metac_bit_size_t;
-typedef unsigned int					metac_bound_t;
+typedef unsigned int					metac_bound_t;	/*make it long? for easier calculations*/
 typedef unsigned int					metac_count_t;
 typedef unsigned long					metac_const_value_t;
 
@@ -102,6 +102,7 @@ struct metac_type {
 			metac_num_t					subranges_count;			/* number of subranges ( >1 if array is multi-dimensional) */
 			struct metac_type_subrange_info {
 				metac_type_t *			type;						/* type of index */
+				/*hmm, do we really want this math? let's keep p_count?*/
 				metac_count_t *			p_count;					/* number of elements in subrange */
 				metac_bound_t *			p_lower_bound;				/* min index in subrange */
 				metac_bound_t *			p_upper_bound;				/* max index in subrange */
@@ -164,6 +165,8 @@ struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< retur
 
 int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
+int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
+int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
 //
 //int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/
 //int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int i,

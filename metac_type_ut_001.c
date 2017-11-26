@@ -43,6 +43,9 @@
  * because they are not one-work types.
  * use typedefs to export that types via METAC
  */
+/*****************************************************************************/
+METAC_DECLARE_EXTERN_TYPES_ARRAY;
+METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 
 #define GENERAL_TYPE_CHECK_INIT(_type_) do { \
 		/*need to use the type, in the opposite case we'll not get type definintion in DWARF*/ \
@@ -96,53 +99,10 @@
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_);
 
+
+/*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
 
-#define POINTER_TYPE_CHECK GENERAL_TYPE_CHECK
-
-#define ENUM_TYPE_CHECK_NAME(_type_, _expected_name_, _expected_name_skip_typedef_) do {\
-	struct metac_type *type = &METAC_TYPE_NAME(_type_);\
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-	char * expected_name_skip_typedef = _expected_name_skip_typedef_ /*can be NULL for anonymous enums*/; \
-	char * type_name = metac_type_name(type); \
-	char * type_name_skip_typedef = metac_type_name(typedef_skip_type); \
-	fail_unless(strcmp(type_name, _expected_name_) == 0, \
-			"check_name: %s instead of %s", type_name, _expected_name_); \
-	if (expected_name_skip_typedef != NULL) \
-		fail_unless(strcmp(type_name_skip_typedef, expected_name_skip_typedef) == 0, \
-				"check_name_skip_typedef:  %s instead of %s", type_name_skip_typedef, expected_name_skip_typedef); \
-	else \
-		fail_unless(type_name_skip_typedef == NULL, \
-				"check_name_skip_typedef: Got non-NULL string instead of NULL"); \
-	}while(0)
-#define ENUM_TYPE_CHECK_VALS(_type_, _expected_vals_...) do {\
-		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_)); \
-		static struct metac_type_enumerator_info expected_values[] = _expected_vals_; \
-		int i = 0; \
-		fail_unless(type->enumeration_type_info.byte_size == sizeof(_type_), \
-				"enum byte_size %d donsn't match sizeof value %d", \
-				type->enumeration_type_info.byte_size, \
-				sizeof(_type_)); \
-		while (expected_values[i].name != NULL) { \
-			metac_const_value_t const_value = 0; \
-			metac_name_t res_name = metac_type_enumeration_type_get_name(type, expected_values[i].const_value); \
-			fail_unless(metac_type_enumeration_type_get_value(type, expected_values[i].name, &const_value) == 0, \
-					"metac_type_enumeration_type_get_value failed for %s", expected_values[i].name); \
-			fail_unless(expected_values[i].const_value == const_value, "got incorrect value");\
-			fail_unless(strcmp(res_name, expected_values[i].name) == 0, "got incorrect name");\
-			++i;\
-		}\
-		fail_unless(i == type->enumeration_type_info.enumerators_count, "incorrect enumerators_count"); \
-	}while(0)
-#define ENUM_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _expected_name_, _expected_name_skip_typedef_, _expected_vals_...) \
-		GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
-		ENUM_TYPE_CHECK_NAME(_type_, _expected_name_, _expected_name_skip_typedef_); \
-		ENUM_TYPE_CHECK_VALS(_type_, _expected_vals_)
-
-/*****************************************************************************/
-METAC_DECLARE_EXTERN_TYPES_ARRAY;
-METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
-/*****************************************************************************/
 METAC_TYPE_GENERATE(char);
 METAC_TYPE_GENERATE(short);
 METAC_TYPE_GENERATE(int);
@@ -274,13 +234,13 @@ START_TEST(base_types_with_typedef) {
 	BASE_TYPE_CHECK(doublecomplex_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
 }END_TEST
 
-typedef void* voidptr_t;
-typedef void** voidptrptr_t;
-typedef char* charptr_t;
-
 /*****************************************************************************/
+#define POINTER_TYPE_CHECK GENERAL_TYPE_CHECK
+typedef void* voidptr_t;
 METAC_TYPE_GENERATE(voidptr_t);
+typedef void** voidptrptr_t;
 METAC_TYPE_GENERATE(voidptrptr_t);
+typedef char* charptr_t;
 METAC_TYPE_GENERATE(charptr_t);
 
 START_TEST(pointers_with_typedef) {
@@ -288,7 +248,47 @@ START_TEST(pointers_with_typedef) {
 	POINTER_TYPE_CHECK(voidptrptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(charptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST
+
 /*****************************************************************************/
+#define ENUM_TYPE_CHECK_NAME(_type_, _expected_name_, _expected_name_skip_typedef_) do {\
+	struct metac_type *type = &METAC_TYPE_NAME(_type_);\
+	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+	char * expected_name_skip_typedef = _expected_name_skip_typedef_ /*can be NULL for anonymous enums*/; \
+	char * type_name = metac_type_name(type); \
+	char * type_name_skip_typedef = metac_type_name(typedef_skip_type); \
+	fail_unless(strcmp(type_name, _expected_name_) == 0, \
+			"check_name: %s instead of %s", type_name, _expected_name_); \
+	if (expected_name_skip_typedef != NULL) \
+		fail_unless(strcmp(type_name_skip_typedef, expected_name_skip_typedef) == 0, \
+				"check_name_skip_typedef:  %s instead of %s", type_name_skip_typedef, expected_name_skip_typedef); \
+	else \
+		fail_unless(type_name_skip_typedef == NULL, \
+				"check_name_skip_typedef: Got non-NULL string instead of NULL"); \
+	}while(0)
+#define ENUM_TYPE_CHECK_VALS(_type_, _expected_vals_...) do {\
+		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_)); \
+		static struct metac_type_enumerator_info expected_values[] = _expected_vals_; \
+		int i = 0; \
+		fail_unless(type->enumeration_type_info.byte_size == sizeof(_type_), \
+				"enum byte_size %d donsn't match sizeof value %d", \
+				type->enumeration_type_info.byte_size, \
+				sizeof(_type_)); \
+		while (expected_values[i].name != NULL) { \
+			metac_const_value_t const_value = 0; \
+			metac_name_t res_name = metac_type_enumeration_type_get_name(type, expected_values[i].const_value); \
+			fail_unless(metac_type_enumeration_type_get_value(type, expected_values[i].name, &const_value) == 0, \
+					"metac_type_enumeration_type_get_value failed for %s", expected_values[i].name); \
+			fail_unless(expected_values[i].const_value == const_value, "got incorrect value");\
+			fail_unless(strcmp(res_name, expected_values[i].name) == 0, "got incorrect name");\
+			++i;\
+		}\
+		fail_unless(i == type->enumeration_type_info.enumerators_count, "incorrect enumerators_count"); \
+	}while(0)
+#define ENUM_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _expected_name_, _expected_name_skip_typedef_, _expected_vals_...) \
+		GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
+		ENUM_TYPE_CHECK_NAME(_type_, _expected_name_, _expected_name_skip_typedef_); \
+		ENUM_TYPE_CHECK_VALS(_type_, _expected_vals_)
+
 typedef enum _enum_{
 	_eZero = 0,
 	_eOne,
@@ -343,6 +343,58 @@ START_TEST(enums_with_typedef) {
 	});
 }END_TEST
 /*****************************************************************************/
+#define ARRAY_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
+		static _type_ obj = _init_; \
+		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+#define _ARRAY_TYPE_CHECK_VALS(_element_type_name_, _expected_is_flexible_) do { \
+			char * element_type_name = _element_type_name_; \
+			int is_flexible = _expected_is_flexible_; \
+			fail_unless(is_flexible == type->array_type_info.is_flexible, "is_flexible flag doesn't match"); \
+			fail_unless(strcmp(metac_type_name(type->array_type_info.type), element_type_name) == 0, \
+				"is_flexible flag doesn't match: %s, expected %s", \
+				metac_type_name(type->array_type_info.type),\
+				element_type_name); \
+		}while(0)
+struct _subrange_info { int res; metac_count_t count; };
+#define _ARRAY_TYPE_CHECK_SUBRANGES(_expected_subranges_count, _expected_subranges_...) do { \
+			metac_num_t i; \
+			metac_num_t subranges_count = _expected_subranges_count; \
+			static struct _subrange_info expected_subranges[] = _expected_subranges_; \
+			fail_unless(subranges_count == type->array_type_info.subranges_count, \
+				"Subranges count doesn't match: %d, expected %d", type->array_type_info.subranges_count, subranges_count); \
+			for (i = 0; i < subranges_count; i++) {\
+				metac_count_t count; \
+				int res = metac_type_array_subrange_count(type, i, &count);\
+				fail_unless(res == expected_subranges[i].res, \
+					"metac_type_array_subrange_count returned unexpected value for i %d: %d, expected %d", \
+					(int)i, \
+					(int)res, \
+					(int)expected_subranges[i].res); \
+				if (res == 0) \
+					fail_unless(count == expected_subranges[i].count, "unexpected count for i %d", (int)i); \
+			} \
+		}while(0)
+#define _delta(_obj_, _postfix_) \
+	(((void*)&_obj_ _postfix_) - (void*)&_obj_)
+#define _ARRAY_TYPE_CHECK_LOCATION(_obj_indx_, _should_warn_, _n_indx_, indx...) do { \
+			metac_num_t subranges_count = _n_indx_;\
+			int should_warn = _should_warn_; \
+			metac_num_t subranges[] = indx; \
+			metac_data_member_location_t data_member_location = 0;\
+			int call_res = metac_type_array_member_location(type, \
+					subranges_count, subranges, &data_member_location); \
+			fail_unless(call_res >= 0, "metac_type_array_member_location failed"); \
+			fail_unless(should_warn == call_res, "warning doesn't work as expected"); \
+			fail_unless(((int)_delta(obj, _obj_indx_)) == (int)data_member_location, "_delta is different: %x and got %x", \
+					(int)_delta(obj, _obj_indx_), (int)data_member_location); \
+		}while(0)
+#define ARRAY_TYPE_CHECK_END \
+	}while(0)
+
+#define ARRAY_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
+	GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
+	ARRAY_TYPE_CHECK_BEGIN_(_type_, _init_)
+
 typedef char_t char_array_t[0];
 METAC_TYPE_GENERATE(char_array_t);
 typedef char_t char_array5_t[5];
@@ -351,77 +403,50 @@ typedef char _2darray_t[2][3];
 METAC_TYPE_GENERATE(_2darray_t);
 typedef char _3darray_t[5][4][3];
 METAC_TYPE_GENERATE(_3darray_t);
-//typedef char_t flex_char_array_t[];
-//METAC_TYPE_GENERATE(flex_char_array_t);
+typedef char _3darray1_t[5][0][3];
+METAC_TYPE_GENERATE(_3darray1_t);
 
 START_TEST(array_with_typedef) {
-	GENERAL_TYPE_CHECK(char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(_2darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(_3darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL);
-//	GENERAL_TYPE_CHECK(flex_char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL);
+	ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
+	_ARRAY_TYPE_CHECK_VALS("char_t", 1); /*this array looks like a flexible for DWARF*/
+	_ARRAY_TYPE_CHECK_SUBRANGES(1, {{1, 0}, });
+	ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
+	_ARRAY_TYPE_CHECK_VALS("char_t", 0);
+	_ARRAY_TYPE_CHECK_SUBRANGES(1, {{0, 5}, });
+	_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
+	ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_2darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
+	_ARRAY_TYPE_CHECK_VALS("char", 0);
+	_ARRAY_TYPE_CHECK_SUBRANGES(2, {{0, 2}, {0, 3}, } );
+	_ARRAY_TYPE_CHECK_LOCATION([0], 0, 1, {0, });
+	_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
+	_ARRAY_TYPE_CHECK_LOCATION([2], 1, 1, {2, });
+	_ARRAY_TYPE_CHECK_LOCATION([0][0], 0, 2, {0, 0, });
+	_ARRAY_TYPE_CHECK_LOCATION([0][1], 0, 2, {0, 1, });
+	_ARRAY_TYPE_CHECK_LOCATION([0][2], 0, 2, {0, 2, });
+	_ARRAY_TYPE_CHECK_LOCATION([0][3], 1, 2, {0, 3, });
+	_ARRAY_TYPE_CHECK_LOCATION([1][0], 0, 2, {1, 0, });
+	_ARRAY_TYPE_CHECK_LOCATION([1][1], 0, 2, {1, 1, });
+	_ARRAY_TYPE_CHECK_LOCATION([1][2], 0, 2, {1, 2, });
+	_ARRAY_TYPE_CHECK_LOCATION([1][3], 1, 2, {1, 3, });
+	_ARRAY_TYPE_CHECK_LOCATION([2][0], 1, 2, {2, 0, });
+	_ARRAY_TYPE_CHECK_LOCATION([2][1], 1, 2, {2, 1, });
+	_ARRAY_TYPE_CHECK_LOCATION([2][2], 1, 2, {2, 2, });
+	_ARRAY_TYPE_CHECK_LOCATION([3][2], 1, 2, {3, 2, });
+	ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_3darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
+	_ARRAY_TYPE_CHECK_VALS("char", 0);
+	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {0, 4}, {0, 3}, });
+	ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
+	_ARRAY_TYPE_CHECK_VALS("char", 1); /*this array looks like a flexible for DWARF*/
+	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {1, 0}, {0, 3}, });
+	_ARRAY_TYPE_CHECK_LOCATION([4][2][4], 2, 3, {4, 2, 4, });
+	ARRAY_TYPE_CHECK_END;
 }END_TEST
-///* arrays */
-//typedef char_t char_array_t[0];
-//METAC_TYPE_GENERATE(char_array_t);
-//
-//
-//START_TEST(array_type_smoke) {
-//	/* test for array with bounds */
-//	do {
-//		char_array5_t reference_object;
-//		metac_bound_t upper_bound;
-//		struct metac_type_array_info array_info;
-//		struct metac_type_element_info element_info;
-//		struct metac_type_subrange_info subrange_info;
-//		struct metac_type *type = &METAC_TYPE_NAME(char_array5_t);
-//		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
-//		fail_unless(array_info.subranges_count > 0, "subranges_count must be more than 0");
-//		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
-//				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
-//		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
-//		fail_unless(subrange_info.p_upper_bound != NULL || subrange_info.p_count != NULL, "subrange_info.p_upper_bound or subrange_info.p_count must present");
-//		if (subrange_info.p_upper_bound != NULL) {
-//			upper_bound = *(subrange_info.p_upper_bound);
-//			fail_unless(*(subrange_info.p_upper_bound) == (sizeof(reference_object)/sizeof(reference_object[0]) - 1) ,
-//					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_upper_bound), (int)(sizeof(reference_object)/sizeof(reference_object[0]) - 1));
-//		} else {
-//			upper_bound = *(subrange_info.p_count) - 1;
-//			fail_unless(*(subrange_info.p_count) == (sizeof(reference_object)/sizeof(reference_object[0])) ,
-//					"incorrect upper bound %d instead of %d", (int)*(subrange_info.p_count), (int)(sizeof(reference_object)/sizeof(reference_object[0])));
-//		}
-//		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
-//
-//		fail_unless(metac_type_array_element_info(type, upper_bound, &element_info) == 0, "metac_type_array_element_info returned error");
-//		fail_unless((((char*)&reference_object[upper_bound]) - ((char*)&reference_object[0]) == element_info.data_location),
-//				"incorrect element location %d instead of %d",
-//				(int)element_info.data_location,
-//				(int)(((char*)(&reference_object[upper_bound])) - ((char*)(&reference_object[0]))));
-//
-//		fail_unless(metac_type_array_element_info(type, upper_bound + 1, &element_info) != 0, "metac_type_array_element_info must fail");
-//	}while(0);
-//	/* test for array without bounds */
-//	do {
-//		char_array_t reference_object;
-//		struct metac_type_array_info array_info;
-//		struct metac_type_element_info element_info;
-//		struct metac_type_subrange_info subrange_info;
-//		struct metac_type *type = &METAC_TYPE_NAME(char_array_t);
-//		fail_unless(metac_type_array_info(type, &array_info) == 0, "can't get array_info");
-//		fail_unless(array_info.subranges_count > 0, "subrange_count must be more than 0");
-//		fail_unless(array_info.elements_count == sizeof(reference_object)/sizeof(reference_object[0]),
-//				"elements_count is %d instead of %d", (int)array_info.elements_count, (int)sizeof(reference_object)/sizeof(reference_object[0]));
-//		fail_unless(metac_type_array_subrange_info(type, array_info.subranges_count - 1, &subrange_info) == 0, "metac_type_subrange_info returned error");
-//		fail_unless(subrange_info.p_upper_bound == NULL, "subrange_info.p_upper_bound must not present");
-//		fail_unless(subrange_info.p_lower_bound == NULL, "subrange_info.p_lower_bound must not present");
-//		fail_unless(array_info.type == &METAC_TYPE_NAME(char_t), "metac_type_array_element_type returned incorrect pointer");
-//		fail_unless(metac_type_array_element_info(type, 0, &element_info) == 0, "metac_type_array_element_info for flex array must not fail");
-//	}while(0);
-//
-//}END_TEST
 
 /*****************************************************************************/
-
 
 /* unions */
 typedef union _union_{
@@ -679,6 +704,7 @@ START_TEST(metac_array_symbols) {
 	mark_point();
 	mark_point();
 	void * handle = dlopen(NULL, RTLD_NOW);
+	fail_unless(handle != NULL, "dlopen failed");
 	void * types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
 	void * objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
 	dlclose(handle);
