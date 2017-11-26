@@ -27,6 +27,7 @@ function dump_dwarf_at_data(type, i) {
                     ++at_num;
                     break;
                 case "DW_AT_data_member_location":
+                case "DW_AT_declaration":
                     if (match(data[i][j], "([0-9]+).*", arr)) {
                         at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = " arr[1] "/*" data[i][j] "*/},\n";
                         ++at_num;
@@ -84,9 +85,6 @@ function dump_main_types(type, i) {
         if (match(j, "DW_AT_(.*)", arr0)) {
             #intentionally don't do check of attributes and type - compiler will do it and compilation will fail if we have a problem
             switch(j){
-            case "DW_AT_name":
-                res = res "\t\t." arr0[1] " = \"" data[i][j] "\",\n";
-                break;
             case "DW_AT_data_member_location":
                 if (match(data[i][j], "([0-9]+).*", arr)) {
                     res = res "\t\t." arr0[1] " = " arr[1] "/*" data[i][j] "*/,\n";
@@ -383,23 +381,29 @@ END {
         print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
         if ("type" in data[i]) {
             print "\t.id = " data[i]["type"] ","
-        }
-        # special logic to print everything about the type and its parts
-        if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
-            print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
-        }
-        #specifications
-        if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
-            print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
-        }
-        #dwarf data 
-        at_text = dump_dwarf_at_data(arr0[1], i) 
-        child_text = dump_dwarf_child_data(arr0[1], i);
-        if (length(at_text) > 0 || length(child_text) > 0) {
-            print "\t.dwarf_info = {"
-            if (length(at_text) > 0)print at_text;
-            if (length(child_text) > 0)print child_text;
-            print "\t},"
+            if ("DW_AT_name" in data[i])
+                print "\t.name = \"" data[i]["DW_AT_name"] "\",";
+            if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")
+                print "\t.declaration = 1,";
+            else {
+                # special logic to print everything about the type and its parts
+                if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
+                    print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
+                }
+            }
+            #specifications
+            if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
+                print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
+            }
+            #dwarf data 
+            at_text = dump_dwarf_at_data(arr0[1], i) 
+            child_text = dump_dwarf_child_data(arr0[1], i);
+            if (length(at_text) > 0 || length(child_text) > 0) {
+                print "\t.dwarf_info = {"
+                if (length(at_text) > 0)print at_text;
+                if (length(child_text) > 0)print child_text;
+                print "\t},"
+            }
         }
         print "};"
         

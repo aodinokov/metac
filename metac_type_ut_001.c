@@ -242,11 +242,20 @@ typedef void** voidptrptr_t;
 METAC_TYPE_GENERATE(voidptrptr_t);
 typedef char* charptr_t;
 METAC_TYPE_GENERATE(charptr_t);
+struct _incomplete_;
+typedef struct _incomplete_ incomplete_t;
+typedef incomplete_t * p_incomplete_t;
+METAC_TYPE_GENERATE(p_incomplete_t);
+typedef const char * cchar_t;
+METAC_TYPE_GENERATE(cchar_t);
+
 
 START_TEST(pointers_with_typedef) {
 	POINTER_TYPE_CHECK(voidptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(voidptrptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(charptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
+	POINTER_TYPE_CHECK(p_incomplete_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
+	POINTER_TYPE_CHECK(cchar_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST
 
 /*****************************************************************************/
@@ -374,8 +383,7 @@ struct _subrange_info { int res; metac_count_t count; };
 					fail_unless(count == expected_subranges[i].count, "unexpected count for i %d", (int)i); \
 			} \
 		}while(0)
-#define _delta(_obj_, _postfix_) \
-	(((void*)&_obj_ _postfix_) - (void*)&_obj_)
+#define _delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
 #define _ARRAY_TYPE_CHECK_LOCATION(_obj_indx_, _should_warn_, _n_indx_, indx...) do { \
 			metac_num_t subranges_count = _n_indx_;\
 			int should_warn = _should_warn_; \
@@ -460,6 +468,8 @@ START_TEST(array_with_typedef) {
 
 /*****************************************************************************/
 
+/*****************************************************************************/
+
 /* unions */
 typedef union _union_{
 	int d;
@@ -478,8 +488,8 @@ METAC_TYPE_GENERATE(struct_t);
 /* bit fields */
 typedef struct _bit_fields_
 {
-  unsigned int widthValidated : 9;
-  unsigned int heightValidated : 12;
+	unsigned int widthValidated : 9;
+	unsigned int heightValidated : 12;
 }bit_fields_t;
 METAC_TYPE_GENERATE(bit_fields_t);
 
@@ -513,12 +523,9 @@ METAC_TYPE_GENERATE(func_ptr_t);
 
 /* function */
 typedef bit_fields_t * p_bit_fields_t;
-METAC_TYPE_GENERATE(p_bit_fields_t);
 int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
 METAC_FUNCTION(func_t);
 
-typedef const char * cchar_t;
-METAC_TYPE_GENERATE(cchar_t);
 void func_printf(cchar_t format, ...){return;}
 METAC_FUNCTION(func_printf);
 
@@ -530,9 +537,6 @@ START_TEST(general_type_smoke) {
 	GENERAL_TYPE_CHECK(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL);
 	GENERAL_TYPE_CHECK(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL);
 	GENERAL_TYPE_CHECK(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type, "discrimitator_name", "array_len");
-
-	GENERAL_TYPE_CHECK(p_bit_fields_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(cchar_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 
 	GENERAL_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST

@@ -108,26 +108,7 @@ metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
 metac_name_t metac_type_name(struct metac_type *type) {
 	if (type == NULL)
 		return NULL;
-
-	switch(type->id) {
-	case DW_TAG_base_type:
-		return type->base_type_info.name;
-	case DW_TAG_typedef:
-		return type->typedef_info.name;
-	case DW_TAG_enumeration_type:
-		return type->enumeration_type_info.name;
-	case DW_TAG_structure_type:
-		return type->structure_type_info.name;
-	case DW_TAG_union_type:
-		return type->union_type_info.name;
-	case DW_TAG_pointer_type:
-		return type->pointer_type_info.name;
-	case DW_TAG_array_type:
-		return NULL;
-	case DW_TAG_subprogram:
-		return type->subprogram_info.name;
-	}
-	return NULL;
+	return type->name;
 }
 
 int	metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value) {
@@ -212,7 +193,7 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 	}
 
 	for (i = type->array_type_info.subranges_count; i > 0; i--){
-		metac_num_t index = i-1;
+		metac_num_t index = i - 1;
 		metac_num_t current_index_value = (index < subranges_count)?subranges[index]:0;
 		if (current_index_value < type->array_type_info.subranges[index].lower_bound) {
 			msg_stderr("ERROR: %x index must be in range [%x, %x), but it's %x\n", index,

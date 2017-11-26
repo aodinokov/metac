@@ -74,6 +74,7 @@ static struct metac_type data_0x00000829 = {
     },
 };
 
+
 To add .dwarf_raw_type = for struct enumerator_info  and etc?
 
 go further:
@@ -174,3 +175,19 @@ improve documentation Documentation
 
 
 40. we need metac_byte_size_t byte_size - in that case we'll be able to support flexible arrays? (we need to know when to stop) - done
+
+added icomplete types support
+/*every type can be incimplete - DW_AT_declaration flag means we can't calculate anything for it - byte_size and etc*/
+static struct metac_type data_0x00008799 = {
+    .id = DW_TAG_structure_type,
+    .structure_type_info = {
+        .name = "_incomplete_",
+    },
+    .dwarf_info = {
+        .at_num = 1,
+        .at = (metac_type_at_t[]) {
+            /* Skip {.id = DW_AT_declaration, .declaration = yes(1)}, */
+            {.id = DW_AT_name, .name = "_incomplete_"},
+        },
+    },
+};

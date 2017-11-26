@@ -25,6 +25,7 @@ typedef unsigned int					metac_bit_size_t;
 typedef unsigned int					metac_bound_t;	/*make it long? for easier calculations*/
 typedef unsigned int					metac_count_t;
 typedef unsigned long					metac_const_value_t;
+typedef int								metac_flag;
 
 typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
@@ -32,29 +33,27 @@ typedef unsigned int					metac_num_t;
 
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
+	metac_name_t						name;						/* name of type (can be NULL for anonymous) */
+	int									declaration;				/* =1 if type is incomplete */
 
 	/* METAC specific data */
 	union {
 		/* .id == DW_TAG_base_type */
 		struct {
-			metac_name_t				name;						/* name of type (can be NULL for anonymous) */
 			metac_byte_size_t			byte_size;					/* mandatory field */
 			metac_encoding_t			encoding;					/* type encoding (DW_ATE_signed etc) */
 		}base_type_info;
 		/* .id == DW_TAG_pointer_type */
 		struct {
-			metac_name_t				name;						/* name of type (can be NULL for anonymous) */
 			metac_byte_size_t			byte_size;					/* ?mandatory field */
 			metac_type_t *				type;						/* universal field */
 		}pointer_type_info;
 		/* .id == DW_TAG_typedef */
 		struct {
-			metac_name_t				name;						/* name of type (can be NULL for anonymous) */
 			metac_type_t *				type;						/* universal field */
 		}typedef_info;
 		/* .id == DW_TAG_enumeration_type */
 		struct {
-			metac_name_t				name;						/* name of type (can be NULL for anonymous) */
 			metac_byte_size_t			byte_size;					/* mandatory field */
 			metac_num_t					enumerators_count;			/* mandatory field */
 			struct metac_type_enumerator_info {
@@ -65,7 +64,6 @@ struct metac_type {
 		/* .id == DW_TAG_subprogram */
 		struct {
 			metac_type_t *				type;						/* function return type (NULL if void) */
-			metac_name_t				name;						/* function name */
 			metac_num_t					parameters_count;			/* number of parameters */
 			struct metac_type_subprogram_parameter {
 				int						unspecified_parameters;		/* if 1 - after that it's possible to have a lot of arguments*/
@@ -75,7 +73,6 @@ struct metac_type {
 		}subprogram_info;
 		/* .id = DW_TAG_structure_type */
 		struct {
-			metac_name_t				name;						/* name of the structure (may be NULL)*/
 			metac_byte_size_t			byte_size;					/* size of the structure in bytes */
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info {
@@ -88,7 +85,6 @@ struct metac_type {
 		}structure_type_info;
 		/* .id == DW_TAG_union_type */
 		struct {
-			metac_name_t				name;						/* name of the union (may be NULL)*/
 			metac_byte_size_t			byte_size;					/* size of the union in bytes */
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info *
@@ -145,6 +141,7 @@ struct metac_type {
 				metac_bound_t					upper_bound;		/* for array_ranges*/
 				metac_count_t					count;				/* for array_ranges*/
 				metac_const_value_t				const_value;		/* for enums*/
+				metac_flag						declaration;		/* true if type isn't complete */
 			};
 		}*at;														/* pointer to array of attributes */
 	}dwarf_info;
