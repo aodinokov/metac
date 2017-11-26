@@ -406,9 +406,18 @@ METAC_TYPE_GENERATE(_3darray_t);
 typedef char _3darray1_t[5][0][3];
 METAC_TYPE_GENERATE(_3darray1_t);
 
+#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
+#ifdef __clang__
+/*clang 3.5.0 has this issue, but 3.9.0 - doesn't */
+#if __clang_major__ >= 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0
+#undef  _BUG_ZERO_LEN_IS_FLEXIBLE_
+#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
+#endif
+#endif
+
 START_TEST(array_with_typedef) {
 	ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char_t", 1); /*this array looks like a flexible for DWARF*/
+	_ARRAY_TYPE_CHECK_VALS("char_t", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
 	_ARRAY_TYPE_CHECK_SUBRANGES(1, {{1, 0}, });
 	ARRAY_TYPE_CHECK_END;
 	ARRAY_TYPE_CHECK_BEGIN(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
@@ -440,7 +449,7 @@ START_TEST(array_with_typedef) {
 	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {0, 4}, {0, 3}, });
 	ARRAY_TYPE_CHECK_END;
 	ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char", 1); /*this array looks like a flexible for DWARF*/
+	_ARRAY_TYPE_CHECK_VALS("char", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
 	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {1, 0}, {0, 3}, });
 	_ARRAY_TYPE_CHECK_LOCATION([4][2][4], 2, 3, {4, 2, 4, });
 	ARRAY_TYPE_CHECK_END;

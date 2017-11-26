@@ -106,6 +106,10 @@ struct metac_type {
 				metac_count_t *			p_count;					/* number of elements in subrange */
 				metac_bound_t *			p_lower_bound;				/* min index in subrange */
 				metac_bound_t *			p_upper_bound;				/* max index in subrange */
+				/*adding pre-calculated values*/
+//				metac_bound_t 			lower_bound;				/* min index in subrange */
+//				metac_bound_t 			upper_bound;				/* max index in subrange */
+//				metac_count_t 			count;						/* number of elements in subrange */
 			}*subranges;
 		}array_type_info;
 	};
