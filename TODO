@@ -1,8 +1,21 @@
 the plan without risk management:
 
-refactoring of the reflection implementation/API - APIv0.2
+refactoring of the reflection implementation/API - APIv0.2 
 add normal logging to reflection - not only errors
 add errno.h and a way to get the latest error msg.
+- fininshing
+general createing/deletion (only pointers), but we need to handle unions/discriminators and fields that describe array_len (if they contain pointers)
+general serializaiton
+- everything - is general walker (deep or wieght) -> and creation of linear graph (we need dependencies) - when we have 
+base64 encoding for binary data???
+base64:data
+char:data
+string:data
+integer....>
+signed:data
+unsigned:data
+complex:data
+float
 
 json serialization of not covered types: complex, types with attributes, 2D-arrays/nD-arrays?
 

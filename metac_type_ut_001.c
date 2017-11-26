@@ -480,18 +480,17 @@ START_TEST(array_with_typedef) {
 }END_TEST
 
 /*****************************************************************************/
-#define STRUCT_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
+#define STRUCT_UNION_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
 		static _type_ obj = _init_; \
 		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
-#define _STRUCT_TYPE_CHECK_BYTESIZE do { \
+#define _STRUCT_UNION_TYPE_CHECK_BYTESIZE(_type_info_) do { \
 			metac_byte_size_t byte_size = sizeof(obj); \
-			fail_unless(byte_size == type->structure_type_info.byte_size, "byte_size doesn't match"); \
+			fail_unless(byte_size == type->_type_info_.byte_size, "byte_size doesn't match"); \
 		}while(0)
 struct _member_info { metac_name_t name; metac_data_member_location_t location; int flag;};
-#define _struct_delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
-#define __STRUCT_TYPE_CHECK_MEMBER(_member_name_) {.flag = 1, .name = #_member_name_ , .location = _struct_delta(obj, . _member_name_), }
-#define __STRUCT_TYPE_CHECK_ANON_MEMBER(_first_member_name_) {.flag = 1, .name = METAC_ANON_MEMBER_NAME, .location = _struct_delta(obj, . _first_member_name_), }
-#define _struct_bit_location(_field_name)({\
+#define _struct_union_delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
+#define _struct_union_bit_location(_field_name)({ \
+	/* bit-fields: specific only for structures, but this method can work for non-bit-fields */ \
 	metac_data_member_location_t res = 0; \
 	memset(&obj, 0xff, sizeof(obj)); \
 	obj. _field_name = 0; \
@@ -501,38 +500,52 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 	printf("res: %d\n", (int)res); \
 	res;\
 })
-#define __STRUCT_TYPE_CHECK_MEMBER_BITFIELD(_member_name_) {.flag = 2, .name = #_member_name_, .location = _struct_bit_location(_member_name_), }
-#define _STRUCT_TYPE_CHECK_MEMBERS(_expected_members_count, _expected_members_...) do { \
+#define __STRUCT_UNION_TYPE_CHECK_MEMBER(_member_name_) \
+	{.flag = 1, .name = #_member_name_ , .location = _struct_union_delta(obj, . _member_name_), }
+#define __STRUCT_UNION_TYPE_CHECK_ANON_MEMBER(_first_member_name_) \
+	{.flag = 1, .name = METAC_ANON_MEMBER_NAME, .location = _struct_union_delta(obj, . _first_member_name_), }
+#define __STRUCT_UNION_TYPE_CHECK_MEMBER_BITFIELD(_member_name_) \
+	{.flag = 2, .name = #_member_name_, .location = _struct_union_bit_location(_member_name_), }
+#define _STRUCT_UNION_TYPE_CHECK_MEMBERS(_type_info_, _expected_members_count, _expected_members_...) do { \
 			metac_num_t i; \
 			metac_num_t members_count = _expected_members_count; \
 			struct _member_info expected_members[] = _expected_members_; \
-			fail_unless(members_count == type->structure_type_info.members_count, "members_count doesn't match"); \
+			fail_unless(members_count == type->_type_info_.members_count, "members_count doesn't match"); \
 			for (i = 0; i < members_count; i++) {\
-				fail_unless(strcmp(type->structure_type_info.members[i].name, expected_members[i].name) == 0, "name mismatch");\
-				fail_unless(type->structure_type_info.members[i].type != NULL, "type is NULL");\
+				fail_unless(strcmp(type->_type_info_.members[i].name, expected_members[i].name) == 0, "name mismatch");\
+				fail_unless(type->_type_info_.members[i].type != NULL, "type is NULL");\
 				switch(expected_members[i].flag) {\
 				case 1: \
-				fail_unless(type->structure_type_info.members[i].data_member_location == expected_members[i].location, "incorrect location"); \
+				fail_unless(type->_type_info_.members[i].data_member_location == expected_members[i].location, "incorrect location"); \
 				break; \
 				case 2: \
-				fail_unless(type->structure_type_info.members[i].p_bit_size != NULL, "bit_size must be set"); \
-				fail_unless(expected_members[i].location >= type->structure_type_info.members[i].data_member_location && \
-						expected_members[i].location < type->structure_type_info.members[i].data_member_location + metac_type_byte_size(type->structure_type_info.members[i].type), \
+				fail_unless(type->_type_info_.members[i].p_bit_size != NULL, "bit_size must be set"); \
+				fail_unless(expected_members[i].location >= type->_type_info_.members[i].data_member_location && \
+						expected_members[i].location < type->_type_info_.members[i].data_member_location + metac_type_byte_size(type->_type_info_.members[i].type), \
 					"incorrect bit location: member %s, got %x, expected in range [%x, %x)", \
 					expected_members[i].name,\
-					type->structure_type_info.members[i].data_member_location, \
+					type->_type_info_.members[i].data_member_location, \
 					expected_members[i].location, \
-					expected_members[i].location < type->structure_type_info.members[i].data_member_location + metac_type_byte_size(type->structure_type_info.members[i].type)); \
+					expected_members[i].location < type->_type_info_.members[i].data_member_location + metac_type_byte_size(type->_type_info_.members[i].type)); \
 				break; \
 				} \
 			} \
 		}while(0)
-#define STRUCT_TYPE_CHECK_END \
+#define STRUCT_UNION_TYPE_CHECK_END \
 	}while(0)
-
+/*****************************************************************************/
 #define STRUCT_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
 	GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
-	STRUCT_TYPE_CHECK_BEGIN_(_type_, _init_)
+	STRUCT_UNION_TYPE_CHECK_BEGIN_(_type_, _init_)
+#define _STRUCT_TYPE_CHECK_BYTESIZE \
+	_STRUCT_UNION_TYPE_CHECK_BYTESIZE(structure_type_info)
+#define __STRUCT_TYPE_CHECK_MEMBER __STRUCT_UNION_TYPE_CHECK_MEMBER
+#define __STRUCT_TYPE_CHECK_ANON_MEMBER __STRUCT_UNION_TYPE_CHECK_ANON_MEMBER
+#define __STRUCT_TYPE_CHECK_MEMBER_BITFIELD __STRUCT_UNION_TYPE_CHECK_MEMBER_BITFIELD
+#define _STRUCT_TYPE_CHECK_MEMBERS(_expected_members_count, _expected_members_...) \
+		_STRUCT_UNION_TYPE_CHECK_MEMBERS(structure_type_info, _expected_members_count, _expected_members_)
+#define STRUCT_TYPE_CHECK_END \
+	STRUCT_UNION_TYPE_CHECK_END
 
 typedef struct _struct_ {
 	unsigned int widthValidated;
@@ -623,14 +636,56 @@ START_TEST(struct_with_typedef) {
 	STRUCT_TYPE_CHECK_END;
 }END_TEST
 /*****************************************************************************/
+#define UNION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
+	GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
+	STRUCT_UNION_TYPE_CHECK_BEGIN_(_type_, _init_)
+#define _UNION_TYPE_CHECK_BYTESIZE \
+	_STRUCT_UNION_TYPE_CHECK_BYTESIZE(union_type_info)
+#define __UNION_TYPE_CHECK_MEMBER __STRUCT_UNION_TYPE_CHECK_MEMBER
+#define __UNION_TYPE_CHECK_ANON_MEMBER __STRUCT_UNION_TYPE_CHECK_ANON_MEMBER
+#define __UNION_TYPE_CHECK_MEMBER_BITFIELD __STRUCT_UNION_TYPE_CHECK_MEMBER_BITFIELD
+#define _UNION_TYPE_CHECK_MEMBERS(_expected_members_count, _expected_members_...) \
+		_STRUCT_UNION_TYPE_CHECK_MEMBERS(union_type_info, _expected_members_count, _expected_members_)
+#define UNION_TYPE_CHECK_END \
+	STRUCT_UNION_TYPE_CHECK_END
 
-/* unions */
 typedef union _union_{
 	int d;
 	char f;
 }union_t;
 METAC_TYPE_GENERATE(union_t);
+typedef union _union_anon_{
+	struct {
+		char a;
+		int b;
+	};
+	long c;
+	struct {
+		int d;
+		char f;
+	};
+}union_anon_t;
+METAC_TYPE_GENERATE(union_anon_t);
 
+START_TEST(union_with_typedef) {
+	UNION_TYPE_CHECK_BEGIN(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {});
+	_UNION_TYPE_CHECK_BYTESIZE;
+	_UNION_TYPE_CHECK_MEMBERS(2, {
+	__UNION_TYPE_CHECK_MEMBER(d),
+	__UNION_TYPE_CHECK_MEMBER(f),
+	});
+	UNION_TYPE_CHECK_END;
+	UNION_TYPE_CHECK_BEGIN(union_anon_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {});
+	_UNION_TYPE_CHECK_BYTESIZE;
+	_UNION_TYPE_CHECK_MEMBERS(3, {
+	__UNION_TYPE_CHECK_ANON_MEMBER(a),
+	__UNION_TYPE_CHECK_MEMBER(c),
+	__UNION_TYPE_CHECK_ANON_MEMBER(d),
+	});
+	UNION_TYPE_CHECK_END;
+
+}END_TEST
+/*****************************************************************************/
 /* function ptr */
 typedef int_t (*func_ptr_t)(bit_fields_t *arg);
 METAC_TYPE_GENERATE(func_ptr_t);
@@ -644,9 +699,7 @@ void func_printf(cchar_t format, ...){return;}
 METAC_FUNCTION(func_printf);
 
 START_TEST(general_type_smoke) {
-
 	GENERAL_TYPE_CHECK(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL);
-
 	GENERAL_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST
 
@@ -941,13 +994,11 @@ int main(void){
 					ADD_TEST(base_types_with_typedef);
 					ADD_TEST(pointers_with_typedef);
 					ADD_TEST(enums_with_typedef);
-					ADD_TEST(general_type_smoke);
 					ADD_TEST(array_with_typedef);
 					ADD_TEST(struct_with_typedef);
-//					ADD_TEST(struct_type_smoke);
+					ADD_TEST(union_with_typedef);
 //					ADD_TEST(func_type_smoke);
-//					ADD_TEST(array_type_smoke);
-//					ADD_TEST(enum_type_smoke);
+					ADD_TEST(general_type_smoke);
 					ADD_TEST(metac_array_symbols);
 //					ADD_TEST(metac_json_deserialization);
 				}END_CASE

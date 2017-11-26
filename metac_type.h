@@ -115,7 +115,7 @@ struct metac_type {
 
 	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
 	struct metac_type_specification {
-		const char *key,*value;
+		const char *key,*value;										/*TODO: value probably better to make void**/
 	}*specifications;												/* pointer to explicit specifications array for this type*/
 
 	/**
