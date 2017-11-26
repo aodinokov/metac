@@ -187,31 +187,17 @@ int metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrang
 		return -(EINVAL);
 	}
 
-	struct metac_type_subrange_info *p_subrange = &type->array_type_info.subranges[subrange_id];
-	if (p_subrange->p_count) {
-		if (p_count != NULL)
-			*p_count = *(p_subrange->p_count);
-		return 0;
-	}
-	if (p_subrange->p_upper_bound) {
-		if (p_count != NULL)
-			*p_count = (*(p_subrange->p_upper_bound)) + 1;
-		if (p_subrange->p_lower_bound)
-			if (p_count != NULL)
-				*p_count -= *(p_subrange->p_lower_bound);
-		return 0;
-	}
-	assert(type->array_type_info.is_flexible != 0);
-	return 1;	/*means - array is flexible*/
+	if (p_count != NULL)
+		*p_count = type->array_type_info.subranges[subrange_id].count;
+	return type->array_type_info.subranges[subrange_id].is_flexible;
 }
 
-struct _array_member_limits {
-	metac_bound_t lower_bound;
-	metac_bound_t upper_bound;
-	metac_count_t count;
-};
 int metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location) {
 	int res = 0;
+	metac_num_t i;
+	metac_data_member_location_t offset = 0;
+	metac_data_member_location_t ratio = 1;
+
 	if (type == NULL) {
 		msg_stderr("invalid argument value: type\n");
 		return -(EINVAL);
@@ -225,51 +211,28 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 		return -(EINVAL);
 	}
 
-	metac_num_t i;
-	struct _array_member_limits * limits = alloca(sizeof(struct _array_member_limits) * type->array_type_info.subranges_count);
-	memset(limits, 0, sizeof(struct _array_member_limits) * type->array_type_info.subranges_count);
-
-	/*Need to include this to the metac.awk*/
-	for (i = 0; i < type->array_type_info.subranges_count; i++) {
-		struct metac_type_subrange_info *p_subrange = &type->array_type_info.subranges[i];
-		if (p_subrange->p_count) {
-			limits[i].count = *p_subrange->p_count;
-			limits[i].lower_bound = 0;
-			limits[i].upper_bound = limits[i].count > 0?limits[i].count - 1: 0;
-			continue;
-		}
-		if (p_subrange->p_upper_bound) {
-			limits[i].upper_bound = *p_subrange->p_upper_bound;
-			limits[i].count = (*p_subrange->p_upper_bound) + 1;
-			if (p_subrange->p_lower_bound) {
-				limits[i].lower_bound = *(p_subrange->p_lower_bound);
-				limits[i].count -= limits[i].lower_bound;
-			}
-			continue;
-		}
-	}
-	metac_data_member_location_t offset = 0;
-	metac_data_member_location_t ratio = 1;
 	for (i = type->array_type_info.subranges_count; i > 0; i--){
 		metac_num_t index = i-1;
-		metac_num_t current_index_value = (index<subranges_count)?subranges[index]:0;
-		if (current_index_value < limits[index].lower_bound) {
-			msg_stderr("ERROR: %x index must be in range [%x, %x], but it's %x\n", index,
-					limits[index].lower_bound, limits[index].upper_bound,
+		metac_num_t current_index_value = (index < subranges_count)?subranges[index]:0;
+		if (current_index_value < type->array_type_info.subranges[index].lower_bound) {
+			msg_stderr("ERROR: %x index must be in range [%x, %x), but it's %x\n", index,
+					type->array_type_info.subranges[index].lower_bound,
+					type->array_type_info.subranges[index].lower_bound + type->array_type_info.subranges[index].count,
 					current_index_value);
 			return -(EINVAL);
 		}
-		if (current_index_value > limits[index].upper_bound) {
-			msg_stddbg("WARNING: %x index should be in range [%x, %x], but it's %x\n", index,
-					limits[index].lower_bound, limits[index].upper_bound,
+		if (current_index_value >= type->array_type_info.subranges[index].lower_bound + type->array_type_info.subranges[index].count) {
+			msg_stddbg("WARNING: %x index should be in range [%x, %x), but it's %x\n", index,
+					type->array_type_info.subranges[index].lower_bound,
+					type->array_type_info.subranges[index].lower_bound + type->array_type_info.subranges[index].count,
 					current_index_value);
 			++res;
 		}
 
-		current_index_value -= limits[index].lower_bound;
+		current_index_value -= type->array_type_info.subranges[index].lower_bound;
 		offset +=  ratio*current_index_value;
 		//msg_stddbg("DBG: index %d, current index %d, ratio %d\n", index, current_index_value, ratio);
-		ratio*= limits[index].count;
+		ratio*= type->array_type_info.subranges[index].count;
 
 	}
 	//msg_stddbg("DBG: offset %d\n", offset);

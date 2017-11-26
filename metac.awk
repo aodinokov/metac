@@ -202,27 +202,37 @@ function dump_main_types(type, i) {
                             res1 = res1 "\t\t\t\t.type = &" type_variable_name(arr[1]) ",\n";
                         }
                         #optional attributes:
+                        res2 = "";
                         if ("DW_AT_count" in data[child_i]) {
-                            res1 = res1 "\t\t\t\t.p_count = (metac_count_t[]){" data[child_i]["DW_AT_count"] "},\n";
+                            res2 = res2 "\t\t\t\t\t.p_count = (metac_count_t[]){" data[child_i]["DW_AT_count"] "},\n";
                         }
                         if ("DW_AT_lower_bound" in data[child_i]) {
-                            res1 = res1 "\t\t\t\t.p_lower_bound = (metac_bound_t[]){" data[child_i]["DW_AT_lower_bound"] "},\n";
+                            res2 = res2 "\t\t\t\t\t.p_lower_bound = (metac_bound_t[]){" data[child_i]["DW_AT_lower_bound"] "},\n";
                         }
                         if ("DW_AT_upper_bound" in data[child_i]) {
-                            res1 = res1 "\t\t\t\t.p_upper_bound = (metac_bound_t[]){" data[child_i]["DW_AT_upper_bound"] "},\n";
+                            res2 = res2 "\t\t\t\t\t.p_upper_bound = (metac_bound_t[]){" data[child_i]["DW_AT_upper_bound"] "},\n";
                         }
-                        res1 = res1 "\t\t\t},\n";
+                        
                         # calc length
-                        if ("DW_AT_count" in data[child_i])
-                            elements_count = elements_count " * " data[child_i]["DW_AT_count"]
-                        else if ("DW_AT_upper_bound" in data[child_i]) {
+                        if ("DW_AT_count" in data[child_i]) {
+                            elements_count = elements_count " * " data[child_i]["DW_AT_count"];
+                            res1 = res1 "\t\t\t\t.count = " data[child_i]["DW_AT_count"] ",\n";
+                        } else if ("DW_AT_upper_bound" in data[child_i]) {
                             elements_count = elements_count " * (" data[child_i]["DW_AT_upper_bound"] " + 1";
-                            if ("DW_AT_lower_bound" in data[child_i])
+                            res1 = res1 "\t\t\t\t.count = " data[child_i]["DW_AT_upper_bound"] " + 1";
+                            if ("DW_AT_lower_bound" in data[child_i]) {
                                 elements_count = elements_count " - " data[child_i]["DW_AT_lower_bound"];
+                                res1 = res1 " - " data[child_i]["DW_AT_lower_bound"];
+                            }
                             elements_count = elements_count ")";
+                            res1 = res1 ",\n"
                         } else {
                             is_flexible = 1;
+                            res1 = res1 "\t\t\t\t.is_flexible = 1,\n"
                         }
+                        if (length(res2))
+                            res1 = res1 "\t\t\t\t.raw_data = {\n" res2 "\t\t\t\t},\n"; 
+                        res1 = res1 "\t\t\t},\n";
                         ++count;
                         break;
                     }

@@ -102,14 +102,16 @@ struct metac_type {
 			metac_num_t					subranges_count;			/* number of subranges ( >1 if array is multi-dimensional) */
 			struct metac_type_subrange_info {
 				metac_type_t *			type;						/* type of index */
-				/*hmm, do we really want this math? let's keep p_count?*/
-				metac_count_t *			p_count;					/* number of elements in subrange */
-				metac_bound_t *			p_lower_bound;				/* min index in subrange */
-				metac_bound_t *			p_upper_bound;				/* max index in subrange */
-				/*adding pre-calculated values*/
-//				metac_bound_t 			lower_bound;				/* min index in subrange */
-//				metac_bound_t 			upper_bound;				/* max index in subrange */
-//				metac_count_t 			count;						/* number of elements in subrange */
+				/*pre-calculated data*/
+				int						is_flexible;				/* if nothing was specified in DWARF*/
+				metac_bound_t 			lower_bound;				/* min index in subrange */
+				metac_count_t 			count;						/* number of elements in subrange */
+				/*raw data*/
+				struct {
+					metac_count_t *			p_count;					/* number of elements in subrange */
+					metac_bound_t *			p_lower_bound;				/* min index in subrange */
+					metac_bound_t *			p_upper_bound;				/* max index in subrange */
+				}raw_data;
 			}*subranges;
 		}array_type_info;
 	};
