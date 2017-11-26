@@ -167,7 +167,7 @@ function dump_main_types(type, i) {
                         #optional attributes:
                         if ("DW_AT_data_member_location" in data[child_i] && 
                              match(data[child_i]["DW_AT_data_member_location"], "([0-9]+).*", arr)) {
-                            res1 = res1 "\t\t\t\t.p_data_member_location = (metac_data_member_location_t[]){" arr[1] "/*"data[child_i]["DW_AT_data_member_location"] "*/},\n";
+                            res1 = res1 "\t\t\t\t.data_member_location = " arr[1] "/*"data[child_i]["DW_AT_data_member_location"] "*/,\n";
                         }
                         if ("DW_AT_bit_offset" in data[child_i]) {
                             res1 = res1 "\t\t\t\t.p_bit_offset = (metac_bit_offset_t[]){" data[child_i]["DW_AT_bit_offset"] "},\n";

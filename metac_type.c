@@ -15,7 +15,7 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-int metac_type_id(struct metac_type *type) {
+metac_type_id_t metac_type_id(struct metac_type *type) {
 	if (type == NULL)
 		return -1;
 	return type->id;
@@ -79,8 +79,10 @@ struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
 }
 
 metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
-	if (type == NULL)
+	if (type == NULL) {
+		msg_stderr("invalid argument value: type\n");
 		return 0;
+	}
 
 	type = metac_type_typedef_skip(type);
 	assert(type);
@@ -101,13 +103,16 @@ metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
 	case DW_TAG_array_type:
 		return type->array_type_info.elements_count * metac_type_byte_size(type->array_type_info.type);
 	case DW_TAG_subprogram:
-		return 1;	/*sizeof function == 1*/
+		return sizeof(metac_type_byte_size);	/*it's always a constant*/
 	}
 	return 0;
 }
+
 metac_name_t metac_type_name(struct metac_type *type) {
-	if (type == NULL)
+	if (type == NULL) {
+		msg_stderr("invalid argument value: type\n");
 		return NULL;
+	}
 	return type->name;
 }
 
@@ -115,11 +120,11 @@ int	metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t 
 	metac_num_t i;
 	if (type == NULL) {
 		msg_stderr("invalid argument value: return NULL\n");
-		return -1;
+		return -(EINVAL);
 	}
 	if (type->id != DW_TAG_enumeration_type) {
 		msg_stderr("invalid argument type: return NULL\n");
-		return -1;
+		return -(EINVAL);
 	}
 
 	for (i = 0; i < type->enumeration_type_info.enumerators_count; ++i) {
@@ -129,10 +134,10 @@ int	metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t 
 			return 0;
 		}
 	}
-
 	msg_stddbg("wan't able to find const_value for %s\n", name);
-	return -1;
+	return -(EFAULT);
 }
+
 metac_name_t metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value) {
 	metac_num_t i;
 	if (type == NULL) {

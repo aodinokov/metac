@@ -22,7 +22,7 @@ typedef unsigned int					metac_data_location_t;
 typedef metac_data_location_t			metac_data_member_location_t;	/*make it as metac_byte_size_t - we're multiplying byte_size with index in array*/
 typedef unsigned int					metac_bit_offset_t;
 typedef unsigned int					metac_bit_size_t;
-typedef unsigned int					metac_bound_t;	/*make it long? for easier calculations*/
+typedef unsigned int					metac_bound_t;					/*make it long? for easier calculations*/
 typedef unsigned int					metac_count_t;
 typedef unsigned long					metac_const_value_t;
 typedef int								metac_flag;
@@ -77,8 +77,9 @@ struct metac_type {
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info {
 				metac_type_t *			type;						/* type of the member (mandatory) */
-				metac_name_t			name;						/* name of the member (mandatory) */
-				metac_data_member_location_t *	p_data_member_location;		/* location - offset in bytes (mandatory only for structure members) */
+#define METAC_ANON_MEMBER_NAME ""
+				metac_name_t			name;						/* name of the member (mandatory), but can be "" for anonymous elements */
+				metac_data_member_location_t data_member_location;		/* location - offset in bytes (mandatory only for structure members, but 0 is ok if not defined) */
 				metac_bit_offset_t *	p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
 				metac_bit_size_t *		p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
 			}*							members;
@@ -104,9 +105,9 @@ struct metac_type {
 				metac_count_t 			count;						/* number of elements in subrange */
 				/*raw data*/
 				struct {
-					metac_count_t *			p_count;					/* number of elements in subrange */
-					metac_bound_t *			p_lower_bound;				/* min index in subrange */
-					metac_bound_t *			p_upper_bound;				/* max index in subrange */
+					metac_count_t *			p_count;				/* number of elements in subrange */
+					metac_bound_t *			p_lower_bound;			/* min index in subrange */
+					metac_bound_t *			p_upper_bound;			/* max index in subrange */
 				}raw_data;
 			}*subranges;
 		}array_type_info;
@@ -149,19 +150,11 @@ struct metac_type {
 
 /* some basic functions to navigate in structure metac_type */
 metac_type_id_t			metac_type_id(struct metac_type *type);
-
-/* DWARF RAW data - obsolete*/
-metac_num_t				metac_type_child_num(struct metac_type *type);
-struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
-metac_num_t				metac_type_at_num(struct metac_type *type);
-struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
-
-const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
-
-
 /* basic example that use metac_type_at_by_key */
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
+
+const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 ///* special function to work with typedef */
 struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
@@ -170,6 +163,14 @@ int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_na
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
+
+
+/* DWARF RAW data - obsolete API - doesn't need this - kept is only for debug purposes */
+metac_num_t				metac_type_child_num(struct metac_type *type);
+struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
+metac_num_t				metac_type_at_num(struct metac_type *type);
+struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
+
 //
 //int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/
 //int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int i,

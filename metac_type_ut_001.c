@@ -12,6 +12,18 @@
 #include <dlfcn.h>
 #include <complex.h>	/*complex*/
 
+#define DUMP_MEM(_text_, _start_, _size_) \
+	do { \
+		int i; \
+		unsigned char * p = (unsigned char *)_start_; \
+		printf("%s", _text_); \
+		for (i=0; i<(_size_); i++) { \
+			printf("%02x ", (int)*p++); \
+		} \
+		printf("\n"); \
+	}while(0)
+
+
 /*
  * ideas for UT:
  * 1. objects of exported metatype
@@ -383,7 +395,7 @@ struct _subrange_info { int res; metac_count_t count; };
 					fail_unless(count == expected_subranges[i].count, "unexpected count for i %d", (int)i); \
 			} \
 		}while(0)
-#define _delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
+#define _array_delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
 #define _ARRAY_TYPE_CHECK_LOCATION(_obj_indx_, _should_warn_, _n_indx_, indx...) do { \
 			metac_num_t subranges_count = _n_indx_;\
 			int should_warn = _should_warn_; \
@@ -393,8 +405,8 @@ struct _subrange_info { int res; metac_count_t count; };
 					subranges_count, subranges, &data_member_location); \
 			fail_unless(call_res >= 0, "metac_type_array_member_location failed"); \
 			fail_unless(should_warn == call_res, "warning doesn't work as expected"); \
-			fail_unless(((int)_delta(obj, _obj_indx_)) == (int)data_member_location, "_delta is different: %x and got %x", \
-					(int)_delta(obj, _obj_indx_), (int)data_member_location); \
+			fail_unless(((int)_array_delta(obj, _obj_indx_)) == (int)data_member_location, "_delta is different: %x and got %x", \
+					(int)_array_delta(obj, _obj_indx_), (int)data_member_location); \
 		}while(0)
 #define ARRAY_TYPE_CHECK_END \
 	}while(0)
@@ -414,9 +426,10 @@ METAC_TYPE_GENERATE(_3darray_t);
 typedef char _3darray1_t[5][0][3];
 METAC_TYPE_GENERATE(_3darray1_t);
 
+/* Some compilers generate dwarf data without count/upper/lower_bound for arrays with len=0. It's a bug.*/
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
 #ifdef __clang__
-/*clang 3.5.0 has this issue, but 3.9.0 - doesn't */
+/* gcc and clang 3.5.0 has this issue, but 3.9.0 - doesn't */
 #if __clang_major__ >= 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0
 #undef  _BUG_ZERO_LEN_IS_FLEXIBLE_
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
@@ -467,7 +480,148 @@ START_TEST(array_with_typedef) {
 }END_TEST
 
 /*****************************************************************************/
+#define STRUCT_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
+		static _type_ obj = _init_; \
+		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+#define _STRUCT_TYPE_CHECK_BYTESIZE do { \
+			metac_byte_size_t byte_size = sizeof(obj); \
+			fail_unless(byte_size == type->structure_type_info.byte_size, "byte_size doesn't match"); \
+		}while(0)
+struct _member_info { metac_name_t name; metac_data_member_location_t location; int flag;};
+#define _struct_delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
+#define __STRUCT_TYPE_CHECK_MEMBER(_member_name_) {.flag = 1, .name = #_member_name_ , .location = _struct_delta(obj, . _member_name_), }
+#define __STRUCT_TYPE_CHECK_ANON_MEMBER(_first_member_name_) {.flag = 1, .name = METAC_ANON_MEMBER_NAME, .location = _struct_delta(obj, . _first_member_name_), }
+#define _struct_bit_location(_field_name)({\
+	metac_data_member_location_t res = 0; \
+	memset(&obj, 0xff, sizeof(obj)); \
+	obj. _field_name = 0; \
+	DUMP_MEM("after : ",&obj, sizeof(obj)); \
+	for (res = 0; res < sizeof(obj); res++) \
+		if (((unsigned char*)&obj)[res] != 0xff) break; \
+	printf("res: %d\n", (int)res); \
+	res;\
+})
+#define __STRUCT_TYPE_CHECK_MEMBER_BITFIELD(_member_name_) {.flag = 2, .name = #_member_name_, .location = _struct_bit_location(_member_name_), }
+#define _STRUCT_TYPE_CHECK_MEMBERS(_expected_members_count, _expected_members_...) do { \
+			metac_num_t i; \
+			metac_num_t members_count = _expected_members_count; \
+			struct _member_info expected_members[] = _expected_members_; \
+			fail_unless(members_count == type->structure_type_info.members_count, "members_count doesn't match"); \
+			for (i = 0; i < members_count; i++) {\
+				fail_unless(strcmp(type->structure_type_info.members[i].name, expected_members[i].name) == 0, "name mismatch");\
+				fail_unless(type->structure_type_info.members[i].type != NULL, "type is NULL");\
+				switch(expected_members[i].flag) {\
+				case 1: \
+				fail_unless(type->structure_type_info.members[i].data_member_location == expected_members[i].location, "incorrect location"); \
+				break; \
+				case 2: \
+				fail_unless(type->structure_type_info.members[i].p_bit_size != NULL, "bit_size must be set"); \
+				fail_unless(expected_members[i].location >= type->structure_type_info.members[i].data_member_location && \
+						expected_members[i].location < type->structure_type_info.members[i].data_member_location + metac_type_byte_size(type->structure_type_info.members[i].type), \
+					"incorrect bit location: member %s, got %x, expected in range [%x, %x)", \
+					expected_members[i].name,\
+					type->structure_type_info.members[i].data_member_location, \
+					expected_members[i].location, \
+					expected_members[i].location < type->structure_type_info.members[i].data_member_location + metac_type_byte_size(type->structure_type_info.members[i].type)); \
+				break; \
+				} \
+			} \
+		}while(0)
+#define STRUCT_TYPE_CHECK_END \
+	}while(0)
 
+#define STRUCT_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
+	GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_); \
+	STRUCT_TYPE_CHECK_BEGIN_(_type_, _init_)
+
+typedef struct _struct_ {
+	unsigned int widthValidated;
+	unsigned int heightValidated;
+}struct_t;
+METAC_TYPE_GENERATE(struct_t);
+typedef struct _bit_fields_ {
+	unsigned int widthValidated : 9;
+	unsigned int heightValidated : 12;
+}bit_fields_t;
+METAC_TYPE_GENERATE(bit_fields_t);
+typedef struct _bit_fields_for_longer_than32_bit {
+	unsigned int widthValidated : 9;
+	unsigned int heightValidated : 12;
+	int heightValidated1 : 30;
+	llongint_t heightValidated2 : 63;
+}bit_fields_for_longer_than32_bit_t;
+METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+struct _struct_with_flexible_array_and_len {
+	int array_len;
+	char array[];
+};
+typedef struct _struct_with_struct_with_flexible_array_and_len {
+	int before_struct;
+	struct _struct_with_flexible_array_and_len str1;
+}struct_with_struct_with_flexible_array_and_len_t;
+METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
+METAC_TYPE_SPECIFICATION_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
+_METAC_TYPE_SPECIFICATION("discrimitator_name", "array_len")
+METAC_TYPE_SPECIFICATION_END
+typedef struct {
+	struct {
+		int a;
+		int b;
+	};
+	struct {
+		long c;
+		double d;
+	};
+	union {
+		int x;
+		long y;
+	};
+	int e;
+}anon_struct_with_anon_elements;
+METAC_TYPE_GENERATE(anon_struct_with_anon_elements);
+
+START_TEST(struct_with_typedef) {
+	STRUCT_TYPE_CHECK_BEGIN(struct_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
+	_STRUCT_TYPE_CHECK_BYTESIZE;
+	_STRUCT_TYPE_CHECK_MEMBERS(2, {
+	__STRUCT_TYPE_CHECK_MEMBER(widthValidated),
+	__STRUCT_TYPE_CHECK_MEMBER(heightValidated),
+	});
+	STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
+	_STRUCT_TYPE_CHECK_BYTESIZE;
+	_STRUCT_TYPE_CHECK_MEMBERS(2, {
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
+	});
+	STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
+	_STRUCT_TYPE_CHECK_BYTESIZE;
+	_STRUCT_TYPE_CHECK_MEMBERS(4, {
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated1),
+	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated2),
+	});
+	STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type,
+			"discrimitator_name", "array_len", {});
+	_STRUCT_TYPE_CHECK_BYTESIZE;
+	_STRUCT_TYPE_CHECK_MEMBERS(2, {
+	__STRUCT_TYPE_CHECK_MEMBER(before_struct),
+	__STRUCT_TYPE_CHECK_MEMBER(str1),
+	});
+	STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(anon_struct_with_anon_elements, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
+	_STRUCT_TYPE_CHECK_BYTESIZE;
+	_STRUCT_TYPE_CHECK_MEMBERS(4, {
+	__STRUCT_TYPE_CHECK_ANON_MEMBER(a),
+	__STRUCT_TYPE_CHECK_ANON_MEMBER(c),
+	__STRUCT_TYPE_CHECK_ANON_MEMBER(x),
+	__STRUCT_TYPE_CHECK_MEMBER(e),
+	});
+	STRUCT_TYPE_CHECK_END;
+}END_TEST
 /*****************************************************************************/
 
 /* unions */
@@ -476,46 +630,6 @@ typedef union _union_{
 	char f;
 }union_t;
 METAC_TYPE_GENERATE(union_t);
-
-/* struct */
-typedef struct _struct_
-{
-	unsigned int widthValidated;
-	unsigned int heightValidated;
-}struct_t;
-METAC_TYPE_GENERATE(struct_t);
-
-/* bit fields */
-typedef struct _bit_fields_
-{
-	unsigned int widthValidated : 9;
-	unsigned int heightValidated : 12;
-}bit_fields_t;
-METAC_TYPE_GENERATE(bit_fields_t);
-
-typedef struct _bit_fields_for_longer_than32_bit
-{
-	unsigned int widthValidated : 9;
-	unsigned int heightValidated : 12;
-	int heightValidated1 : 30;
-	llongint_t heightValidated2 : 63;
-}bit_fields_for_longer_than32_bit_t;
-METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
-
-struct _struct_with_flexible_array_and_len {
-	int array_len;
-	char array[];
-};
-typedef struct _struct_with_struct_with_flexible_array_and_len{
-	int before_struct;
-	struct _struct_with_flexible_array_and_len str1;
-}struct_with_struct_with_flexible_array_and_len_t;
-METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
-METAC_TYPE_SPECIFICATION_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
-_METAC_TYPE_SPECIFICATION("discrimitator_name", "array_len")
-METAC_TYPE_SPECIFICATION_END
-
-/*TODO: some combinations??? */
 
 /* function ptr */
 typedef int_t (*func_ptr_t)(bit_fields_t *arg);
@@ -532,11 +646,6 @@ METAC_FUNCTION(func_printf);
 START_TEST(general_type_smoke) {
 
 	GENERAL_TYPE_CHECK(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL);
-
-	GENERAL_TYPE_CHECK(struct_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type, "discrimitator_name", "array_len");
 
 	GENERAL_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST
@@ -576,86 +685,6 @@ START_TEST(general_type_smoke) {
 //	mark_point(); \
 //} while(0)
 //
-//#define STRUCT_TYPE_SMOKE_START(_type_, fields_number) \
-//do{ \
-//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-//	_type_ struct_; \
-//	struct metac_type_structure_info _info_;\
-//	fail_unless(metac_type_structure_info(type, &_info_) == 0, "get info returned error");\
-//	fail_unless(_info_.members_count == (fields_number), \
-//			"metac_type_structure_member_count incorrect value for " #_type_ ": %d", fields_number); \
-//
-//#define STRUCT_TYPE_SMOKE_MEMBER(_member_name_) \
-//	do { \
-//		struct metac_type_member_info member_info; \
-//		int i = metac_type_child_id_by_name(type, #_member_name_); \
-//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-//		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-//		/* check name*/ \
-//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-//				member_info.name, #_member_name_); \
-//		/* check type*/\
-//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-//		/* check offset */\
-//		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
-//		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == *member_info.p_data_member_location,\
-//				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
-//				(int)*member_info.p_data_member_location,\
-//				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
-//		\
-//	} while(0)
-//
-//#define STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(_member_name_) \
-//	do { \
-//		int bit_size = 0; \
-//		unsigned int mask; /*will take number of bits*/ \
-//		struct metac_type_member_info member_info; \
-//		int i = metac_type_child_id_by_name(type, #_member_name_); \
-//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-//		fail_unless(metac_type_structure_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-//		/* check name*/\
-//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-//				member_info.name, #_member_name_); \
-//		/* check type*/\
-//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-//		/* check offset */\
-//		fail_unless(member_info.p_data_member_location != NULL, "member_info.p_data_member_location is NULL"); \
-//		/* check bit_size*/ \
-//		memset(&struct_, 0xff, sizeof(struct_)); \
-//		mask = struct_._member_name_; \
-//		struct_.heightValidated = 0; \
-//		\
-//		while (mask != 0) { \
-//			mask >>= 1; \
-//			bit_size++; \
-//		} \
-//		fail_unless(*member_info.p_bit_size == bit_size, "bit_size is incorrect %d instead of %d", \
-//				(int)*member_info.p_bit_size, (int)bit_size); \
-//		/*TODO: make check for bit_offset and data_member_location (for big/little endian) - depends on implementation*/ \
-//	} while(0)
-//
-//#define STRUCT_TYPE_SMOKE_END \
-//	mark_point(); \
-//} while(0)
-//
-//START_TEST(struct_type_smoke) {
-//	UNION_TYPE_SMOKE_START(union_t, 2)
-//		UNION_TYPE_SMOKE_MEMBER(d);
-//		UNION_TYPE_SMOKE_MEMBER(f);
-//	UNION_TYPE_SMOKE_END;
-//
-//	STRUCT_TYPE_SMOKE_START(struct_t, 2)
-//		STRUCT_TYPE_SMOKE_MEMBER(heightValidated);
-//		STRUCT_TYPE_SMOKE_MEMBER(widthValidated);
-//	STRUCT_TYPE_SMOKE_END;
-//
-//	STRUCT_TYPE_SMOKE_START(bit_fields_t, 2)
-//		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(heightValidated);
-//		STRUCT_TYPE_SMOKE_MEMBER_BIT_FIELD(widthValidated);
-//	STRUCT_TYPE_SMOKE_END;
-//}END_TEST
 //
 //#define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
 //do{ \
@@ -914,6 +943,7 @@ int main(void){
 					ADD_TEST(enums_with_typedef);
 					ADD_TEST(general_type_smoke);
 					ADD_TEST(array_with_typedef);
+					ADD_TEST(struct_with_typedef);
 //					ADD_TEST(struct_type_smoke);
 //					ADD_TEST(func_type_smoke);
 //					ADD_TEST(array_type_smoke);
