@@ -781,6 +781,21 @@ START_TEST(metac_array_symbols) {
 			"can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
 /*****************************************************************************/
+METAC_TYPE_GENERATE(metac_type_t);
+START_TEST(metac_type_t_ut) {
+	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
+		__STRUCT_TYPE_CHECK_MEMBER(id),
+		__STRUCT_TYPE_CHECK_MEMBER(name),
+		__STRUCT_TYPE_CHECK_MEMBER(declaration),
+		__STRUCT_TYPE_CHECK_ANON_MEMBER(base_type_info),
+		__STRUCT_TYPE_CHECK_MEMBER(specifications),
+		__STRUCT_TYPE_CHECK_MEMBER(dwarf_info),
+		});
+	}STRUCT_TYPE_CHECK_END;
+}END_TEST
+/*****************************************************************************/
 int main(void){
 	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
 	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
@@ -796,6 +811,7 @@ int main(void){
 					ADD_TEST(unions_ut);
 					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
+					ADD_TEST(metac_type_t_ut);
 				}END_CASE
 			);
 		}END_SUITE
