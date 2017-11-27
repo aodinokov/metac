@@ -17,8 +17,10 @@
 
 const char*	metac_type_specification(struct metac_type *type, const char *key) {
 	int i = 0;
-	if (type == NULL)
+	if (type == NULL){
+		msg_stderr("invalid argument value: return NULL\n");
 		return NULL;
+	}
 	while (type->specifications[i].key) {
 		if (strcmp(type->specifications[i].key, key) == 0)
 			return type->specifications[i].value;
@@ -224,6 +226,7 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	}while(min<=max);
 	return NULL;
 }
+
 //
 //static int _metac_delete(struct metac_type *type, void *ptr){
 //	metac_type_id_t id;

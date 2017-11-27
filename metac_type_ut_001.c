@@ -782,8 +782,26 @@ START_TEST(metac_array_symbols) {
 }END_TEST
 /*****************************************************************************/
 METAC_TYPE_GENERATE(metac_type_t);
+METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
+_METAC_TYPE_SPECIFICATION("<anon0>:discriminator_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("<anon0>.enumeration_type_info.enumerators:array_ptr:len_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("<anon0>.subprogram_info.parameters:array_ptr:len_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("<anon0>.structure_type_info.members::array_ptr:len_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("<anon0>.union_type_info.members:array_ptr:len_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("<anon0>.array_type_info.subranges:array_ptr:len_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("specifications:array_ptr:NULL_ended", NULL)
+_METAC_TYPE_SPECIFICATION("dwarf_info.at:array_ptr:len_function_ptr", "function returns dwarf_info.at_num")
+_METAC_TYPE_SPECIFICATION("dwarf_info.at.[].<anon0>:discriminator_function_ptr", "ptr to function")
+_METAC_TYPE_SPECIFICATION("dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num")
+/*or - better*/
+//_METAC_TYPE_SPECIFICATION("<anon0>", {.discriminator_function_ptr = fn1, .discriminator_function_context = ...})
+//_METAC_TYPE_SPECIFICATION("specifications", {.array_ptr = {.NULL_ended = 1, }, })
+//_METAC_TYPE_SPECIFICATION("dwarf_info.child", , {.array_ptr = {.len_function_ptr = fn2, .len_function_context = ...}, })
+METAC_TYPE_SPECIFICATION_END
+
 START_TEST(metac_type_t_ut) {
-	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type,
+			"dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num", {}) {
 		_STRUCT_TYPE_CHECK_BYTESIZE;
 		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
 		__STRUCT_TYPE_CHECK_MEMBER(id),

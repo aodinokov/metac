@@ -18,8 +18,7 @@ typedef struct metac_type				metac_type_t;
 typedef struct metac_type_at			metac_type_at_t;
 typedef unsigned int					metac_byte_size_t;
 typedef unsigned int					metac_encoding_t;
-typedef unsigned int					metac_data_location_t;
-typedef metac_data_location_t			metac_data_member_location_t;	/*make it as metac_byte_size_t - we're multiplying byte_size with index in array*/
+typedef metac_byte_size_t				metac_data_member_location_t;	/*make it as metac_byte_size_t - we're multiplying byte_size with index in array*/
 typedef unsigned int					metac_bit_offset_t;
 typedef unsigned int					metac_bit_size_t;
 typedef unsigned int					metac_bound_t;					/*make it long? for easier calculations*/
@@ -33,7 +32,7 @@ typedef unsigned int					metac_num_t;
 
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
-	metac_name_t						name;						/* name of type (can be NULL for anonymous) */
+	metac_name_t						name;						/* name of type (can be NULL) */
 	int									declaration;				/* =1 if type is incomplete */
 
 	/* METAC specific data */
@@ -45,7 +44,7 @@ struct metac_type {
 		}base_type_info;
 		/* .id == DW_TAG_pointer_type */
 		struct {
-			metac_byte_size_t			byte_size;					/* ?mandatory field */
+			metac_byte_size_t			byte_size;					/* can be optional */
 			metac_type_t *				type;						/* universal field */
 		}pointer_type_info;
 		/* .id == DW_TAG_typedef */
@@ -150,12 +149,12 @@ struct metac_type {
 
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
-const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
 int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
+const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
