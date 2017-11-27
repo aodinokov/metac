@@ -77,7 +77,7 @@ struct metac_type {
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info {
 				metac_type_t *			type;						/* type of the member (mandatory) */
-#define METAC_ANON_MEMBER_NAME ""
+				#define METAC_ANON_MEMBER_NAME ""
 				metac_name_t			name;						/* name of the member (mandatory), but can be "" for anonymous elements */
 				metac_data_member_location_t data_member_location;		/* location - offset in bytes (mandatory only for structure members, but 0 is ok if not defined) */
 				metac_bit_offset_t *	p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */

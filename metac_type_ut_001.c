@@ -46,15 +46,34 @@
  * 5. check basic functions to navigate by metatype
  * 6. check basic functions to navigate by object, created by metatype
  *
- * 7. serialization/deserialization - TBD: status from json - not in this ut
  */
 
 /**
  * Know issues and workarounds:
- * 1. signed/unsinged <char|short|int|long>, long long, void*(all pointers and arrays) won't work
+ **/
+/* 1. signed/unsinged <char|short|int|long>, long long, void*(all pointers and arrays) won't work
  * because they are not one-work types.
- * use typedefs to export that types via METAC
+ * use typedefs to export that types via METAC - fixed in metac.awk
  */
+/* 2. looks like clang3.4 doesn't have ability to show if function has unspecified parameter.
+ * See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472
+ */
+#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
+#define _BUG_NO_USPECIFIED_PARAMETER_ 0
+#else
+#define _BUG_NO_USPECIFIED_PARAMETER_ 1
+#endif
+
+/* 3. Some compilers generate dwarf data without count/upper/lower_bound for arrays with len=0. It's a bug.
+ * gcc and clang 3.5.0 has this issue, but 3.9.0 - doesn't
+ */
+#if defined(__clang__) && __clang_major__ >= 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0
+#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
+#else
+#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
+#endif
+
+
 /*****************************************************************************/
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
 METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
@@ -111,7 +130,6 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_);
 
-
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
 
@@ -122,15 +140,6 @@ METAC_TYPE_GENERATE(long);
 METAC_TYPE_GENERATE(float);
 METAC_TYPE_GENERATE(double);
 
-START_TEST(base_types_no_typedef) {
-	BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-	BASE_TYPE_CHECK(short, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-	BASE_TYPE_CHECK(int, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-	BASE_TYPE_CHECK(long, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-	BASE_TYPE_CHECK(float, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-	BASE_TYPE_CHECK(double, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
-}END_TEST
-/*****************************************************************************/
 typedef char char_t;
 typedef signed char schar_t;
 typedef unsigned char uchar_t;
@@ -200,7 +209,14 @@ METAC_TYPE_GENERATE(ldouble_t);
 typedef double complex doublecomplex_t;
 METAC_TYPE_GENERATE(doublecomplex_t);
 
-START_TEST(base_types_with_typedef) {
+START_TEST(base_types_ut) {
+	BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(short, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(int, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(long, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(float, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(double, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
+
 	BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
 	BASE_TYPE_CHECK(short, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
 	BASE_TYPE_CHECK(int, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
@@ -248,6 +264,7 @@ START_TEST(base_types_with_typedef) {
 
 /*****************************************************************************/
 #define POINTER_TYPE_CHECK GENERAL_TYPE_CHECK
+
 typedef void* voidptr_t;
 METAC_TYPE_GENERATE(voidptr_t);
 typedef void** voidptrptr_t;
@@ -260,14 +277,16 @@ typedef incomplete_t * p_incomplete_t;
 METAC_TYPE_GENERATE(p_incomplete_t);
 typedef const char * cchar_t;
 METAC_TYPE_GENERATE(cchar_t);
+typedef int_t (*func_ptr_t)(doublecomplex_t *arg);
+METAC_TYPE_GENERATE(func_ptr_t);
 
-
-START_TEST(pointers_with_typedef) {
+START_TEST(pointers_ut) {
 	POINTER_TYPE_CHECK(voidptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(voidptrptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(charptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(p_incomplete_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 	POINTER_TYPE_CHECK(cchar_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
+	POINTER_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
 }END_TEST
 
 /*****************************************************************************/
@@ -336,7 +355,7 @@ typedef enum __attribute__((packed, aligned(16)))_aligned_enum_{
 }aligned_enum_t;
 METAC_TYPE_GENERATE(aligned_enum_t);
 
-START_TEST(enums_with_typedef) {
+START_TEST(enums_ut) {
 	ENUM_TYPE_CHECK(enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, NULL, NULL, "enum_t", "_enum_", {
 		{.name = "_eZero", .const_value = 0},
 		{.name = "_eOne", .const_value = 1},
@@ -426,57 +445,47 @@ METAC_TYPE_GENERATE(_3darray_t);
 typedef char _3darray1_t[5][0][3];
 METAC_TYPE_GENERATE(_3darray1_t);
 
-/* Some compilers generate dwarf data without count/upper/lower_bound for arrays with len=0. It's a bug.*/
-#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
-#ifdef __clang__
-/* gcc and clang 3.5.0 has this issue, but 3.9.0 - doesn't */
-#if __clang_major__ >= 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0
-#undef  _BUG_ZERO_LEN_IS_FLEXIBLE_
-#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
-#endif
-#endif
-
-START_TEST(array_with_typedef) {
-	ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char_t", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
-	_ARRAY_TYPE_CHECK_SUBRANGES(1, {{_BUG_ZERO_LEN_IS_FLEXIBLE_, 0}, });
-	ARRAY_TYPE_CHECK_END;
-	ARRAY_TYPE_CHECK_BEGIN(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char_t", 0);
-	_ARRAY_TYPE_CHECK_SUBRANGES(1, {{0, 5}, });
-	_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
-	ARRAY_TYPE_CHECK_END;
-	ARRAY_TYPE_CHECK_BEGIN(_2darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char", 0);
-	_ARRAY_TYPE_CHECK_SUBRANGES(2, {{0, 2}, {0, 3}, } );
-	_ARRAY_TYPE_CHECK_LOCATION([0], 0, 1, {0, });
-	_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
-	_ARRAY_TYPE_CHECK_LOCATION([2], 1, 1, {2, });
-	_ARRAY_TYPE_CHECK_LOCATION([0][0], 0, 2, {0, 0, });
-	_ARRAY_TYPE_CHECK_LOCATION([0][1], 0, 2, {0, 1, });
-	_ARRAY_TYPE_CHECK_LOCATION([0][2], 0, 2, {0, 2, });
-	_ARRAY_TYPE_CHECK_LOCATION([0][3], 1, 2, {0, 3, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][0], 0, 2, {1, 0, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][1], 0, 2, {1, 1, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][2], 0, 2, {1, 2, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][3], 1, 2, {1, 3, });
-	_ARRAY_TYPE_CHECK_LOCATION([2][0], 1, 2, {2, 0, });
-	_ARRAY_TYPE_CHECK_LOCATION([2][1], 1, 2, {2, 1, });
-	_ARRAY_TYPE_CHECK_LOCATION([2][2], 1, 2, {2, 2, });
-	_ARRAY_TYPE_CHECK_LOCATION([3][2], 1, 2, {3, 2, });
-	ARRAY_TYPE_CHECK_END;
-	ARRAY_TYPE_CHECK_BEGIN(_3darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char", 0);
-	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {0, 4}, {0, 3}, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][0][0], 0, 3, {1, 0, 0, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][0][1], 0, 3, {1, 0, 1, });
-	_ARRAY_TYPE_CHECK_LOCATION([1][3][2], 0, 3, {1, 3, 2, });
-	ARRAY_TYPE_CHECK_END;
-	ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {});
-	_ARRAY_TYPE_CHECK_VALS("char", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
-	_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {_BUG_ZERO_LEN_IS_FLEXIBLE_, 0}, {0, 3}, });
-	_ARRAY_TYPE_CHECK_LOCATION([4][2][4], 2, 3, {4, 2, 4, });
-	ARRAY_TYPE_CHECK_END;
+START_TEST(arrays_ut) {
+	ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
+		_ARRAY_TYPE_CHECK_VALS("char_t", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
+		_ARRAY_TYPE_CHECK_SUBRANGES(1, {{_BUG_ZERO_LEN_IS_FLEXIBLE_, 0}, });
+	}ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
+		_ARRAY_TYPE_CHECK_VALS("char_t", 0);
+		_ARRAY_TYPE_CHECK_SUBRANGES(1, {{0, 5}, });
+		_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
+	}ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_2darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
+		_ARRAY_TYPE_CHECK_VALS("char", 0);
+		_ARRAY_TYPE_CHECK_SUBRANGES(2, {{0, 2}, {0, 3}, } );
+		_ARRAY_TYPE_CHECK_LOCATION([0], 0, 1, {0, });
+		_ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
+		_ARRAY_TYPE_CHECK_LOCATION([2], 1, 1, {2, });
+		_ARRAY_TYPE_CHECK_LOCATION([0][0], 0, 2, {0, 0, });
+		_ARRAY_TYPE_CHECK_LOCATION([0][1], 0, 2, {0, 1, });
+		_ARRAY_TYPE_CHECK_LOCATION([0][2], 0, 2, {0, 2, });
+		_ARRAY_TYPE_CHECK_LOCATION([0][3], 1, 2, {0, 3, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][0], 0, 2, {1, 0, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][1], 0, 2, {1, 1, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][2], 0, 2, {1, 2, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][3], 1, 2, {1, 3, });
+		_ARRAY_TYPE_CHECK_LOCATION([2][0], 1, 2, {2, 0, });
+		_ARRAY_TYPE_CHECK_LOCATION([2][1], 1, 2, {2, 1, });
+		_ARRAY_TYPE_CHECK_LOCATION([2][2], 1, 2, {2, 2, });
+		_ARRAY_TYPE_CHECK_LOCATION([3][2], 1, 2, {3, 2, });
+	}ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_3darray_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
+		_ARRAY_TYPE_CHECK_VALS("char", 0);
+		_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {0, 4}, {0, 3}, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][0][0], 0, 3, {1, 0, 0, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][0][1], 0, 3, {1, 0, 1, });
+		_ARRAY_TYPE_CHECK_LOCATION([1][3][2], 0, 3, {1, 3, 2, });
+	}ARRAY_TYPE_CHECK_END;
+	ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
+		_ARRAY_TYPE_CHECK_VALS("char", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
+		_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {_BUG_ZERO_LEN_IS_FLEXIBLE_, 0}, {0, 3}, });
+		_ARRAY_TYPE_CHECK_LOCATION([4][2][4], 2, 3, {4, 2, 4, });
+	}ARRAY_TYPE_CHECK_END;
 }END_TEST
 
 /*****************************************************************************/
@@ -593,47 +602,47 @@ typedef struct {
 }anon_struct_with_anon_elements;
 METAC_TYPE_GENERATE(anon_struct_with_anon_elements);
 
-START_TEST(struct_with_typedef) {
-	STRUCT_TYPE_CHECK_BEGIN(struct_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
-	_STRUCT_TYPE_CHECK_BYTESIZE;
-	_STRUCT_TYPE_CHECK_MEMBERS(2, {
-	__STRUCT_TYPE_CHECK_MEMBER(widthValidated),
-	__STRUCT_TYPE_CHECK_MEMBER(heightValidated),
-	});
-	STRUCT_TYPE_CHECK_END;
-	STRUCT_TYPE_CHECK_BEGIN(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
-	_STRUCT_TYPE_CHECK_BYTESIZE;
-	_STRUCT_TYPE_CHECK_MEMBERS(2, {
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
-	});
-	STRUCT_TYPE_CHECK_END;
-	STRUCT_TYPE_CHECK_BEGIN(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
-	_STRUCT_TYPE_CHECK_BYTESIZE;
-	_STRUCT_TYPE_CHECK_MEMBERS(4, {
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated1),
-	__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated2),
-	});
-	STRUCT_TYPE_CHECK_END;
+START_TEST(structs_ut) {
+	STRUCT_TYPE_CHECK_BEGIN(struct_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(2, {
+		__STRUCT_TYPE_CHECK_MEMBER(widthValidated),
+		__STRUCT_TYPE_CHECK_MEMBER(heightValidated),
+		});
+	}STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(2, {
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
+		});
+	}STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(4, {
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(widthValidated),
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated1),
+		__STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated2),
+		});
+	}STRUCT_TYPE_CHECK_END;
 	STRUCT_TYPE_CHECK_BEGIN(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type,
-			"discrimitator_name", "array_len", {});
-	_STRUCT_TYPE_CHECK_BYTESIZE;
-	_STRUCT_TYPE_CHECK_MEMBERS(2, {
-	__STRUCT_TYPE_CHECK_MEMBER(before_struct),
-	__STRUCT_TYPE_CHECK_MEMBER(str1),
-	});
-	STRUCT_TYPE_CHECK_END;
-	STRUCT_TYPE_CHECK_BEGIN(anon_struct_with_anon_elements, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {});
-	_STRUCT_TYPE_CHECK_BYTESIZE;
-	_STRUCT_TYPE_CHECK_MEMBERS(4, {
-	__STRUCT_TYPE_CHECK_ANON_MEMBER(a),
-	__STRUCT_TYPE_CHECK_ANON_MEMBER(c),
-	__STRUCT_TYPE_CHECK_ANON_MEMBER(x),
-	__STRUCT_TYPE_CHECK_MEMBER(e),
-	});
-	STRUCT_TYPE_CHECK_END;
+			"discrimitator_name", "array_len", {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(2, {
+		__STRUCT_TYPE_CHECK_MEMBER(before_struct),
+		__STRUCT_TYPE_CHECK_MEMBER(str1),
+		});
+	}STRUCT_TYPE_CHECK_END;
+	STRUCT_TYPE_CHECK_BEGIN(anon_struct_with_anon_elements, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(4, {
+		__STRUCT_TYPE_CHECK_ANON_MEMBER(a),
+		__STRUCT_TYPE_CHECK_ANON_MEMBER(c),
+		__STRUCT_TYPE_CHECK_ANON_MEMBER(x),
+		__STRUCT_TYPE_CHECK_MEMBER(e),
+		});
+	}STRUCT_TYPE_CHECK_END;
 }END_TEST
 /*****************************************************************************/
 #define UNION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
@@ -667,137 +676,97 @@ typedef union _union_anon_{
 }union_anon_t;
 METAC_TYPE_GENERATE(union_anon_t);
 
-START_TEST(union_with_typedef) {
-	UNION_TYPE_CHECK_BEGIN(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {});
-	_UNION_TYPE_CHECK_BYTESIZE;
-	_UNION_TYPE_CHECK_MEMBERS(2, {
-	__UNION_TYPE_CHECK_MEMBER(d),
-	__UNION_TYPE_CHECK_MEMBER(f),
-	});
-	UNION_TYPE_CHECK_END;
-	UNION_TYPE_CHECK_BEGIN(union_anon_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {});
-	_UNION_TYPE_CHECK_BYTESIZE;
-	_UNION_TYPE_CHECK_MEMBERS(3, {
-	__UNION_TYPE_CHECK_ANON_MEMBER(a),
-	__UNION_TYPE_CHECK_MEMBER(c),
-	__UNION_TYPE_CHECK_ANON_MEMBER(d),
-	});
-	UNION_TYPE_CHECK_END;
-
+START_TEST(unions_ut) {
+	UNION_TYPE_CHECK_BEGIN(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {}) {
+		_UNION_TYPE_CHECK_BYTESIZE;
+		_UNION_TYPE_CHECK_MEMBERS(2, {
+		__UNION_TYPE_CHECK_MEMBER(d),
+		__UNION_TYPE_CHECK_MEMBER(f),
+		});
+	}UNION_TYPE_CHECK_END;
+	UNION_TYPE_CHECK_BEGIN(union_anon_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL, {}) {
+		_UNION_TYPE_CHECK_BYTESIZE;
+		_UNION_TYPE_CHECK_MEMBERS(3, {
+		__UNION_TYPE_CHECK_ANON_MEMBER(a),
+		__UNION_TYPE_CHECK_MEMBER(c),
+		__UNION_TYPE_CHECK_ANON_MEMBER(d),
+		});
+	}UNION_TYPE_CHECK_END;
 }END_TEST
 /*****************************************************************************/
-/* function ptr */
-typedef int_t (*func_ptr_t)(bit_fields_t *arg);
-METAC_TYPE_GENERATE(func_ptr_t);
+#define FUNCTION_CHECK_BEGIN_(_type_) do { \
+		char *type_name = #_type_; \
+		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+#define _FUNCTION_CHECK_GLOBALLY_ACCESSIBLE do { \
+			struct metac_object * p_object; \
+			mark_point(); \
+			p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, type_name); \
+			fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
+			fail_unless(p_object->type == type, "p_object_info.type must be == type");\
+			fail_unless(p_object->flexible_part_byte_size == 0, "p_object_info.flexible_part_byte_size must be == 0");\
+		}while(0)
+#define _FUNCTION_CHECK_RETURN_TYPE(_return_type_name_) do { \
+			char* return_type_name = _return_type_name_; \
+			if (return_type_name == NULL) {\
+				fail_unless(type->subprogram_info.type == NULL, "return type doesn't correlate with expected"); \
+			} else { \
+				fail_unless(metac_type_name(type->subprogram_info.type) != NULL, "can't get name - (PS: will not work for arrays)"); \
+				fail_unless(strcmp(return_type_name, metac_type_name(type->subprogram_info.type)) == 0, "type name doesn't match"); \
+			} \
+		}while(0)
+#define _FUNCTION_CHECK_PARAMS(_bug_with_unspecified_parameters_, _parameters_count_, _expected_parameters_...) do { \
+			metac_num_t i; \
+			int bug_with_unspecified_parameters = _bug_with_unspecified_parameters_; \
+			metac_num_t parameters_count = _parameters_count_; \
+			struct metac_type_subprogram_parameter expected_parameters[] = _expected_parameters_; \
+			fail_unless(parameters_count == type->subprogram_info.parameters_count + bug_with_unspecified_parameters, \
+				"parameters_count doesn't match"); \
+			for (i = 0; i < type->subprogram_info.parameters_count; i++) { \
+				fail_unless(type->subprogram_info.parameters[i].unspecified_parameters == expected_parameters[i].unspecified_parameters, \
+					"unspecified_parameters parameter mismatch"); \
+				if (expected_parameters[i].unspecified_parameters == 0) { \
+					fail_unless(strcmp(type->subprogram_info.parameters[i].name, expected_parameters[i].name) == 0, "name mismatch");\
+				} \
+			} \
+		}while(0)
 
-/* function */
+#define FUNCTION_TYPE_CHECK_END \
+	}while(0)
+
+#define FUNCTION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_) \
+	mark_point(); \
+	GENERAL_TYPE_CHECK_BYTE_SIZE(_type_); \
+	GENERAL_TYPE_CHECK_NAME(_type_); \
+	GENERAL_TYPE_CHECK_ACCESS_BY_NAME(_type_); \
+	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
+	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
+	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
+	FUNCTION_CHECK_BEGIN_(_type_)
+
 typedef bit_fields_t * p_bit_fields_t;
 int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
 METAC_FUNCTION(func_t);
-
 void func_printf(cchar_t format, ...){return;}
 METAC_FUNCTION(func_printf);
 
-START_TEST(general_type_smoke) {
-	GENERAL_TYPE_CHECK(union_t, DW_TAG_typedef, DW_TAG_union_type, NULL, NULL);
-	GENERAL_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, NULL, NULL);
+START_TEST(funtions_ut){
+	FUNCTION_TYPE_CHECK_BEGIN(func_t, DW_TAG_subprogram, DW_TAG_subprogram, NULL, NULL) {
+		_FUNCTION_CHECK_GLOBALLY_ACCESSIBLE;
+		_FUNCTION_CHECK_RETURN_TYPE("int_t");
+		_FUNCTION_CHECK_PARAMS(_BUG_NO_USPECIFIED_PARAMETER_, 1, {
+			{.name = "arg", },
+		});
+	}FUNCTION_TYPE_CHECK_END;
+	FUNCTION_TYPE_CHECK_BEGIN(func_printf, DW_TAG_subprogram, DW_TAG_subprogram, NULL, NULL) {
+		_FUNCTION_CHECK_GLOBALLY_ACCESSIBLE;
+		_FUNCTION_CHECK_RETURN_TYPE(NULL);
+		_FUNCTION_CHECK_PARAMS(_BUG_NO_USPECIFIED_PARAMETER_, 2, {
+			{.name = "format", },
+			{.unspecified_parameters = 1, },
+		});
+	}FUNCTION_TYPE_CHECK_END;
 }END_TEST
-
-//#define UNION_TYPE_SMOKE_START(_type_, fields_number) \
-//do{ \
-//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-//	_type_ struct_; \
-//	struct metac_type_union_info _info_;\
-//	fail_unless(metac_type_union_info(type, &_info_) == 0, "get info returned error");\
-//	fail_unless(_info_.members_count == (fields_number), \
-//			"metac_type_union_member_count incorrect value for " #_type_ ": %d", fields_number); \
-//
-//
-//#define UNION_TYPE_SMOKE_MEMBER(_member_name_) \
-//	do { \
-//		struct metac_type_member_info member_info; \
-//		int i = metac_type_child_id_by_name(type, #_member_name_); \
-//		fail_unless(i >= 0, "couldn't find member " #_member_name_); \
-//		fail_unless(metac_type_union_member_info(type, (unsigned int)i, &member_info) == 0, "failed to get member info for " #_member_name_); \
-//		/* check name*/\
-//		fail_unless(member_info.name != NULL, "member_info.name is NULL"); \
-//		fail_unless(strcmp(member_info.name, #_member_name_) == 0, "member_info.name is %s instead of %s", \
-//				member_info.name, #_member_name_); \
-//		/* check type*/\
-//		fail_unless(member_info.type != NULL, "member_info.type is NULL"); \
-//		/* check offset */\
-//		fail_unless(((char*)&(struct_._member_name_)) - ((char*)&(struct_)) == \
-//				(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
-//				"data_member_location is incorrect for " #_member_name_ ": %d instead of %d", \
-//				(int)(member_info.p_data_member_location == NULL?0:*member_info.p_data_member_location),\
-//				(int)(((char*)&(struct_._member_name_)) - ((char*)&(struct_)))); \
-//		\
-//	} while(0)
-//
-//#define UNION_TYPE_SMOKE_END \
-//	mark_point(); \
-//} while(0)
-//
-//
-//#define FUNC_TYPE_SMOKE(_type_, _s_type_, expected_return_type, expected_parameter_info_values) \
-//do{ \
-//	unsigned int i; \
-//	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-//	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
-//	struct metac_type_subprogram_info s_info; \
-//	struct metac_type_parameter_info p_info; \
-//	struct metac_object * p_object; \
-//	\
-//	fail_unless(metac_type_id(typedef_skip_type) == _s_type_, "must be " #_s_type_ ", but it's 0x%x", (int)metac_type_id(typedef_skip_type)); \
-//	fail_unless(metac_type_byte_size(type) == sizeof(_type_), \
-//			"metac_type_byte_size returned for " #_type_" incorrect value %d instead of %d", metac_type_byte_size(type), sizeof(_type_)); \
-//	fail_unless(strcmp(metac_type_name(type), #_type_ ) == 0, "type name returned '%s' instead of '" #_type_ "'", metac_type_name(type));\
-//	\
-//	mark_point(); \
-//	\
-//	fail_unless(metac_type_subprogram_info(type, &s_info) == 0, "metac_type_subprogram_info: expected success"); \
-//	\
-//	fail_unless(strcmp(s_info.name, #_type_) == 0, "invalid name %s instead of %s", s_info.name, #_type_); \
-//	fail_unless(s_info.type == expected_return_type, "not expected return type %p instead of %p", s_info.type, expected_return_type); \
-//	fail_unless(s_info.parameters_count == sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), "params number must be %u instead of %u", \
-//			sizeof(expected_parameter_info_values)/sizeof(struct metac_type_parameter_info), s_info.parameters_count); \
-//	\
-//	for (i = 0; i < s_info.parameters_count; i++) { \
-//		fail_unless(metac_type_subprogram_parameter_info(type, i, &p_info) == 0, "expected success"); \
-//		fail_unless(p_info.unspecified_parameters == expected_parameter_info_values[i].unspecified_parameters, "expected %d instead of %d", expected_parameter_info_values[i].unspecified_parameters, p_info.unspecified_parameters); \
-//		if (p_info.unspecified_parameters == 0) { \
-//			fail_unless(strcmp(p_info.name, expected_parameter_info_values[i].name) == 0, "expected %s instead of %s", expected_parameter_info_values[i].name, p_info.name); \
-//			fail_unless(p_info.type == expected_parameter_info_values[i].type, "wrong parameter type: expected %p instead of %p", expected_parameter_info_values[i].type, p_info.type); \
-//		}\
-//	}\
-//	\
-//	mark_point(); \
-//	\
-//	p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, #_type_);\
-//	fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
-//	fail_unless(p_object->type == type, "p_object_info.type must be == type");\
-//	fail_unless(p_object->flexible_part_byte_size == 0, "p_object_info.flexible_part_byte_size must be == 0");\
-//	mark_point(); \
-//} while(0)
-//
-//START_TEST(func_type_smoke) {
-//	struct metac_type_parameter_info func_t_expected_parameter_info_values[] = {
-//			{.unspecified_parameters = 0, .name = "arg", .type = &METAC_TYPE_NAME(p_bit_fields_t)},
-//	};
-//	struct metac_type_parameter_info func_printf_expected_parameter_info_values[] = {
-//			{.unspecified_parameters = 0, .name = "format", .type = &METAC_TYPE_NAME(cchar_t)},
-//#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
-///* Workaround: looks like clang3.4 doesn't have ability to show if function has unspecified parameter. See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472*/
-//			{.unspecified_parameters = 1, .name = NULL, .type = NULL},
-//#endif
-//	};
-//
-//	FUNC_TYPE_SMOKE(func_t, DW_TAG_subprogram, &METAC_TYPE_NAME(int_t), func_t_expected_parameter_info_values);
-//	FUNC_TYPE_SMOKE(func_printf, DW_TAG_subprogram, NULL, func_printf_expected_parameter_info_values);
-//
-//}END_TEST
-
-
+/*****************************************************************************/
 START_TEST(metac_array_symbols) {
 	mark_point();
 	mark_point();
@@ -806,201 +775,27 @@ START_TEST(metac_array_symbols) {
 	void * types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
 	void * objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
 	dlclose(handle);
-	fail_unless(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p", METAC_TYPES_ARRAY_SYMBOL, types_array);
-	fail_unless(objects_array == &METAC_OBJECTS_ARRAY, "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
+	fail_unless(types_array == &METAC_TYPES_ARRAY,
+			"can't find correct %s: %p", METAC_TYPES_ARRAY_SYMBOL, types_array);
+	fail_unless(objects_array == &METAC_OBJECTS_ARRAY,
+			"can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
-//
-///*serialization - move to another file*/
-//struct metac_object * metac_json2object(struct metac_type * mtype, char *string);
-//
-//typedef struct _struct1_
-//{
-//  unsigned int x;
-//  unsigned int y;
-//}struct1_t;
-//
-//typedef struct _struct2_
-//{
-//	struct1_t * str1;
-//}struct2_t;
-//METAC_TYPE_GENERATE(struct2_t);
-//
-//START_TEST(metac_json_deserialization) {
-//	struct metac_object * res;
-//	do {
-//		char * pres;
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char), "\"c\"")) != NULL, "metac_json2object returned NULL");
-//		pres = (char*)res->ptr;
-//		fail_unless(*pres == 'c', "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//	do {
-//		int *pres;
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int), "7")) != NULL, "metac_json2object returned NULL");
-//		pres = (int*)res->ptr;
-//		fail_unless(*pres == 7, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//	do {
-//		int_t *pres;
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(int_t), "7777")) != NULL, "metac_json2object returned NULL");
-//		pres = (int_t*)res->ptr;
-//		fail_unless(*pres == 7777, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//
-//	do {
-//		enum_t *pres;
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"_eOne\"")) != NULL, "metac_json2object returned NULL");
-//		pres = (enum_t*)res->ptr;
-//		fail_unless(*pres == _eOne, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(enum_t), "\"x_eOne\"")) != NULL, "metac_json2object returned NULL");*/
-//
-//	do {
-//		char_array5_t *pres;
-//		char_array5_t eres = {'a', 'b', 'c', 'd', 'e'};
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",]")) != NULL,
-//				"metac_json2object returned NULL");
-//		pres = (char_array5_t*)res->ptr;
-//		fail_unless(memcmp(pres, &eres, sizeof(eres)) == 0, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//
-///*
-//	typedef struct _bit_fields_
-//	{
-//	  unsigned int widthValidated : 9;
-//	  unsigned int heightValidated : 12;
-//	}bit_fields_t;
-//	METAC_TYPE_GENERATE(bit_fields_t);
-//*/
-//
-//
-//	do {
-//		int i;
-//		unsigned char * p;
-//		bit_fields_t *pres;
-//		bit_fields_t eres = {.widthValidated = 6, .heightValidated = 100};
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_t), "{\"widthValidated\": 6, \"heightValidated\": 100}")) != NULL,
-//				"metac_json2object returned NULL");
-//		pres = (bit_fields_t*)res->ptr;
-///*
-//printf("result:\n");
-//p = (unsigned char *) pres;
-//for (i=0; i<sizeof(bit_fields_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
-//printf("expected:\n");
-//p = (unsigned char *) &eres;
-//for (i=0; i<sizeof(bit_fields_t); i++){
-//printf("%02x ", (int)*p);
-//p++;
-//}
-//printf("\n");
-//*/
-//
-//		fail_unless(
-//				pres->widthValidated == eres.widthValidated &&
-//				pres->heightValidated == eres.heightValidated, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//
-///*
-//typedef struct _bit_fields_for_longer_than32_bit
-//{
-//  unsigned int widthValidated : 9;
-//  unsigned int heightValidated : 12;
-//  int heightValidated1 : 30;
-//  llongint_t heightValidated2 : 63;
-//}bit_fields_for_longer_than32_bit_t;
-//METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
-// */
-//	do {
-//		int i;
-//		unsigned char * p;
-//		bit_fields_for_longer_than32_bit_t *pres;
-//		bit_fields_for_longer_than32_bit_t eres = {
-//				.widthValidated = 6,
-//				.heightValidated = 100,
-//				.heightValidated1 = -1,
-//				.heightValidated2 = 10000000};
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(bit_fields_for_longer_than32_bit_t),
-//				"{\"widthValidated\": 6, \"heightValidated\": 100, \"heightValidated1\": -1, \"heightValidated2\": 10000000}")) != NULL,
-//				"metac_json2object returned NULL");
-//		pres = (bit_fields_for_longer_than32_bit_t*)res->ptr;
-////printf("result:\n");
-////p = (unsigned char *) pres;
-////for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
-////printf("%02x ", (int)*p);
-////p++;
-////}
-////printf("\n");
-////printf("expected:\n");
-////p = (unsigned char *) &eres;
-////for (i=0; i<sizeof(bit_fields_for_longer_than32_bit_t); i++){
-////printf("%02x ", (int)*p);
-////p++;
-////}
-////printf("\n");
-//		fail_unless(
-//				pres->widthValidated == eres.widthValidated &&
-//				pres->heightValidated == eres.heightValidated /*&&
-//				pres->heightValidated1 == eres.heightValidated1 &&
-//				pres->heightValidated2 == eres.heightValidated2*/
-//				, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//
-//
-//
-//	/*nedative fail_unless((res = metac_json2object(&METAC_TYPE_NAME(char_array5_t), "[\"a\", \"b\",\"c\",\"d\",\"e\",\"f\",]")) != NULL,
-//	 * 		"metac_json2object returned NULL");*/
-//	GENERAL_TYPE_CHECK(struct2_t, DW_TAG_structure_type);
-//	do {
-//		struct2_t *pres;
-//		struct1_t str1 = {.x = 1, .y = 8};
-//		struct2_t eres = {.str1 = &str1};
-//
-//		fail_unless((res = metac_json2object(&METAC_TYPE_NAME(struct2_t), "{\"str1\":{\"x\": 1, \"y\": 8}}")) != NULL,
-//				"metac_json2object returned NULL");
-//		pres = (struct2_t*)res->ptr;
-//		fail_unless(pres->str1 != NULL, "pointer wasn't initialized");
-//		fail_unless(
-//				pres->str1->x == eres.str1->x &&
-//				pres->str1->y == eres.str1->y, "unexpected data");
-//		fail_unless(metac_object_put(res) != 0, "Couldn't delete created object");
-//	}while(0);
-//	mark_point();
-//
-//}END_TEST
-
+/*****************************************************************************/
 int main(void){
+	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
+	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
 	return run_suite(
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
-					ADD_TEST(base_types_no_typedef);
-					ADD_TEST(base_types_with_typedef);
-					ADD_TEST(pointers_with_typedef);
-					ADD_TEST(enums_with_typedef);
-					ADD_TEST(array_with_typedef);
-					ADD_TEST(struct_with_typedef);
-					ADD_TEST(union_with_typedef);
-//					ADD_TEST(func_type_smoke);
-					ADD_TEST(general_type_smoke);
+					ADD_TEST(base_types_ut);
+					ADD_TEST(pointers_ut);
+					ADD_TEST(enums_ut);
+					ADD_TEST(arrays_ut);
+					ADD_TEST(structs_ut);
+					ADD_TEST(unions_ut);
+					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
-//					ADD_TEST(metac_json_deserialization);
 				}END_CASE
 			);
 		}END_SUITE
