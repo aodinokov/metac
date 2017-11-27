@@ -148,54 +148,14 @@ struct metac_type {
 	}dwarf_info;
 };
 
-/* some basic functions to navigate in structure metac_type */
-metac_type_id_t			metac_type_id(struct metac_type *type);
-/* basic example that use metac_type_at_by_key */
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
-
 const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
-
-///* special function to work with typedef */
 struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
-
 int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
-
-
-/* DWARF RAW data - obsolete API - doesn't need this - kept is only for debug purposes */
-metac_num_t				metac_type_child_num(struct metac_type *type);
-struct metac_type*		metac_type_child(struct metac_type *type, unsigned int i);
-metac_num_t				metac_type_at_num(struct metac_type *type);
-struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i);
-
-//
-//int metac_type_enumeration_type_info(struct metac_type *type, struct metac_type_enumeration_type_info *p_info);		/*< returns enum type info*/
-//int metac_type_enumeration_type_enumerator_info(struct metac_type *type, unsigned int i,
-//		struct metac_type_enumerator_info *p_info);	/*< returns Nth element info */
-
-//int metac_type_subprogram_info(struct metac_type *type, struct metac_type_subprogram_info *p_info);		/*< returns subprogram type info*/
-//int metac_type_subprogram_parameter_info(struct metac_type *type, unsigned int i,
-//		struct metac_type_parameter_info *p_info);		/*< returns subprogram parameter info*/
-
-/*
- * special functions when metac_type_id(type) == DW_TAG_member (element of structure or union)
- */
-//int metac_type_structure_info(struct metac_type *type, struct metac_type_structure_info *p_info);		/*< returns subprogram type info*/
-//int metac_type_structure_member_info(struct metac_type *type, metac_num_t i,
-//		struct metac_type_member_info *p_info);		/*< returns subprogram parameter info*/
-
-//int metac_type_union_info(struct metac_type *type, struct metac_type_union_info *p_info);		/*< returns subprogram type info*/
-//int metac_type_union_member_info(struct metac_type *type, unsigned int i,
-//		struct metac_type_member_info *p_info);		/*< returns union parameter info*/
-
-//int metac_type_array_info(struct metac_type *type, struct metac_type_array_info *p_info);		/*< returns subprogram type info*/
-//int metac_type_array_subrange_info(struct metac_type *type, unsigned int i,
-//		struct metac_type_subrange_info *p_info);			/*< returns i-th array subrange info*/
-//int metac_type_array_element_info(struct metac_type *type, unsigned int i,
-//		struct metac_type_element_info *p_element_info);	/*< returns i-th element info */
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
@@ -253,9 +213,9 @@ struct metac_object_sorted_array {
 #define METAC_OBJECTS_ARRAY_SYMBOL "metac__objects_array"
 #define METAC_DECLARE_EXTERN_OBJECTS_ARRAY extern struct metac_object_sorted_array METAC_OBJECTS_ARRAY
 struct metac_object * metac_object_by_name(struct metac_object_sorted_array * array, metac_name_t name);
-/*for dynamic objects*/
-struct metac_object * metac_object_get(struct metac_object * object);
-int metac_object_put(struct metac_object * object);
+///*for dynamic objects*/
+//struct metac_object * metac_object_get(struct metac_object * object);
+//int metac_object_put(struct metac_object * object);
 
 #ifdef __cplusplus
 }

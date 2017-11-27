@@ -15,42 +15,6 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-metac_type_id_t metac_type_id(struct metac_type *type) {
-	if (type == NULL)
-		return -1;
-	return type->id;
-}
-
-unsigned int metac_type_child_num(struct metac_type *type) {
-	if (type == NULL)
-		return 0;
-	return type->dwarf_info.child_num;
-}
-
-struct metac_type* metac_type_child(struct metac_type *type, unsigned int i) {
-	if (type == NULL)
-		return NULL;
-	if (i >= type->dwarf_info.child_num)
-		return NULL;
-
-	return type->dwarf_info.child[i];
-}
-
-unsigned int metac_type_at_num(struct metac_type *type) {
-	if (type == NULL)
-		return 0;
-	return type->dwarf_info.at_num;
-}
-
-struct metac_type_at* 	metac_type_at(struct metac_type *type, unsigned int i)  {
-	if (type == NULL)
-		return NULL;
-	if (i >= type->dwarf_info.at_num)
-		return NULL;
-
-	return &type->dwarf_info.at[i];
-}
-
 const char*	metac_type_specification(struct metac_type *type, const char *key) {
 	int i = 0;
 	if (type == NULL)
