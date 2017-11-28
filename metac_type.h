@@ -114,7 +114,8 @@ struct metac_type {
 
 	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
 	struct metac_type_specification {
-		const char *key,*value;										/*TODO: value probably better to make void**/
+		const char *key;
+		void	*value;										/*TODO: value probably better to make void**/
 	}*specifications;												/* pointer to explicit specifications array for this type*/
 
 	/**
@@ -154,7 +155,7 @@ int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_na
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
-const char*				metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
+void*					metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
@@ -164,10 +165,70 @@ const char*				metac_type_specification(struct metac_type *type, const char *key
 
 #define METAC_TYPE_SPECIFICATION_DECLARE(name) extern struct metac_type_specification METAC(typespec, name)[];
 #define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
-#define _METAC_TYPE_SPECIFICATION(_key_, _value_) {.key = _key_, .value = _value_},
+#define _METAC_TYPE_SPECIFICATION(_key_, _value_...) {.key = _key_, .value = _value_},
 #define METAC_TYPE_SPECIFICATION_END {NULL, NULL}};
+/* specification values: */
+typedef int (*metac_discriminator_funtion_ptr_t)(
+	int write_operation,
+	metac_type_t * type,
+	void * specification_context,
+	void * p_obj,
+	int  * p_discriminator_val);
+typedef int (*metac_array_elements_count_funtion_ptr_t)(
+	int write_operation,
+	metac_type_t * type,
+	void * specification_context,
+	void * p_obj,
+	metac_count_t * p_elements_count);
+typedef struct {
+	int id;
+	void * specification_context;
+	union {
+		struct {
+			metac_discriminator_funtion_ptr_t discriminator_funtion_ptr;
+		};
+		struct {
+			int array_NULL_ended;
+			metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
+		};
+	};
+}metac_type_specification_value_t;
+#define METAC_DISCRIMINATOR_FUNCTION(_ptr_, _context_) \
+		(metac_type_specification_value_t[]) {{\
+			.id = 0, \
+			.discriminator_funtion_ptr = _ptr_, \
+			.specification_context = _context_,\
+		},}
+#define METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_ptr_, _context_) \
+		(metac_type_specification_value_t[]) {{\
+			.id = 1, \
+			.array_elements_count_funtion_ptr = _ptr_, \
+			.specification_context = _context_,\
+		},}
+#define METAC_ARRAY_NULL_ENDED \
+		(metac_type_specification_value_t[]) {{\
+			.id = 1, \
+			.array_NULL_ended = 1, \
+		},}
+
+/* pre-compile type to make serialization/deletion and de-serialization/creation faster */
+typedef struct metac_precompiled_type metac_precompiled_type_t;
+metac_precompiled_type_t * metac_precompile_type(struct metac_type *type);
+void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
+
+/* constructor */
+/* flex_array_elements_count - what about incapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
+int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
+		void **p_ptr, metac_byte_size_t * p_size);
+/*some format -> C-type - generic de-serialization*/
+int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
+/* destruction */
+int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size);
+/* C-type->some format - generic serialization*/
+int metac_unpack(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size /*, p_dst, func and etc ToBeAdded */);
 
 
+/*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;
 	struct {

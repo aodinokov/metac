@@ -781,27 +781,52 @@ START_TEST(metac_array_symbols) {
 			"can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
 /*****************************************************************************/
+int _metac_type_t_discriminator_funtion(
+	int write_operation,
+	metac_type_t * type,
+	void * specification_context,
+	void * p_obj,
+	int  * p_discriminator_val) {
+	char * key = (char *)specification_context;
+	printf("_metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
+	return 0;
+}
+int _metac_type_t_array_elements_count_funtion(
+	int write_operation,
+	metac_type_t * type,
+	void * specification_context,
+	void * p_obj,
+	metac_count_t * p_elements_count) {
+	char * key = (char *)specification_context;
+	printf("_metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
+	return 0;
+}
+
+#define _X_METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
+	_METAC_TYPE_SPECIFICATION(_key_, METAC_DISCRIMINATOR_FUNCTION(_fn_, _key_))
+#define _X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_key_, _fn_) \
+	_METAC_TYPE_SPECIFICATION(_key_, METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_fn_, _key_))
+#define _X_METAC_ARRAY_NULL_ENDED(_key_) \
+	_METAC_TYPE_SPECIFICATION(_key_, METAC_ARRAY_NULL_ENDED)
+
 METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
-_METAC_TYPE_SPECIFICATION("<anon0>:discriminator_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("<anon0>.enumeration_type_info.enumerators:array_ptr:len_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("<anon0>.subprogram_info.parameters:array_ptr:len_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("<anon0>.structure_type_info.members::array_ptr:len_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("<anon0>.union_type_info.members:array_ptr:len_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("<anon0>.array_type_info.subranges:array_ptr:len_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("specifications:array_ptr:NULL_ended", NULL)
-_METAC_TYPE_SPECIFICATION("dwarf_info.at:array_ptr:len_function_ptr", "function returns dwarf_info.at_num")
-_METAC_TYPE_SPECIFICATION("dwarf_info.at.[].<anon0>:discriminator_function_ptr", "ptr to function")
-_METAC_TYPE_SPECIFICATION("dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num")
-/*or - better*/
-//_METAC_TYPE_SPECIFICATION("<anon0>", {.discriminator_function_ptr = fn1, .discriminator_function_context = ...})
-//_METAC_TYPE_SPECIFICATION("specifications", {.array_ptr = {.NULL_ended = 1, }, })
-//_METAC_TYPE_SPECIFICATION("dwarf_info.child", , {.array_ptr = {.len_function_ptr = fn2, .len_function_context = ...}, })
+_X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_NULL_ENDED(				".specifications")
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".dwarf_info.at", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".dwarf_info.child", _metac_type_t_array_elements_count_funtion)
+_X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<>.<anon0>", _metac_type_t_discriminator_funtion)
 METAC_TYPE_SPECIFICATION_END
 
 START_TEST(metac_type_t_ut) {
 	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type,
-			"dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num", {}) {
+//			"dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num", {}) {
+			NULL, NULL, {}) { /* this is under construction right now */
 		_STRUCT_TYPE_CHECK_BYTESIZE;
 		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
 		__STRUCT_TYPE_CHECK_MEMBER(id),
@@ -812,6 +837,14 @@ START_TEST(metac_type_t_ut) {
 		__STRUCT_TYPE_CHECK_MEMBER(dwarf_info),
 		});
 	}STRUCT_TYPE_CHECK_END;
+	/* pre-compilation test */
+	do {
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
+		fail_unless(precompiled_type != NULL, "metac_precompile_type failed");
+		metac_free_precompiled_type(&precompiled_type);
+		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
+	}while(0);
+
 }END_TEST
 /*****************************************************************************/
 int main(void){
