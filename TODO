@@ -204,3 +204,106 @@ static struct metac_type data_0x00008799 = {
         },
     },
 };
+
+
+
+Notes:
+Warning. Should be shown during sanity check.
+struct ___test___{
+    int n;
+    char array1[];
+};
+typedef struct _struct_with_flexible_ND_array_and_len {
+    int array_len;
+    struct ___test___ x; <---overlap.
+    char array1[][3][3];    /*C doesn't allow to create char array[1][]. Also, C doesn't allow to create type with*/
+}struct_with_flexible_ND_array_and_len_t;
+field 'x' with variable sized type 'struct ___test___' not at the end of a struct or class is a GNU extension [-Wgnu-variable-sized-type-not-at-end]
+https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html
+
+struct ___test___{
+    int n;
+    char array1[][3][3];    /*C doesn't allow to create char array[1][]. Also, C doesn't allow to create type with*/
+};
+
+typedef struct _struct_with_flexible_ND_array_and_len {
+    int array_len;
+    struct ___test___ z;    <----warning. z and y will overlap!
+    int y;
+}struct_with_flexible_ND_array_and_len_t;
+
+static struct metac_type data_0x000020d7 = {
+    .id = DW_TAG_structure_type,
+    .name = "_struct_with_flexible_ND_array_and_len",
+    .structure_type_info = {
+        .byte_size = 0x0000000c,
+        .members_count = 3,
+        .members = (struct metac_type_member_info[]) {
+            {
+                .name = "array_len",
+                .type = &metac__type_int,
+                .data_member_location = 0/*0*/,
+            },
+            {
+                .name = "z",
+                .type = &data_0x0000210b,
+                .data_member_location = 4/*4*/,
+            },
+            {
+                .name = "y",
+                .type = &metac__type_int,
+                .data_member_location = 8/*8*/,
+            },
+        },
+    },
+};
+/* --0x0000210b--*/
+static struct metac_type data_0x0000210b = {
+    .id = DW_TAG_structure_type,
+    .name = "___test___",
+    .structure_type_info = {
+        .byte_size = 0x00000004,
+        .members_count = 2,
+        .members = (struct metac_type_member_info[]) {
+            {
+                .name = "n",
+                .type = &metac__type_int,
+                .data_member_location = 0/*0*/,
+            },
+            {
+                .name = "array1",
+                .type = &data_0x00002131,
+                .data_member_location = 4/*4*/,
+            },
+        },
+    },
+};
+/* --0x00002131--*/
+static struct metac_type data_0x00002131 = {
+    .id = DW_TAG_array_type,
+    .array_type_info = {
+        .type = &metac__type_char,
+        .is_flexible = 1,
+        .subranges_count = 3,
+        .subranges = (struct metac_type_subrange_info []) {
+            {
+                .type = &data_0x00000081,
+                .is_flexible = 1,
+            },
+            {
+                .type = &data_0x00000081,
+                .count = 2 + 1,
+                .raw_data = {
+                    .p_upper_bound = (metac_bound_t[]){2},
+                },
+            },
+            {
+                .type = &data_0x00000081,
+                .count = 2 + 1,
+                .raw_data = {
+                    .p_upper_bound = (metac_bound_t[]){2},
+                },
+            },
+        },
+    },
+};

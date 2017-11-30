@@ -15,7 +15,8 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-void*	metac_type_specification(struct metac_type *type, const char *key) {
+const metac_type_specification_value_t *
+	metac_type_specification(struct metac_type *type, const char *key) {
 	int i = 0;
 	if (type == NULL){
 		msg_stderr("invalid argument value: return NULL\n");
@@ -225,43 +226,6 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 		}
 	}while(min<=max);
 	return NULL;
-}
-/*****************************************************************************/
-struct metac_precompiled_type {
-	/* this should be done for every ptr  - if we meet ptr in table, we create metac_precompiled type for it*/
-	struct metac_type *type;
-	metac_byte_size_t byte_size;
-};
-
-metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
-	metac_precompiled_type_t * res = NULL;
-	if (type == NULL) {
-		msg_stderr("invalid argument value: type\n");
-		return NULL;
-	}
-	res = calloc(1, sizeof(metac_precompiled_type_t));
-	if (res == NULL) {
-		msg_stderr("Can't allocate memory for metac_precompiled_type_t\n");
-		return NULL;
-	}
-	res->type = type;
-	res->byte_size = metac_type_byte_size(type);
-	/*TBD:*/
-	return res;
-}
-
-void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type) {
-	if (precompiled_type == NULL) {
-		msg_stderr("invalid argument value: precompiled_type\n");
-		return;
-	}
-	if (*precompiled_type == NULL) {
-		msg_stderr("already freed\n");
-		return;
-	}
-	/*TBD:*/
-	free(*precompiled_type);
-	*precompiled_type = NULL;
 }
 /*****************************************************************************/
 //

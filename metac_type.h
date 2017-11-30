@@ -11,6 +11,7 @@ extern "C" {
 struct metac_type;
 struct metac_type_at;
 struct metac_type_specification;
+struct metac_type_specification_value;
 
 /* definition of types used for attributes */
 typedef char *							metac_name_t;
@@ -29,6 +30,9 @@ typedef int								metac_flag;
 typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
 typedef unsigned int					metac_num_t;
+
+typedef struct metac_type_specification_value
+										metac_type_specification_value_t;
 
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
@@ -115,7 +119,7 @@ struct metac_type {
 	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
 	struct metac_type_specification {
 		const char *key;
-		void	*value;										/*TODO: value probably better to make void**/
+		const metac_type_specification_value_t	*value;
 	}*specifications;												/* pointer to explicit specifications array for this type*/
 
 	/**
@@ -155,7 +159,8 @@ int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_na
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
-void*					metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
+const metac_type_specification_value_t *
+						metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
@@ -174,13 +179,15 @@ typedef int (*metac_discriminator_funtion_ptr_t)(
 	void * specification_context,
 	void * p_obj,
 	int  * p_discriminator_val);
+
 typedef int (*metac_array_elements_count_funtion_ptr_t)(
 	int write_operation,
 	metac_type_t * type,
 	void * specification_context,
 	void * p_obj,
 	metac_count_t * p_elements_count);
-typedef struct {
+
+struct metac_type_specification_value {
 	int id;
 	void * specification_context;
 	union {
@@ -192,7 +199,8 @@ typedef struct {
 			metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
 		};
 	};
-}metac_type_specification_value_t;
+};
+
 #define METAC_DISCRIMINATOR_FUNCTION(_ptr_, _context_) \
 		(metac_type_specification_value_t[]) {{\
 			.id = 0, \
@@ -226,7 +234,8 @@ int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_
 int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size);
 /* C-type->some format - generic serialization*/
 int metac_unpack(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size /*, p_dst, func and etc ToBeAdded */);
-
+/* C-type-> C-type (simplified operation, like delete, but using memcpy) */
+int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size);
 
 /*****************************************************************************/
 struct metac_type_sorted_array {
