@@ -198,6 +198,15 @@ struct metac_type_specification_value {
 			int array_NULL_ended;
 			metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
 		};
+		struct {
+			enum metac_pointer_mode { /*TODO: do something with specifications!*/
+				pmStop = 0,	/*default*/
+				pmExtendAs1Object,
+				pmExtendAsArray,
+			}pointer_mode;
+			int pointer_array_NULL_ended;
+			metac_array_elements_count_funtion_ptr_t pointer_array_elements_count_funtion_ptr;
+		};
 	};
 };
 
@@ -218,6 +227,12 @@ struct metac_type_specification_value {
 			.id = 1, \
 			.array_NULL_ended = 1, \
 		},}
+#define METAC_POINTER_MODE(_mode_) \
+		(metac_type_specification_value_t[]) {{\
+			.id = 2, \
+			.pointer_mode = _mode_, \
+		},}
+
 
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;
