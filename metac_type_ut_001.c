@@ -868,6 +868,7 @@ START_TEST(metac_type_t_ut) {
 	do {
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed");
+		metac_dump_precompiled_type(precompiled_type);
 		metac_free_precompiled_type(&precompiled_type);
 		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
 	}while(0);

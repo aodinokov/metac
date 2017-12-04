@@ -190,23 +190,24 @@ typedef int (*metac_array_elements_count_funtion_ptr_t)(
 struct metac_type_specification_value {
 	int id;
 	void * specification_context;
-	union {
-		struct {
-			metac_discriminator_funtion_ptr_t discriminator_funtion_ptr;
-		};
-		struct {
-			int array_NULL_ended;
-			metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
-		};
-		struct {
-			enum metac_pointer_mode { /*TODO: do something with specifications!*/
-				pmStop = 0,	/*default*/
-				pmExtendAs1Object,
-				pmExtendAsArray,
-			}pointer_mode;
-			int pointer_array_NULL_ended;
-			metac_array_elements_count_funtion_ptr_t pointer_array_elements_count_funtion_ptr;
-		};
+
+	struct {
+		metac_discriminator_funtion_ptr_t discriminator_funtion_ptr;
+	};
+
+	struct {
+		int array_NULL_ended;
+		metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
+	};
+
+	struct {
+		enum metac_pointer_mode { /*TODO: do something with specifications!*/
+			pmStop = 0,	/*default*/
+			pmExtendAs1Object,
+			pmExtendAsArray,
+		}pointer_mode;
+		int pointer_array_NULL_ended;
+		metac_array_elements_count_funtion_ptr_t pointer_array_elements_count_funtion_ptr;
 	};
 };
 
@@ -237,6 +238,7 @@ struct metac_type_specification_value {
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type);
+void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type);
 void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 
 /* constructor */
