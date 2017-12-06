@@ -847,7 +847,7 @@ _X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<>.<anon0>", _metac_type_t_dis
 _X_METAC_POINTER_MODE(					".specifications", pmExtendAs1Object)
 _X_METAC_POINTER_MODE(					".<anon0>.pointer_type_info.type", pmExtendAs1Object)
 _X_METAC_POINTER_MODE(					".<anon0>.structure_type_info.members", pmExtendAs1Object)
-//_X_METAC_POINTER_MODE(					".<anon0>.pointer_type_info.type", pmStop)	/*causes loops*/
+_X_METAC_POINTER_MODE(					".<anon0>.pointer_type_info.type", pmExtendAs1Object)
 METAC_TYPE_SPECIFICATION_END
 
 START_TEST(metac_type_t_ut) {

@@ -403,7 +403,7 @@ struct condition {
 };
 
 struct memobj {
-	//struct metac_type *type;
+	struct metac_type *type;
 
 	int conditions_count;
 	struct condition ** condition;
@@ -422,13 +422,14 @@ struct memobj {
 struct metac_precompiled_type {
 	struct metac_type *type;
 	int	memobjs_count;
-	struct memobj *memobj;
+	struct memobj **memobj;
 };
 
 /*****************************************************************************/
 /*temporary types for phase 1*/
 /*****************************************************************************/
 struct _condition;
+
 struct _step {
 	struct cds_list_head list;
 	int memobj_id;
@@ -439,6 +440,12 @@ struct _condition {
 	struct cds_list_head list;
 	int memobj_id;
 	struct condition *p_condition;
+};
+
+struct _memobj {
+	struct cds_list_head list;
+	int memobj_id;
+	struct memobj *p_memobj;
 };
 
 /*****************************************************************************/
@@ -572,28 +579,82 @@ void delete__condition(struct _condition *_condition) {
 	}
 }
 
+struct _memobj * create__memobj(
+		int memobj_id,
+		metac_type_t * type) {
+	struct _memobj *_memobj;
+
+	/* allocate object */
+	_memobj = calloc(1, sizeof(*_memobj));
+	if (_memobj == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+	_memobj->p_memobj = calloc(1, sizeof(*(_memobj->p_memobj)));
+	if (_memobj->p_memobj == NULL) {
+		msg_stderr("no memory\n");
+		free(_memobj);
+		return NULL;
+	}
+
+	_memobj->memobj_id = memobj_id;
+	_memobj->p_memobj->type = type;
+	return _memobj;
+}
+
+void delete_memobj(struct memobj *p_memobj) {
+	if (p_memobj) {
+		free(p_memobj);
+	}
+}
+
+void delete__memobj(struct _memobj *_memobj) {
+	if (_memobj) {
+		delete_memobj(_memobj->p_memobj);
+		free(_memobj);
+	}
+}
+
+struct _memobj * _find_memobj_by_type(
+		struct cds_list_head * memobjs_list,
+		metac_type_t * type) {
+	struct _memobj * _memobj;
+
+	cds_list_for_each_entry(_memobj, memobjs_list, list) {
+		if (_memobj->p_memobj->type == type)
+			return _memobj;
+	}
+	return NULL;
+}
+
 int _phase1(
 		metac_precompiled_type_t * precompiled_type,
+		struct cds_list_head * memobjs_list,
 		struct cds_list_head * steps_list,
 		struct cds_list_head * conditions_list) { /*go width, validate and generate objects */
 	struct cds_list_head *pos;
+	struct _memobj * _memobj;
+	struct _step * _next_step;
 
 	/* put first element int list*/
-	struct _step * step =  create__step(
-			precompiled_type->memobjs_count++,
+	_memobj = create__memobj(precompiled_type->memobjs_count++, metac_type_typedef_skip(precompiled_type->type));
+	if (_memobj == NULL)
+		return -(ENOMEM);
+	cds_list_add_tail(&_memobj->list, memobjs_list);
+	_next_step =  create__step(
+			_memobj->memobj_id,
 			NULL, "", /*path*/
-			precompiled_type->type,
-			0, metac_type_byte_size(precompiled_type->type), /* offset, size */
+			_memobj->p_memobj->type,
+			0, metac_type_byte_size(_memobj->p_memobj->type), /* offset, size */
 			NULL);
-	if (step == NULL)
-		return -1;
-	cds_list_add_tail(&step->list, steps_list);
+	if (_next_step == NULL)
+		return -(ENOMEM);
+	cds_list_add_tail(&_next_step->list, steps_list);
 
 	/* go width */
 	cds_list_for_each(pos, steps_list) {
 		struct _step * current_step = cds_list_entry(pos, struct _step, list);
 		struct metac_type *type = current_step->p_step->type;
-		struct _step * _next_step;
 
 		switch(type->id) {
 		case DW_TAG_base_type:
@@ -608,42 +669,29 @@ int _phase1(
 			}
 			if (spec == NULL || spec->pointer_mode == pmStop || ptr_to_type == NULL)
 				continue;
-			//msg_stddbg("%s: spec->id %d / %d\n", current_step->path, spec->id, (int)spec->pointer_mode);
 
-			/*allocate new mem object id */
-//			mem_obj = metac_precompiled_mem_obj_find(&precompiled_type->mem_obj_list, ptr_to_type);
-//			if (mem_obj != NULL)
-//				break;
-//
-//			mem_obj = metac_precompiled_mem_obj_create(ptr_to_type, mem_obj_count++);
-//			if (mem_obj == NULL)
-//				return -(ENOMEM);
-//			cds_list_add_tail(&mem_obj->list, &precompiled_type->mem_obj_list);
-//			current_step->ptr_to_mem_obj_id = mem_obj->mem_obj_id;
-//
-//			switch (spec->pointer_mode) {
-//			case pmStop:
-//				break;
-//			case pmExtendAsArray:
-//				next_step = metac_precomiled_step_create(ptr_to_type,
-//						current_step->ptr_to_mem_obj_id,
-//						index++, current_step->index,
-//						//current_step->path, "<>", /*path*/
-//						NULL, "", /*path*/
-//						0, metac_type_byte_size(ptr_to_type), /* offset, size */
-//						current_step->conditions_count, current_step->conditions, NULL /*condition*/);
-//				if (next_step == NULL)
-//					return -(ENOMEM);
-//				cds_list_add_tail(&next_step->list, p_list_head);
-//				break;
-//			case pmExtendAs1Object:
-////				metac_precomiled_step_init_path(&current_step->dst_path, NULL, "");
-////				current_step->dst_type = ptr_to_type;
-////				current_step->dst_mem_obj_id = current_step->ptr_to_mem_obj_id;
-////				current_step->dst_offset = 0;
-////				pos = pos->prev;	/*hack: make for read it one more time*/
-//				break;
-//			}
+			/*find or allocate new mem object id */
+			_memobj = _find_memobj_by_type(memobjs_list, ptr_to_type);
+			if (_memobj != NULL) {
+				current_step->p_step->memobj_idx = _memobj->memobj_id;
+				break;
+			}
+
+			_memobj = create__memobj(precompiled_type->memobjs_count++, ptr_to_type);
+			if (_memobj == NULL)
+				return -(ENOMEM);
+			cds_list_add_tail(&_memobj->list, memobjs_list);
+			current_step->p_step->memobj_idx = _memobj->memobj_id;
+			_next_step = create__step(
+					_memobj->memobj_id,
+					NULL, "", /*path*/
+					_memobj->p_memobj->type,
+					0, metac_type_byte_size(_memobj->p_memobj->type), /*offset/byte_size*/
+					current_step);
+			if (_next_step == NULL)
+				return -(ENOMEM);
+			cds_list_add_tail(&_next_step->list, steps_list);
+
 		} break;
 		case DW_TAG_structure_type: {
 			int anon_members_count = 0;
@@ -707,14 +755,12 @@ int _phase1(
 						current_step->p_step->offset + type->union_type_info.members[i].data_member_location,
 						metac_type_byte_size(type->union_type_info.members[i].type), /*offset/byte_size*/
 						current_step);
-
-				/* override check for this step using new condition */
-				_next_step->p_step->check.p_condition = _condition->p_condition;
-				_next_step->p_step->check.expected_value = i;
-
 				if (_next_step == NULL)
 					return -(ENOMEM);
 				cds_list_add_tail(&_next_step->list, steps_list);
+				/* override check for this step using new condition */
+				_next_step->p_step->check.p_condition = _condition->p_condition;
+				_next_step->p_step->check.expected_value = i;
 			}
 		} break;
 
@@ -724,10 +770,17 @@ int _phase1(
 }
 
 void _free_phase1_lists(
+		struct cds_list_head * memobjs_list,
 		struct cds_list_head * steps_list,
 		struct cds_list_head * conditions_list) {
+	struct _memobj * _memobj, * __memobj;
 	struct _condition * _condition, * __condition;
-		struct _step * _step, * __step;
+	struct _step * _step, * __step;
+
+	cds_list_for_each_entry_safe(_memobj, __memobj, memobjs_list, list) {
+		cds_list_del(&_memobj->list);
+		delete__memobj(_memobj);
+	}
 
 	cds_list_for_each_entry_safe(_step, __step, steps_list, list) {
 		cds_list_del(&_step->list);
@@ -738,14 +791,15 @@ void _free_phase1_lists(
 		cds_list_del(&_condition->list);
 		delete__condition(_condition);
 	}
-
 }
 
 int _phase2(
 		metac_precompiled_type_t * precompiled_type,
+		struct cds_list_head * memobjs_list,
 		struct cds_list_head * steps_list,
 		struct cds_list_head * conditions_list){
-	int i;
+	int i = 0;
+	struct _memobj * _memobj, * __memobj;
 	struct _condition * _condition, * __condition;
 	struct _step * _step, * __step;
 
@@ -756,41 +810,46 @@ int _phase2(
 		return -1;
 	}
 
+	cds_list_for_each_entry(_memobj, memobjs_list, list) {
+		assert(i == _memobj->memobj_id);
+		precompiled_type->memobj[i++] = _memobj->p_memobj;
+	}
+
 	cds_list_for_each_entry(_step, steps_list, list) {
 		i = _step->memobj_id;
 		assert(i < precompiled_type->memobjs_count);
 
 		switch (_step->p_step->type->id) {
 			case DW_TAG_base_type:
-				++precompiled_type->memobj[i].base_type_steps_count;
+				++precompiled_type->memobj[i]->base_type_steps_count;
 				break;
 			case DW_TAG_enumeration_type:
-				++precompiled_type->memobj[i].enum_type_steps_count;
+				++precompiled_type->memobj[i]->enum_type_steps_count;
 				break;
 			case DW_TAG_pointer_type:
-				++precompiled_type->memobj[i].pointer_type_steps_count;
+				++precompiled_type->memobj[i]->pointer_type_steps_count;
 				break;
 		}
-		++precompiled_type->memobj[i].steps_count;
+		++precompiled_type->memobj[i]->steps_count;
 	}
 	/*get destibution of conditions over memobjs*/
 	cds_list_for_each_entry(_condition, conditions_list, list) {
 		i = _condition->memobj_id;
-		++precompiled_type->memobj[i].conditions_count;
+		++precompiled_type->memobj[i]->conditions_count;
 	}
 
 	for (i = 0; i < precompiled_type->memobjs_count; i++) {
 		/* alloc memory for conditions */
-		if (precompiled_type->memobj[i].conditions_count > 0){
-			precompiled_type->memobj[i].condition = calloc(precompiled_type->memobj[i].conditions_count, sizeof(*precompiled_type->memobj[i].condition));
-			if (precompiled_type->memobj[i].condition == NULL) {
+		if (precompiled_type->memobj[i]->conditions_count > 0){
+			precompiled_type->memobj[i]->condition = calloc(precompiled_type->memobj[i]->conditions_count, sizeof(*precompiled_type->memobj[i]->condition));
+			if (precompiled_type->memobj[i]->condition == NULL) {
 				return -1;
 			}
 		}
 		/* alloc memory for steps */
-		if (precompiled_type->memobj[i].steps_count > 0) {
-			precompiled_type->memobj[i].step = calloc(precompiled_type->memobj[i].steps_count, sizeof(*precompiled_type->memobj[i].step));
-			if (precompiled_type->memobj[i].step == NULL) {
+		if (precompiled_type->memobj[i]->steps_count > 0) {
+			precompiled_type->memobj[i]->step = calloc(precompiled_type->memobj[i]->steps_count, sizeof(*precompiled_type->memobj[i]->step));
+			if (precompiled_type->memobj[i]->step == NULL) {
 				return -1;
 			}
 
@@ -802,29 +861,29 @@ int _phase2(
 					precompiled_type->memobj[i].enum_type_steps_count);
 #endif
 			/*put leafs to the end of array*/
-			precompiled_type->memobj[i].pointer_type_idx = precompiled_type->memobj[i].steps_count -
-					precompiled_type->memobj[i].pointer_type_steps_count -
-					precompiled_type->memobj[i].base_type_steps_count -
-					precompiled_type->memobj[i].enum_type_steps_count;
-			precompiled_type->memobj[i].base_type_idx = precompiled_type->memobj[i].pointer_type_idx +
-					precompiled_type->memobj[i].pointer_type_steps_count;
-			precompiled_type->memobj[i].enum_type_idx = precompiled_type->memobj[i].base_type_idx +
-					precompiled_type->memobj[i].base_type_steps_count;
+			precompiled_type->memobj[i]->pointer_type_idx = precompiled_type->memobj[i]->steps_count -
+					precompiled_type->memobj[i]->pointer_type_steps_count -
+					precompiled_type->memobj[i]->base_type_steps_count -
+					precompiled_type->memobj[i]->enum_type_steps_count;
+			precompiled_type->memobj[i]->base_type_idx = precompiled_type->memobj[i]->pointer_type_idx +
+					precompiled_type->memobj[i]->pointer_type_steps_count;
+			precompiled_type->memobj[i]->enum_type_idx = precompiled_type->memobj[i]->base_type_idx +
+					precompiled_type->memobj[i]->base_type_steps_count;
 #if 0
-			msg_stddbg("p %d b %d e %d\n", precompiled_type->memobj[i].pointer_type_idx,
-					precompiled_type->memobj[i].base_type_idx,
-					precompiled_type->memobj[i].enum_type_idx);
+			msg_stddbg("p %d b %d e %d\n", precompiled_type->memobj[i]->pointer_type_idx,
+					precompiled_type->memobj[i]->base_type_idx,
+					precompiled_type->memobj[i]->enum_type_idx);
 #endif
-			assert(precompiled_type->memobj[i].enum_type_idx + precompiled_type->memobj[i].enum_type_steps_count ==
-					precompiled_type->memobj[i].steps_count);
+			assert(precompiled_type->memobj[i]->enum_type_idx + precompiled_type->memobj[i]->enum_type_steps_count ==
+					precompiled_type->memobj[i]->steps_count);
 		}
 
 		/* reset counters - will use them to fill in arrays */
-		precompiled_type->memobj[i].pointer_type_steps_count = 0;
-		precompiled_type->memobj[i].base_type_steps_count = 0;
-		precompiled_type->memobj[i].enum_type_steps_count = 0;
-		precompiled_type->memobj[i].steps_count = 0;
-		precompiled_type->memobj[i].conditions_count = 0;
+		precompiled_type->memobj[i]->pointer_type_steps_count = 0;
+		precompiled_type->memobj[i]->base_type_steps_count = 0;
+		precompiled_type->memobj[i]->enum_type_steps_count = 0;
+		precompiled_type->memobj[i]->steps_count = 0;
+		precompiled_type->memobj[i]->conditions_count = 0;
 	}
 
 	cds_list_for_each_entry(_step, steps_list, list) {
@@ -832,44 +891,49 @@ int _phase2(
 		i = _step->memobj_id;
 		switch (_step->p_step->type->id) {
 			case DW_TAG_base_type:
-				j = precompiled_type->memobj[i].base_type_steps_count++;
-				precompiled_type->memobj[i].step[precompiled_type->memobj[i].base_type_idx + j] = _step->p_step;
+				j = precompiled_type->memobj[i]->base_type_steps_count++;
+				precompiled_type->memobj[i]->step[precompiled_type->memobj[i]->base_type_idx + j] = _step->p_step;
 				break;
 			case DW_TAG_enumeration_type:
-				j = precompiled_type->memobj[i].enum_type_steps_count++;
-				precompiled_type->memobj[i].step[precompiled_type->memobj[i].enum_type_idx + j] = _step->p_step;
+				j = precompiled_type->memobj[i]->enum_type_steps_count++;
+				precompiled_type->memobj[i]->step[precompiled_type->memobj[i]->enum_type_idx + j] = _step->p_step;
 				break;
 			case DW_TAG_pointer_type:
-				j = precompiled_type->memobj[i].pointer_type_steps_count++;
-				precompiled_type->memobj[i].step[precompiled_type->memobj[i].pointer_type_idx + j] = _step->p_step;
+				j = precompiled_type->memobj[i]->pointer_type_steps_count++;
+				precompiled_type->memobj[i]->step[precompiled_type->memobj[i]->pointer_type_idx + j] = _step->p_step;
 				break;
 			default:
-				j = precompiled_type->memobj[i].steps_count++;
-				precompiled_type->memobj[i].step[j] = _step->p_step;
+				j = precompiled_type->memobj[i]->steps_count++;
+				precompiled_type->memobj[i]->step[j] = _step->p_step;
 		}
 	}
 	cds_list_for_each_entry(_condition, conditions_list, list) {
 		int j;
 		i = _condition->memobj_id;
-		j = precompiled_type->memobj[i].conditions_count++;
-		precompiled_type->memobj[i].condition[j] = _condition->p_condition;
+		j = precompiled_type->memobj[i]->conditions_count++;
+		precompiled_type->memobj[i]->condition[j] = _condition->p_condition;
 	}
 
 	for (i = 0; i < precompiled_type->memobjs_count; i++) {
 		int j;
-		assert(precompiled_type->memobj[i].steps_count == precompiled_type->memobj[i].pointer_type_idx);
-		assert(precompiled_type->memobj[i].pointer_type_idx + precompiled_type->memobj[i].pointer_type_steps_count == precompiled_type->memobj[i].base_type_idx);
-		assert(precompiled_type->memobj[i].base_type_idx + precompiled_type->memobj[i].base_type_steps_count == precompiled_type->memobj[i].enum_type_idx);
-		precompiled_type->memobj[i].steps_count +=
-				precompiled_type->memobj[i].base_type_steps_count +
-				precompiled_type->memobj[i].enum_type_steps_count +
-				precompiled_type->memobj[i].pointer_type_steps_count;
-		for (j = 0; j < precompiled_type->memobj[i].steps_count; j++) {
-			precompiled_type->memobj[i].step[j]->value_index = j;
+		assert(precompiled_type->memobj[i]->steps_count == precompiled_type->memobj[i]->pointer_type_idx);
+		assert(precompiled_type->memobj[i]->pointer_type_idx + precompiled_type->memobj[i]->pointer_type_steps_count == precompiled_type->memobj[i]->base_type_idx);
+		assert(precompiled_type->memobj[i]->base_type_idx + precompiled_type->memobj[i]->base_type_steps_count == precompiled_type->memobj[i]->enum_type_idx);
+		precompiled_type->memobj[i]->steps_count +=
+				precompiled_type->memobj[i]->base_type_steps_count +
+				precompiled_type->memobj[i]->enum_type_steps_count +
+				precompiled_type->memobj[i]->pointer_type_steps_count;
+		for (j = 0; j < precompiled_type->memobj[i]->steps_count; j++) {
+			precompiled_type->memobj[i]->step[j]->value_index = j;
 		}
 	}
 
 	/* partially free memory */
+	cds_list_for_each_entry_safe(_memobj, __memobj, memobjs_list, list) {
+		cds_list_del(&_memobj->list);
+		free(_memobj);
+	}
+
 	cds_list_for_each_entry_safe(_step, __step, steps_list, list) {
 		cds_list_del(&_step->list);
 		free(_step);
@@ -885,6 +949,7 @@ int _phase2(
 
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	metac_precompiled_type_t * precompiled_type;
+	struct cds_list_head memobjs_list;
 	struct cds_list_head steps_list;
 	struct cds_list_head conditions_list;
 
@@ -899,12 +964,13 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	}
 	precompiled_type->type = type;
 
+	CDS_INIT_LIST_HEAD(&memobjs_list);
 	CDS_INIT_LIST_HEAD(&steps_list);
 	CDS_INIT_LIST_HEAD(&conditions_list);
 
-	if (_phase1(precompiled_type, &steps_list, &conditions_list) != 0) {
+	if (_phase1(precompiled_type, &memobjs_list, &steps_list, &conditions_list) != 0) {
 		msg_stderr("Phase 1 returned error\n");
-		_free_phase1_lists(&steps_list, &conditions_list);
+		_free_phase1_lists(&memobjs_list, &steps_list, &conditions_list);
 		free(precompiled_type);
 		return NULL;
 	}
@@ -930,9 +996,9 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	}while(0);
 #endif
 
-	if (_phase2(precompiled_type, &steps_list, &conditions_list) != 0) {
+	if (_phase2(precompiled_type, &memobjs_list, &steps_list, &conditions_list) != 0) {
 		msg_stderr("Phase 1 returned error\n");
-		_free_phase1_lists(&steps_list, &conditions_list);
+		_free_phase1_lists(&memobjs_list, &steps_list, &conditions_list);
 		free(precompiled_type);
 		return NULL;
 	}
@@ -950,10 +1016,10 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 		for (i = 0; i < precompiled_type->memobjs_count; i++){
 			int j;
 			printf("Memobj %d\n", i);
-			if (precompiled_type->memobj[i].condition != NULL) {
-				printf("Conditions:\n", i);
-				for (j = 0; j < precompiled_type->memobj[i].conditions_count; j++) {
-					struct condition * condition = precompiled_type->memobj[i].condition[j];
+			if (precompiled_type->memobj[i]->condition != NULL) {
+				printf("Conditions:\n");
+				for (j = 0; j < precompiled_type->memobj[i]->conditions_count; j++) {
+					struct condition * condition = precompiled_type->memobj[i]->condition[j];
 					printf("%d. addr %p fn: %p ctx: %s c(%p, %d)\n", j,
 							condition,
 							condition->condition_fn_ptr, (char*)condition->context,
@@ -961,13 +1027,13 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 
 				}
 			}
-			if (precompiled_type->memobj[i].step != NULL) {
+			if (precompiled_type->memobj[i]->step != NULL) {
 				printf("Steps: Pointer_Idx %d Base_Idx %d Enum_Idx %d\n",
-						precompiled_type->memobj[i].pointer_type_idx,
-						precompiled_type->memobj[i].base_type_idx,
-						precompiled_type->memobj[i].enum_type_idx);
-				for (j = 0; j < precompiled_type->memobj[i].steps_count; j++) {
-					struct step * step = precompiled_type->memobj[i].step[j];
+						precompiled_type->memobj[i]->pointer_type_idx,
+						precompiled_type->memobj[i]->base_type_idx,
+						precompiled_type->memobj[i]->enum_type_idx);
+				for (j = 0; j < precompiled_type->memobj[i]->steps_count; j++) {
+					struct step * step = precompiled_type->memobj[i]->step[j];
 					printf("%d. value_idx %d %s %s [%d, %d) c(%p, %d) ptr %d\n", j,
 							step->value_index,
 							step->type->name?step->type->name:(step->type->id == DW_TAG_pointer_type)?"ptr":"<no type name>",
@@ -980,7 +1046,6 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 		}
 		printf("--END---\n");
 	}
-
 }
 
 void metac_free_precompiled_type(metac_precompiled_type_t ** p_precompiled_type) {
@@ -998,22 +1063,24 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** p_precompiled_type)
 		int i;
 		for (i = 0; i < precompiled_type->memobjs_count; i++){
 			int j;
-			if (precompiled_type->memobj[i].condition != NULL) {
-				for (j = 0; j < precompiled_type->memobj[i].conditions_count; j++) {
-					delete_condition(precompiled_type->memobj[i].condition[j]);
-					precompiled_type->memobj[i].condition[j] = NULL;
+			if (precompiled_type->memobj[i]->condition != NULL) {
+				for (j = 0; j < precompiled_type->memobj[i]->conditions_count; j++) {
+					delete_condition(precompiled_type->memobj[i]->condition[j]);
+					precompiled_type->memobj[i]->condition[j] = NULL;
 				}
-				free(precompiled_type->memobj[i].condition);
-				precompiled_type->memobj[i].condition = NULL;
+				free(precompiled_type->memobj[i]->condition);
+				precompiled_type->memobj[i]->condition = NULL;
 			}
-			if (precompiled_type->memobj[i].step != NULL) {
-				for (j = 0; j < precompiled_type->memobj[i].steps_count; j++) {
-					delete_step(precompiled_type->memobj[i].step[j]);
-					precompiled_type->memobj[i].step[j] = NULL;
+			if (precompiled_type->memobj[i]->step != NULL) {
+				for (j = 0; j < precompiled_type->memobj[i]->steps_count; j++) {
+					delete_step(precompiled_type->memobj[i]->step[j]);
+					precompiled_type->memobj[i]->step[j] = NULL;
 				}
-				free(precompiled_type->memobj[i].step);
-				precompiled_type->memobj[i].step = NULL;
+				free(precompiled_type->memobj[i]->step);
+				precompiled_type->memobj[i]->step = NULL;
 			}
+			free(precompiled_type->memobj[i]);
+			precompiled_type->memobj[i] = NULL;
 		}
 		free(precompiled_type->memobj);
 		precompiled_type->memobj = NULL;
