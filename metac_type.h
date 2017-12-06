@@ -34,6 +34,14 @@ typedef unsigned int					metac_num_t;
 typedef struct metac_type_specification_value
 										metac_type_specification_value_t;
 
+struct metac_type_specification {
+	/*const*/ char *key;
+	/*const*/ metac_type_specification_value_t	*value;
+};												/* pointer to explicit specifications array for this type*/
+
+
+typedef struct metac_type_specification metac_type_specification_t;
+
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
 	metac_name_t						name;						/* name of type (can be NULL) */
@@ -117,10 +125,7 @@ struct metac_type {
 	};
 
 	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
-	struct metac_type_specification {
-		const char *key;
-		const metac_type_specification_value_t	*value;
-	}*specifications;												/* pointer to explicit specifications array for this type*/
+	metac_type_specification_t *specifications;						/* pointer to explicit specifications array for this type*/
 
 	/**
 	 * RAW DWARF data
@@ -188,7 +193,6 @@ typedef int (*metac_array_elements_count_funtion_ptr_t)(
 	metac_count_t * p_elements_count);
 
 struct metac_type_specification_value {
-	int id;
 	void * specification_context;
 
 	struct {
@@ -196,44 +200,15 @@ struct metac_type_specification_value {
 	};
 
 	struct {
-		int array_NULL_ended;
+		enum metac_array_mode { /*TODO: do something with specifications!*/
+			amStop = 0,	/* default for pointers and flexible arrays */
+			amExtendAsOneObject,
+			amExtendAsArrayWithNullEnd,
+			amExtendAsArrayWithLen,
+		}array_mode;
 		metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
 	};
-
-	struct {
-		enum metac_pointer_mode { /*TODO: do something with specifications!*/
-			pmStop = 0,	/*default*/
-			pmExtendAs1Object,
-			pmExtendAsArray,
-		}pointer_mode;
-		int pointer_array_NULL_ended;
-		metac_array_elements_count_funtion_ptr_t pointer_array_elements_count_funtion_ptr;
-	};
 };
-
-#define METAC_DISCRIMINATOR_FUNCTION(_ptr_, _context_) \
-		(metac_type_specification_value_t[]) {{\
-			.id = 0, \
-			.discriminator_funtion_ptr = _ptr_, \
-			.specification_context = _context_,\
-		},}
-#define METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_ptr_, _context_) \
-		(metac_type_specification_value_t[]) {{\
-			.id = 1, \
-			.array_elements_count_funtion_ptr = _ptr_, \
-			.specification_context = _context_,\
-		},}
-#define METAC_ARRAY_NULL_ENDED \
-		(metac_type_specification_value_t[]) {{\
-			.id = 1, \
-			.array_NULL_ended = 1, \
-		},}
-#define METAC_POINTER_MODE(_mode_) \
-		(metac_type_specification_value_t[]) {{\
-			.id = 2, \
-			.pointer_mode = _mode_, \
-		},}
-
 
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;

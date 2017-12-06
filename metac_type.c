@@ -22,6 +22,10 @@ const metac_type_specification_value_t *
 		msg_stderr("invalid argument value: return NULL\n");
 		return NULL;
 	}
+	if (type->specifications == NULL) {
+		msg_stddbg("type %s doesn't have specifications\n", type->name != NULL?type->name:"(nil)");
+		return NULL;
+	}
 	while (type->specifications[i].key) {
 		if (strcmp(type->specifications[i].key, key) == 0)
 			return type->specifications[i].value;

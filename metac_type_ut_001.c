@@ -824,33 +824,50 @@ int _metac_type_t_array_elements_count_funtion(
 }
 
 #define _X_METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
-	_METAC_TYPE_SPECIFICATION(_key_, METAC_DISCRIMINATOR_FUNCTION(_fn_, _key_))
-#define _X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_key_, _fn_) \
-	_METAC_TYPE_SPECIFICATION(_key_, METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_fn_, _key_))
-#define _X_METAC_ARRAY_NULL_ENDED(_key_) \
-	_METAC_TYPE_SPECIFICATION(_key_, METAC_ARRAY_NULL_ENDED)
-#define _X_METAC_POINTER_MODE(_key_, _mode_) \
-	_METAC_TYPE_SPECIFICATION(_key_, METAC_POINTER_MODE(_mode_))
+	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
+			{{.discriminator_funtion_ptr = _fn_, .specification_context=_key_},})
+#define _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(_key_, _fn_) \
+	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
+			{{.array_mode = amExtendAsArrayWithLen, .array_elements_count_funtion_ptr = _fn_, .specification_context=_key_},})
+#define _X_METAC_ARRAY_MODE(_key_, _mode_) \
+	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
+			{{.array_mode = _mode_, .specification_context=_key_},})
+
+//METAC_TYPE_GENERATE(metac_type_specification_t);
+//METAC_TYPE_SPECIFICATION_BEGIN(metac_type_specification_t)
+//_X_METAC_ARRAY_MODE(					".key", amExtendAsOneObject)
+//_X_METAC_ARRAY_MODE(					".value", amExtendAsOneObject)
+//METAC_TYPE_SPECIFICATION_END
 
 METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
 _X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_NULL_ENDED(				".specifications")
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".dwarf_info.at", _metac_type_t_array_elements_count_funtion)
-//_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	".dwarf_info.child", _metac_type_t_array_elements_count_funtion)
-_X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<>.<anon0>", _metac_type_t_discriminator_funtion)
-_X_METAC_POINTER_MODE(					".specifications", pmExtendAs1Object)
-_X_METAC_POINTER_MODE(					".<anon0>.pointer_type_info.type", pmExtendAs1Object)
-_X_METAC_POINTER_MODE(					".<anon0>.structure_type_info.members", pmExtendAs1Object)
-_X_METAC_POINTER_MODE(					".<anon0>.pointer_type_info.type", pmExtendAs1Object)
+_X_METAC_ARRAY_MODE(					".name", amExtendAsArrayWithNullEnd)
+_X_METAC_ARRAY_MODE(					".<anon0>.typedef_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_MODE(					".<anon0>.pointer_type_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".<anon0>.subprogram_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_offset", amExtendAsOneObject)
+_X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_size", amExtendAsOneObject)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".<anon0>.array_type_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".specifications", amExtendAsArrayWithNullEnd)
+_X_METAC_ARRAY_MODE(					".specifications.<ptr>.key", amExtendAsArrayWithNullEnd) /*should be default for char**/
+_X_METAC_ARRAY_MODE(					".specifications.<ptr>.value", amExtendAsOneObject)	/*should be default*/
+_X_METAC_ARRAY_MODE(					".specifications.<ptr>.value.<ptr>.specification_context", amStop)
+_X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<ptr>.<anon0>", _metac_type_t_discriminator_funtion)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.at", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.child", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".dwarf_info.child.<ptr>", amExtendAsOneObject)
 METAC_TYPE_SPECIFICATION_END
 
 START_TEST(metac_type_t_ut) {
+//	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
+//	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
+
 	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type,
 //			"dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num", {}) {
 			NULL, NULL, {}) { /* this is under construction right now */
