@@ -120,6 +120,16 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 			/*fail_unless(strcmp(_spec_val, spec_val) == 0, "got incorrect specification"); TODO: find a way to compare*/ \
 		} \
 	}while(0)
+#define GENERAL_TYPE_CHECK_PRECOMILED(_type_) do {\
+		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
+		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+		if (precompiled_type != NULL) { \
+			metac_dump_precompiled_type(precompiled_type); \
+			metac_free_precompiled_type(&precompiled_type); \
+		} \
+	}while(0)
+
 #define GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_) \
 	mark_point(); \
 	GENERAL_TYPE_CHECK_INIT(_type_); \
@@ -128,7 +138,8 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 	GENERAL_TYPE_CHECK_ACCESS_BY_NAME(_type_); \
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
-	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_);
+	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
+	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
 
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
@@ -762,6 +773,7 @@ START_TEST(unions_ut) {
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
+	GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
 	FUNCTION_CHECK_BEGIN_(_type_)
 
 typedef bit_fields_t * p_bit_fields_t;
@@ -802,25 +814,56 @@ START_TEST(metac_array_symbols) {
 			"can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL, objects_array);
 }END_TEST
 /*****************************************************************************/
-int _metac_type_t_discriminator_funtion(
+static int _metac_type_t_discriminator_funtion(
 	int write_operation,
 	metac_type_t * type,
 	void * specification_context,
 	void * p_obj,
 	int  * p_discriminator_val) {
+
 	char * key = (char *)specification_context;
-	printf("_metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
-	return 0;
+	metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
+	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
+
+	if (strcmp(key, ".<anon0>") == 0) {
+		switch(metac_type_obj->id) {
+		case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
+		case DW_TAG_pointer_type: *p_discriminator_val = 1; return 0;
+		case DW_TAG_typedef: *p_discriminator_val = 2; return 0;
+		case DW_TAG_enumeration_type: *p_discriminator_val = 3; return 0;
+		case DW_TAG_subprogram: *p_discriminator_val = 4; return 0;
+		case DW_TAG_structure_type: *p_discriminator_val = 5; return 0;
+		case DW_TAG_union_type: *p_discriminator_val = 6; return 0;
+		case DW_TAG_array_type: *p_discriminator_val = 7; return 0;
+		}
+		return -1;
+	}
+
+	return -1;
 }
-int _metac_type_t_array_elements_count_funtion(
+static int _metac_type_t_array_elements_count_funtion(
 	int write_operation,
 	metac_type_t * type,
 	void * specification_context,
 	void * p_obj,
 	metac_count_t * p_elements_count) {
+
 	char * key = (char *)specification_context;
-	printf("_metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
-	return 0;
+	metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
+	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
+
+	if (strcmp(key, ".<anon0>.enumeration_type_info.enumerators") == 0) {
+		*p_elements_count = metac_type_obj->enumeration_type_info.enumerators_count;
+		return 0;
+	}else  if (strcmp(key, ".dwarf_info.at") == 0) {
+		*p_elements_count = metac_type_obj->dwarf_info.at_num;
+		return 0;
+	} else if (strcmp(key, ".dwarf_info.child") == 0) {
+		*p_elements_count = metac_type_obj->dwarf_info.child_num;
+		return 0;
+	}
+
+	return -1;
 }
 
 #define _X_METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
@@ -868,9 +911,7 @@ START_TEST(metac_type_t_ut) {
 //	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
 //	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
 
-	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type,
-//			"dwarf_info.child:array_ptr:len_function_ptr", "function returns dwarf_info.child_num", {}) {
-			NULL, NULL, {}) { /* this is under construction right now */
+	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) { /* this is under construction right now */
 		_STRUCT_TYPE_CHECK_BYTESIZE;
 		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
 		__STRUCT_TYPE_CHECK_MEMBER(id),
@@ -883,9 +924,18 @@ START_TEST(metac_type_t_ut) {
 	}STRUCT_TYPE_CHECK_END;
 	/* pre-compilation test */
 	do {
+		metac_type_t * copy;
+		metac_byte_size_t copy_size;
+		metac_type_t *type = &METAC_TYPE_NAME(metac_type_t);
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type);
+
+		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
+		/*TODO: check if we really created copy*/
+
+		//fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
+
 		metac_free_precompiled_type(&precompiled_type);
 		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
 	}while(0);

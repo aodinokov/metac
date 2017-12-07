@@ -228,7 +228,7 @@ int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_b
 int metac_unpack(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size /*, p_dst, func and etc ToBeAdded */);
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size);
-
+/*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;
