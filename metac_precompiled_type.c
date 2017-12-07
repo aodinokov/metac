@@ -1047,7 +1047,7 @@ int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_b
 		msg_stderr("invalid argument value: precompiled_type\n");
 		return -(EINVAL);
 	}
-	return _visitor_pattern(precompiled_type, 1, ptr, size);
+	return _visitor_pattern(precompiled_type, 0, ptr, size);
 }
 
 int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size) {
@@ -1056,5 +1056,5 @@ int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byt
 		return -(EINVAL);
 	}
 
-	return _visitor_pattern(precompiled_type, 1, ptr, size);
+	return _visitor_pattern(precompiled_type, 0, ptr, size);
 }

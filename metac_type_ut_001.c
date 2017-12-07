@@ -826,17 +826,33 @@ static int _metac_type_t_discriminator_funtion(
 	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, ".<anon0>") == 0) {
-		switch(metac_type_obj->id) {
-		case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
-		case DW_TAG_pointer_type: *p_discriminator_val = 1; return 0;
-		case DW_TAG_typedef: *p_discriminator_val = 2; return 0;
-		case DW_TAG_enumeration_type: *p_discriminator_val = 3; return 0;
-		case DW_TAG_subprogram: *p_discriminator_val = 4; return 0;
-		case DW_TAG_structure_type: *p_discriminator_val = 5; return 0;
-		case DW_TAG_union_type: *p_discriminator_val = 6; return 0;
-		case DW_TAG_array_type: *p_discriminator_val = 7; return 0;
+		if (write_operation == 0) {
+			switch(metac_type_obj->id) {
+			case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
+			case DW_TAG_pointer_type: *p_discriminator_val = 1; return 0;
+			case DW_TAG_typedef: *p_discriminator_val = 2; return 0;
+			case DW_TAG_enumeration_type: *p_discriminator_val = 3; return 0;
+			case DW_TAG_subprogram: *p_discriminator_val = 4; return 0;
+			case DW_TAG_structure_type: *p_discriminator_val = 5; return 0;
+			case DW_TAG_union_type: *p_discriminator_val = 6; return 0;
+			case DW_TAG_array_type: *p_discriminator_val = 7; return 0;
+			}
+			return -1;
+		}else{
+			switch(*p_discriminator_val) {
+			case 0:metac_type_obj->id = DW_TAG_base_type; return 0;
+			case 1:metac_type_obj->id = DW_TAG_pointer_type; return 0;
+			case 2:metac_type_obj->id = DW_TAG_typedef; return 0;
+			case 3:metac_type_obj->id = DW_TAG_enumeration_type; return 0;
+			case 4:metac_type_obj->id = DW_TAG_subprogram; return 0;
+			case 5:metac_type_obj->id = DW_TAG_structure_type; return 0;
+			case 6:metac_type_obj->id = DW_TAG_union_type; return 0;
+			case 7:metac_type_obj->id = DW_TAG_array_type; return 0;
+			}
+			return -1;
 		}
-		return -1;
+	}else{
+		/*TODO:*/
 	}
 
 	return -1;
