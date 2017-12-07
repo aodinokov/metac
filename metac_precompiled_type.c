@@ -343,6 +343,8 @@ int _phase1(
 		struct _step * current_step = cds_list_entry(pos, struct _step, list);
 		struct metac_type *type = current_step->p_step->type;
 
+		/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
+
 		switch(type->id) {
 		case DW_TAG_base_type:
 		case DW_TAG_enumeration_type:
@@ -396,8 +398,60 @@ int _phase1(
 			/*reset conditions*/
 			_next_step->p_step->check.p_condition = NULL;
 			_next_step->p_step->check.expected_value = 0;
+			/*set array mode*/
+			current_step->p_step->array_mode = spec->array_mode;
+			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
+			current_step->p_step->context = spec->specification_context;
+		} break;
+		case DW_TAG_array_type: {
+			int i;
+			metac_byte_size_t element_size;
+			metac_type_t * element_type = type->array_type_info.type != NULL?/*metac_type_typedef_skip(*/type->array_type_info.type/*)*/:NULL;
+			const metac_type_specification_value_t * spec = metac_type_specification(precompiled_type->type, current_step->p_step->global_path);
 
+			if (type->array_type_info.is_flexible == 1) {
+				msg_stddbg("Warning: Array %s is flexible. Isn't supported so far\n", current_step->p_step->global_path);
+				break;
+			}
 
+			if (spec == NULL ||
+				element_type == NULL ||
+				spec->array_mode == amStop ||
+				(spec->array_mode == amExtendAsArrayWithLen && spec->array_elements_count_funtion_ptr == NULL)) {
+				msg_stddbg("Warning: Array %s doesn't have a array specification - skipping it\n", current_step->p_step->global_path);
+				current_step->p_step->array_mode = amStop;
+				continue;
+			}
+
+			/*find or allocate new mem object id */
+			_memobj = _find_memobj_by_type(memobjs_list, type);
+			if (_memobj != NULL) {
+				current_step->p_step->memobj_idx = _memobj->memobj_id;
+				break;
+			}
+
+			_memobj = create__memobj(precompiled_type->memobjs_count++, type);
+			if (_memobj == NULL)
+				return -(ENOMEM);
+			cds_list_add_tail(&_memobj->list, memobjs_list);
+			current_step->p_step->memobj_idx = _memobj->memobj_id;
+			_next_step = create__step(
+					_memobj->memobj_id,
+					current_step->p_step->global_path, "<array>", NULL, "", "",/*path*/
+					_memobj->p_memobj->type,
+					0, metac_type_byte_size(_memobj->p_memobj->type), /*offset/byte_size*/
+					current_step);
+			if (_next_step == NULL)
+				return -(ENOMEM);
+			cds_list_add_tail(&_next_step->list, steps_list);
+
+			/*reset conditions*/
+			_next_step->p_step->check.p_condition = NULL;
+			_next_step->p_step->check.expected_value = 0;
+			/*set array mode*/
+			current_step->p_step->array_mode = spec->array_mode;
+			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
+			current_step->p_step->context = spec->specification_context;
 		} break;
 		case DW_TAG_structure_type: {
 			int anon_members_count = 0;
@@ -479,10 +533,6 @@ int _phase1(
 				_next_step->p_step->check.p_condition = _condition->p_condition;
 				_next_step->p_step->check.expected_value = i;
 			}
-		} break;
-		case DW_TAG_array_type: {
-			/*TODO: flex and not flex cases */
-			/*make it as a pointer, but offset should be changed */
 		} break;
 		}
 	}
