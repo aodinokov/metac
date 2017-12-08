@@ -41,7 +41,7 @@ struct step {
 	int is_anon;
 	/*need to store children*/
 
-	int 	value_index; /*values will be stored in the array - will be initialized later*/
+	int value_index; /*values will be stored in the array - will be initialized later*/
 };
 
 struct condition {
@@ -905,7 +905,7 @@ static struct memobj_work_data* create_wd(int memobj_idx, void *ptr, metac_byte_
 	return wd;
 }
 
-static delete_wd(struct memobj_work_data* wd) {
+static void delete_wd(struct memobj_work_data* wd) {
 	if (wd) {
 		if (wd->condition_value){
 			free(wd->condition_value);
@@ -931,7 +931,7 @@ static int _visition_check_condition( struct memobj_work_data* wd, struct step *
 	return 0;
 }
 
-static int _visitor_pattern(metac_precompiled_type_t * precompiled_type, int write_operation, void *ptr, metac_byte_size_t size) {
+static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size) {
 	int i;
 	struct memobj_work_data* wd, *_wd;
 	struct precomiled_type_work_data data;
@@ -967,7 +967,7 @@ static int _visitor_pattern(metac_precompiled_type_t * precompiled_type, int wri
 						wd->condition_value[memobj->condition[i]->check.p_condition->value_index].value != memobj->condition[i]->check.expected_value)
 					continue;	/*don't need to initialize */
 				if (memobj->condition[i]->condition_fn_ptr) {
-					if (memobj->condition[i]->condition_fn_ptr(write_operation, memobj->type,
+					if (memobj->condition[i]->condition_fn_ptr(0, memobj->type,
 							memobj->condition[i]->context, wd->ptr, &wd->condition_value[i].value) != 0) {
 						msg_stderr("discriminator failed\n");
 						return -(EFAULT);
@@ -1003,7 +1003,7 @@ static int _visitor_pattern(metac_precompiled_type_t * precompiled_type, int wri
 			} break;
 			case amExtendAsArrayWithLen:
 				assert(step->array_elements_count_funtion_ptr != NULL);
-				if (step->array_elements_count_funtion_ptr(write_operation, step->type, step->context, wd->ptr, &count) != 0) {
+				if (step->array_elements_count_funtion_ptr(0, step->type, step->context, wd->ptr, &count) != 0) {
 					msg_stderr("array_elements_count_funtion failed\n");
 					continue;
 				}
@@ -1047,7 +1047,7 @@ int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_b
 		msg_stderr("invalid argument value: precompiled_type\n");
 		return -(EINVAL);
 	}
-	return _visitor_pattern(precompiled_type, 0, ptr, size);
+	return _read_visitor_pattern(precompiled_type, ptr, size);
 }
 
 int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size) {
@@ -1056,5 +1056,5 @@ int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byt
 		return -(EINVAL);
 	}
 
-	return _visitor_pattern(precompiled_type, 0, ptr, size);
+	return _read_visitor_pattern(precompiled_type, ptr, size);
 }
