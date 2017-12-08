@@ -67,6 +67,9 @@ struct memobj {
 	int enum_type_steps_count;
 	int pointer_type_idx;
 	int pointer_type_steps_count;
+	int array_type_idx;
+	int array_type_steps_count;
+
 
 	/*TODO: check if flexible*/
 };
@@ -604,9 +607,11 @@ static int _phase2(
 			case DW_TAG_enumeration_type:
 				++precompiled_type->memobj[i]->enum_type_steps_count;
 				break;
-			/*TODO: add arrays separately */
 			case DW_TAG_pointer_type:
 				++precompiled_type->memobj[i]->pointer_type_steps_count;
+				break;
+			case DW_TAG_array_type:
+				++precompiled_type->memobj[i]->array_type_steps_count;
 				break;
 		}
 		++precompiled_type->memobj[i]->steps_count;
@@ -633,23 +638,29 @@ static int _phase2(
 			}
 
 #if 0
-			msg_stddbg("all %d p %d b %d e %d\n",
+			msg_stddbg("all %d p %d b %d e %d a d%\n",
 					precompiled_type->memobj[i].steps_count,
 					precompiled_type->memobj[i].pointer_type_steps_count,
 					precompiled_type->memobj[i].base_type_steps_count,
-					precompiled_type->memobj[i].enum_type_steps_count);
+					precompiled_type->memobj[i].enum_type_steps_count,
+					precompiled_type->memobj[i].array_type_steps_count);
 #endif
 			/*put leafs to the end of array*/
-			precompiled_type->memobj[i]->pointer_type_idx = precompiled_type->memobj[i]->steps_count -
+			precompiled_type->memobj[i]->array_type_idx = precompiled_type->memobj[i]->steps_count -
+					precompiled_type->memobj[i]->array_type_steps_count -
 					precompiled_type->memobj[i]->pointer_type_steps_count -
 					precompiled_type->memobj[i]->base_type_steps_count -
 					precompiled_type->memobj[i]->enum_type_steps_count;
+			precompiled_type->memobj[i]->pointer_type_idx = precompiled_type->memobj[i]->array_type_idx +
+					precompiled_type->memobj[i]->array_type_steps_count;
 			precompiled_type->memobj[i]->base_type_idx = precompiled_type->memobj[i]->pointer_type_idx +
 					precompiled_type->memobj[i]->pointer_type_steps_count;
 			precompiled_type->memobj[i]->enum_type_idx = precompiled_type->memobj[i]->base_type_idx +
 					precompiled_type->memobj[i]->base_type_steps_count;
 #if 0
-			msg_stddbg("p %d b %d e %d\n", precompiled_type->memobj[i]->pointer_type_idx,
+			msg_stddbg("a %d p %d b %d e %d\n",
+					precompiled_type->memobj[i]->array_type_idx,
+					precompiled_type->memobj[i]->pointer_type_idx,
 					precompiled_type->memobj[i]->base_type_idx,
 					precompiled_type->memobj[i]->enum_type_idx);
 #endif
@@ -658,6 +669,7 @@ static int _phase2(
 		}
 
 		/* reset counters - will use them to fill in arrays */
+		precompiled_type->memobj[i]->array_type_steps_count = 0;
 		precompiled_type->memobj[i]->pointer_type_steps_count = 0;
 		precompiled_type->memobj[i]->base_type_steps_count = 0;
 		precompiled_type->memobj[i]->enum_type_steps_count = 0;
@@ -681,6 +693,10 @@ static int _phase2(
 				j = precompiled_type->memobj[i]->pointer_type_steps_count++;
 				precompiled_type->memobj[i]->step[precompiled_type->memobj[i]->pointer_type_idx + j] = _step->p_step;
 				break;
+			case DW_TAG_array_type:
+				j = precompiled_type->memobj[i]->array_type_steps_count++;
+				precompiled_type->memobj[i]->step[precompiled_type->memobj[i]->array_type_idx + j] = _step->p_step;
+				break;
 			default:
 				j = precompiled_type->memobj[i]->steps_count++;
 				precompiled_type->memobj[i]->step[j] = _step->p_step;
@@ -696,13 +712,15 @@ static int _phase2(
 
 	for (i = 0; i < precompiled_type->memobjs_count; i++) {
 		int j;
-		assert(precompiled_type->memobj[i]->steps_count == precompiled_type->memobj[i]->pointer_type_idx);
+		assert(precompiled_type->memobj[i]->steps_count == precompiled_type->memobj[i]->array_type_idx);
+		assert(precompiled_type->memobj[i]->array_type_idx + precompiled_type->memobj[i]->array_type_steps_count == precompiled_type->memobj[i]->pointer_type_idx);
 		assert(precompiled_type->memobj[i]->pointer_type_idx + precompiled_type->memobj[i]->pointer_type_steps_count == precompiled_type->memobj[i]->base_type_idx);
 		assert(precompiled_type->memobj[i]->base_type_idx + precompiled_type->memobj[i]->base_type_steps_count == precompiled_type->memobj[i]->enum_type_idx);
 		precompiled_type->memobj[i]->steps_count +=
 				precompiled_type->memobj[i]->base_type_steps_count +
 				precompiled_type->memobj[i]->enum_type_steps_count +
-				precompiled_type->memobj[i]->pointer_type_steps_count;
+				precompiled_type->memobj[i]->pointer_type_steps_count +
+				precompiled_type->memobj[i]->array_type_steps_count ;
 		for (j = 0; j < precompiled_type->memobj[i]->steps_count; j++) {
 			precompiled_type->memobj[i]->step[j]->value_index = j;
 		}
@@ -1014,14 +1032,17 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			}
 			/*visit pointers */
 		}
-//		for (i = memobj->pointer_type_idx; i < memobj->pointer_type_idx+memobj->pointer_type_steps_count; i++) {
-//			struct step * step = memobj->step[i];
-//			/*visit arrays  */
-//		}
+		for (i = memobj->array_type_idx; i < memobj->array_type_idx+memobj->array_type_steps_count; i++) {
+			struct step * step = memobj->step[i];
+			if (_visition_check_condition(wd, step) != 0)
+				continue;
+			/*visit arrays  */
+		}
 		for (i = memobj->steps_count -
 				memobj->base_type_steps_count -
 				memobj->enum_type_steps_count -
-				memobj->pointer_type_steps_count /*TBD: arrays*/; i > 0; i--) {
+				memobj->pointer_type_steps_count -
+				memobj->array_type_steps_count; i > 0; i--) {
 			struct step * step = memobj->step[i-1];
 			if (_visition_check_condition(wd, step) != 0)
 				continue;
