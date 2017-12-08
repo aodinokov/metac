@@ -822,10 +822,10 @@ static int _metac_type_t_discriminator_funtion(
 	int  * p_discriminator_val) {
 
 	char * key = (char *)specification_context;
-	metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
 	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, ".<anon0>") == 0) {
+		metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
 		if (write_operation == 0) {
 			switch(metac_type_obj->id) {
 			case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
@@ -851,10 +851,42 @@ static int _metac_type_t_discriminator_funtion(
 			}
 			return -1;
 		}
-	}else{
-		/*TODO:*/
+	}else if (strcmp(key, ".dwarf_info.at.<ptr>.<anon0>") == 0) {
+		struct metac_type_at * metac_type_at_obj = (struct metac_type_at *)p_obj;
+		if (write_operation == 0) {
+			switch(metac_type_at_obj->id) {
+			case DW_AT_name: *p_discriminator_val = 0; return 0;
+			case DW_AT_type: *p_discriminator_val = 1; return 0;
+			case DW_AT_byte_size: *p_discriminator_val = 2; return 0;
+			case DW_AT_encoding: *p_discriminator_val = 3; return 0;
+			case DW_AT_data_member_location: *p_discriminator_val = 4; return 0;
+			case DW_AT_bit_offset: *p_discriminator_val = 5; return 0;
+			case DW_AT_bit_size: *p_discriminator_val = 6; return 0;
+			case DW_AT_lower_bound: *p_discriminator_val = 7; return 0;
+			case DW_AT_upper_bound: *p_discriminator_val = 8; return 0;
+			case DW_AT_count: *p_discriminator_val = 9; return 0;
+			case DW_AT_const_value: *p_discriminator_val = 10; return 0;
+			case DW_AT_declaration: *p_discriminator_val = 11; return 0;
+			}
+			return -1;
+		}else{
+			switch(*p_discriminator_val) {
+			case 0:metac_type_at_obj->id = DW_AT_name; return 0;
+			case 1:metac_type_at_obj->id = DW_AT_type; return 0;
+			case 2:metac_type_at_obj->id = DW_AT_byte_size; return 0;
+			case 3:metac_type_at_obj->id = DW_AT_encoding; return 0;
+			case 4:metac_type_at_obj->id = DW_AT_data_member_location; return 0;
+			case 5:metac_type_at_obj->id = DW_AT_bit_offset; return 0;
+			case 6:metac_type_at_obj->id = DW_AT_bit_size; return 0;
+			case 7:metac_type_at_obj->id = DW_AT_lower_bound; return 0;
+			case 8:metac_type_at_obj->id = DW_AT_upper_bound; return 0;
+			case 9:metac_type_at_obj->id = DW_AT_count; return 0;
+			case 10:metac_type_at_obj->id = DW_AT_const_value; return 0;
+			case 11:metac_type_at_obj->id = DW_AT_declaration; return 0;
+			}
+			return -1;
+		}
 	}
-
 	return -1;
 }
 static int _metac_type_t_array_elements_count_funtion(
@@ -862,24 +894,29 @@ static int _metac_type_t_array_elements_count_funtion(
 	metac_type_t * type,
 	void * specification_context,
 	void * p_obj,
+	int n,
 	metac_count_t * p_elements_count) {
 
+	int res = -1;
 	char * key = (char *)specification_context;
 	metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
-	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
+	//printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, ".<anon0>.enumeration_type_info.enumerators") == 0) {
 		*p_elements_count = metac_type_obj->enumeration_type_info.enumerators_count;
-		return 0;
+		res = 0;
 	}else  if (strcmp(key, ".dwarf_info.at") == 0) {
 		*p_elements_count = metac_type_obj->dwarf_info.at_num;
-		return 0;
+		res = 0;
 	} else if (strcmp(key, ".dwarf_info.child") == 0) {
 		*p_elements_count = metac_type_obj->dwarf_info.child_num;
-		return 0;
+		res = 0;
 	}
 
-	return -1;
+	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s, output to p_elements_count %d returns %d\n",
+			write_operation, key,
+			*p_elements_count, res);
+	return res;
 }
 
 #define _X_METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \

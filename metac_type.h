@@ -190,7 +190,8 @@ typedef int (*metac_array_elements_count_funtion_ptr_t)(
 	metac_type_t * type,
 	void * specification_context,
 	void * p_obj,
-	metac_count_t * p_elements_count);
+	int n,
+	metac_count_t * p_elements_count); /*TODO: nD arrays? - modify p_elements_count*/
 
 struct metac_type_specification_value {
 	void * specification_context;

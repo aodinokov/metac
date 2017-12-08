@@ -945,7 +945,7 @@ static int _visition_check_condition( struct memobj_work_data* wd, struct step *
 		//msg_stddbg("Skipped %s\n", step->path);
 		return -1;	/*condition doesn't match*/
 	}
-	//msg_stddbg("Do %s\n", step->global_path);
+	msg_stddbg("Do %s\n", step->global_path);
 	return 0;
 }
 
@@ -1008,6 +1008,7 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			/*visit enums */
 		}
 		for (i = memobj->pointer_type_idx; i < memobj->pointer_type_idx+memobj->pointer_type_steps_count; i++) {
+			int j;
 			int count_is_set = 1;
 			metac_count_t count = 0;
 			struct step * step = memobj->step[i];
@@ -1021,7 +1022,7 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			} break;
 			case amExtendAsArrayWithLen:
 				assert(step->array_elements_count_funtion_ptr != NULL);
-				if (step->array_elements_count_funtion_ptr(0, step->type, step->context, wd->ptr, &count) != 0) {
+				if (step->array_elements_count_funtion_ptr(0, step->type, step->context, wd->ptr, 1, &count) != 0) {
 					msg_stderr("array_elements_count_funtion failed\n");
 					continue;
 				}
@@ -1030,13 +1031,59 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 				count_is_set = 0;
 				break;
 			}
+			/*and go to another memobj*/
+			if (count_is_set != 0) {
+				struct memobj_work_data* new_wd;
+				int new_memobj_idx = step->memobj_idx;
+				void *new_ptr = *((void**)(wd->ptr + step->offset));	/*read pointer value*/
+				metac_byte_size_t new_byte_size = metac_type_byte_size(precompiled_type->memobj[step->memobj_idx]->type);
+
+				if (new_ptr == NULL)
+					continue;
+
+				for (j = 0; j < count;  j++) { /* add array to queue */
+					new_wd = create_wd(new_memobj_idx, new_ptr + j * new_byte_size, new_byte_size);
+					if (new_wd == NULL) {
+						return -(ENOMEM);
+					}
+					cds_list_add_tail(&new_wd->list, &data.memobjwd_list);
+				}
+			}/*else*/
+
 			/*visit pointers */
+			/*TBD*/
+
 		}
 		for (i = memobj->array_type_idx; i < memobj->array_type_idx+memobj->array_type_steps_count; i++) {
+			int j;
+			int count_is_set = 1;
+			metac_count_t count = 0;	/*TBD: make array*/
 			struct step * step = memobj->step[i];
 			if (_visition_check_condition(wd, step) != 0)
 				continue;
+			switch(step->array_mode) {
+			case amStop: continue;	/*don't go here */
+			case amExtendAsOneObject: {
+				count = 1;
+			} break;
+			case amExtendAsArrayWithLen:
+				assert(step->array_elements_count_funtion_ptr != NULL);
+				if (step->array_elements_count_funtion_ptr(0, step->type, step->context, wd->ptr, step->type->array_type_info.subranges_count, &count) != 0) {
+					msg_stderr("array_elements_count_funtion failed\n");
+					continue;
+				}
+				break;
+			case amExtendAsArrayWithNullEnd:
+				count_is_set = 0;
+				break;
+			}
+
 			/*visit arrays  */
+			if (count_is_set != 0) {
+				for (j = 0; i <count;  j++) {
+
+				}
+			}/*else*/
 		}
 		for (i = memobj->steps_count -
 				memobj->base_type_steps_count -
