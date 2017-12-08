@@ -380,6 +380,12 @@ static int _phase1(
 				continue;
 			}
 
+//			msg_stddbg("Pointer %s am%d\n", current_step->p_step->global_path, spec->array_mode);
+			/*set array mode*/
+			current_step->p_step->array_mode = spec->array_mode;
+			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
+			current_step->p_step->context = spec->specification_context;
+
 			/*find or allocate new mem object id */
 			_memobj = _find_memobj_by_type(memobjs_list, ptr_to_type);
 			if (_memobj != NULL) {
@@ -405,10 +411,6 @@ static int _phase1(
 			/*reset conditions*/
 			_next_step->p_step->check.p_condition = NULL;
 			_next_step->p_step->check.expected_value = 0;
-			/*set array mode*/
-			current_step->p_step->array_mode = spec->array_mode;
-			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
-			current_step->p_step->context = spec->specification_context;
 		} break;
 		case DW_TAG_array_type: {
 			int i;
@@ -429,6 +431,11 @@ static int _phase1(
 				current_step->p_step->array_mode = amStop;
 				continue;
 			}
+
+			/*set array mode*/
+			current_step->p_step->array_mode = spec->array_mode;
+			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
+			current_step->p_step->context = spec->specification_context;
 
 			/*find or allocate new mem object id */
 			_memobj = _find_memobj_by_type(memobjs_list, type);
@@ -455,10 +462,6 @@ static int _phase1(
 			/*reset conditions*/
 			_next_step->p_step->check.p_condition = NULL;
 			_next_step->p_step->check.expected_value = 0;
-			/*set array mode*/
-			current_step->p_step->array_mode = spec->array_mode;
-			current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
-			current_step->p_step->context = spec->specification_context;
 		} break;
 		case DW_TAG_structure_type: {
 			int anon_members_count = 0;
@@ -833,7 +836,7 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 						precompiled_type->memobj[i]->enum_type_idx);
 				for (j = 0; j < precompiled_type->memobj[i]->steps_count; j++) {
 					struct step * step = precompiled_type->memobj[i]->step[j];
-					printf("%d. value_idx %d %s %s [%d, %d) c(%p, %d) name \"%s\" anon %d ptr %d\n", j,
+					printf("%d. value_idx %d %s %s [%d, %d) c(%p, %d) name \"%s\" anon %d ptr %d am%d\n", j,
 							step->value_index,
 							step->type->name?step->type->name:(step->type->id == DW_TAG_pointer_type)?"ptr":"<no type name>",
 							step->path,
@@ -841,7 +844,8 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 							step->check.p_condition, step->check.expected_value,
 							step->name!=NULL?step->name:"(nil)",
 							step->is_anon,
-							step->memobj_idx);
+							step->memobj_idx,
+							step->array_mode);
 				}
 			}
 		}
@@ -902,12 +906,14 @@ struct memobj_work_data {
 		int init_flag;
 		int value;
 	}*condition_value;	/*memobj.conditions_count*/;
-	void* step_result;	/*memobj.steps_count*/
+	void** step_result;	/*memobj.steps_count*/
 };
 struct precomiled_type_work_data {
 	metac_precompiled_type_t * precompiled_type;	/*not really necessary, but it's just to check consistency */
 	struct cds_list_head memobjwd_list;
 };
+
+typedef int (*step_visitor_t)(int write_operation, struct memobj_work_data* wd, struct step * step, void * context);
 
 static struct memobj_work_data* create_wd(int memobj_idx, void *ptr, metac_byte_size_t size) {
 	struct memobj_work_data * wd;
@@ -917,6 +923,7 @@ static struct memobj_work_data* create_wd(int memobj_idx, void *ptr, metac_byte_
 		msg_stderr("no memory\n");
 		return NULL;
 	}
+
 	wd->memobj_idx = memobj_idx;
 	wd->ptr = ptr;
 	wd->size = size;
@@ -949,7 +956,11 @@ static int _visition_check_condition( struct memobj_work_data* wd, struct step *
 	return 0;
 }
 
-static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size) {
+#define _VISIT_(args...) \
+	if (visitor)\
+		visitor(args)
+static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size,
+		step_visitor_t visitor, void * visitor_context) {
 	int i;
 	struct memobj_work_data* wd, *_wd;
 	struct precomiled_type_work_data data;
@@ -978,7 +989,7 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			wd->condition_value = calloc(memobj->conditions_count, sizeof(*wd->condition_value));
 			if (wd->condition_value == NULL) {
 				msg_stderr("no memory\n");
-				return -(ENOMEM);
+				return -(ENOMEM);	/*TODO: fix these leaks!*/
 			}
 			for (i = 0; i < memobj->conditions_count; i++) {
 				if (memobj->condition[i]->check.p_condition &&
@@ -987,12 +998,21 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 				if (memobj->condition[i]->condition_fn_ptr) {
 					if (memobj->condition[i]->condition_fn_ptr(0, memobj->type,
 							memobj->condition[i]->context, wd->ptr, &wd->condition_value[i].value) != 0) {
-						msg_stderr("discriminator failed\n");
-						return -(EFAULT);
+						msg_stderr("discriminator failed - skipping condition\n");
+						//return -(EFAULT);
+						//continue;
+						wd->condition_value[i].value = -1;
 					}
 					wd->condition_value[i].init_flag = 1;
 				}
 			}
+		}
+
+		/* init results*/
+		wd->step_result = calloc(memobj->steps_count, sizeof(void*));
+		if (wd->step_result == NULL) {
+			msg_stderr("no memory\n");
+			return -(ENOMEM);	/*TODO: fix these leaks!*/
 		}
 
 		for (i = memobj->base_type_idx; i < memobj->base_type_idx+memobj->base_type_steps_count; i++) {
@@ -1000,12 +1020,14 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			if (_visition_check_condition(wd, step) != 0)
 				continue;
 			/*visit base types */
+			_VISIT_(0, wd, step, visitor_context);
 		}
 		for (i = memobj->enum_type_idx; i < memobj->enum_type_idx+memobj->enum_type_steps_count; i++) {
 			struct step * step = memobj->step[i];
 			if (_visition_check_condition(wd, step) != 0)
 				continue;
 			/*visit enums */
+			_VISIT_(0, wd, step, visitor_context);
 		}
 		for (i = memobj->pointer_type_idx; i < memobj->pointer_type_idx+memobj->pointer_type_steps_count; i++) {
 			int j;
@@ -1031,19 +1053,29 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 				count_is_set = 0;
 				break;
 			}
+
+			msg_stddbg("ptr: %s mode %d count %d\n", step->global_path, (int)step->array_mode, count);
+
 			/*and go to another memobj*/
-			if (count_is_set != 0) {
+			if (count_is_set != 0 && count > 0) {
+
 				struct memobj_work_data* new_wd;
 				int new_memobj_idx = step->memobj_idx;
 				void *new_ptr = *((void**)(wd->ptr + step->offset));	/*read pointer value*/
 				metac_byte_size_t new_byte_size = metac_type_byte_size(precompiled_type->memobj[step->memobj_idx]->type);
 
-				if (new_ptr == NULL)
+				if (new_ptr == NULL) {
+					msg_stderr("met NULL\n");
 					continue;
+				}
 
+				msg_stddbg("ptr: %s count %d\n", step->global_path, count);
 				for (j = 0; j < count;  j++) { /* add array to queue */
+					/*TODO: check if already had this addr in range [new_ptr + j * new_byte_size, new_byte_size) - loop*/
+
 					new_wd = create_wd(new_memobj_idx, new_ptr + j * new_byte_size, new_byte_size);
 					if (new_wd == NULL) {
+						msg_stderr("memobj_idx is too big\n");
 						return -(ENOMEM);
 					}
 					cds_list_add_tail(&new_wd->list, &data.memobjwd_list);
@@ -1051,7 +1083,7 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			}/*else*/
 
 			/*visit pointers */
-			/*TBD*/
+			_VISIT_(0, wd, step, visitor_context);
 
 		}
 		for (i = memobj->array_type_idx; i < memobj->array_type_idx+memobj->array_type_steps_count; i++) {
@@ -1078,12 +1110,13 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 				break;
 			}
 
-			/*visit arrays  */
 			if (count_is_set != 0) {
 				for (j = 0; i <count;  j++) {
 
 				}
 			}/*else*/
+			/*visit arrays  */
+			_VISIT_(0, wd, step, visitor_context);
 		}
 		for (i = memobj->steps_count -
 				memobj->base_type_steps_count -
@@ -1093,11 +1126,10 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 			struct step * step = memobj->step[i-1];
 			if (_visition_check_condition(wd, step) != 0)
 				continue;
+
 			/*visit structs/unions in backward direction?  */
-
+			_VISIT_(0, wd, step, visitor_context);
 		}
-
-
 	}
 
 	/*TODO: free everything */
@@ -1109,13 +1141,17 @@ static int _read_visitor_pattern(metac_precompiled_type_t * precompiled_type, vo
 	return 0;
 }
 
+static int delete_visitor(int write_operation, struct memobj_work_data* wd, struct step * step, void * context) {
+
+}
+
 int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size) {
 
 	if (precompiled_type == NULL) {
 		msg_stderr("invalid argument value: precompiled_type\n");
 		return -(EINVAL);
 	}
-	return _read_visitor_pattern(precompiled_type, ptr, size);
+	return _read_visitor_pattern(precompiled_type, ptr, size, NULL, NULL);
 }
 
 int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size) {
@@ -1124,5 +1160,5 @@ int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byt
 		return -(EINVAL);
 	}
 
-	return _read_visitor_pattern(precompiled_type, ptr, size);
+	return _read_visitor_pattern(precompiled_type, ptr, size, NULL, NULL);
 }

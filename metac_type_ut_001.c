@@ -837,6 +837,7 @@ static int _metac_type_t_discriminator_funtion(
 			case DW_TAG_union_type: *p_discriminator_val = 6; return 0;
 			case DW_TAG_array_type: *p_discriminator_val = 7; return 0;
 			}
+			printf("callback failed: can't find val for 0x%x\n", (int)metac_type_obj->id);
 			return -1;
 		}else{
 			switch(*p_discriminator_val) {
@@ -956,6 +957,8 @@ _X_METAC_ARRAY_MODE(					".specifications.<ptr>.value", amExtendAsOneObject)	/*s
 _X_METAC_ARRAY_MODE(					".specifications.<ptr>.value.<ptr>.specification_context", amStop)
 _X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<ptr>.<anon0>", _metac_type_t_discriminator_funtion)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.at", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_MODE(					".dwarf_info.at.<ptr>.<anon0>.name", amExtendAsArrayWithNullEnd)
+_X_METAC_ARRAY_MODE(					".dwarf_info.at.<ptr>.<anon0>.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.child", _metac_type_t_array_elements_count_funtion)
 _X_METAC_ARRAY_MODE(					".dwarf_info.child.<ptr>", amExtendAsOneObject)
 METAC_TYPE_SPECIFICATION_END
