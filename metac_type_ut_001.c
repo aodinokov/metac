@@ -675,6 +675,7 @@ START_TEST(structs_ut) {
 //		__STRUCT_TYPE_CHECK_MEMBER(e),
 //		});
 	}STRUCT_TYPE_CHECK_END;
+	struct_with_flexible_ND_array_and_len_t x[10];
 }END_TEST
 /*****************************************************************************/
 #define UNION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_, _init_...) \
@@ -940,16 +941,16 @@ METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
 _X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
 _X_METAC_ARRAY_MODE(					".name", amExtendAsArrayWithNullEnd)
-_X_METAC_ARRAY_MODE(					".<anon0>.typedef_info.type", amExtendAsOneObject)
-_X_METAC_ARRAY_MODE(					".<anon0>.pointer_type_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_MODE(					".<anon0>.typedef_info.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_MODE(					".<anon0>.pointer_type_info.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.subprogram_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_MODE(					".<anon0>.subprogram_info.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
 _X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_offset", amExtendAsOneObject)
 _X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_size", amExtendAsOneObject)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.array_type_info.type", amExtendAsOneObject)
+_X_METAC_ARRAY_MODE(					".<anon0>.array_type_info.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
 _X_METAC_ARRAY_MODE(					".specifications", amExtendAsArrayWithNullEnd)
 _X_METAC_ARRAY_MODE(					".specifications.<ptr>.key", amExtendAsArrayWithNullEnd) /*should be default for char**/
@@ -1001,6 +1002,8 @@ START_TEST(metac_type_t_ut) {
 int main(void){
 	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
 	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
+//	struct_with_flexible_ND_array_and_len_t x[10];
+//	printf("sizeof x 0x%lx\n", sizeof(x));
 	return run_suite(
 		START_SUITE(type_suite){
 			ADD_CASE(
