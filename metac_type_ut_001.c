@@ -989,9 +989,10 @@ START_TEST(metac_type_t_ut) {
 		metac_dump_precompiled_type(precompiled_type);
 
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
-		/*TODO: check if we really created copy*/
+		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compied");
+		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
-		//fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
+		fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
 
 		metac_free_precompiled_type(&precompiled_type);
 		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
@@ -1002,8 +1003,6 @@ START_TEST(metac_type_t_ut) {
 int main(void){
 	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
 	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
-//	struct_with_flexible_ND_array_and_len_t x[10];
-//	printf("sizeof x 0x%lx\n", sizeof(x));
 	return run_suite(
 		START_SUITE(type_suite){
 			ADD_CASE(
