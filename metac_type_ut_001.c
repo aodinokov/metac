@@ -120,15 +120,16 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 			/*fail_unless(strcmp(_spec_val, spec_val) == 0, "got incorrect specification"); TODO: find a way to compare*/ \
 		} \
 	}while(0)
-#define GENERAL_TYPE_CHECK_PRECOMILED(_type_) do {\
-		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
-		if (precompiled_type != NULL) { \
-			metac_dump_precompiled_type(precompiled_type); \
-			metac_free_precompiled_type(&precompiled_type); \
-		} \
-	}while(0)
+#define GENERAL_TYPE_CHECK_PRECOMILED(_type_)
+//do {\
+//		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+//		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
+//		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+//		if (precompiled_type != NULL) { \
+//			metac_dump_precompiled_type(precompiled_type); \
+//			metac_free_precompiled_type(&precompiled_type); \
+//		} \
+//	}while(0)
 
 #define GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_) \
 	mark_point(); \
@@ -987,18 +988,19 @@ START_TEST(metac_type_t_ut) {
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type);
-
+#if 0
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compied");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
 		fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
-
+#endif
 		metac_free_precompiled_type(&precompiled_type);
 		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
 	}while(0);
 
 }END_TEST
+
 /*****************************************************************************/
 int main(void){
 	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
@@ -1007,14 +1009,14 @@ int main(void){
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
-					ADD_TEST(base_types_ut);
-					ADD_TEST(pointers_ut);
-					ADD_TEST(enums_ut);
-					ADD_TEST(arrays_ut);
-					ADD_TEST(structs_ut);
-					ADD_TEST(unions_ut);
-					ADD_TEST(funtions_ut);
-					ADD_TEST(metac_array_symbols);
+//					ADD_TEST(base_types_ut);
+//					ADD_TEST(pointers_ut);
+//					ADD_TEST(enums_ut);
+//					ADD_TEST(arrays_ut);
+//					ADD_TEST(structs_ut);
+//					ADD_TEST(unions_ut);
+//					ADD_TEST(funtions_ut);
+//					ADD_TEST(metac_array_symbols);
 					ADD_TEST(metac_type_t_ut);
 				}END_CASE
 			);

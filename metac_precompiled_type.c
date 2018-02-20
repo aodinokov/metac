@@ -6,6 +6,7 @@
  */
 
 #include "metac_type.h"
+#include "metac_precompiled_type_int.h"	/*definitions of internal objects*/
 #include "metac_debug.h"	/* msg_stderr, ...*/
 
 #include <stdlib.h>			/* calloc, ... */
@@ -13,6 +14,7 @@
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
 #include <urcu/list.h>		/* I like struct cds_list_head :) */
+
 
 struct condition;
 struct condition_check {
@@ -894,6 +896,7 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** p_precompiled_type)
 	free(*p_precompiled_type);
 	*p_precompiled_type = NULL;
 }
+#if 0
 /*****************************************************************************/
 /**************work with real data *******************************************/
 /*****************************************************************************/
@@ -1438,3 +1441,4 @@ int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byt
 
 	return 0;
 }
+#endif

@@ -201,7 +201,7 @@ struct metac_type_specification_value {
 	};
 
 	struct {
-		enum metac_array_mode { /*TODO: do something with specifications!*/
+		enum metac_array_mode { /*TODO: do something with specifications! - use predefined functions for OneObject and NullEnded*/
 			amStop = 0,	/* default for pointers and flexible arrays */
 			amExtendAsOneObject,
 			amExtendAsArrayWithNullEnd,
