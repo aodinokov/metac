@@ -58,7 +58,7 @@
 /* 2. looks like clang3.4 doesn't have ability to show if function has unspecified parameter.
  * See https://travis-ci.org/aodinokov/metac/jobs/184151833#L472
  */
-#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4)
+#if !defined(__clang__) || (__clang_major__ == 3 && __clang_minor__ > 4) || (__clang_major__ > 3)
 #define _BUG_NO_USPECIFIED_PARAMETER_ 0
 #else
 #define _BUG_NO_USPECIFIED_PARAMETER_ 1
@@ -67,12 +67,20 @@
 /* 3. Some compilers generate dwarf data without count/upper/lower_bound for arrays with len=0. It's a bug.
  * gcc and clang 3.5.0 has this issue, but 3.9.0 - doesn't
  */
-#if defined(__clang__) && __clang_major__ >= 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0
+#if defined(__clang__) && (( __clang_major__ > 3 ) || ( __clang_major__ == 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0 ))
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
 #else
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
 #endif
-
+/*
+ * TBD: autodetection issue:
+https://travis-ci.org/aodinokov/metac/jobs/343649274
+$ clang --version
+clang version 5.0.0 (tags/RELEASE_500/final)
+bug_zero_len_is_flexible 1
+bug_with_unspecified_parameters 1
+ *
+ * */
 
 /*****************************************************************************/
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
@@ -1003,8 +1011,8 @@ START_TEST(metac_type_t_ut) {
 
 /*****************************************************************************/
 int main(void){
-	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
 	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
+	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
 	return run_suite(
 		START_SUITE(type_suite){
 			ADD_CASE(
