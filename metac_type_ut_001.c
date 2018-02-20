@@ -939,8 +939,8 @@ static int _metac_type_t_array_elements_count_funtion(
 
 METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
-_X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
 _X_METAC_ARRAY_MODE(					".name", amExtendAsArrayWithNullEnd)
+_X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
 _X_METAC_ARRAY_MODE(					".<anon0>.typedef_info.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_MODE(					".<anon0>.pointer_type_info.type", amStop/*amExtendAsOneObject*/)
 _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)

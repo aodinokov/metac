@@ -22,14 +22,14 @@ struct condition_check {
 
 struct step {
 	struct metac_type * type;	/*type without typedef*/
-	char * name;
-	char * global_path;
-	char * path;
-	metac_data_member_location_t 	offset;
-	metac_byte_size_t 				byte_size;
+	char * name;				/*member name if exists*/
+	char * global_path;			/*path starting from the initial struct via pointers etc*/
+	char * path;				/*path in local memobj*/
+	metac_data_member_location_t 	offset;	/*offset in local memobj*/
+	metac_byte_size_t 				byte_size; /*bite size*/
 
-	struct step	* parent;
-	struct condition_check check;
+	struct step	* parent;			/*pointer to the parent step (structure/union/array)*/
+	struct condition_check check;	/*condition pointer and expected value that should match with condition returned value if we need this step*/
 
 	/* if ptr or arrays */
 	enum metac_array_mode array_mode; /*can be - always 1, and check fn. may be better to put spec ptr here */
@@ -38,10 +38,10 @@ struct step {
 	int memobj_idx;				/*if ptr or flrxible array*/
 
 	/* if struct and etc */
-	int is_anon;
+	int is_anon;	/*1 if step is responsible for anon struct of union*/
 	/*need to store children*/
 
-	int value_index; /*values will be stored in the array - will be initialized later*/
+	int value_index; /*values will be stored in the array*/
 };
 
 struct condition {
