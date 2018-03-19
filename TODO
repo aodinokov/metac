@@ -87,6 +87,19 @@ static struct metac_type data_0x00000829 = {
     },
 };
 
+constants - need to handle this as typedefs in metac.awk:
+/* --0x0000005a--*/
+static struct metac_type data_0x0000005a = {
+    .id = DW_TAG_const_type,
+    .dwarf_info = {
+        .at_num = 2,
+        .at = (metac_type_at_t[]) {
+            {.id = DW_AT_type, .type = &metac__type_char},
+            {.id = DW_AT_name, .name = ""},
+        },
+    },
+};
+
 
 To add .dwarf_raw_type = for struct enumerator_info  and etc?
 

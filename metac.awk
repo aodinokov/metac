@@ -333,6 +333,7 @@ END {
     main_type_ids["base_type"] = "base_type";
     main_type_ids["pointer_type"] = "pointer_type";
     main_type_ids["typedef"] = "typedef";
+    main_type_ids["const_type"] = "const_type";
     main_type_ids["enumeration_type"] = "enumeration_type";
     main_type_ids["subprogram"] = "subprogram";
     main_type_ids["structure_type"] = "structure_type";

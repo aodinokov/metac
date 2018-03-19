@@ -63,6 +63,10 @@ struct metac_type {
 		struct {
 			metac_type_t *				type;						/* universal field */
 		}typedef_info;
+		/* .id == DW_TAG_const_type */
+		struct {
+			metac_type_t *				type;						/* universal field */
+		}const_type_info;
 		/* .id == DW_TAG_enumeration_type */
 		struct {
 			metac_byte_size_t			byte_size;					/* mandatory field */

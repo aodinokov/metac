@@ -25,13 +25,13 @@ typedef int (*metac_array_elements_count_cb_ptr_t)(
 
 struct region_type;
 struct discriminator;
-struct _condition_ {
+struct condition {
 	struct discriminator *		p_discriminator;
 	metac_discriminator_value_t	expected_discriminator_value;
 };
 
 struct discriminator {
-	struct _condition_ precondition;				/*pre-condition for this discriminator*/
+	struct condition precondition;				/*pre-condition for this discriminator*/
 
 	int id;											/* index in the region_type. needed to correlate with discriminator_values */
 	metac_discriminator_funtion_ptr_t discriminator_cb;
@@ -39,16 +39,14 @@ struct discriminator {
 };
 
 struct region_type_element {
-	struct _condition_ precondition;			/*precondition for this region element*/
+	struct condition precondition;			/*precondition for this region element*/
 
-	//int id;										/* id within region_type???? do we need it? - we have offset */
 	struct metac_type * type;					/*type without intermediate types (typdefs, consts &etc)*/
 	struct region_type_element * parent;		/*pointer to the parent element (structure/union)*/
 
 	metac_data_member_location_t offset;		/*offset in local region */
 	metac_byte_size_t byte_size;				/*bite size*/
 
-	int		is_anonymous;						/* 1 if anonymous element like struct of union*/
 	char *	name_local;							/* member name if exists */
 	char *	path_within_region;					/* path in local region */
 	char *	path_global;						/* path starting from the initial type via pointers etc*/
@@ -73,8 +71,8 @@ struct region_type {
 	struct region_type_element ** element;
 
 	/*to navigate easily store begin/count for every region element type */
-	struct region_type_element ** hirarhiy_element;	/* structs/unions */
-	int hierarhy_elements_count;
+	struct region_type_element ** hierarchy_element;	/* structs/unions */
+	int hierarchy_elements_count;
 	struct region_type_element ** base_type_element;
 	int base_type_steps_count;
 	struct region_type_element ** enum_type_element;
@@ -85,7 +83,7 @@ struct region_type {
 	int array_type_steps_count;
 };
 
-struct /*metac_*/precompiled_type {
+struct metac_precompiled_type {
 	struct metac_type *type;
 
 	int	region_types_count;
@@ -122,7 +120,7 @@ struct region {
 };
 
 
-struct /*metac_*/runtime_object {
+struct metac_runtime_object {
 	struct precompiled_type *precompiled_type;
 
 	int	regions_count;
