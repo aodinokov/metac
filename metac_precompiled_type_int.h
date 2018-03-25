@@ -8,18 +8,18 @@
 #ifndef METAC_PRECOMPILED_TYPE_INT_H_
 #define METAC_PRECOMPILED_TYPE_INT_H_
 
-typedef int metac_discriminator_value_t;
-typedef int (*metac_discriminator_cb_ptr_t)(
-	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
-	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-	metac_discriminator_value_t  * p_discriminator_val,
-	void * discriminator_cb_context);
-
-typedef int (*metac_array_elements_count_cb_ptr_t)(
-	int write_operation,
-	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
-	void * array_elements_count_cb_context);
+//typedef int metac_discriminator_value_t;
+//typedef int (*metac_discriminator_cb_ptr_t)(
+//	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+//	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+//	metac_discriminator_value_t  * p_discriminator_val,
+//	void * discriminator_cb_context);
+//
+//typedef int (*metac_array_elements_count_cb_ptr_t)(
+//	int write_operation,
+//	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+//	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+//	void * array_elements_count_cb_context);
 
 /*----------------------------*/
 
@@ -34,7 +34,7 @@ struct discriminator {
 	struct condition precondition;				/*pre-condition for this discriminator*/
 
 	int id;											/* index in the region_type. needed to correlate with discriminator_values */
-	metac_discriminator_funtion_ptr_t discriminator_cb;
+	metac_discriminator_cb_ptr_t discriminator_cb;
 	void * discriminator_cb_context;
 };
 

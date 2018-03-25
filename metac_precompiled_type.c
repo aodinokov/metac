@@ -15,74 +15,6 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <urcu/list.h>		/* I like struct cds_list_head :) */
 
-
-//struct condition;
-//struct condition_check {
-//	struct condition *p_condition;
-//	int expected_value;
-//};
-//
-//struct step {
-//	struct metac_type * type;	/*type without typedef*/
-//	char * name;				/*member name if exists*/
-//	char * global_path;			/*path starting from the initial struct via pointers etc*/
-//	char * path;				/*path in local memobj*/
-//	metac_data_member_location_t 	offset;	/*offset in local memobj*/
-//	metac_byte_size_t 				byte_size; /*bite size*/
-//
-//	struct step	* parent;			/*pointer to the parent step (structure/union/array)*/
-//	struct condition_check check;	/*condition pointer and expected value that should match with condition returned value if we need this step*/
-//
-//	/* if ptr or arrays */
-//	enum metac_array_mode array_mode; /*can be - always 1, and check fn. may be better to put spec ptr here */
-//	metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;	/*if ptr or flexible array - overrides byte_size*/
-//	void * context;
-//	int memobj_idx;				/*if ptr or flrxible array*/
-//
-//	/* if struct and etc */
-//	int is_anon;	/*1 if step is responsible for anon struct of union*/
-//	/*need to store children*/
-//
-//	int value_index; /*values will be stored in the array*/
-//};
-//
-//struct condition {
-//	struct condition_check check;
-//	metac_discriminator_funtion_ptr_t condition_fn_ptr;
-//	void * context;
-//
-//	int value_index;
-//};
-//
-//struct memobj {
-//	struct metac_type *type;
-//
-//	int conditions_count;
-//	struct condition ** condition;
-//
-//	int steps_count;
-//	struct step ** step;
-//
-//	int base_type_idx;
-//	int base_type_steps_count;
-//	int enum_type_idx;
-//	int enum_type_steps_count;
-//	int pointer_type_idx;
-//	int pointer_type_steps_count;
-//	int array_type_idx;
-//	int array_type_steps_count;
-//
-//
-//	/*TODO: check if flexible*/
-//};
-//
-//struct metac_precompiled_type {
-//	struct metac_type *type;
-//	int	memobjs_count;
-//	struct memobj **memobj;
-//};
-//
-
 /*****************************************************************************/
 static int delete_discriminator(struct discriminator ** pp_discriminator) {
 	if (pp_discriminator == NULL) {
@@ -102,8 +34,10 @@ static int delete_discriminator(struct discriminator ** pp_discriminator) {
 }
 
 static struct discriminator * create_discriminator(
-		struct condition * p_precondition,
-		metac_discriminator_funtion_ptr_t discriminator_cb,
+		//struct condition * p_precondition,
+		struct discriminator *		p_previous_discriminator,
+		metac_discriminator_value_t	previous_expected_discriminator_value,
+		metac_discriminator_cb_ptr_t discriminator_cb,
 		void * discriminator_cb_context
 		) {
 	struct discriminator * p_discriminator;
@@ -113,9 +47,9 @@ static struct discriminator * create_discriminator(
 		return NULL;
 	}
 
-	if (p_precondition != NULL) {	/*copy precondition*/
-		p_discriminator->precondition.p_discriminator = p_precondition->p_discriminator;
-		p_discriminator->precondition.expected_discriminator_value = p_precondition->expected_discriminator_value;
+	if (p_previous_discriminator != NULL) {	/*copy precondition*/
+		p_discriminator->precondition.p_discriminator = p_previous_discriminator;
+		p_discriminator->precondition.expected_discriminator_value = previous_expected_discriminator_value;
 	}
 
 	p_discriminator->discriminator_cb = discriminator_cb;
@@ -156,9 +90,20 @@ static int delete_region_type_element(struct region_type_element **pp_region_typ
 	return 0;
 }
 
+static void update_region_type_element_array_params(
+		struct region_type_element *p_region_type_element,
+		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr,
+		void *	array_elements_count_cb_context,
+		struct region_type * array_elements_region_type) {
+	p_region_type_element->array_elements_count_funtion_ptr = array_elements_count_funtion_ptr;
+	p_region_type_element->array_elements_count_cb_context = array_elements_count_cb_context;
+	p_region_type_element->array_elements_region_type = array_elements_region_type;
+}
+
 static struct region_type_element * create_region_type_element(
 		struct metac_type * type,
-		struct condition * p_precondition,
+		struct discriminator * p_discriminator,
+		metac_discriminator_value_t expected_discriminator_value,
 		metac_data_member_location_t offset,
 		metac_byte_size_t byte_size,
 		struct region_type_element * parent,
@@ -176,6 +121,8 @@ static struct region_type_element * create_region_type_element(
 		return NULL;
 	}
 
+	msg_stddbg("create_region_type_element for : %s / %s / %s\n", name_local, path_within_region, path_global);
+
 	p_region_type_element = calloc(1, sizeof(*(p_region_type_element)));
 	if (p_region_type_element == NULL) {
 		msg_stderr("Can't create region_type_element: no memory\n");
@@ -184,9 +131,9 @@ static struct region_type_element * create_region_type_element(
 
 	p_region_type_element->type = type;
 
-	if (p_precondition != NULL) {	/*copy precondition*/
-		p_region_type_element->precondition.p_discriminator = p_precondition->p_discriminator;
-		p_region_type_element->precondition.expected_discriminator_value = p_precondition->expected_discriminator_value;
+	if (p_discriminator != NULL) {	/*copy precondition*/
+		p_region_type_element->precondition.p_discriminator = p_discriminator;
+		p_region_type_element->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
 	p_region_type_element->offset = offset;
@@ -204,9 +151,8 @@ static struct region_type_element * create_region_type_element(
 		return NULL;
 	}
 
-	p_region_type_element->array_elements_count_funtion_ptr = array_elements_count_funtion_ptr;
-	p_region_type_element->array_elements_count_cb_context = array_elements_count_cb_context;
-	p_region_type_element->array_elements_region_type = array_elements_region_type;
+	update_region_type_element_array_params(p_region_type_element,
+			array_elements_count_funtion_ptr, array_elements_count_cb_context, array_elements_region_type);
 
 	return p_region_type_element;
 }
@@ -220,6 +166,8 @@ static struct region_type * create_region_type(
 		msg_stderr("invalid argument\n");
 		return NULL;
 	}
+
+	msg_stddbg("create_region_type: %s\n", type->name);
 
 	p_region_type = calloc(1, sizeof(*(p_region_type)));
 	if (p_region_type == NULL) {
@@ -329,7 +277,7 @@ struct _region_type {
 	struct cds_list_head list;
 
 	struct region_type * p_region_type;
-	struct cds_list_head region_type_element_list;
+	struct cds_list_head discriminator_list;
 };
 /*****************************************************************************/
 static struct _region_type * create__region_type(
@@ -348,9 +296,64 @@ static struct _region_type * create__region_type(
 		free(_region_type);
 		return NULL;
 	}
-	CDS_INIT_LIST_HEAD(&_region_type->region_type_element_list);
+	CDS_INIT_LIST_HEAD(&_region_type->discriminator_list);
 
 	return _region_type;
+}
+
+static struct _region_type * find_or_create_region_type(struct cds_list_head *p_region_type_list,
+		struct metac_type * type) {
+	/*check if region_type for the same type already exists*/
+	struct _region_type * _region_type = NULL;
+	struct _region_type * _region_type_iter;
+
+	cds_list_for_each_entry(_region_type_iter, p_region_type_list, list) {
+		if (_region_type_iter->p_region_type->type == type){
+			//p_precompile_task->_region_type = _region_type_iter;
+			_region_type = _region_type_iter;
+			msg_stddbg("found %p\n", _region_type);
+		}
+	}
+	if (_region_type == NULL) {
+		/*create otherwise*/
+		msg_stddbg("create region_type for : %s\n", type->name);
+		_region_type = create__region_type(type);
+		msg_stddbg("create region_type result %p\n", _region_type);
+		if (_region_type == NULL) {
+			msg_stddbg("create__region_type failed\n");
+			return NULL;
+		}
+		cds_list_add_tail(&_region_type->list, p_region_type_list);
+	}
+
+	return _region_type;
+}
+
+static struct _discriminator * create__discriminator(
+		struct _region_type * _region_type,
+		struct discriminator * p_previous_discriminator,
+		metac_discriminator_value_t previous_expected_discriminator_value,
+		metac_discriminator_cb_ptr_t discriminator_cb,
+		void * discriminator_cb_context
+		) {
+	struct _discriminator * _discriminator;
+
+	_discriminator = calloc(1, sizeof(*_discriminator));
+	if (_discriminator == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+
+	_discriminator->p_discriminator = create_discriminator(p_previous_discriminator,
+			previous_expected_discriminator_value, discriminator_cb, discriminator_cb_context);
+	if (_discriminator->p_discriminator == NULL) {
+		msg_stderr("create_discriminator failed\n");
+		free(_discriminator);
+		return NULL;
+	}
+
+	cds_list_add(&_discriminator->list, &_region_type->discriminator_list);
+	return _discriminator;
 }
 /*****************************************************************************/
 struct breadthfirst_engine_task;
@@ -426,6 +429,7 @@ struct precompile_task {
 	struct breadthfirst_engine_task task;
 
 	struct precompile_task* parent_task;
+	struct _region_type * _region_type;
 	struct metac_type *type;
 	struct condition precondition;
 	char *	name_local;
@@ -435,23 +439,26 @@ struct precompile_task {
 
 	/*TBD: runtime*/
 	struct metac_type *actual_type;
-	struct _region_type * _region_type;
 	struct region_type_element * region_type_element;
 };
 
 static struct precompile_task* create_and_add_precompile_task(
 		struct breadthfirst_engine* p_breadthfirst_engine,
 		struct precompile_task * parent_task,
+		struct _region_type * _region_type,
 		struct metac_type * type,
 		breadthfirst_engine_task_fn_t fn,
-		struct condition * p_precondition,
+		struct discriminator * p_discriminator,
+		metac_discriminator_value_t expected_discriminator_value,
 		char * name_local,
 		char * given_name_local,
 		metac_data_member_location_t offset,
 		metac_byte_size_t byte_size) {
 	struct precompile_task* ptask;
 
-	msg_stddbg("create and add task for : %s / %s\n", name_local, given_name_local);
+	msg_stddbg("(name_local = %s, given_name_local = %s, offset = %d, byte_size = %d)\n",
+			name_local, given_name_local,
+			(int)offset, (int)byte_size);
 
 	/* allocate object */
 	ptask = calloc(1, sizeof(*ptask));
@@ -463,15 +470,16 @@ static struct precompile_task* create_and_add_precompile_task(
 	ptask->task.fn = fn;
 
 	ptask->parent_task = parent_task;
+	ptask->_region_type = _region_type;
 	ptask->type = type;
 	ptask->name_local = name_local!=NULL?strdup(name_local):NULL;
 	ptask->given_name_local = given_name_local!=NULL?strdup(given_name_local):NULL;
 	ptask->offset = offset;
 	ptask->byte_size = byte_size;
 
-	if (p_precondition != NULL) {	/*copy precondition*/
-		ptask->precondition.p_discriminator = p_precondition->p_discriminator;
-		ptask->precondition.expected_discriminator_value = p_precondition->expected_discriminator_value;
+	if (p_discriminator != NULL) {	/*copy precondition*/
+		ptask->precondition.p_discriminator = p_discriminator;
+		ptask->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
 	if (add_breadthfirst_task(p_breadthfirst_engine, &ptask->task) != 0) {
@@ -479,7 +487,6 @@ static struct precompile_task* create_and_add_precompile_task(
 		free(ptask);
 		return NULL;
 	}
-	msg_stddbg("added\n");
 	return ptask;
 }
 
@@ -495,12 +502,6 @@ static struct precompile_context * breadthfirst_engine_2_precompile_context(stru
 		return NULL;
 	return (struct precompile_context *)p_breadthfirst_engine->private_data;
 }
-#define _init_precompile_context_(p_breadthfirst_engine, _err_result_) \
-	struct precompile_context * p_precompile_context = breadthfirst_engine_2_precompile_context(p_breadthfirst_engine); \
-	if (p_precompile_context == NULL) { \
-		msg_stderr("breadthfirst_engine_2_precompile_context failed\n"); \
-		return _err_result_; \
-	}
 
 /* similar to metac_type_typedef_skip, but skips more types (like constant and etc ) */
 static struct metac_type *get_actual_type(struct metac_type *type) {
@@ -519,48 +520,86 @@ static struct metac_type *get_actual_type(struct metac_type *type) {
 	return type;
 }
 
+static char * build_path(char * parent_path, char * name_local){
+	char * result;
+	size_t size1;
+	size_t size2;
+
+	if (parent_path == NULL)parent_path = "";
+	if (name_local == NULL)name_local = "";
+
+	size1 = strlen(parent_path);
+	size2 = strlen(name_local);
+	result = calloc(sizeof(char), size1 + (size_t)((size1 > 0)?1:0) + size2 + (size_t)1);
+	if (result == NULL){
+		return NULL;
+	}
+	if (size1 > 0){
+		strcpy(result, parent_path);
+		strcpy(result + size1, ".");
+	}
+	strcpy(result + size1 + (size_t)((size1 > 0)?1:0), name_local);
+	return result;
+}
+
 static int _parse_type_task(
 		struct breadthfirst_engine * p_breadthfirst_engine,
 		struct breadthfirst_engine_task * p_breadthfirst_engine_task){
+	/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
+	char * path_global;
+	char * path_within_region;
+	char * parent_path_global;
+	char * parent_path_within_region;
 	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+	struct precompile_context * p_precompile_context = breadthfirst_engine_2_precompile_context(p_breadthfirst_engine);
+	if (p_precompile_context == NULL) {
+		msg_stderr("breadthfirst_engine_2_precompile_context failed\n");
+		return -EINVAL;
+	}
 
-	msg_stddbg("begin: given_name is %s\n", p_precompile_task->given_name_local);
-	_init_precompile_context_(p_breadthfirst_engine, -EINVAL);
-
-	/* initialize task context */
+	/* get actual type */
 	p_precompile_task->actual_type = get_actual_type(p_precompile_task->type);
 
-	/* inherit region_type from parent */
-	if (p_precompile_task->parent_task)
-		p_precompile_task->_region_type = p_precompile_task->parent_task->_region_type;
-	if (p_precompile_task->parent_task == NULL /*TBD:|| from pointers, arrays*/
-		) {
-		/*check if region_type for the same type already exists*/
-		struct _region_type * _region_type;
-		p_precompile_task->_region_type = NULL;
-		cds_list_for_each_entry(_region_type, &p_precompile_context->region_type_list, list) {
-			if (_region_type->p_region_type->type == p_precompile_task->type)
-				p_precompile_task->_region_type = _region_type;
-		}
-		if (p_precompile_task->_region_type == NULL) {
-			/*create otherwise*/
-			msg_stddbg("create region_type for : %s\n", p_precompile_task->type->name);
-			p_precompile_task->_region_type = create__region_type(p_precompile_task->type);
-			if (p_precompile_task->_region_type == NULL) {
-				return -ENOMEM;
-			}
-			cds_list_add_tail(&p_precompile_task->_region_type->list, &p_precompile_context->region_type_list);
-		}
+	/* generate paths */
+	if (	p_precompile_task->parent_task != NULL &&
+			p_precompile_task->parent_task->region_type_element != NULL &&
+			p_precompile_task->parent_task->region_type_element->path_global != NULL) {
+		parent_path_global = p_precompile_task->parent_task->region_type_element->path_global;
+		parent_path_within_region = p_precompile_task->parent_task->_region_type == p_precompile_task->_region_type?
+				p_precompile_task->parent_task->region_type_element->path_within_region:
+				"";
+	}else{
+		parent_path_global = "";
+		parent_path_within_region = "";
+	}
+
+	path_global = build_path(parent_path_global, p_precompile_task->given_name_local);
+	if (path_global == NULL) {
+		msg_stderr("build path for path_global\n");
+		return -EFAULT;
+	}
+	path_within_region = build_path(parent_path_within_region, p_precompile_task->given_name_local);
+	if (path_within_region == NULL) {
+		free(path_global);
+		msg_stderr("build path for path_within_region\n");
+		return -EFAULT;
 	}
 
 	/*create struct region_type_element in our region_type based on the data from task*/
 	p_precompile_task->region_type_element = create_region_type_element(
-			p_precompile_task->type, &p_precompile_task->precondition,
+			p_precompile_task->type,
+			p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 			p_precompile_task->offset, p_precompile_task->byte_size,
 			p_precompile_task->parent_task != NULL?p_precompile_task->parent_task->region_type_element:NULL,
-			p_precompile_task->name_local, /*TBD:*/NULL, NULL, NULL, NULL, NULL);
+			p_precompile_task->name_local, path_within_region, path_global, NULL, NULL, NULL);
 
-	/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
+	free(path_global);
+	free(path_within_region);
+
+	if (p_precompile_task->region_type_element == NULL) {
+		msg_stddbg("failed to create region_type_element\n");
+		return -EFAULT;
+	}
 
 	/* generate children tasks */
 	switch(p_precompile_task->actual_type->id) {
@@ -579,9 +618,10 @@ static int _parse_type_task(
 			if (create_and_add_precompile_task(
 					p_breadthfirst_engine,
 					p_precompile_task,
+					p_precompile_task->_region_type,
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
-					&p_precompile_task->precondition,
+					p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
 					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
@@ -593,26 +633,28 @@ static int _parse_type_task(
 	} break;
 	case DW_TAG_union_type: {
 		metac_type_t * type = p_precompile_task->actual_type;
-		struct _condition * _condition;
+		struct _discriminator * _discriminator;
 		int is_anon;
 		int anon_members_count = 0;
 		metac_num_t i;
 		/* try to find discriminator ptr */
-//		const metac_type_specification_value_t * spec = metac_type_specification(precompiled_type->type, current_step->p_step->global_path);
-//		if (spec == NULL || spec->discriminator_funtion_ptr == NULL) {
-//			msg_stddbg("Warning: Union %s doesn't have a union-type specification - skipping its children\n", current_step->p_step->global_path);
-//			/*TODO: mark to skip the step */
-//			continue;
-//		}
-
-//		/*allocate struct to keep conditions point to fn_ptr*/
-//		_condition = create__condition(current_step->memobj_id,
-//				spec->discriminator_funtion_ptr,
-//				spec->specification_context,
-//				current_step);
-//		if (_condition == NULL)
-//			return -(ENOMEM);
-//		cds_list_add_tail(&_condition->list, conditions_list);
+		const metac_type_specification_value_t * spec =
+				metac_type_specification(p_precompile_context->precompiled_type->type, p_precompile_task->region_type_element->path_global);
+		/*TODO: we can check p_precompile_task->type */
+		if (spec == NULL || spec->discriminator_funtion_ptr == NULL) {
+			msg_stddbg("Warning: Union %s doesn't have a union-type specification - skipping its children\n",
+					p_precompile_task->region_type_element->path_global);
+			/*TODO: mark to skip the step */
+			break;
+		}
+		/*we have new discriminator in spec - let's create it*/
+		_discriminator = create__discriminator(p_precompile_task->_region_type,
+				p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
+				spec->discriminator_funtion_ptr,
+				spec->specification_context);
+		if (_discriminator == NULL) {
+			return -EFAULT;
+		}
 
 		for (i = 0; i < type->union_type_info.members_count; i++) {
 			char anon_name[15];
@@ -625,9 +667,10 @@ static int _parse_type_task(
 			if (create_and_add_precompile_task(
 					p_breadthfirst_engine,
 					p_precompile_task,
+					p_precompile_task->_region_type,
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
-					&p_precompile_task->precondition /*TBD!!!*/,
+					_discriminator->p_discriminator, i,
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
 					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
@@ -635,136 +678,66 @@ static int _parse_type_task(
 				msg_stderr("create_and_add_precompile_task failed\n");
 				return -EFAULT;
 			}
-//			_next_step = create__step(
-//					current_step->memobj_id,
-//					current_step->p_step->global_path,
-//					is_anon?anon_name:type->union_type_info.members[i].name,
-//					current_step->p_step->path,
-//					is_anon?""/*anon_name*/:type->union_type_info.members[i].name,
-//					type->union_type_info.members[i].name,/*path*/
-//					type->union_type_info.members[i].type,
-//					current_step->p_step->offset + type->union_type_info.members[i].data_member_location,
-//					metac_type_byte_size(type->union_type_info.members[i].type), /*offset/byte_size*/
-//					current_step);
-//			if (_next_step == NULL)
-//				return -(ENOMEM);
-//			cds_list_add_tail(&_next_step->list, steps_list);
-//
-//			_next_step->p_step->is_anon = is_anon;
-//			/* override check for this step using new condition */
-//			_next_step->p_step->check.p_condition = _condition->p_condition;
-//			_next_step->p_step->check.expected_value = i;
 		}
 	} break;
+	case DW_TAG_array_type:
 	case DW_TAG_pointer_type: {
-//		metac_type_t * ptr_to_type = type->pointer_type_info.type != NULL?/*metac_type_typedef_skip(*/type->pointer_type_info.type/*)*/:NULL;
-//		const metac_type_specification_value_t * spec = metac_type_specification(precompiled_type->type, current_step->p_step->global_path);
-//
-//		/*TBD: check the local type for specifications*/
-////			if (spec == NULL) {
-////				/*type*/
-////				_memobj = _find_memobj_by_id(memobjs_list, current_step->memobj_id);
-////				assert(_memobj != NULL);
-////				spec = metac_type_specification(_memobj->p_memobj->type, current_step->p_step->path /*per memobj path*/);
-////			}
-//
-//		if (spec == NULL ||
-//			ptr_to_type == NULL ||
-//			spec->array_mode == amStop ||
-//			(spec->array_mode == amExtendAsArrayWithLen && spec->array_elements_count_funtion_ptr == NULL)) {
-//			msg_stddbg("Warning: Pointer %s doesn't have a pointer-type specification - skipping its children\n", current_step->p_step->global_path);
-//			/*TODO: by default if spec isn't specified - use amStop for void*, amExtendAsArrayWithNullEnd for char* and amExtendAsOneObject for the rest*/
-//			/*TODO: mark to skip the step */
-//			current_step->p_step->array_mode = amStop;
-//			continue;
-//		}
-//
-////			msg_stddbg("Pointer %s am%d\n", current_step->p_step->global_path, spec->array_mode);
-//		/*set array mode*/
-//		current_step->p_step->array_mode = spec->array_mode;
-//		current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
-//		current_step->p_step->context = spec->specification_context;
-//
-//		/*find or allocate new mem object id */
-//		_memobj = _find_memobj_by_type(memobjs_list, ptr_to_type);
-//		if (_memobj != NULL) {
-//			current_step->p_step->memobj_idx = _memobj->memobj_id;
-//			break;
-//		}
-//
-//		_memobj = create__memobj(precompiled_type->memobjs_count++, ptr_to_type);
-//		if (_memobj == NULL)
-//			return -(ENOMEM);
-//		cds_list_add_tail(&_memobj->list, memobjs_list);
-//		current_step->p_step->memobj_idx = _memobj->memobj_id;
-//		_next_step = create__step(
-//				_memobj->memobj_id,
-//				current_step->p_step->global_path, "<ptr>", NULL, "", "",/*path*/
-//				_memobj->p_memobj->type,
-//				0, metac_type_byte_size(_memobj->p_memobj->type), /*offset/byte_size*/
-//				current_step);
-//		if (_next_step == NULL)
-//			return -(ENOMEM);
-//		cds_list_add_tail(&_next_step->list, steps_list);
-//
-//		/*reset conditions*/
-//		_next_step->p_step->check.p_condition = NULL;
-//		_next_step->p_step->check.expected_value = 0;
-	} break;
-	case DW_TAG_array_type: {
-//		int i;
-//		metac_byte_size_t element_size;
-//		metac_type_t * element_type = type->array_type_info.type != NULL?/*metac_type_typedef_skip(*/type->array_type_info.type/*)*/:NULL;
-//		const metac_type_specification_value_t * spec = metac_type_specification(precompiled_type->type, current_step->p_step->global_path);
-//
-//		if (type->array_type_info.is_flexible == 1) {
-//			msg_stddbg("Warning: Array %s is flexible. Isn't supported so far\n", current_step->p_step->global_path);
-//			break;
-//		}
-//
-//		if (spec == NULL ||
-//			element_type == NULL ||
-//			spec->array_mode == amStop ||
-//			(spec->array_mode == amExtendAsArrayWithLen && spec->array_elements_count_funtion_ptr == NULL)) {
-//			msg_stddbg("Warning: Array %s doesn't have a array specification - skipping it\n", current_step->p_step->global_path);
-//			current_step->p_step->array_mode = amStop;
-//			continue;
-//		}
-//
-//		/*set array mode*/
-//		current_step->p_step->array_mode = spec->array_mode;
-//		current_step->p_step->array_elements_count_funtion_ptr = spec->array_elements_count_funtion_ptr;
-//		current_step->p_step->context = spec->specification_context;
-//
-//		/*find or allocate new mem object id */
-//		_memobj = _find_memobj_by_type(memobjs_list, type);
-//		if (_memobj != NULL) {
-//			current_step->p_step->memobj_idx = _memobj->memobj_id;
-//			break;
-//		}
-//
-//		_memobj = create__memobj(precompiled_type->memobjs_count++, type);
-//		if (_memobj == NULL)
-//			return -(ENOMEM);
-//		cds_list_add_tail(&_memobj->list, memobjs_list);
-//		current_step->p_step->memobj_idx = _memobj->memobj_id;
-//		_next_step = create__step(
-//				_memobj->memobj_id,
-//				current_step->p_step->global_path, "<array>", NULL, "", "",/*path*/
-//				_memobj->p_memobj->type,
-//				0, metac_type_byte_size(_memobj->p_memobj->type), /*offset/byte_size*/
-//				current_step);
-//		if (_next_step == NULL)
-//			return -(ENOMEM);
-//		cds_list_add_tail(&_next_step->list, steps_list);
-//
-//		/*reset conditions*/
-//		_next_step->p_step->check.p_condition = NULL;
-//		_next_step->p_step->check.expected_value = 0;
-	} break;
+		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr;
+		void *	array_elements_count_cb_context;
+		struct _region_type * array_elements__region_type = NULL;
+		metac_type_t * array_elements_type = NULL;
+
+		const metac_type_specification_value_t * spec = metac_type_specification(
+				p_precompile_context->precompiled_type->type, p_precompile_task->region_type_element->path_global);
+
+		/*get type array consists of or pointer points to*/
+		switch(p_precompile_task->actual_type->id) {
+			case DW_TAG_pointer_type:
+				array_elements_type = p_precompile_task->actual_type->pointer_type_info.type;
+			break;
+			case DW_TAG_array_type:
+				array_elements_type = p_precompile_task->actual_type->array_type_info.type;
+			break;
+		}
+		if (array_elements_type == NULL /* void* */ ||
+			array_elements_type->id == DW_TAG_subprogram){
+			msg_stddbg("Warning: The type at %s can't be parsed futher - skipping its children\n",
+					p_precompile_task->region_type_element->path_global);
+			return 0;
+		}
+
+		if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
+			msg_stddbg("Warning: Can't get array/pointer spec at %s - skipping its children\n",
+					p_precompile_task->region_type_element->path_global);
+			return 0;
+		}
+		array_elements__region_type = find_or_create_region_type(&p_precompile_context->region_type_list, array_elements_type);
+		if (array_elements__region_type == NULL) {
+			msg_stderr("ERROR: cant create region_type - exiting\n");
+			return -EFAULT;
+		}
+
+		msg_stddbg("p_precompile_task %p array_elements__region_type %p\n", p_precompile_task, array_elements__region_type);
+		update_region_type_element_array_params(p_precompile_task->region_type_element,
+				array_elements_count_funtion_ptr, array_elements_count_cb_context, array_elements__region_type->p_region_type);
+
+		if (create_and_add_precompile_task(
+				p_breadthfirst_engine,
+				p_precompile_task,
+				array_elements__region_type,
+				array_elements_type,
+				_parse_type_task,
+				NULL, 0,
+				NULL,
+				"<ptr>",
+				0,
+				metac_type_byte_size(array_elements_type)) == NULL) {
+			msg_stderr("create_and_add_precompile_task failed\n");
+			return -EFAULT;
+		}
+	}break;
 	}
 
-	msg_stddbg("end\n");
 	return 0;
 }
 
@@ -795,8 +768,8 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL,
-			type, _parse_type_task, NULL, NULL, NULL, 0, metac_type_byte_size(type)) == NULL) {
+	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, create__region_type(type),
+			type, _parse_type_task, NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 		/*TBD: free mem*/
 		return NULL;

@@ -825,17 +825,16 @@ START_TEST(metac_array_symbols) {
 }END_TEST
 /*****************************************************************************/
 static int _metac_type_t_discriminator_funtion(
-	int write_operation,
-	metac_type_t * type,
-	void * specification_context,
-	void * p_obj,
-	int  * p_discriminator_val) {
+	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	metac_discriminator_value_t  * p_discriminator_val,
+	void * specification_context) {
 
 	char * key = (char *)specification_context;
 	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, ".<anon0>") == 0) {
-		metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
+		metac_type_t * metac_type_obj = (metac_type_t *)ptr;
 		if (write_operation == 0) {
 			switch(metac_type_obj->id) {
 			case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
@@ -863,7 +862,7 @@ static int _metac_type_t_discriminator_funtion(
 			return -1;
 		}
 	}else if (strcmp(key, ".dwarf_info.at.<ptr>.<anon0>") == 0) {
-		struct metac_type_at * metac_type_at_obj = (struct metac_type_at *)p_obj;
+		struct metac_type_at * metac_type_at_obj = (struct metac_type_at *)ptr;
 		if (write_operation == 0) {
 			switch(metac_type_at_obj->id) {
 			case DW_AT_name: *p_discriminator_val = 0; return 0;
@@ -900,17 +899,16 @@ static int _metac_type_t_discriminator_funtion(
 	}
 	return -1;
 }
+
 static int _metac_type_t_array_elements_count_funtion(
 	int write_operation,
-	metac_type_t * type,
-	void * specification_context,
-	void * p_obj,
-	int n,
-	metac_count_t * p_elements_count) {
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * array_elements_count_cb_context) {
 
 	int res = -1;
-	char * key = (char *)specification_context;
-	metac_type_t * metac_type_obj = (metac_type_t *)p_obj;
+	char * key = (char *)array_elements_count_cb_context;
+	metac_type_t * metac_type_obj = (metac_type_t *)ptr;
 	//printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, ".<anon0>.enumeration_type_info.enumerators") == 0) {
@@ -933,12 +931,34 @@ static int _metac_type_t_array_elements_count_funtion(
 #define _X_METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
 	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
 			{{.discriminator_funtion_ptr = _fn_, .specification_context=_key_},})
-#define _X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(_key_, _fn_) \
+#define _X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_key_, _fn_) \
 	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
-			{{.array_mode = amExtendAsArrayWithLen, .array_elements_count_funtion_ptr = _fn_, .specification_context=_key_},})
-#define _X_METAC_ARRAY_MODE(_key_, _mode_) \
-	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
-			{{.array_mode = _mode_, .specification_context=_key_},})
+			{{.array_elements_count_funtion_ptr = _fn_, .specification_context=_key_},})
+
+static int amStop(
+	int write_operation,
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * array_elements_count_cb_context) {
+	p_elements_count[0]= 0;
+	return 0;
+}
+static int amExtendAsOneObject(
+	int write_operation,
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * array_elements_count_cb_context) {
+	p_elements_count[0]= 1;
+	return 0;
+}
+static int amExtendAsArrayWithNullEnd(
+	int write_operation,
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * array_elements_count_cb_context) {
+	p_elements_count[0]= 0;
+	return 0;
+}
 
 //METAC_TYPE_GENERATE(metac_type_specification_t);
 //METAC_TYPE_SPECIFICATION_BEGIN(metac_type_specification_t)
@@ -948,29 +968,29 @@ static int _metac_type_t_array_elements_count_funtion(
 
 METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_SPECIFICATION_BEGIN(metac_type_t)
-_X_METAC_ARRAY_MODE(					".name", amExtendAsArrayWithNullEnd)
-_X_METAC_DISCRIMINATOR_FUNCTION(		".<anon0>", _metac_type_t_discriminator_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.typedef_info.type", amStop/*amExtendAsOneObject*/)
-_X_METAC_ARRAY_MODE(					".<anon0>.pointer_type_info.type", amStop/*amExtendAsOneObject*/)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.subprogram_info.type", amStop/*amExtendAsOneObject*/)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_offset", amExtendAsOneObject)
-_X_METAC_ARRAY_MODE(					".<anon0>.structure_type_info.members.<ptr>.p_bit_size", amExtendAsOneObject)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".<anon0>.array_type_info.type", amStop/*amExtendAsOneObject*/)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".specifications", amExtendAsArrayWithNullEnd)
-_X_METAC_ARRAY_MODE(					".specifications.<ptr>.key", amExtendAsArrayWithNullEnd) /*should be default for char**/
-_X_METAC_ARRAY_MODE(					".specifications.<ptr>.value", amExtendAsOneObject)	/*should be default*/
-_X_METAC_ARRAY_MODE(					".specifications.<ptr>.value.<ptr>.specification_context", amStop)
-_X_METAC_DISCRIMINATOR_FUNCTION(		".dwarf_info.at.<ptr>.<anon0>", _metac_type_t_discriminator_funtion)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.at", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".dwarf_info.at.<ptr>.<anon0>.name", amExtendAsArrayWithNullEnd)
-_X_METAC_ARRAY_MODE(					".dwarf_info.at.<ptr>.<anon0>.type", amStop/*amExtendAsOneObject*/)
-_X_METAC_ARRAY_WITH_ELEMENTS_COUNT_MODE(".dwarf_info.child", _metac_type_t_array_elements_count_funtion)
-_X_METAC_ARRAY_MODE(					".dwarf_info.child.<ptr>", amExtendAsOneObject)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.name", amExtendAsArrayWithNullEnd)
+_X_METAC_DISCRIMINATOR_FUNCTION(		"<ptr>.<anon0>", _metac_type_t_discriminator_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.typedef_info.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.pointer_type_info.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.enumeration_type_info.enumerators", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.subprogram_info.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.subprogram_info.parameters", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.structure_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.structure_type_info.members.<ptr>.p_bit_offset", amExtendAsOneObject)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.structure_type_info.members.<ptr>.p_bit_size", amExtendAsOneObject)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.union_type_info.members", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.array_type_info.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.<anon0>.array_type_info.subranges", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.specifications", amExtendAsArrayWithNullEnd)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.specifications.<ptr>.key", amExtendAsArrayWithNullEnd) /*should be default for char**/
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.specifications.<ptr>.value", amExtendAsOneObject)	/*should be default*/
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.specifications.<ptr>.value.<ptr>.specification_context", amStop)
+_X_METAC_DISCRIMINATOR_FUNCTION(		"<ptr>.dwarf_info.at.<ptr>.<anon0>", _metac_type_t_discriminator_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.dwarf_info.at", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.dwarf_info.at.<ptr>.<anon0>.name", amExtendAsArrayWithNullEnd)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.dwarf_info.at.<ptr>.<anon0>.type", amStop/*amExtendAsOneObject*/)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.dwarf_info.child", _metac_type_t_array_elements_count_funtion)
+_X_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(	"<ptr>.dwarf_info.child.<ptr>", amExtendAsOneObject)
 METAC_TYPE_SPECIFICATION_END
 
 START_TEST(metac_type_t_ut) {

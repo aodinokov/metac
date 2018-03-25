@@ -181,37 +181,33 @@ const metac_type_specification_value_t *
 #define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
 #define _METAC_TYPE_SPECIFICATION(_key_, _value_...) {.key = _key_, .value = _value_},
 #define METAC_TYPE_SPECIFICATION_END {NULL, NULL}};
-/* specification values: */
-typedef int (*metac_discriminator_funtion_ptr_t)(
-	int write_operation,
-	metac_type_t * type,
-	void * specification_context,
-	void * p_obj,
-	int  * p_discriminator_val);
 
-typedef int (*metac_array_elements_count_funtion_ptr_t)(
+
+/* precompiled type specification values: */
+typedef int metac_discriminator_value_t;
+typedef int (*metac_discriminator_cb_ptr_t)(
+	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	metac_discriminator_value_t  * p_discriminator_val,
+	void * discriminator_cb_context);
+
+typedef int (*metac_array_elements_count_cb_ptr_t)(
 	int write_operation,
-	metac_type_t * type,
-	void * specification_context,
-	void * p_obj,
-	int n,
-	metac_count_t * p_elements_count); /*TODO: nD arrays? - modify p_elements_count*/
+	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * array_elements_count_cb_context);
+
 
 struct metac_type_specification_value {
 	void * specification_context;
 
 	struct {
-		metac_discriminator_funtion_ptr_t discriminator_funtion_ptr;
+		metac_discriminator_cb_ptr_t discriminator_funtion_ptr;
 	};
 
+	/*TODO: to remove and specify through special array_elements_count_funtion_ptr*/
 	struct {
-		enum metac_array_mode { /*TODO: do something with specifications! - use predefined functions for OneObject and NullEnded*/
-			amStop = 0,	/* default for pointers and flexible arrays */
-			amExtendAsOneObject,
-			amExtendAsArrayWithNullEnd,
-			amExtendAsArrayWithLen,
-		}array_mode;
-		metac_array_elements_count_funtion_ptr_t array_elements_count_funtion_ptr;
+		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr;
 	};
 };
 
