@@ -8,21 +8,6 @@
 #ifndef METAC_PRECOMPILED_TYPE_INT_H_
 #define METAC_PRECOMPILED_TYPE_INT_H_
 
-//typedef int metac_discriminator_value_t;
-//typedef int (*metac_discriminator_cb_ptr_t)(
-//	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
-//	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-//	metac_discriminator_value_t  * p_discriminator_val,
-//	void * discriminator_cb_context);
-//
-//typedef int (*metac_array_elements_count_cb_ptr_t)(
-//	int write_operation,
-//	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-//	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
-//	void * array_elements_count_cb_context);
-
-/*----------------------------*/
-
 struct region_type;
 struct discriminator;
 struct condition {
@@ -74,13 +59,13 @@ struct region_type {
 	struct region_type_element ** hierarchy_element;	/* structs/unions */
 	int hierarchy_elements_count;
 	struct region_type_element ** base_type_element;
-	int base_type_steps_count;
+	int base_type_elements_count;
 	struct region_type_element ** enum_type_element;
-	int enum_type_steps_count;
+	int enum_type_elements_count;
 	struct region_type_element ** pointer_type_element;
-	int pointer_type_steps_count;
+	int pointer_type_elements_count;
 	struct region_type_element ** array_type_element;
-	int array_type_steps_count;
+	int array_type_elements_count;
 };
 
 struct metac_precompiled_type {

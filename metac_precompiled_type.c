@@ -8,6 +8,7 @@
 #include "metac_type.h"
 #include "metac_precompiled_type_int.h"	/*definitions of internal objects*/
 #include "metac_debug.h"	/* msg_stderr, ...*/
+#include "breadthfirst_engine.h" /*breadthfirst_engine module*/
 
 #include <stdlib.h>			/* calloc, ... */
 #include <string.h>			/* strlen, strcpy */
@@ -34,9 +35,8 @@ static int delete_discriminator(struct discriminator ** pp_discriminator) {
 }
 
 static struct discriminator * create_discriminator(
-		//struct condition * p_precondition,
-		struct discriminator *		p_previous_discriminator,
-		metac_discriminator_value_t	previous_expected_discriminator_value,
+		struct discriminator * p_previous_discriminator,
+		metac_discriminator_value_t previous_expected_discriminator_value,
 		metac_discriminator_cb_ptr_t discriminator_cb,
 		void * discriminator_cb_context
 		) {
@@ -62,13 +62,13 @@ static int delete_region_type_element(struct region_type_element **pp_region_typ
 	struct region_type_element *p_region_type_element;
 
 	if (pp_region_type_element == NULL) {
-		msg_stderr("Can't delete discriminator: invalid parameter\n");
+		msg_stderr("Can't delete region_type: invalid parameter\n");
 		return -EINVAL;
 	}
 
 	p_region_type_element = *pp_region_type_element;
 	if (p_region_type_element == NULL) {
-		msg_stderr("Can't delete discriminator: already deleted\n");
+		msg_stderr("Can't delete region_type: already deleted\n");
 		return -EALREADY;
 	}
 
@@ -121,7 +121,9 @@ static struct region_type_element * create_region_type_element(
 		return NULL;
 	}
 
-	msg_stddbg("create_region_type_element for : %s / %s / %s\n", name_local, path_within_region, path_global);
+	msg_stddbg("(name_local = %s, path_within_region = %s, path_global = %s, offset = %d, byte_size = %d)\n",
+			name_local, path_within_region, path_global,
+			(int)offset, (int)byte_size);
 
 	p_region_type_element = calloc(1, sizeof(*(p_region_type_element)));
 	if (p_region_type_element == NULL) {
@@ -157,6 +159,50 @@ static struct region_type_element * create_region_type_element(
 	return p_region_type_element;
 }
 
+static int delete_region_type(struct region_type ** pp_region_type) {
+	int i;
+	struct region_type *p_region_type;
+
+	if (pp_region_type == NULL) {
+		msg_stderr("Can't delete region_type: invalid parameter\n");
+		return -EINVAL;
+	}
+
+	p_region_type = *pp_region_type;
+	if (p_region_type == NULL) {
+		msg_stderr("Can't delete region_type: already deleted\n");
+		return -EALREADY;
+	}
+
+	for (i = 0; i < p_region_type->elements_count; i++) {
+		delete_region_type_element(&p_region_type->element[i]);
+	}
+	free(p_region_type->element);
+	p_region_type->element = NULL;
+	free(p_region_type->base_type_element);
+	p_region_type->base_type_element = NULL;
+	free(p_region_type->enum_type_element);
+	p_region_type->enum_type_element = NULL;
+	free(p_region_type->pointer_type_element);
+	p_region_type->pointer_type_element = NULL;
+	free(p_region_type->array_type_element);
+	p_region_type->array_type_element = NULL;
+	free(p_region_type->hierarchy_element);
+	p_region_type->hierarchy_element = NULL;
+
+	for (i = 0; i < p_region_type->discriminators_count; i++) {
+		delete_discriminator(&p_region_type->discriminator[i]);
+	}
+	free(p_region_type->discriminator);
+	p_region_type->discriminator = NULL;
+
+
+	free(p_region_type);
+	*pp_region_type = NULL;
+
+	return 0;
+}
+
 static struct region_type * create_region_type(
 		struct metac_type * type) {
 
@@ -186,35 +232,43 @@ static struct region_type * create_region_type(
 	p_region_type->hierarchy_element = NULL;
 	p_region_type->hierarchy_elements_count = 0;
 	p_region_type->base_type_element = NULL;
-	p_region_type->base_type_steps_count = 0;
+	p_region_type->base_type_elements_count = 0;
 	p_region_type->enum_type_element = NULL;
-	p_region_type->enum_type_steps_count = 0;
+	p_region_type->enum_type_elements_count = 0;
 	p_region_type->pointer_type_element = NULL;
-	p_region_type->pointer_type_steps_count = 0;
+	p_region_type->pointer_type_elements_count = 0;
 	p_region_type->array_type_element = NULL;
-	p_region_type->array_type_steps_count = 0;
+	p_region_type->array_type_elements_count = 0;
 
 	return p_region_type;
 }
 
-static int delete_region_type(struct region_type ** pp_region_type) {
-	struct region_type *p_region_type;
+static int delete_precompiled_type(struct metac_precompiled_type ** pp_precompiled_type) {
+	int i;
+	struct metac_precompiled_type *p_precompiled_type;
 
-	if (pp_region_type == NULL) {
-		msg_stderr("Can't delete region_type: invalid parameter\n");
+	if (pp_precompiled_type == NULL) {
+		msg_stderr("Can't delete precompiled_type: invalid parameter\n");
 		return -EINVAL;
 	}
 
-	p_region_type = *pp_region_type;
-	if (pp_region_type == NULL) {
-		msg_stderr("Can't delete region_type: already deleted\n");
+	p_precompiled_type = *pp_precompiled_type;
+	if (p_precompiled_type == NULL) {
+		msg_stderr("Can't delete precompiled_type: already deleted\n");
 		return -EALREADY;
 	}
 
-	/*TBD:*/
+	for (i = 0; i < p_precompiled_type->region_types_count; i++) {
+		delete_region_type(&p_precompiled_type->region_type[i]);
+	}
 
-	free(p_region_type);
-	*pp_region_type = NULL;
+	if (p_precompiled_type->region_type != NULL) {
+		free(p_precompiled_type->region_type);
+		p_precompiled_type->region_type = NULL;
+	}
+
+	free(p_precompiled_type);
+	*pp_precompiled_type = NULL;
 
 	return 0;
 }
@@ -237,33 +291,12 @@ static struct metac_precompiled_type * create_precompiled_type(
 
 	p_precompiled_type->type = type;
 
-	p_precompiled_type->region_types_count;
-	p_precompiled_type->region_type;
+	p_precompiled_type->region_types_count = 0;
+	p_precompiled_type->region_type = NULL;
 
 	return p_precompiled_type;
 }
 
-static int delete_precompiled_type(struct metac_precompiled_type ** pp_precompiled_type) {
-	struct precompiled_type *p_precompiled_type;
-
-	if (pp_precompiled_type == NULL) {
-		msg_stderr("Can't delete precompiled_type: invalid parameter\n");
-		return -EINVAL;
-	}
-
-	p_precompiled_type = *pp_precompiled_type;
-	if (pp_precompiled_type == NULL) {
-		msg_stderr("Can't delete precompiled_type: already deleted\n");
-		return -EALREADY;
-	}
-
-	/*TBD:*/
-
-	free(p_precompiled_type);
-	*pp_precompiled_type = NULL;
-
-	return 0;
-}
 /*****************************************************************************/
 /*temporary types for phase 1*/
 /*****************************************************************************/
@@ -278,6 +311,12 @@ struct _region_type {
 
 	struct region_type * p_region_type;
 	struct cds_list_head discriminator_list;
+};
+
+struct precompile_context {
+	metac_precompiled_type_t * precompiled_type;
+
+	struct cds_list_head region_type_list;	/*current list of all created region types for precompiled type */
 };
 /*****************************************************************************/
 static struct _region_type * create__region_type(
@@ -301,15 +340,15 @@ static struct _region_type * create__region_type(
 	return _region_type;
 }
 
-static struct _region_type * find_or_create_region_type(struct cds_list_head *p_region_type_list,
+static struct _region_type * find_or_create_region_type(/*struct cds_list_head *p_region_type_list,*/
+		struct precompile_context * p_precompile_context,
 		struct metac_type * type) {
 	/*check if region_type for the same type already exists*/
 	struct _region_type * _region_type = NULL;
 	struct _region_type * _region_type_iter;
 
-	cds_list_for_each_entry(_region_type_iter, p_region_type_list, list) {
+	cds_list_for_each_entry(_region_type_iter, &p_precompile_context->region_type_list, list) {
 		if (_region_type_iter->p_region_type->type == type){
-			//p_precompile_task->_region_type = _region_type_iter;
 			_region_type = _region_type_iter;
 			msg_stddbg("found %p\n", _region_type);
 		}
@@ -323,7 +362,8 @@ static struct _region_type * find_or_create_region_type(struct cds_list_head *p_
 			msg_stddbg("create__region_type failed\n");
 			return NULL;
 		}
-		cds_list_add_tail(&_region_type->list, p_region_type_list);
+		cds_list_add_tail(&_region_type->list, &p_precompile_context->region_type_list);
+		++p_precompile_context->precompiled_type->region_types_count;
 	}
 
 	return _region_type;
@@ -353,9 +393,11 @@ static struct _discriminator * create__discriminator(
 	}
 
 	cds_list_add(&_discriminator->list, &_region_type->discriminator_list);
+	++_region_type->p_region_type->discriminators_count;
 	return _discriminator;
 }
 /*****************************************************************************/
+#if 0
 struct breadthfirst_engine_task;
 
 struct breadthfirst_engine {
@@ -367,10 +409,16 @@ typedef int (*breadthfirst_engine_task_fn_t)(
 	struct breadthfirst_engine * p_breadthfirst_engine,
 	struct breadthfirst_engine_task * p_breadthfirst_engine_task);
 
+typedef int (*breadthfirst_engine_task_destructor_t)(
+	struct breadthfirst_engine * p_breadthfirst_engine,
+	struct breadthfirst_engine_task * p_breadthfirst_engine_task);
+
+
 struct breadthfirst_engine_task {
 	struct cds_list_head list;
 
 	breadthfirst_engine_task_fn_t fn;
+	breadthfirst_engine_task_destructor_t destroy;
 	/*TBD: do we need a destructor?*/
 	void * private_data;
 };
@@ -402,7 +450,7 @@ static int add_breadthfirst_task(struct breadthfirst_engine* p_breadthfirst_engi
 	return 0;
 }
 
-static int run_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine){
+static int run_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine, breadthfirst_engine_task_fn_t override_fn) {
 	struct cds_list_head *pos;
 
 	if (p_breadthfirst_engine == NULL) {
@@ -411,19 +459,54 @@ static int run_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_en
 	}
 
 	cds_list_for_each(pos, &p_breadthfirst_engine->queue) {
-		int res;
+		int res = 0;
 		struct breadthfirst_engine_task * task = cds_list_entry(pos, struct breadthfirst_engine_task, list);
-		if (task->fn != NULL) {
-			res = task->fn(p_breadthfirst_engine, task);
-			if (res != 0) {
-				msg_stddbg("task returned error - aborting\n");
-				return res;
+		if (override_fn == NULL) {
+			if (task->fn != NULL) {
+				res = task->fn(p_breadthfirst_engine, task);
 			}
+		}else {
+			res = override_fn(p_breadthfirst_engine, task);
 		}
+		if (res != 0) {
+			msg_stddbg("task returned error - aborting\n");
+			return res;
+		}
+
 	}
 	return 0;
 }
 
+static int delete_breadthfirst_engine(struct breadthfirst_engine ** pp_breadthfirst_engine) {
+	struct cds_list_head *pos, *_pos;
+	struct breadthfirst_engine *p_breadthfirst_engine;
+
+	if (pp_breadthfirst_engine == NULL) {
+		msg_stderr("Can't delete breadthfirst_engine: invalid parameter\n");
+		return -EINVAL;
+	}
+
+	p_breadthfirst_engine = *pp_breadthfirst_engine;
+	if (p_breadthfirst_engine == NULL) {
+		msg_stderr("Can't delete breadthfirst_engine: already deleted\n");
+		return -EALREADY;
+	}
+
+	cds_list_for_each_safe(pos, _pos, &p_breadthfirst_engine->queue) {
+		struct breadthfirst_engine_task * task = cds_list_entry(pos, struct breadthfirst_engine_task, list);
+		cds_list_del(pos);
+		if (task->destroy != NULL) {
+			task->destroy(p_breadthfirst_engine, task);
+		}
+	}
+
+	free(p_breadthfirst_engine);
+	*pp_breadthfirst_engine = NULL;
+
+	return 0;
+}
+
+#endif
 /*****************************************************************************/
 struct precompile_task {
 	struct breadthfirst_engine_task task;
@@ -448,6 +531,7 @@ static struct precompile_task* create_and_add_precompile_task(
 		struct _region_type * _region_type,
 		struct metac_type * type,
 		breadthfirst_engine_task_fn_t fn,
+		breadthfirst_engine_task_destructor_t destroy,
 		struct discriminator * p_discriminator,
 		metac_discriminator_value_t expected_discriminator_value,
 		char * name_local,
@@ -468,6 +552,7 @@ static struct precompile_task* create_and_add_precompile_task(
 	}
 
 	ptask->task.fn = fn;
+	ptask->task.destroy = destroy;
 
 	ptask->parent_task = parent_task;
 	ptask->_region_type = _region_type;
@@ -490,12 +575,35 @@ static struct precompile_task* create_and_add_precompile_task(
 	return ptask;
 }
 
+static int delete_precompile_task(struct precompile_task ** pp_ptask) {
+	struct precompile_task * p_ptask;
 
-struct precompile_context {
-	metac_precompiled_type_t * precompiled_type;
+	if (pp_ptask == NULL) {
+		msg_stderr("Can't delete ptask: invalid parameter\n");
+		return -EINVAL;
+	}
 
-	struct cds_list_head region_type_list;	/*current list of all created region types for precompiled type */
-};
+	p_ptask = *pp_ptask;
+	if (p_ptask == NULL) {
+		msg_stderr("Can't delete ptask: already deleted\n");
+		return -EALREADY;
+	}
+
+	if (p_ptask->name_local) {
+		free(p_ptask->name_local);
+		p_ptask->name_local = NULL;
+	}
+	if (p_ptask->given_name_local) {
+		free(p_ptask->given_name_local);
+		p_ptask->given_name_local = NULL;
+	}
+
+	free(p_ptask);
+	*pp_ptask = NULL;
+
+	return 0;
+
+}
 
 static struct precompile_context * breadthfirst_engine_2_precompile_context(struct breadthfirst_engine* p_breadthfirst_engine) {
 	if (p_breadthfirst_engine == NULL)
@@ -540,6 +648,14 @@ static char * build_path(char * parent_path, char * name_local){
 	}
 	strcpy(result + size1 + (size_t)((size1 > 0)?1:0), name_local);
 	return result;
+}
+
+static int _parse_type_task_destroy(
+	struct breadthfirst_engine * p_breadthfirst_engine,
+	struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+	delete_precompile_task(&p_precompile_task);
+	return 0;
 }
 
 static int _parse_type_task(
@@ -621,6 +737,7 @@ static int _parse_type_task(
 					p_precompile_task->_region_type,
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
+					_parse_type_task_destroy,
 					p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
@@ -670,6 +787,7 @@ static int _parse_type_task(
 					p_precompile_task->_region_type,
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
+					_parse_type_task_destroy,
 					_discriminator->p_discriminator, i,
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
@@ -711,7 +829,7 @@ static int _parse_type_task(
 					p_precompile_task->region_type_element->path_global);
 			return 0;
 		}
-		array_elements__region_type = find_or_create_region_type(&p_precompile_context->region_type_list, array_elements_type);
+		array_elements__region_type = find_or_create_region_type(p_precompile_context, array_elements_type);
 		if (array_elements__region_type == NULL) {
 			msg_stderr("ERROR: cant create region_type - exiting\n");
 			return -EFAULT;
@@ -727,9 +845,9 @@ static int _parse_type_task(
 				array_elements__region_type,
 				array_elements_type,
 				_parse_type_task,
+				_parse_type_task_destroy,
 				NULL, 0,
-				NULL,
-				"<ptr>",
+				"", "<ptr>",
 				0,
 				metac_type_byte_size(array_elements_type)) == NULL) {
 			msg_stderr("create_and_add_precompile_task failed\n");
@@ -741,6 +859,155 @@ static int _parse_type_task(
 	return 0;
 }
 
+static int _phase2_calc_elements_per_type(
+	struct breadthfirst_engine * p_breadthfirst_engine,
+	struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+	struct precompile_context * p_precompile_context = breadthfirst_engine_2_precompile_context(p_breadthfirst_engine);
+	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+
+	switch (p_precompile_task->actual_type->id) {
+		case DW_TAG_base_type:
+			++p_precompile_task->_region_type->p_region_type->base_type_elements_count;
+			break;
+		case DW_TAG_enumeration_type:
+			++p_precompile_task->_region_type->p_region_type->enum_type_elements_count;
+			break;
+		case DW_TAG_pointer_type:
+			++p_precompile_task->_region_type->p_region_type->pointer_type_elements_count;
+			break;
+		case DW_TAG_array_type:
+			++p_precompile_task->_region_type->p_region_type->array_type_elements_count;
+			break;
+		default:
+			++p_precompile_task->_region_type->p_region_type->hierarchy_elements_count;
+	}
+	++p_precompile_task->_region_type->p_region_type->elements_count;
+	return 0;
+}
+
+static int _phase2_put_elements_per_type(
+	struct breadthfirst_engine * p_breadthfirst_engine,
+	struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+	struct precompile_context * p_precompile_context = breadthfirst_engine_2_precompile_context(p_breadthfirst_engine);
+	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+
+	switch (p_precompile_task->actual_type->id) {
+		case DW_TAG_base_type:
+			p_precompile_task->_region_type->p_region_type->base_type_element[p_precompile_task->_region_type->p_region_type->base_type_elements_count] = p_precompile_task->region_type_element;
+			++p_precompile_task->_region_type->p_region_type->base_type_elements_count;
+			break;
+		case DW_TAG_enumeration_type:
+			p_precompile_task->_region_type->p_region_type->enum_type_element[p_precompile_task->_region_type->p_region_type->enum_type_elements_count] = p_precompile_task->region_type_element;
+			++p_precompile_task->_region_type->p_region_type->enum_type_elements_count;
+			break;
+		case DW_TAG_pointer_type:
+			p_precompile_task->_region_type->p_region_type->pointer_type_element[p_precompile_task->_region_type->p_region_type->pointer_type_elements_count] = p_precompile_task->region_type_element;
+			++p_precompile_task->_region_type->p_region_type->pointer_type_elements_count;
+			break;
+		case DW_TAG_array_type:
+			p_precompile_task->_region_type->p_region_type->array_type_element[p_precompile_task->_region_type->p_region_type->array_type_elements_count] = p_precompile_task->region_type_element;
+			++p_precompile_task->_region_type->p_region_type->array_type_elements_count;
+			break;
+		default:
+			p_precompile_task->_region_type->p_region_type->hierarchy_element[p_precompile_task->_region_type->p_region_type->hierarchy_elements_count] = p_precompile_task->region_type_element;
+			++p_precompile_task->_region_type->p_region_type->hierarchy_elements_count;
+	}
+	p_precompile_task->_region_type->p_region_type->element[p_precompile_task->_region_type->p_region_type->elements_count] = p_precompile_task->region_type_element;
+	++p_precompile_task->_region_type->p_region_type->elements_count;
+	return 0;
+}
+
+
+static int _phase2(
+		struct breadthfirst_engine* p_breadthfirst_engine,
+		struct precompile_context *p_precompile_context){
+	int i = 0;
+	struct _region_type * _region_type;
+	struct _discriminator * _discriminator;
+
+	/* allocate memory for region_type array*/
+	p_precompile_context->precompiled_type->region_type = calloc(p_precompile_context->precompiled_type->region_types_count, sizeof(*p_precompile_context->precompiled_type->region_type));
+	if (p_precompile_context->precompiled_type->region_type == NULL) {
+		msg_stderr("Can't allocate memory for region_type\n");
+		return -ENOMEM;
+	}
+	/* collect region_types and their discriminators */
+	cds_list_for_each_entry(_region_type, &p_precompile_context->region_type_list, list) {
+		int j = 0;
+
+		p_precompile_context->precompiled_type->region_type[i] = _region_type->p_region_type;
+
+		p_precompile_context->precompiled_type->region_type[i]->discriminator =
+				calloc(p_precompile_context->precompiled_type->region_type[i]->discriminators_count,
+						sizeof(*p_precompile_context->precompiled_type->region_type[i]->discriminator));
+		if (p_precompile_context->precompiled_type->region_type[i]->discriminator == NULL) {
+			msg_stderr("Can't allocate memory for region_type->discriminator\n");
+			return -ENOMEM;
+		}
+		cds_list_for_each_entry(_discriminator, &_region_type->discriminator_list, list) {
+			_discriminator->p_discriminator->id = j;
+			p_precompile_context->precompiled_type->region_type[i]->discriminator[j] = _discriminator->p_discriminator;
+			j++;
+		}
+		i++;
+	}
+
+	run_breadthfirst_engine(p_breadthfirst_engine, _phase2_calc_elements_per_type);
+
+	for (i = 0; i < p_precompile_context->precompiled_type->region_types_count; i++) {
+		p_precompile_context->precompiled_type->region_type[i]->element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->element));
+		p_precompile_context->precompiled_type->region_type[i]->base_type_element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->base_type_elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->base_type_element));
+		p_precompile_context->precompiled_type->region_type[i]->enum_type_element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->enum_type_elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->enum_type_element));
+		p_precompile_context->precompiled_type->region_type[i]->array_type_element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->array_type_elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->array_type_element));
+		p_precompile_context->precompiled_type->region_type[i]->pointer_type_element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->pointer_type_elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->pointer_type_element));
+		p_precompile_context->precompiled_type->region_type[i]->hierarchy_element = calloc(
+				p_precompile_context->precompiled_type->region_type[i]->hierarchy_elements_count,
+				sizeof(*p_precompile_context->precompiled_type->region_type[i]->hierarchy_element));
+		if (	(p_precompile_context->precompiled_type->region_type[i]->elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->element == NULL)
+			||	(p_precompile_context->precompiled_type->region_type[i]->base_type_elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->base_type_element == NULL)
+			||	(p_precompile_context->precompiled_type->region_type[i]->enum_type_elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->enum_type_element == NULL)
+			||	(p_precompile_context->precompiled_type->region_type[i]->array_type_elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->array_type_element == NULL)
+			||	(p_precompile_context->precompiled_type->region_type[i]->pointer_type_elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->pointer_type_element == NULL)
+			||	(p_precompile_context->precompiled_type->region_type[i]->hierarchy_elements_count > 0 && p_precompile_context->precompiled_type->region_type[i]->hierarchy_element == NULL)
+			) {
+			msg_stderr("Can't allocate memory for pointers of elements\n");
+			return -ENOMEM;
+		}
+		p_precompile_context->precompiled_type->region_type[i]->elements_count = 0;
+		p_precompile_context->precompiled_type->region_type[i]->base_type_elements_count = 0;
+		p_precompile_context->precompiled_type->region_type[i]->enum_type_elements_count = 0;
+		p_precompile_context->precompiled_type->region_type[i]->array_type_elements_count = 0;
+		p_precompile_context->precompiled_type->region_type[i]->pointer_type_elements_count = 0;
+		p_precompile_context->precompiled_type->region_type[i]->hierarchy_elements_count = 0;
+	}
+
+	run_breadthfirst_engine(p_breadthfirst_engine, _phase2_put_elements_per_type);
+	return 0;
+}
+
+void cleanup_precompile_context(struct precompile_context *p_precompile_context) {
+	struct _region_type * _region_type, * __region_type;
+	struct _discriminator * _discriminator, * __discriminator;
+
+	cds_list_for_each_entry_safe(_region_type, __region_type, &p_precompile_context->region_type_list, list) {
+		cds_list_for_each_entry_safe(_discriminator, __discriminator, &_region_type->discriminator_list, list) {
+			cds_list_del(&_discriminator->list);
+			free(_discriminator);
+		}
+		cds_list_del(&_region_type->list);
+		free(_region_type);
+	}
+}
 
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	struct breadthfirst_engine* p_breadthfirst_engine;
@@ -754,7 +1021,6 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	context.precompiled_type = create_precompiled_type(type);
 	if (context.precompiled_type == NULL) {
 		msg_stderr("create_precompiled_type failed\n");
-		/*TBD: free mem*/
 		return NULL;
 	}
 	CDS_INIT_LIST_HEAD(&context.region_type_list);
@@ -763,31 +1029,41 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	p_breadthfirst_engine = create_breadthfirst_engine();
 	if (p_breadthfirst_engine == NULL){
 		msg_stderr("create_breadthfirst_engine failed\n");
-		/*TBD: free mem*/
+		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, create__region_type(type),
-			type, _parse_type_task, NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)) == NULL) {
+	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, find_or_create_region_type(&context, type),
+			type,
+			_parse_type_task,
+			_parse_type_task_destroy,
+			NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
-		/*TBD: free mem*/
+		/*TBD: test if it's ok - not sure, because some of objects are not linked at that time*/
+		cleanup_precompile_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(p_breadthfirst_engine) != 0) {
+	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
-		/*TBD: free mem*/
+		cleanup_precompile_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 
-	/*TBD*/
-//	if (_phase2(precompiled_type, &memobjs_list, &steps_list, &conditions_list) != 0) {
-//		msg_stderr("Phase 1 returned error\n");
-//		_free_phase1_lists(&memobjs_list, &steps_list, &conditions_list);
-//		free(precompiled_type);
-//		return NULL;
-//	}
+	if (_phase2(p_breadthfirst_engine, &context) != 0) {
+		msg_stderr("Phase 2 returned error\n");
+		cleanup_precompile_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_precompiled_type(&context.precompiled_type);
+		return NULL;
+	}
 
+	cleanup_precompile_context(&context);
+	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.precompiled_type;
 }
 
@@ -795,8 +1071,8 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
 	/*TBD:*/
 }
 
-void metac_free_precompiled_type(metac_precompiled_type_t ** p_precompiled_type) {
-	delete_precompiled_type(p_precompiled_type);
+void metac_free_precompiled_type(metac_precompiled_type_t ** pp_precompiled_type) {
+	delete_precompiled_type(pp_precompiled_type);
 }
 
 #if 0

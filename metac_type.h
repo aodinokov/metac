@@ -218,7 +218,7 @@ void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type);
 void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 
 /* constructor */
-/* flex_array_elements_count - what about incapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
+/* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
 int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
 		void **p_ptr, metac_byte_size_t * p_size);
 /*some format -> C-type - generic de-serialization*/
