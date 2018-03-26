@@ -16,6 +16,11 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <urcu/list.h>		/* I like struct cds_list_head :) */
 
+#ifndef cds_list_for_each_safe
+/*some versions of urcu don't have cds_list_for_each_safe, but it will be ok to delete elements in reverse direction in our case*/
+#define cds_list_for_each_safe cds_list_for_each_prev_safe
+#endif
+
 /*****************************************************************************/
 /*temporary types for precompilation*/
 /*****************************************************************************/

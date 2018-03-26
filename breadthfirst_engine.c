@@ -11,6 +11,11 @@
 #include <stdlib.h>			/* calloc, ... */
 #include <errno.h>			/* ENOMEM etc */
 
+#ifndef cds_list_for_each_safe
+/*some versions of urcu don't have cds_list_for_each_safe, but it will be ok to delete elements in reverse direction in our case*/
+#define cds_list_for_each_safe cds_list_for_each_prev_safe
+#endif
+
 struct breadthfirst_engine* create_breadthfirst_engine(void) {
 	struct breadthfirst_engine* p_breadthfirst_engine;
 
