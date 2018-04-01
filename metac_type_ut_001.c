@@ -1037,14 +1037,14 @@ int main(void){
 		START_SUITE(type_suite){
 			ADD_CASE(
 				START_CASE(type_smoke){
-//					ADD_TEST(base_types_ut);
-//					ADD_TEST(pointers_ut);
-//					ADD_TEST(enums_ut);
-//					ADD_TEST(arrays_ut);
-//					ADD_TEST(structs_ut);
-//					ADD_TEST(unions_ut);
-//					ADD_TEST(funtions_ut);
-//					ADD_TEST(metac_array_symbols);
+					ADD_TEST(base_types_ut);
+					ADD_TEST(pointers_ut);
+					ADD_TEST(enums_ut);
+					ADD_TEST(arrays_ut);
+					ADD_TEST(structs_ut);
+					ADD_TEST(unions_ut);
+					ADD_TEST(funtions_ut);
+					ADD_TEST(metac_array_symbols);
 					ADD_TEST(metac_type_t_ut);
 				}END_CASE
 			);
