@@ -197,6 +197,18 @@ typedef int (*metac_array_elements_count_cb_ptr_t)(
 	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
 	void * array_elements_count_cb_context);
 
+/*some helpful generic functions */
+#define metac_array_elements_stop NULL /* ignore this array/pointer */
+int metac_array_elements_single( /*this array has only 1 elements/pointer points to 1 element*/
+	int write_operation,
+	void * ptr, metac_type_t * type,
+	int n, metac_count_t * p_elements_count,
+	void * array_elements_count_cb_context);
+int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*/
+	int write_operation,
+	void * ptr, metac_type_t * type,
+	int n, metac_count_t * p_elements_count,
+	void * array_elements_count_cb_context);
 
 struct metac_type_specification_value {
 	void * specification_context;
@@ -205,11 +217,17 @@ struct metac_type_specification_value {
 		metac_discriminator_cb_ptr_t discriminator_funtion_ptr;
 	};
 
-	/*TODO: to remove and specify through special array_elements_count_funtion_ptr*/
 	struct {
 		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr;
 	};
 };
+
+#define METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
+	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
+			{{.discriminator_funtion_ptr = _fn_, .specification_context=_key_},})
+#define METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_key_, _fn_) \
+	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
+			{{.array_elements_count_funtion_ptr = _fn_, .specification_context=_key_},})
 
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;
