@@ -22,7 +22,80 @@
 #endif
 
 /*****************************************************************************/
-/*temporary types for precompilation*/
+static void dump_discriminator(FILE * file, struct discriminator * p_discriminator) {
+	fprintf(file, "\t\tdiscriminator %d {\n", p_discriminator->id);
+	if (p_discriminator->precondition.p_discriminator) {
+		fprintf(file, 	"\t\t\tprecondition discriminator: %d, \n"
+						"\t\t\texpected value: %d\n",
+				p_discriminator->precondition.p_discriminator->id,
+				p_discriminator->precondition.expected_discriminator_value);
+	}
+	fprintf(file, 	"\t\t\tfn: %p,\n"
+					"\t\t\tcontext %p\n"
+					"\t\t}\n",
+			p_discriminator->discriminator_cb,
+			p_discriminator->discriminator_cb_context);
+}
+static void dump_region_type_element(FILE * file, struct region_type_element * p_region_type_element) {
+
+	fprintf(file, "\t\tregion_type_element {\n");
+	if (p_region_type_element->precondition.p_discriminator) {
+		fprintf(file, "\t\t\tprecondition discriminator: %d, \n"
+				"\t\t\texpected value: %d\n",
+				p_region_type_element->precondition.p_discriminator->id,
+				p_region_type_element->precondition.expected_discriminator_value);
+	}
+	if (p_region_type_element->type->name) {
+		fprintf(file, "\t\t\ttype.name %s\n", p_region_type_element->type->name);
+	}
+	{
+		fprintf(file, "\t\t\tname_local %s\n", p_region_type_element->name_local);
+		fprintf(file, "\t\t\tpath_within_region %s\n", p_region_type_element->path_within_region);
+		fprintf(file, "\t\t\tpath_global %s\n", p_region_type_element->path_global);
+		fprintf(file, "\t\t\toffset %d\n", (int)p_region_type_element->offset);
+		fprintf(file, "\t\t\tbyte_size %d\n", (int)p_region_type_element->byte_size);
+	}
+	if (p_region_type_element->array_elements_count_funtion_ptr != NULL) {
+		fprintf(file, "\t\t\tarray_elements_count_funtion_ptr %p\n", p_region_type_element->array_elements_count_funtion_ptr);
+	}
+	if (p_region_type_element->array_elements_count_cb_context != NULL) {
+		fprintf(file, "\t\t\tarray_elements_count_cb_context %p\n", p_region_type_element->array_elements_count_cb_context);
+	}
+	if (p_region_type_element->array_elements_region_type != NULL) {
+		fprintf(file, "\t\t\tarray_elements_region_type %p\n", p_region_type_element->array_elements_region_type);
+	}
+
+	fprintf(file, "\t\t}\n");
+}
+static void dump_region(FILE * file, struct region_type * p_region_type) {
+	int i;
+	fprintf(file, "region_type %p {\n", p_region_type);
+	if (p_region_type->discriminators_count > 0) {
+		fprintf(file, "\tdescriminators: [\n");
+		for (i = 0 ; i < p_region_type->discriminators_count; i++) {
+			dump_discriminator(file, p_region_type->discriminator[i]);
+		}
+		fprintf(file, "\t]\n");
+	}
+	if (p_region_type->elements_count > 0) {
+		fprintf(file, "\telements: [\n");
+		for (i = 0 ; i < p_region_type->elements_count; i++) {
+			dump_region_type_element(file, p_region_type->element[i]);
+		}
+		fprintf(file, "\t]\n");
+	}
+	fprintf(file, "}\n");
+}
+
+static void dump_precompiled_type(FILE * file, metac_precompiled_type_t * p_precompiled_type) {
+	int i;
+	for (i = 0; i<p_precompiled_type->region_types_count; i++) {
+		dump_region(file, p_precompiled_type->region_type[i]);
+	}
+}
+
+/*****************************************************************************/
+/*temporary types for types pre-compilation*/
 /*****************************************************************************/
 struct _discriminator {
 	struct cds_list_head list;
@@ -361,12 +434,15 @@ static struct _region_type * create__region_type(
 	return _region_type;
 }
 
-static struct _region_type * find_or_create_region_type(/*struct cds_list_head *p_region_type_list,*/
+static struct _region_type * find_or_create_region_type(
 		struct precompile_context * p_precompile_context,
-		struct metac_type * type) {
+		struct metac_type * type,
+		int * p_created_flag) {
 	/*check if region_type for the same type already exists*/
 	struct _region_type * _region_type = NULL;
 	struct _region_type * _region_type_iter;
+
+	if (p_created_flag != NULL) *p_created_flag = 0;
 
 	cds_list_for_each_entry(_region_type_iter, &p_precompile_context->region_type_list, list) {
 		if (_region_type_iter->p_region_type->type == type){
@@ -385,6 +461,8 @@ static struct _region_type * find_or_create_region_type(/*struct cds_list_head *
 		}
 		cds_list_add_tail(&_region_type->list, &p_precompile_context->region_type_list);
 		++p_precompile_context->precompiled_type->region_types_count;
+
+		if (p_created_flag != NULL) *p_created_flag = 1;
 	}
 
 	return _region_type;
@@ -687,8 +765,7 @@ static int _parse_type_task(
 	} break;
 	case DW_TAG_array_type:
 	case DW_TAG_pointer_type: {
-		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr;
-		void *	array_elements_count_cb_context;
+		int new_region_was_created = 0;
 		struct _region_type * array_elements__region_type = NULL;
 		metac_type_t * array_elements_type = NULL;
 
@@ -716,7 +793,7 @@ static int _parse_type_task(
 					p_precompile_task->region_type_element->path_global);
 			return 0;
 		}
-		array_elements__region_type = find_or_create_region_type(p_precompile_context, array_elements_type);
+		array_elements__region_type = find_or_create_region_type(p_precompile_context, array_elements_type, &new_region_was_created);
 		if (array_elements__region_type == NULL) {
 			msg_stderr("ERROR: cant create region_type - exiting\n");
 			return -EFAULT;
@@ -724,21 +801,23 @@ static int _parse_type_task(
 
 		msg_stddbg("p_precompile_task %p array_elements__region_type %p\n", p_precompile_task, array_elements__region_type);
 		update_region_type_element_array_params(p_precompile_task->region_type_element,
-				array_elements_count_funtion_ptr, array_elements_count_cb_context, array_elements__region_type->p_region_type);
+				spec->array_elements_count_funtion_ptr, spec->specification_context, array_elements__region_type->p_region_type);
 
-		if (create_and_add_precompile_task(
-				p_breadthfirst_engine,
-				p_precompile_task,
-				array_elements__region_type,
-				array_elements_type,
-				_parse_type_task,
-				_parse_type_task_destroy,
-				NULL, 0,
-				"", "<ptr>",
-				0,
-				metac_type_byte_size(array_elements_type)) == NULL) {
-			msg_stderr("create_and_add_precompile_task failed\n");
-			return -EFAULT;
+		if (new_region_was_created != 0) {
+			if (create_and_add_precompile_task(
+					p_breadthfirst_engine,
+					p_precompile_task,
+					array_elements__region_type,
+					array_elements_type,
+					_parse_type_task,
+					_parse_type_task_destroy,
+					NULL, 0,
+					"", "<ptr>",
+					0,
+					metac_type_byte_size(array_elements_type)) == NULL) {
+				msg_stderr("create_and_add_precompile_task failed\n");
+				return -EFAULT;
+			}
 		}
 	}break;
 	}
@@ -921,7 +1000,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, find_or_create_region_type(&context, type),
+	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, find_or_create_region_type(&context, type, NULL),
 			type,
 			_parse_type_task,
 			_parse_type_task_destroy,
@@ -955,7 +1034,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 }
 
 void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
-	/*TBD:*/
+	dump_precompiled_type(stdout, precompiled_type);
 }
 
 void metac_free_precompiled_type(metac_precompiled_type_t ** pp_precompiled_type) {
