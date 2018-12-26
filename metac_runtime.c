@@ -26,11 +26,20 @@ struct runtime_task {
 
 	struct runtime_task* parent_task;
 
-	struct region_type_element * region_type_element;
+	struct region_type * region_type;
 	void * ptr;
 	metac_byte_size_t byte_size;
 };
 /*****************************************************************************/
+
+static struct region * create_region(
+/*		struct region_type * region_type;
+		void *ptr;
+		metac_byte_size_t byte_size;
+		struct region * part_of_region;*/
+){
+	/*TO start from this next time*/
+}
 
 /* ... smaller types first ...*/
 
@@ -118,14 +127,23 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 }
 
 
-static struct runtime_task* create_and_add_runtime_task(
-		struct breadthfirst_engine* p_breadthfirst_engine
+static struct runtime_task * create_and_add_runtime_task_4_region(
+		struct breadthfirst_engine * p_breadthfirst_engine,
+		struct runtime_task * parent_task,
+		breadthfirst_engine_task_fn_t fn,
+		breadthfirst_engine_task_destructor_t destroy,
+		struct region_type * p_region_type,
+		/*struct region * part_of_region - not NULL for elements of arrays only (probably we can also re-use it for pointers???*/
+		void * ptr,
+		metac_byte_size_t byte_size
+		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
 		) {
 	struct runtime_task* p_task;
 
-//	msg_stddbg("(name_local = %s, given_name_local = %s, offset = %d, byte_size = %d)\n",
-//			name_local, given_name_local,
-//			(int)offset, (int)byte_size);
+	msg_stddbg("p_region_type = %p, ptr = %p, byte_size = %d\n",
+			p_region_type,
+			ptr,
+			(int)byte_size);
 
 	/* allocate object */
 	p_task = calloc(1, sizeof(*p_task));
@@ -134,10 +152,14 @@ static struct runtime_task* create_and_add_runtime_task(
 		return NULL;
 	}
 
-	/*TBD*/
-//	p_task->task.fn = fn;
-//	p_task->task.destroy = destroy;
+	p_task->task.fn = fn;
+	p_task->task.destroy = destroy;
 
+	p_task->parent_task = parent_task;
+
+	p_task->region_type = p_region_type;
+	p_task->ptr = ptr;
+	p_task->byte_size = byte_size;
 
 	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
@@ -162,6 +184,9 @@ static int _runtime_task_fn(
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
 	struct runtime_context * p_context = (struct runtime_context *)p_breadthfirst_engine->private_data;
 
+	/*create region*/
+	//p_task->
+
 	return 0;
 }
 /*****************************************************************************/
@@ -173,7 +198,9 @@ static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
 struct metac_runtime_object * build_runtime_object(
 		struct metac_precompiled_type * p_precompiled_type,
 		void * ptr,
-		metac_byte_size_t byte_size) {
+		metac_byte_size_t byte_size
+		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
+		) {
 	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
 
@@ -198,13 +225,14 @@ struct metac_runtime_object * build_runtime_object(
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	if (create_and_add_runtime_task(p_breadthfirst_engine/*, NULL, find_or_create_region_type(&context, type, NULL),
-			type,
-			_parse_type_task,
-			_parse_type_task_destroy,
-			NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)*/) == NULL) {
+	if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+			NULL,
+			_runtime_task_fn,
+			_runtime_task_destroy_fn,
+			p_precompiled_type->region_type[0],
+			ptr,
+			byte_size) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
-		/*TBD: test if it's ok - not sure, because some of objects are not linked at that time*/
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		delete_runtime_object(&context.runtime_object);

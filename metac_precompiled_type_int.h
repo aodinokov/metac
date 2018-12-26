@@ -101,7 +101,7 @@ struct region {
 	metac_byte_size_t byte_size;
 
 	struct region * part_of_region; /*	sometimes pointers in one structs point not to the beginning of the region -
-									there is a tricky algorithm to find this*/
+									there is a tricky algorithm to find this. Also this is a common situation for arrays in structs*/
 };
 
 

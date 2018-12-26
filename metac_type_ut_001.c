@@ -986,7 +986,7 @@ START_TEST(metac_type_t_ut) {
 		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
 
-		/*check runtime*/
+		/*check runtime object*/
 		struct metac_runtime_object * runtime_object =
 				build_runtime_object(precompiled_type_4_metac_type_t, (void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t));
 #if 0
