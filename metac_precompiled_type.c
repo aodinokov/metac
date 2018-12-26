@@ -1045,8 +1045,10 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** pp_precompiled_type
 /*****************************************************************************/
 int metac_array_elements_single(
 	int write_operation,
-	void * ptr, metac_type_t * type,
-	int n, metac_count_t * p_elements_count,
+	void * ptr,
+	metac_type_t * type,
+	int n,
+	metac_count_t * p_elements_count,
 	void * array_elements_count_cb_context) {
 	int i;
 	if (write_operation == 0) {
