@@ -30,6 +30,62 @@ struct runtime_task {
 	void * ptr;
 	metac_byte_size_t byte_size;
 };
+/*****************************************************************************/
+
+/* ... smaller types first ...*/
+
+static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
+	int i;
+	struct metac_runtime_object *p_runtime_object;
+
+	if (pp_runtime_object == NULL) {
+		msg_stderr("Can't delete runtime_object: invalid parameter\n");
+		return -EINVAL;
+	}
+
+	p_runtime_object = *pp_runtime_object;
+	if (p_runtime_object == NULL) {
+		msg_stderr("Can't delete runtime_object: already deleted\n");
+		return -EALREADY;
+	}
+
+//	for (i = 0; i < p_precompiled_type->region_types_count; i++) {
+//		delete_region_type(&p_precompiled_type->region_type[i]);
+//	}
+//
+//	if (p_precompiled_type->region_type != NULL) {
+//		free(p_precompiled_type->region_type);
+//		p_precompiled_type->region_type = NULL;
+//	}
+
+	free(p_runtime_object);
+	*pp_runtime_object = NULL;
+
+	return 0;
+}
+
+static struct metac_runtime_object * create_runtime_object(struct metac_precompiled_type * p_precompiled_type) {
+
+	struct metac_runtime_object * p_runtime_object;
+
+	if (p_precompiled_type == NULL) {
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	p_runtime_object = calloc(1, sizeof(*(p_runtime_object)));
+	if (p_runtime_object == NULL) {
+		msg_stderr("Can't create create_runtime_object: no memory\n");
+		return NULL;
+	}
+
+	p_runtime_object->precompiled_type = p_precompiled_type;
+	p_runtime_object->is_tree = 1;
+	p_runtime_object->region = NULL;
+	p_runtime_object->regions_count = 0;
+
+	return p_runtime_object;
+}
 
 /*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
@@ -109,17 +165,61 @@ static int _runtime_task_fn(
 	return 0;
 }
 /*****************************************************************************/
+static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
+	/*TBD*/
+}
 
-struct metac_runtime_object * build_runtime_object(struct metac_precompiled_type * p_precompiled_type,
-		void * ptr, metac_byte_size_t byte_size) {
+/*****************************************************************************/
+struct metac_runtime_object * build_runtime_object(
+		struct metac_precompiled_type * p_precompiled_type,
+		void * ptr,
+		metac_byte_size_t byte_size) {
+	struct breadthfirst_engine* p_breadthfirst_engine;
+	struct runtime_context context;
 
 	if (p_precompiled_type->region_type[0]->element[0]->byte_size > byte_size) {
 		msg_stderr("byte_size parameter is too small for this precompiled type\n");
 		return NULL;
 	}
 
+	context.runtime_object = create_runtime_object(p_precompiled_type);
+	if (context.runtime_object == NULL) {
+		msg_stderr("create_runtime_object failed\n");
+		return NULL;
+	}
+	//CDS_INIT_LIST_HEAD(&context.region_type_list);
 
+	/*use breadthfirst_engine*/
+	p_breadthfirst_engine = create_breadthfirst_engine();
+	if (p_breadthfirst_engine == NULL){
+		msg_stderr("create_breadthfirst_engine failed\n");
+		delete_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+	p_breadthfirst_engine->private_data = &context;
 
-	return NULL;
+	if (create_and_add_runtime_task(p_breadthfirst_engine/*, NULL, find_or_create_region_type(&context, type, NULL),
+			type,
+			_parse_type_task,
+			_parse_type_task_destroy,
+			NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)*/) == NULL) {
+		msg_stderr("add_initial_precompile_task failed\n");
+		/*TBD: test if it's ok - not sure, because some of objects are not linked at that time*/
+		cleanup_runtime_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
+		msg_stderr("run_breadthfirst_engine failed\n");
+		cleanup_runtime_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+
+	cleanup_runtime_context(&context);
+	delete_breadthfirst_engine(&p_breadthfirst_engine);
+	return context.runtime_object;
 }
 

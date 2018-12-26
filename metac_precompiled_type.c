@@ -962,7 +962,7 @@ static int _phase2(
 	return 0;
 }
 /*****************************************************************************/
-void cleanup_precompile_context(struct precompile_context *p_precompile_context) {
+static void cleanup_precompile_context(struct precompile_context *p_precompile_context) {
 	struct _region_type * _region_type, * __region_type;
 	struct _discriminator * _discriminator, * __discriminator;
 

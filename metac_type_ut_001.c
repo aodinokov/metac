@@ -902,8 +902,10 @@ static int _metac_type_t_discriminator_funtion(
 
 static int _metac_type_t_array_elements_count_funtion(
 	int write_operation,
-	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	void * ptr,
+	metac_type_t * type, /*pointer to memory region and its type */
+	int n,
+	metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
 	void * array_elements_count_cb_context) {
 
 	int res = -1;
@@ -955,6 +957,11 @@ METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child", _metac_type_t_arra
 METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child.<ptr>", metac_array_elements_single)
 METAC_TYPE_SPECIFICATION_END
 
+struct metac_runtime_object * build_runtime_object(
+		struct metac_precompiled_type * p_precompiled_type,
+		void * ptr,
+		metac_byte_size_t byte_size);
+
 START_TEST(metac_type_t_ut) {
 //	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
 //	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
@@ -970,14 +977,18 @@ START_TEST(metac_type_t_ut) {
 		__STRUCT_TYPE_CHECK_MEMBER(dwarf_info),
 		});
 	}STRUCT_TYPE_CHECK_END;
-	/* pre-compilation test */
+	/* pre-compilation & runtime test */
 	do {
 		metac_type_t * copy;
 		metac_byte_size_t copy_size;
 		metac_type_t *type = &METAC_TYPE_NAME(metac_type_t);
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
-		fail_unless(precompiled_type != NULL, "metac_precompile_type failed");
-		metac_dump_precompiled_type(precompiled_type);
+		metac_precompiled_type_t * precompiled_type_4_metac_type_t = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
+		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
+		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
+
+		/*check runtime*/
+		struct metac_runtime_object * runtime_object =
+				build_runtime_object(precompiled_type_4_metac_type_t, (void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t));
 #if 0
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compied");
@@ -985,8 +996,8 @@ START_TEST(metac_type_t_ut) {
 
 		fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
 #endif
-		metac_free_precompiled_type(&precompiled_type);
-		fail_unless(precompiled_type == NULL, "metac_free_precompiled_type failed");
+		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
+		fail_unless(precompiled_type_4_metac_type_t == NULL, "metac_free_precompiled_type failed");
 	}while(0);
 
 }END_TEST

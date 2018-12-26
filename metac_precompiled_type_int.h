@@ -106,7 +106,7 @@ struct region {
 
 
 struct metac_runtime_object {
-	struct precompiled_type *precompiled_type;
+	struct metac_precompiled_type *precompiled_type;
 
 	int	regions_count;
 	struct region ** region;
