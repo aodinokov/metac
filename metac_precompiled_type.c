@@ -448,6 +448,7 @@ static struct _region_type * find_or_create_region_type(
 		if (_region_type_iter->p_region_type->type == type){
 			_region_type = _region_type_iter;
 			msg_stddbg("found %p\n", _region_type);
+			break;
 		}
 	}
 	if (_region_type == NULL) {
@@ -538,41 +539,41 @@ static struct precompile_task* create_and_add_precompile_task(
 		char * given_name_local,
 		metac_data_member_location_t offset,
 		metac_byte_size_t byte_size) {
-	struct precompile_task* ptask;
+	struct precompile_task* p_task;
 
 	msg_stddbg("(name_local = %s, given_name_local = %s, offset = %d, byte_size = %d)\n",
 			name_local, given_name_local,
 			(int)offset, (int)byte_size);
 
 	/* allocate object */
-	ptask = calloc(1, sizeof(*ptask));
-	if (ptask == NULL) {
+	p_task = calloc(1, sizeof(*p_task));
+	if (p_task == NULL) {
 		msg_stderr("no memory\n");
 		return NULL;
 	}
 
-	ptask->task.fn = fn;
-	ptask->task.destroy = destroy;
+	p_task->task.fn = fn;
+	p_task->task.destroy = destroy;
 
-	ptask->parent_task = parent_task;
-	ptask->_region_type = _region_type;
-	ptask->type = type;
-	ptask->name_local = name_local!=NULL?strdup(name_local):NULL;
-	ptask->given_name_local = given_name_local!=NULL?strdup(given_name_local):NULL;
-	ptask->offset = offset;
-	ptask->byte_size = byte_size;
+	p_task->parent_task = parent_task;
+	p_task->_region_type = _region_type;
+	p_task->type = type;
+	p_task->name_local = name_local!=NULL?strdup(name_local):NULL;
+	p_task->given_name_local = given_name_local!=NULL?strdup(given_name_local):NULL;
+	p_task->offset = offset;
+	p_task->byte_size = byte_size;
 
 	if (p_discriminator != NULL) {	/*copy precondition*/
-		ptask->precondition.p_discriminator = p_discriminator;
-		ptask->precondition.expected_discriminator_value = expected_discriminator_value;
+		p_task->precondition.p_discriminator = p_discriminator;
+		p_task->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
-	if (add_breadthfirst_task(p_breadthfirst_engine, &ptask->task) != 0) {
+	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
-		free(ptask);
+		free(p_task);
 		return NULL;
 	}
-	return ptask;
+	return p_task;
 }
 /*****************************************************************************/
 /* similar to metac_type_typedef_skip, but skips more types (like constant and etc ) */
