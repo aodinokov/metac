@@ -833,7 +833,7 @@ static int _metac_type_t_discriminator_funtion(
 	char * key = (char *)specification_context;
 	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
 
-	if (strcmp(key, ".<anon0>") == 0) {
+	if (strcmp(key, "<ptr>.<anon0>") == 0) {
 		metac_type_t * metac_type_obj = (metac_type_t *)ptr;
 		if (write_operation == 0) {
 			switch(metac_type_obj->id) {
@@ -861,7 +861,7 @@ static int _metac_type_t_discriminator_funtion(
 			}
 			return -1;
 		}
-	}else if (strcmp(key, ".dwarf_info.at.<ptr>.<anon0>") == 0) {
+	}else if (strcmp(key, "<ptr>.dwarf_info.at.<ptr>.<anon0>") == 0) {
 		struct metac_type_at * metac_type_at_obj = (struct metac_type_at *)ptr;
 		if (write_operation == 0) {
 			switch(metac_type_at_obj->id) {
@@ -904,6 +904,8 @@ static int _metac_type_t_array_elements_count_funtion(
 	int write_operation,
 	void * ptr,
 	metac_type_t * type, /*pointer to memory region and its type */
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
 	int n,
 	metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
 	void * array_elements_count_cb_context) {
@@ -911,17 +913,20 @@ static int _metac_type_t_array_elements_count_funtion(
 	int res = -1;
 	char * key = (char *)array_elements_count_cb_context;
 	metac_type_t * metac_type_obj = (metac_type_t *)ptr;
-	//printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
+	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
 
-	if (strcmp(key, ".<anon0>.enumeration_type_info.enumerators") == 0) {
+	if (strcmp(key, "<ptr>.<anon0>.enumeration_type_info.enumerators") == 0) {
 		*p_elements_count = metac_type_obj->enumeration_type_info.enumerators_count;
 		res = 0;
-	}else  if (strcmp(key, ".dwarf_info.at") == 0) {
+	}else  if (strcmp(key, "<ptr>.dwarf_info.at") == 0) {
 		*p_elements_count = metac_type_obj->dwarf_info.at_num;
 		res = 0;
-	} else if (strcmp(key, ".dwarf_info.child") == 0) {
+	} else if (strcmp(key, "<ptr>.dwarf_info.child") == 0) {
 		*p_elements_count = metac_type_obj->dwarf_info.child_num;
 		res = 0;
+	} else if (strcmp(key, "<ptr>.name") == 0) {
+		printf("%p ? %p : %s\n", first_element_ptr, metac_type_obj->name, metac_type_obj->name);
+		return metac_array_elements_1d_with_null(write_operation, ptr,type,first_element_ptr,first_element_type, n, p_elements_count,array_elements_count_cb_context);
 	}
 
 	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s, output to p_elements_count %d returns %d\n",

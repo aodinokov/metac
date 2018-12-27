@@ -26,23 +26,140 @@ struct runtime_task {
 
 	struct runtime_task* parent_task;
 
-	struct region_type * region_type;
-	void * ptr;
-	metac_byte_size_t byte_size;
+//	struct region_type * region_type;
+//	void * ptr;
+//	metac_byte_size_t byte_size;
+	struct region * p_region;
 };
 /*****************************************************************************/
+static int delete_region(struct region **pp_region) {
+	struct region *p_region;
 
-static struct region * create_region(
-/*		struct region_type * region_type;
-		void *ptr;
-		metac_byte_size_t byte_size;
-		struct region * part_of_region;*/
-){
-	/*TO start from this next time*/
+	if (pp_region == NULL) {
+		msg_stderr("Can't delete region: invalid parameter\n");
+		return -EINVAL;
+	}
+
+	p_region = *pp_region;
+	if (p_region == NULL) {
+		msg_stderr("Can't delete region: already deleted\n");
+		return -EALREADY;
+	}
+
+	if (p_region->p_array != NULL) {
+		free(p_region->p_array);
+		p_region->p_array = NULL;
+	}
+	if (p_region->p_pointer != NULL) {
+		free(p_region->p_pointer);
+		p_region->p_pointer = NULL;
+	}
+	if (p_region->p_discriminator_value != NULL) {
+		free(p_region->p_discriminator_value);
+		p_region->p_discriminator_value = NULL;
+	}
+	free(p_region);
+	*pp_region = NULL;
+
+	return 0;
 }
 
-/* ... smaller types first ...*/
+static struct region * create_region(
+		struct region_type * region_type,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region * part_of_region
+){
+	struct region *p_region;
 
+	if (region_type == NULL) {
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	msg_stddbg("p_region_type = %p (%s), ptr = %p, byte_size = %d\n",
+			region_type,
+			region_type->type->name,
+			ptr,
+			(int)byte_size);
+
+	p_region = calloc(1, sizeof(*(p_region)));
+	if (p_region == NULL) {
+		msg_stderr("Can't create region: no memory\n");
+		return NULL;
+	}
+
+	p_region->region_type = region_type;
+	p_region->ptr = ptr;
+	p_region->byte_size = byte_size;
+	p_region->part_of_region = part_of_region;
+
+	if (region_type->discriminators_count > 0) {
+		p_region->p_discriminator_value =
+				calloc(region_type->discriminators_count, sizeof(*(p_region->p_discriminator_value)));
+		if (p_region->p_discriminator_value == NULL) {
+			msg_stderr("Can't create region's discriminator_value array: no memory\n");
+			delete_region(&p_region);
+			return NULL;
+		}
+	}
+
+	if (region_type->pointer_type_elements_count > 0) {
+		p_region->p_pointer =
+				calloc(region_type->pointer_type_elements_count, sizeof(*(p_region->p_pointer)));
+		if (p_region->p_pointer == NULL) {
+			msg_stderr("Can't create region's pointers array: no memory\n");
+			delete_region(&p_region);
+			return NULL;
+		}
+	}
+
+	if (region_type->array_type_elements_count > 0) {
+		p_region->p_array =
+				calloc(region_type->array_type_elements_count, sizeof(*(p_region->p_array)));
+		if (p_region->p_array == NULL) {
+			msg_stderr("Can't create region's arrays array: no memory\n");
+			delete_region(&p_region);
+			return NULL;
+		}
+	}
+
+	return p_region;
+}
+
+static int region_element_precondition_is_true(struct region * p_region, struct condition * p_precondition) {
+	int id;
+
+	assert(p_region);
+	assert(p_precondition);
+	assert(p_region->region_type);
+
+	if (p_precondition->p_discriminator == NULL)
+		return 1;
+
+	id = p_precondition->p_discriminator->id;
+	assert(id < p_region->region_type->discriminators_count);
+
+	if (p_region->p_discriminator_value[id].is_initialized == 0) {
+		if (region_element_precondition_is_true(p_region, &p_precondition->p_discriminator->precondition) == 0)
+			return 0;
+		assert(p_precondition->p_discriminator->discriminator_cb);
+
+		if (p_precondition->p_discriminator->discriminator_cb(0,
+				p_region->ptr,
+				p_region->region_type->type,
+				&p_region->p_discriminator_value[id].value,
+				p_precondition->p_discriminator->discriminator_cb_context) != 0) {
+			msg_stderr("Error calling discriminatior_cb %d for type %s\n", id, p_region->region_type->type->name);
+			return -EFAULT;
+		}
+		msg_stddbg("discriminator returned %d\n", (int)p_region->p_discriminator_value[id].value);
+		p_region->p_discriminator_value[id].is_initialized = 1;
+	}
+	return p_region->p_discriminator_value[id].value == p_precondition->expected_discriminator_value;
+}
+
+/*****************************************************************************/
 static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
 	int i;
 	struct metac_runtime_object *p_runtime_object;
@@ -126,24 +243,30 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 	return 0;
 }
 
-
 static struct runtime_task * create_and_add_runtime_task_4_region(
 		struct breadthfirst_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
 		breadthfirst_engine_task_fn_t fn,
 		breadthfirst_engine_task_destructor_t destroy,
-		struct region_type * p_region_type,
-		/*struct region * part_of_region - not NULL for elements of arrays only (probably we can also re-use it for pointers???*/
-		void * ptr,
-		metac_byte_size_t byte_size
+		struct region * p_region
+//		struct region_type * p_region_type,
+//		/*struct region * part_of_region - not NULL for elements of arrays only (probably we can also re-use it for pointers???*/
+//		void * ptr,
+//		metac_byte_size_t byte_size
 		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
 		) {
 	struct runtime_task* p_task;
 
-	msg_stddbg("p_region_type = %p, ptr = %p, byte_size = %d\n",
-			p_region_type,
-			ptr,
-			(int)byte_size);
+	if (p_region == NULL){
+		msg_stderr("region is mandatory to create runtime_task\n");
+		return NULL;
+	}
+
+	msg_stddbg("p_region_type = %p (%s), ptr = %p, byte_size = %d\n",
+			p_region->region_type,
+			p_region->region_type->type->name,
+			p_region->ptr,
+			(int)p_region->byte_size);
 
 	/* allocate object */
 	p_task = calloc(1, sizeof(*p_task));
@@ -157,9 +280,7 @@ static struct runtime_task * create_and_add_runtime_task_4_region(
 
 	p_task->parent_task = parent_task;
 
-	p_task->region_type = p_region_type;
-	p_task->ptr = ptr;
-	p_task->byte_size = byte_size;
+	p_task->p_region = p_region;
 
 	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
@@ -168,7 +289,6 @@ static struct runtime_task * create_and_add_runtime_task_4_region(
 	}
 	return p_task;
 }
-
 /*****************************************************************************/
 static int _runtime_task_destroy_fn(
 	struct breadthfirst_engine * p_breadthfirst_engine,
@@ -184,8 +304,82 @@ static int _runtime_task_fn(
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
 	struct runtime_context * p_context = (struct runtime_context *)p_breadthfirst_engine->private_data;
 
-	/*create region*/
-	//p_task->
+	int i;
+	struct region * region;
+
+	region = p_task->p_region;
+	if (region == NULL) {
+		msg_stderr("create_region failed - exiting\n");
+		return -EFAULT;
+	}
+
+
+	msg_stddbg("starting pointers: %d items\n", region->region_type->pointer_type_elements_count);
+	for (i = 0; i < region->region_type->pointer_type_elements_count; i++) {
+		int j;
+		metac_byte_size_t byte_size;
+		void * new_ptr;
+
+		msg_stddbg("pointer %s\n", region->region_type->pointer_type_element[i]->path_within_region);
+
+		if (region_element_precondition_is_true(region, &region->region_type->pointer_type_element[i]->precondition) == 0) {
+			msg_stddbg("skipping by precondition\n");
+			continue;
+		}
+
+		region->p_pointer[i].n = 1; /*pointers are always 1d */
+
+		region->p_pointer[i].p_elements_count = calloc(region->p_pointer[i].n, sizeof(*(region->p_pointer[i].p_elements_count)));
+		if (region->p_pointer[i].p_elements_count == NULL) {
+			msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			return -EFAULT;
+		}
+
+		if (region->region_type->pointer_type_element[i]->array_elements_count_funtion_ptr == NULL) {
+			msg_stddbg("skipping because don't have a cb to determine elements count\n");
+			continue; /*we don't handle pointers if we can't get fn*/
+		}
+
+		/* now read the pointer */
+		new_ptr = *((void**)(region->ptr + region->region_type->pointer_type_element[i]->offset));
+		if (new_ptr == NULL) {
+			msg_stddbg("skipping because new ptr is null\n");
+			continue;
+		}
+
+		if (region->region_type->pointer_type_element[i]->array_elements_count_funtion_ptr(
+				0,
+				region->ptr,
+				region->region_type->type,
+				new_ptr,
+				region->region_type->pointer_type_element[i]->array_elements_region_type->type,
+				region->p_pointer[i].n,
+				region->p_pointer[i].p_elements_count,
+				region->region_type->pointer_type_element[i]->array_elements_count_cb_context) != 0) {
+			msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
+					i, region->region_type->type->name);
+			return -EFAULT;
+		}
+
+		/* calculcate byte_size using length */
+		byte_size = region->p_pointer[i].p_elements_count[0];
+		for (j = 1; j < region->p_pointer[i].n; j++)
+			byte_size *= region->p_pointer[i].p_elements_count[j];
+		msg_stddbg("element length: %d\n", (int)byte_size);
+		byte_size *= metac_type_byte_size(region->region_type->pointer_type_element[i]->array_elements_region_type->type);
+
+		if (byte_size == 0) {
+			msg_stddbg("skipping because byte_size is 0\n");
+			continue;
+		}
+
+		/*we have to create region and store here it's */
+		region->p_pointer[i].p_region = create_region(
+				region->region_type->pointer_type_element[i]->array_elements_region_type,
+				new_ptr, byte_size, NULL);
+		/* add task to handle this region fields properly */
+
+	}
 
 	return 0;
 }
@@ -229,9 +423,7 @@ struct metac_runtime_object * build_runtime_object(
 			NULL,
 			_runtime_task_fn,
 			_runtime_task_destroy_fn,
-			p_precompiled_type->region_type[0],
-			ptr,
-			byte_size) == NULL) {
+			create_region(p_precompiled_type->region_type[0], ptr, byte_size, NULL)) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);

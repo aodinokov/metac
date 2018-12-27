@@ -77,6 +77,9 @@ static void dump_region(FILE * file, struct region_type * p_region_type) {
 		}
 		fprintf(file, "\t]\n");
 	}
+	fprintf(file, "\telements_count: %d\n", p_region_type->elements_count);
+	fprintf(file, "\tpointer_type_elements_count: %d\n", p_region_type->pointer_type_elements_count);
+	fprintf(file, "\tarray_type_elements_count: %d\n", p_region_type->array_type_elements_count);
 	if (p_region_type->elements_count > 0) {
 		fprintf(file, "\telements: [\n");
 		for (i = 0 ; i < p_region_type->elements_count; i++) {
@@ -178,13 +181,13 @@ static int delete_region_type_element(struct region_type_element **pp_region_typ
 	struct region_type_element *p_region_type_element;
 
 	if (pp_region_type_element == NULL) {
-		msg_stderr("Can't delete region_type: invalid parameter\n");
+		msg_stderr("Can't delete region_type_element: invalid parameter\n");
 		return -EINVAL;
 	}
 
 	p_region_type_element = *pp_region_type_element;
 	if (p_region_type_element == NULL) {
-		msg_stderr("Can't delete region_type: already deleted\n");
+		msg_stderr("Can't delete region_type_element: already deleted\n");
 		return -EALREADY;
 	}
 
@@ -1047,6 +1050,8 @@ int metac_array_elements_single(
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
 	int n,
 	metac_count_t * p_elements_count,
 	void * array_elements_count_cb_context) {
@@ -1061,31 +1066,39 @@ int metac_array_elements_single(
 
 int metac_array_elements_1d_with_null(
 	int write_operation,
-	void * ptr, metac_type_t * type,
-	int n, metac_count_t * p_elements_count,
+	void * ptr,
+	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
+	int n,
+	metac_count_t * p_elements_count,
 	void * array_elements_count_cb_context) {
 
-	if (n!=1) {
+	if (n != 1) {
 		msg_stderr("metac_array_elements_1d_with_null can work only with 1 dimension arrays\n");
 		return -EFAULT;
 	}
 
 	if (write_operation == 0) {
 		metac_byte_size_t j;
-		metac_byte_size_t element_size = metac_type_byte_size(type);
+		metac_byte_size_t element_size = metac_type_byte_size(first_element_type);
 		metac_count_t i = 0;
+		msg_stddbg("elements_size %d\n", (int)element_size);
 		do {
+			unsigned char * _ptr;
 			for (j=0; j<element_size; j++) { /*non optimal - can use different sized to char,short,int &etc, see memcmp for reference*/
-				unsigned char * _ptr = ((unsigned char *)ptr) + j;
+				_ptr = ((unsigned char *)first_element_ptr) + i*element_size + j;
 				if ((*_ptr) != 0){
 					++i;
-					continue;
+					break;
 				}
 			}
-			/*found all zeroes s*/
-			p_elements_count[0]= i;
-			break;
+			if ((*_ptr) == 0) break;
 		}while(1);
+		/*found all zeroes*/
+		++i;
+		p_elements_count[0]= i;
+		msg_stddbg("p_elements_count %d\n", (int)i);
 		return 0;
 	}
 	return -EFAULT;

@@ -193,7 +193,10 @@ typedef int (*metac_discriminator_cb_ptr_t)(
 
 typedef int (*metac_array_elements_count_cb_ptr_t)(
 	int write_operation,
-	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
+	void * region_ptr,
+	metac_type_t * region_type, /*pointer to memory region and its type */
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
 	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
 	void * array_elements_count_cb_context);
 
@@ -201,12 +204,18 @@ typedef int (*metac_array_elements_count_cb_ptr_t)(
 #define metac_array_elements_stop NULL /* ignore this array/pointer */
 int metac_array_elements_single( /*this array has only 1 elements/pointer points to 1 element*/
 	int write_operation,
-	void * ptr, metac_type_t * type,
+	void * ptr,
+	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
 	int n, metac_count_t * p_elements_count,
 	void * array_elements_count_cb_context);
 int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*/
 	int write_operation,
-	void * ptr, metac_type_t * type,
+	void * ptr,
+	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
 	int n, metac_count_t * p_elements_count,
 	void * array_elements_count_cb_context);
 
