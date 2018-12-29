@@ -994,6 +994,7 @@ START_TEST(metac_type_t_ut) {
 		/*check runtime object*/
 		struct metac_runtime_object * runtime_object =
 				build_runtime_object(precompiled_type_4_metac_type_t, (void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t));
+		free_runtime_object(&runtime_object);
 #if 0
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compied");

@@ -42,6 +42,7 @@ struct runtime_task {
 /*****************************************************************************/
 static int delete_region(struct region **pp_region) {
 	struct region *p_region;
+	int i;
 
 	if (pp_region == NULL) {
 		msg_stderr("Can't delete region: invalid parameter\n");
@@ -54,18 +55,28 @@ static int delete_region(struct region **pp_region) {
 		return -EALREADY;
 	}
 
+	msg_stddbg("starting arrays\n");
 	if (p_region->p_array != NULL) {
 		free(p_region->p_array);
 		p_region->p_array = NULL;
 	}
+	msg_stddbg("starting pointers\n");
 	if (p_region->p_pointer != NULL) {
+		for (i = 0; i < p_region->region_type->pointer_type_elements_count; i++) {
+			if (p_region->p_pointer[i].p_elements_count != NULL) {
+				free (p_region->p_pointer[i].p_elements_count);
+				p_region->p_pointer[i].p_elements_count = NULL;
+			}
+		}
 		free(p_region->p_pointer);
 		p_region->p_pointer = NULL;
 	}
+	msg_stddbg("starting discriminator values\n");
 	if (p_region->p_discriminator_value != NULL) {
 		free(p_region->p_discriminator_value);
 		p_region->p_discriminator_value = NULL;
 	}
+	msg_stddbg("deleting the object iteself\n");
 	free(p_region);
 	*pp_region = NULL;
 
@@ -245,14 +256,14 @@ static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_objec
 		return -EALREADY;
 	}
 
-//	for (i = 0; i < p_precompiled_type->region_types_count; i++) {
-//		delete_region_type(&p_precompiled_type->region_type[i]);
-//	}
-//
-//	if (p_precompiled_type->region_type != NULL) {
-//		free(p_precompiled_type->region_type);
-//		p_precompiled_type->region_type = NULL;
-//	}
+	for (i = 0; i < p_runtime_object->regions_count; i++) {
+		delete_region(&p_runtime_object->region[i]);
+	}
+
+	if (p_runtime_object->region != NULL){
+		free(p_runtime_object->region);
+		p_runtime_object->region = NULL;
+	}
 
 	free(p_runtime_object);
 	*pp_runtime_object = NULL;
@@ -298,15 +309,6 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 		return -EALREADY;
 	}
 
-//	if (p_ptask->name_local) {
-//		free(p_ptask->name_local);
-//		p_ptask->name_local = NULL;
-//	}
-//	if (p_ptask->given_name_local) {
-//		free(p_ptask->given_name_local);
-//		p_ptask->given_name_local = NULL;
-//	}
-
 	free(p_task);
 	*pp_task = NULL;
 
@@ -319,10 +321,6 @@ static struct runtime_task * create_and_add_runtime_task_4_region(
 		breadthfirst_engine_task_fn_t fn,
 		breadthfirst_engine_task_destructor_t destroy,
 		struct region * p_region
-//		struct region_type * p_region_type,
-//		/*struct region * part_of_region - not NULL for elements of arrays only (probably we can also re-use it for pointers???*/
-//		void * ptr,
-//		metac_byte_size_t byte_size
 		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
 		) {
 	struct runtime_task* p_task;
@@ -382,9 +380,9 @@ static int _runtime_task_fn(
 		msg_stderr("create_region failed - exiting\n");
 		return -EFAULT;
 	}
+	msg_stddbg("started task %p (%s)\n", region->ptr, region->region_type->type->name);
 
-
-	msg_stddbg("starting pointers: %d items\n", region->region_type->pointer_type_elements_count);
+	msg_stddbg("pointers: %d items\n", region->region_type->pointer_type_elements_count);
 	for (i = 0; i < region->region_type->pointer_type_elements_count; i++) {
 		int j;
 		metac_byte_size_t byte_size;
@@ -468,11 +466,23 @@ static int _runtime_task_fn(
 		}
 	}
 
+	msg_stddbg("arrays: %d items\n", region->region_type->array_type_elements_count);
+	for (i = 0; i < region->region_type->array_type_elements_count; i++) {
+		msg_stddbg("array %s\n", region->region_type->array_type_element[i]->path_within_region);
+		/*TODO: implement this*/
+	}
+
+	msg_stddbg("finished task\n");
 	return 0;
 }
 /*****************************************************************************/
 static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
-	/*TBD*/
+	struct _region * _region, * __region;
+
+	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
+		cds_list_del(&_region->list);
+		free(_region);
+	}
 }
 
 /*****************************************************************************/
@@ -482,6 +492,7 @@ struct metac_runtime_object * build_runtime_object(
 		metac_byte_size_t byte_size
 		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
 		) {
+	int i;
 	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
 	struct _region * _region;
@@ -522,6 +533,11 @@ struct metac_runtime_object * build_runtime_object(
 			_runtime_task_fn,
 			_runtime_task_destroy_fn, _region->p_region) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
+
+		cds_list_for_each_entry(_region, &context.region_list, list) {
+			delete_region(&_region->p_region);
+		}
+
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		delete_runtime_object(&context.runtime_object);
@@ -529,14 +545,44 @@ struct metac_runtime_object * build_runtime_object(
 	}
 	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
+
+		cds_list_for_each_entry(_region, &context.region_list, list) {
+			delete_region(&_region->p_region);
+		}
+
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		delete_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
+	/*TBD move to separate func???*/
+	context.runtime_object->region = calloc(context.runtime_object->regions_count, sizeof(*(context.runtime_object->region)));
+	if (context.runtime_object->region == NULL) {
+		msg_stderr("Can't allocate memory for regions array in runtime_object\n");
+
+		cds_list_for_each_entry(_region, &context.region_list, list) {
+			delete_region(&_region->p_region);
+		}
+
+		cleanup_runtime_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+
+	i = 0;
+	cds_list_for_each_entry(_region, &context.region_list, list) {
+		context.runtime_object->region[i] = _region->p_region;
+		++i;
+	}
+	assert(context.runtime_object->regions_count == i);
+
 	cleanup_runtime_context(&context);
 	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.runtime_object;
 }
 
+void free_runtime_object(struct metac_runtime_object ** pp_runtime_object){
+	delete_runtime_object(pp_runtime_object);
+}
