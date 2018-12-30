@@ -426,7 +426,8 @@ static int _runtime_task_fn(
 				region->ptr,
 				region->region_type->type,
 				new_ptr,
-				region->region_type->pointer_type_element[i]->array_elements_region_type->type,
+				region->region_type->pointer_type_element[i]->array_elements_region_type?
+						region->region_type->pointer_type_element[i]->array_elements_region_type->type:NULL,
 				region->p_pointer[i].n,
 				region->p_pointer[i].p_elements_count,
 				region->region_type->pointer_type_element[i]->array_elements_count_cb_context) != 0) {
@@ -440,7 +441,8 @@ static int _runtime_task_fn(
 		for (j = 1; j < region->p_pointer[i].n; j++)
 			byte_size *= region->p_pointer[i].p_elements_count[j];
 		msg_stddbg("element length: %d\n", (int)byte_size);
-		byte_size *= metac_type_byte_size(region->region_type->pointer_type_element[i]->array_elements_region_type->type);
+		byte_size *= region->region_type->pointer_type_element[i]->array_elements_region_type?
+				metac_type_byte_size(region->region_type->pointer_type_element[i]->array_elements_region_type->type):0;
 
 		if (byte_size == 0) {
 			msg_stddbg("skipping because byte_size is 0\n");
