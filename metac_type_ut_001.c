@@ -12,6 +12,12 @@
 #include <dlfcn.h>
 #include <complex.h>	/*complex*/
 
+struct metac_runtime_object * build_runtime_object(
+		struct metac_precompiled_type * p_precompiled_type,
+		void * ptr,
+		metac_byte_size_t byte_size);
+
+
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
 		int i; \
@@ -22,7 +28,6 @@
 		} \
 		printf("\n"); \
 	}while(0)
-
 
 /*
  * ideas for UT:
@@ -128,16 +133,21 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 			/*fail_unless(strcmp(_spec_val, spec_val) == 0, "got incorrect specification"); TODO: find a way to compare*/ \
 		} \
 	}while(0)
-#define GENERAL_TYPE_CHECK_PRECOMILED(_type_)
-//do {\
-//		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-//		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-//		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
-//		if (precompiled_type != NULL) { \
-//			metac_dump_precompiled_type(precompiled_type); \
-//			metac_free_precompiled_type(&precompiled_type); \
-//		} \
-//	}while(0)
+#define GENERAL_TYPE_CHECK_PRECOMILED(_type_) \
+do {\
+		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
+		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+		if (precompiled_type != NULL) { \
+			metac_dump_precompiled_type(precompiled_type); \
+			_type_ x; \
+			/*memset(&x, 0, sizeof(x));*/ \
+			struct metac_runtime_object * runtime_object = \
+					build_runtime_object(precompiled_type, (void*)(&x), sizeof(x)); \
+			free_runtime_object(&runtime_object); \
+			metac_free_precompiled_type(&precompiled_type); \
+		} \
+	}while(0)
 
 #define GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_) \
 	mark_point(); \
@@ -624,8 +634,8 @@ METAC_TYPE_GENERATE(anon_struct_with_anon_elements);
 
 
 struct ___test___{
-    int n;
-    char array1[];
+	int n;
+	char array1[];
 };
 typedef struct _struct_with_flexible_ND_array_and_len {
 	int array_len;
@@ -783,8 +793,9 @@ START_TEST(unions_ut) {
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
-	GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
 	FUNCTION_CHECK_BEGIN_(_type_)
+
+//GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
 
 typedef bit_fields_t * p_bit_fields_t;
 int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
@@ -962,11 +973,6 @@ METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child", _metac_type_t_arra
 METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child.<ptr>", metac_array_elements_single)
 METAC_TYPE_SPECIFICATION_END
 
-struct metac_runtime_object * build_runtime_object(
-		struct metac_precompiled_type * p_precompiled_type,
-		void * ptr,
-		metac_byte_size_t byte_size);
-
 START_TEST(metac_type_t_ut) {
 //	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
 //	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
@@ -997,7 +1003,7 @@ START_TEST(metac_type_t_ut) {
 		free_runtime_object(&runtime_object);
 #if 0
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
-		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compied");
+		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
 		fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");

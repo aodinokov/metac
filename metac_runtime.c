@@ -256,11 +256,10 @@ static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_objec
 		return -EALREADY;
 	}
 
-	for (i = 0; i < p_runtime_object->regions_count; i++) {
-		delete_region(&p_runtime_object->region[i]);
-	}
-
 	if (p_runtime_object->region != NULL){
+		for (i = 0; i < p_runtime_object->regions_count; i++) {
+			delete_region(&p_runtime_object->region[i]);
+		}
 		free(p_runtime_object->region);
 		p_runtime_object->region = NULL;
 	}
@@ -385,6 +384,7 @@ static int _runtime_task_fn(
 	msg_stddbg("pointers: %d items\n", region->region_type->pointer_type_elements_count);
 	for (i = 0; i < region->region_type->pointer_type_elements_count; i++) {
 		int j;
+		int res;
 		metac_byte_size_t byte_size;
 		struct _region * _region;
 		void * new_ptr;
@@ -392,7 +392,11 @@ static int _runtime_task_fn(
 
 		msg_stddbg("pointer %s\n", region->region_type->pointer_type_element[i]->path_within_region);
 
-		if (region_element_precondition_is_true(region, &region->region_type->pointer_type_element[i]->precondition) == 0) {
+		res = region_element_precondition_is_true(region, &region->region_type->pointer_type_element[i]->precondition);
+		if (res < 0) {
+			msg_stderr("Something wrong with conditions\n");
+			return -EFAULT;
+		}else if (res == 0) {
 			msg_stddbg("skipping by precondition\n");
 			continue;
 		}
