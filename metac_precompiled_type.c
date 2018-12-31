@@ -775,6 +775,11 @@ static int _parse_type_task(
 
 		const metac_type_specification_value_t * spec = metac_type_specification(
 				p_precompile_context->precompiled_type->type, p_precompile_task->region_type_element->path_global);
+		metac_type_specification_value_t default_spec = {
+			.discriminator_funtion_ptr = NULL,
+			.array_elements_count_funtion_ptr = NULL,
+			.specification_context = NULL,
+		};
 
 		/*get type array consists of or pointer points to*/
 		switch(p_precompile_task->actual_type->id) {
@@ -792,15 +797,31 @@ static int _parse_type_task(
 			return 0;
 		}
 
-		if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
-			/*try to find better defaults:
-			 * for char* - metac_array_elements_1d_with_null
-			 * for anyothertyep* - metac_array_elements_single
-			 */
-			msg_stddbg("Warning: Can't get array/pointer spec at %s - skipping its children\n",
-					p_precompile_task->region_type_element->path_global);
-			return 0;
+		if (p_precompile_task->actual_type->id == DW_TAG_pointer_type || (
+				p_precompile_task->actual_type->id == DW_TAG_array_type &&
+				p_precompile_task->actual_type->array_type_info.is_flexible)) {
+			if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
+				/*try to find better defaults:
+				 * for char* - metac_array_elements_1d_with_null
+				 * for anyothertyep* - metac_array_elements_single
+				 */
+				if (p_precompile_task->actual_type->id == DW_TAG_pointer_type &&
+					array_elements_type->id == DW_TAG_base_type &&
+					array_elements_type->name != NULL &&
+					strcmp(array_elements_type->name, "char")==0) {
+					default_spec.array_elements_count_funtion_ptr = metac_array_elements_1d_with_null;
+					spec = &default_spec;
+				}else if (p_precompile_task->actual_type->id == DW_TAG_pointer_type) {
+					default_spec.array_elements_count_funtion_ptr = metac_array_elements_single;
+					spec = &default_spec;
+				}else {
+					msg_stddbg("Warning: Can't get array/pointer spec at %s - skipping its children\n",
+							p_precompile_task->region_type_element->path_global);
+					return 0;
+				}
+			}
 		}
+
 		array_elements__region_type = find_or_create_region_type(p_precompile_context, array_elements_type, &new_region_was_created);
 		if (array_elements__region_type == NULL) {
 			msg_stderr("ERROR: cant create region_type - exiting\n");
@@ -808,8 +829,11 @@ static int _parse_type_task(
 		}
 
 		msg_stddbg("p_precompile_task %p array_elements__region_type %p\n", p_precompile_task, array_elements__region_type);
-		update_region_type_element_array_params(p_precompile_task->region_type_element,
-				spec->array_elements_count_funtion_ptr, spec->specification_context, array_elements__region_type->p_region_type);
+		update_region_type_element_array_params(
+				p_precompile_task->region_type_element,
+				spec?spec->array_elements_count_funtion_ptr:NULL,
+				spec?spec->specification_context:NULL,
+				array_elements__region_type->p_region_type);
 
 		if (new_region_was_created != 0) {
 			if (create_and_add_precompile_task(

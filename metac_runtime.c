@@ -57,6 +57,12 @@ static int delete_region(struct region **pp_region) {
 
 	msg_stddbg("starting arrays\n");
 	if (p_region->p_array != NULL) {
+		for (i = 0; i < p_region->region_type->array_type_elements_count; i++) {
+			if (p_region->p_array[i].p_elements_count != NULL) {
+				free (p_region->p_array[i].p_elements_count);
+				p_region->p_array[i].p_elements_count = NULL;
+			}
+		}
 		free(p_region->p_array);
 		p_region->p_array = NULL;
 	}
@@ -385,7 +391,8 @@ static int _runtime_task_fn(
 	for (i = 0; i < region->region_type->pointer_type_elements_count; i++) {
 		int j;
 		int res;
-		metac_byte_size_t byte_size;
+		metac_count_t elements_count;
+		metac_byte_size_t elements_byte_size;
 		struct _region * _region;
 		void * new_ptr;
 		int new_region = 0;
@@ -437,15 +444,15 @@ static int _runtime_task_fn(
 		}
 
 		/* calculate byte_size using length */
-		byte_size = region->p_pointer[i].p_elements_count[0];
+		elements_count = region->p_pointer[i].p_elements_count[0];
 		for (j = 1; j < region->p_pointer[i].n; j++)
-			byte_size *= region->p_pointer[i].p_elements_count[j];
-		msg_stddbg("element length: %d\n", (int)byte_size);
-		byte_size *= region->region_type->pointer_type_element[i]->array_elements_region_type?
+			elements_count *= region->p_pointer[i].p_elements_count[j];
+		msg_stddbg("elements_count: %d\n", (int)elements_count);
+		elements_byte_size = region->region_type->pointer_type_element[i]->array_elements_region_type?
 				metac_type_byte_size(region->region_type->pointer_type_element[i]->array_elements_region_type->type):0;
 
-		if (byte_size == 0) {
-			msg_stddbg("skipping because byte_size is 0\n");
+		if (elements_byte_size == 0 || elements_count == 0) {
+			msg_stddbg("skipping because size is 0\n");
 			continue;
 		}
 
@@ -453,7 +460,7 @@ static int _runtime_task_fn(
 		_region = find_or_create_region(
 				p_context,
 				region->region_type->pointer_type_element[i]->array_elements_region_type,
-				new_ptr, byte_size, NULL, &new_region);
+				new_ptr, elements_byte_size * elements_count, NULL, &new_region); /*TBD!!!! split element count and size*/
 		if (_region == NULL) {
 			msg_stderr("Error calling find_or_create_region\n");
 			return -EFAULT;
@@ -474,8 +481,102 @@ static int _runtime_task_fn(
 
 	msg_stddbg("arrays: %d items\n", region->region_type->array_type_elements_count);
 	for (i = 0; i < region->region_type->array_type_elements_count; i++) {
+		int j;
+		int res;
+		void * new_ptr;
+		metac_count_t elements_count;
+		metac_byte_size_t elements_byte_size;
+		struct _region * _region;
+		int new_region = 0;
+
 		msg_stddbg("array %s\n", region->region_type->array_type_element[i]->path_within_region);
-		/*TODO: implement this*/
+
+		res = region_element_precondition_is_true(region, &region->region_type->array_type_element[i]->precondition);
+		if (res < 0) {
+			msg_stderr("Something wrong with conditions\n");
+			return -EFAULT;
+		}else if (res == 0) {
+			msg_stddbg("skipping by precondition\n");
+			continue;
+		}
+
+		assert(region->region_type->array_type_element[i]->type->id == DW_TAG_array_type);
+
+		region->p_array[i].n = region->region_type->array_type_element[i]->type->array_type_info.subranges_count;
+
+		region->p_array[i].p_elements_count = calloc(region->p_array[i].n, sizeof(*(region->p_array[i].p_elements_count)));
+		if (region->p_array[i].p_elements_count == NULL) {
+			msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			return -EFAULT;
+		}
+
+		/* set ptr to the first element */
+		new_ptr = (void*)(region->ptr + region->region_type->array_type_element[i]->offset);
+
+		/*use different approaches to calculate lengths*/
+		if (!region->region_type->array_type_element[i]->type->array_type_info.is_flexible){
+			for (j = 0; j < region->p_array[i].n; j++){
+				metac_type_array_subrange_count(
+						region->region_type->array_type_element[i]->type,
+						j,
+						&region->p_array[i].p_elements_count[j]);
+			}
+		}else{
+			if (region->region_type->array_type_element[i]->array_elements_count_funtion_ptr == NULL) {
+				msg_stddbg("skipping because don't have a cb to determine elements count\n");
+				continue; /*we don't handle pointers if we can't get fn*/
+			}
+
+			if (region->region_type->array_type_element[i]->array_elements_count_funtion_ptr(
+					0,
+					region->ptr,
+					region->region_type->type,
+					new_ptr,
+					region->region_type->array_type_element[i]->array_elements_region_type?
+							region->region_type->array_type_element[i]->array_elements_region_type->type:NULL,
+					region->p_array[i].n,
+					region->p_array[i].p_elements_count,
+					region->region_type->array_type_element[i]->array_elements_count_cb_context) != 0) {
+				msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
+						i, region->region_type->type->name);
+				return -EFAULT;
+			}
+		}
+
+		/* calculate overall elements_count */
+		elements_count = region->p_array[i].p_elements_count[0];
+		for (j = 1; j < region->p_array[i].n; j++)
+			elements_count *= region->p_array[i].p_elements_count[j];
+		msg_stddbg("elements_count: %d\n", (int)elements_count);
+		elements_byte_size = region->region_type->pointer_type_element[i]->array_elements_region_type?
+				metac_type_byte_size(region->region_type->pointer_type_element[i]->array_elements_region_type->type):0;
+
+		if (elements_byte_size == 0 || elements_count == 0) {
+			msg_stddbg("skipping because size is 0\n");
+			continue;
+		}
+
+		/*we have to create region and store it (need create or find to support loops) */
+		_region = find_or_create_region(
+				p_context,
+				region->region_type->array_type_element[i]->array_elements_region_type,
+				new_ptr, elements_byte_size * elements_count, region, &new_region); /*TBD!!!! split element count and size*/
+		if (_region == NULL) {
+			msg_stderr("Error calling find_or_create_region\n");
+			return -EFAULT;
+		}
+		region->p_array[i].p_region = _region->p_region;
+		/* add task to handle this region fields properly */
+		if (new_region == 1) {
+			/*create the new task for this region*/
+			if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+					p_task,
+					_runtime_task_fn,
+					_runtime_task_destroy_fn, _region->p_region) == NULL) {
+				msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
+				return -EFAULT;
+			}
+		}
 	}
 
 	msg_stddbg("finished task\n");
