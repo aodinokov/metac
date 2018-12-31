@@ -158,7 +158,8 @@ do {\
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
-	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
+
+//	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
 
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
@@ -1015,6 +1016,52 @@ START_TEST(metac_type_t_ut) {
 }END_TEST
 
 /*****************************************************************************/
+typedef struct _basic_tree {
+	int * data;
+	struct _basic_tree *desc[2];
+}basic_tree_t;
+METAC_TYPE_GENERATE(basic_tree_t);
+METAC_TYPE_SPECIFICATION_BEGIN(basic_tree_t)
+METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
+METAC_TYPE_SPECIFICATION_END
+
+START_TEST(basic_tree_t_ut) {
+	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+		_STRUCT_TYPE_CHECK_BYTESIZE;
+		_STRUCT_TYPE_CHECK_MEMBERS(2, {
+		__STRUCT_TYPE_CHECK_MEMBER(data),
+		__STRUCT_TYPE_CHECK_MEMBER(desc),
+		});
+	}STRUCT_TYPE_CHECK_END;
+	do {
+		struct metac_type *type = &METAC_TYPE_NAME(basic_tree_t);
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type);
+		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", "basic_tree_t");
+		if (precompiled_type != NULL) {
+			metac_dump_precompiled_type(precompiled_type);
+			/*build hierarchy*/
+			basic_tree_t l = {
+				.data = (int[]){1,},
+				.desc = {NULL, NULL, },
+			},
+			r  = {
+				.data = (int[]){3,},
+				.desc = {NULL, NULL, },
+			},
+			x = {
+				.data = (int[]){2,},
+				.desc = {&l, &r, },
+			};
+
+			struct metac_runtime_object * runtime_object =
+					build_runtime_object(precompiled_type, (void*)(&x), sizeof(x));
+			free_runtime_object(&runtime_object);
+			metac_free_precompiled_type(&precompiled_type);
+		} \
+	}while(0);
+}END_TEST
+
+/*****************************************************************************/
 int main(void){
 	printf("bug_with_unspecified_parameters %d\n", _BUG_NO_USPECIFIED_PARAMETER_);
 	printf("bug_zero_len_is_flexible %d\n", _BUG_ZERO_LEN_IS_FLEXIBLE_);
@@ -1031,6 +1078,7 @@ int main(void){
 					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
 					ADD_TEST(metac_type_t_ut);
+					ADD_TEST(basic_tree_t_ut);
 				}END_CASE
 			);
 		}END_SUITE
