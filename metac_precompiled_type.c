@@ -843,7 +843,8 @@ static int _parse_type_task(
 					_parse_type_task,
 					_parse_type_task_destroy,
 					NULL, 0,
-					"", p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<arr>",
+					"",
+					"<ptr>", //p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<a_elem_n>", /*may be it's better to keep ptr for all cases*/
 					0,
 					metac_type_byte_size(array_elements_type)) == NULL) {
 				msg_stderr("create_and_add_precompile_task failed\n");
