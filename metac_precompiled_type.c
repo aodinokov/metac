@@ -96,7 +96,23 @@ static void dump_precompiled_type(FILE * file, metac_precompiled_type_t * p_prec
 		dump_region(file, p_precompiled_type->region_type[i]);
 	}
 }
-
+/*****************************************************************************/
+/* similar to metac_type_typedef_skip, but skips more types (like constant and etc ) */
+static struct metac_type *get_actual_type(struct metac_type *type) {
+	if (type == NULL){
+		msg_stderr("invalid argument value: return NULL\n");
+		return NULL;
+	}
+	if (	type->id == DW_TAG_typedef ||
+			type->id == DW_TAG_const_type) {
+		if (type->typedef_info.type == NULL) {
+			msg_stderr("typedef/const_type has to contain type in attributes: return NULL\n");
+			return NULL;
+		}
+		return get_actual_type((type->id == DW_TAG_typedef)?(type->typedef_info.type):(type->const_type_info.type));
+	}
+	return type;
+}
 /*****************************************************************************/
 /*temporary types for types pre-compilation*/
 /*****************************************************************************/
@@ -578,23 +594,6 @@ static struct precompile_task* create_and_add_precompile_task(
 	}
 	return p_task;
 }
-/*****************************************************************************/
-/* similar to metac_type_typedef_skip, but skips more types (like constant and etc ) */
-static struct metac_type *get_actual_type(struct metac_type *type) {
-	if (type == NULL){
-		msg_stderr("invalid argument value: return NULL\n");
-		return NULL;
-	}
-	if (	type->id == DW_TAG_typedef ||
-			type->id == DW_TAG_const_type) {
-		if (type->typedef_info.type == NULL) {
-			msg_stderr("typedef/const_type has to contain type in attributes: return NULL\n");
-			return NULL;
-		}
-		return get_actual_type((type->id == DW_TAG_typedef)?(type->typedef_info.type):(type->const_type_info.type));
-	}
-	return type;
-}
 
 static char * build_path(char * parent_path, char * name_local){
 	char * result;
@@ -822,7 +821,7 @@ static int _parse_type_task(
 			}
 		}
 
-		array_elements__region_type = find_or_create_region_type(p_precompile_context, array_elements_type, &new_region_was_created);
+		array_elements__region_type = find_or_create_region_type(p_precompile_context, get_actual_type(array_elements_type), &new_region_was_created);
 		if (array_elements__region_type == NULL) {
 			msg_stderr("ERROR: cant create region_type - exiting\n");
 			return -EFAULT;
@@ -844,7 +843,7 @@ static int _parse_type_task(
 					_parse_type_task,
 					_parse_type_task_destroy,
 					NULL, 0,
-					"", "<ptr>",
+					"", p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<arr>",
 					0,
 					metac_type_byte_size(array_elements_type)) == NULL) {
 				msg_stderr("create_and_add_precompile_task failed\n");
@@ -1032,7 +1031,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, find_or_create_region_type(&context, type, NULL),
+	if (create_and_add_precompile_task(p_breadthfirst_engine, NULL, find_or_create_region_type(&context, get_actual_type(type), NULL),
 			type,
 			_parse_type_task,
 			_parse_type_task_destroy,
