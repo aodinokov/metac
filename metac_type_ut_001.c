@@ -13,9 +13,11 @@
 #include <complex.h>	/*complex*/
 
 struct metac_runtime_object * build_runtime_object(
-		struct metac_precompiled_type * p_precompiled_type,
 		void * ptr,
-		metac_byte_size_t byte_size);
+		metac_byte_size_t byte_size,
+		struct metac_precompiled_type * p_precompiled_type,
+		metac_count_t elements_count
+		);
 
 
 #define DUMP_MEM(_text_, _start_, _size_) \
@@ -1000,7 +1002,7 @@ START_TEST(metac_type_t_ut) {
 
 		/*check runtime object*/
 		struct metac_runtime_object * runtime_object =
-				build_runtime_object(precompiled_type_4_metac_type_t, (void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t));
+				build_runtime_object((void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t), precompiled_type_4_metac_type_t, 1);
 		free_runtime_object(&runtime_object);
 #if 0
 		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
@@ -1054,7 +1056,7 @@ START_TEST(basic_tree_t_ut) {
 			};
 
 			struct metac_runtime_object * runtime_object =
-					build_runtime_object(precompiled_type, (void*)(&x), sizeof(x));
+					build_runtime_object((void*)(&x), sizeof(x), precompiled_type, 1);
 			free_runtime_object(&runtime_object);
 			metac_free_precompiled_type(&precompiled_type);
 		} \

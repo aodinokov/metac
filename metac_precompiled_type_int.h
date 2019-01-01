@@ -81,7 +81,7 @@ struct discriminator_value {
 };
 
 struct pointer {
-	int n;
+	int n;		/*1-dimention*/
 	metac_count_t * p_elements_count;
 
 	struct region* p_region;
@@ -94,20 +94,27 @@ struct array {
 	struct region* p_region;
 };
 
-struct region {
+struct region_element {
+	void *ptr;
+	metac_byte_size_t byte_size;
 	struct region_type * region_type;
 
+	/* initialized based on region_type numbers of each element */
+	struct discriminator_value * p_discriminator_value;
+	struct pointer * p_pointer;
+	struct array * p_array;
+};
+
+struct region { /*can contain several elements of region_type*/
 	void *ptr;
 	metac_byte_size_t byte_size;
 
 	struct region * part_of_region; /*	sometimes pointers in one structs point not to the beginning of the region -
 									there is a tricky algorithm to find this. Also this is a common situation for arrays in structs*/
 
-
-	/* initialized based on region_type numbers of each element */
-	struct discriminator_value * p_discriminator_value;
-	struct pointer * p_pointer;
-	struct array * p_array;
+//	struct region_type * 	region_type;
+	metac_count_t 			elements_count;
+	struct region_element * elements;
 };
 
 
