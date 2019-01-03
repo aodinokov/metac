@@ -194,7 +194,7 @@ typedef int (*metac_discriminator_cb_ptr_t)(
 typedef int (*metac_array_elements_count_cb_ptr_t)(
 	int write_operation,
 	void * region_ptr,
-	metac_type_t * region_type, /*pointer to memory region and its type */
+	metac_type_t * region_element_type, /*pointer to memory region element and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
 	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
