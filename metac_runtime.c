@@ -9,7 +9,7 @@
 #include "metac_debug.h"	/* msg_stderr, ...*/
 #include "breadthfirst_engine.h" /*breadthfirst_engine module*/
 
-#include <stdlib.h>			/* calloc, ... */
+#include <stdlib.h>			/* calloc, qsort... */
 #include <string.h>			/* strlen, strcpy */
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
@@ -333,6 +333,11 @@ static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_objec
 	if (p_runtime_object == NULL) {
 		msg_stderr("Can't delete runtime_object: already deleted\n");
 		return -EALREADY;
+	}
+
+	if (p_runtime_object->unique_region != NULL) {
+		free(p_runtime_object->unique_region);
+		p_runtime_object->unique_region = NULL;
 	}
 
 	if (p_runtime_object->region != NULL){
@@ -693,9 +698,10 @@ struct metac_runtime_object * build_runtime_object(
 		struct metac_precompiled_type * p_precompiled_type,
 		metac_count_t elements_count
 		) {
-	int i;
+	int i, j;
 	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
+	struct region * region;
 	struct _region * _region;
 
 	if (p_precompiled_type->region_element_type[0]->element[0]->byte_size > byte_size) {
@@ -780,6 +786,82 @@ struct metac_runtime_object * build_runtime_object(
 	i = 0;
 	cds_list_for_each_entry(_region, &context.region_list, list) {
 		context.runtime_object->region[i] = _region->p_region;
+		++i;
+	}
+	assert(context.runtime_object->regions_count == i);
+
+	/*find unique regions*/
+	int _compare_regions(const void *_a, const void *_b) {
+		struct region *a = *((struct region **)_a);
+		struct region *b = *((struct region **)_b);
+		if (a->ptr < b->ptr)
+			return -1;
+		if (a->ptr == b->ptr) {
+			if (a->byte_size > b->byte_size)return -1;
+			if (a->byte_size == b->byte_size)return 0;
+			return 1;
+		}
+		return 1;
+	}
+	qsort(context.runtime_object->region,
+			context.runtime_object->regions_count,
+			sizeof(*(context.runtime_object->region)),
+			_compare_regions); /*TODO: change to hsort?*/
+
+	region = context.runtime_object->region[0];
+
+	assert(region->part_of_region == NULL);
+	context.runtime_object->unique_regions_count = 1;
+
+	msg_stddbg("starting checking addresses of regions: %p\n", region->ptr);
+	for (i = 1; i < context.runtime_object->regions_count; i++) {
+		msg_stddbg("%p\n", context.runtime_object->region[i]->ptr);
+
+		if (context.runtime_object->region[i]->part_of_region != NULL) {
+			msg_stddbg("skipping\n");
+			continue;
+		}
+
+		if (	context.runtime_object->region[i]->ptr >= region->ptr &&
+				context.runtime_object->region[i]->ptr < region->ptr + region->byte_size) { /*within the previous*/
+			if (context.runtime_object->region[i]->ptr + context.runtime_object->region[i]->byte_size > region->ptr + region->byte_size) {
+				msg_stderr("Warning: region(%d) %p %d is partially within previous %p %d\n",
+						i,
+						context.runtime_object->region[i]->ptr,
+						context.runtime_object->region[i]->byte_size,
+						region->ptr,
+						region->byte_size);
+			}
+			context.runtime_object->region[i]->part_of_region = region;
+		}else {
+			region = context.runtime_object->region[0];
+			++context.runtime_object->unique_regions_count;
+		}
+	}
+
+	context.runtime_object->unique_region = calloc(context.runtime_object->unique_regions_count, sizeof(*(context.runtime_object->region)));
+	if (context.runtime_object->region == NULL) {
+		msg_stderr("Can't allocate memory for unique_region array in runtime_object\n");
+
+		cds_list_for_each_entry(_region, &context.region_list, list) {
+			delete_region(&_region->p_region);
+		}
+
+		cleanup_runtime_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		delete_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+
+	/*get regions back and add unique regions as well*/
+	i = 0; j = 0;
+	cds_list_for_each_entry(_region, &context.region_list, list) {
+		context.runtime_object->region[i] = _region->p_region;
+		if (context.runtime_object->region[i]->part_of_region == NULL) {
+			assert(j < context.runtime_object->unique_regions_count);
+			context.runtime_object->unique_region[j] = context.runtime_object->region[i];
+			++j;
+		}
 		++i;
 	}
 	assert(context.runtime_object->regions_count == i);

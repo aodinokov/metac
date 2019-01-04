@@ -9,6 +9,8 @@
 #include "check_ext.h"
 #include "metac_type.h"
 
+#include "metac_precompiled_type_int.h" /*temporary: to make ut for runtime object*/
+
 #include <dlfcn.h>
 #include <complex.h>	/*complex*/
 
@@ -1057,6 +1059,9 @@ START_TEST(basic_tree_t_ut) {
 
 			struct metac_runtime_object * runtime_object =
 					build_runtime_object((void*)(&x), sizeof(x), precompiled_type, 1);
+
+			fail_unless(runtime_object->unique_regions_count == 6, "Number of unique regions is %d", (int)runtime_object->unique_regions_count);
+
 			free_runtime_object(&runtime_object);
 			metac_free_precompiled_type(&precompiled_type);
 		} \
