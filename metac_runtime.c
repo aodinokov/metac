@@ -692,6 +692,19 @@ static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
 }
 
 /*****************************************************************************/
+int _compare_regions(const void *_a, const void *_b) {
+	struct region *a = *((struct region **)_a);
+	struct region *b = *((struct region **)_b);
+	if (a->ptr < b->ptr)
+		return -1;
+	if (a->ptr == b->ptr) {
+		if (a->byte_size > b->byte_size)return -1;
+		if (a->byte_size == b->byte_size)return 0;
+		return 1;
+	}
+	return 1;
+}
+
 struct metac_runtime_object * build_runtime_object(
 		void * ptr,
 		metac_byte_size_t byte_size,
@@ -791,18 +804,6 @@ struct metac_runtime_object * build_runtime_object(
 	assert(context.runtime_object->regions_count == i);
 
 	/*find unique regions*/
-	int _compare_regions(const void *_a, const void *_b) {
-		struct region *a = *((struct region **)_a);
-		struct region *b = *((struct region **)_b);
-		if (a->ptr < b->ptr)
-			return -1;
-		if (a->ptr == b->ptr) {
-			if (a->byte_size > b->byte_size)return -1;
-			if (a->byte_size == b->byte_size)return 0;
-			return 1;
-		}
-		return 1;
-	}
 	qsort(context.runtime_object->region,
 			context.runtime_object->regions_count,
 			sizeof(*(context.runtime_object->region)),
