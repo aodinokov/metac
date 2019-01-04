@@ -113,7 +113,6 @@ struct region { /*can contain several elements of region_element_type*/
 									there is a tricky algorithm to find this. Also this is a common situation for arrays in structs*/
 
 
-//	struct region_element_type * 	region_element_type;
 	metac_count_t 			elements_count;
 	struct region_element * elements;
 };
@@ -127,8 +126,6 @@ struct metac_runtime_object {
 
 	int	unique_regions_count;
 	struct region ** unique_region;
-
-	int is_tree;	/* during evaluation this value will be updated to reflect if it's possible to serialize this object as tree*/
 };
 
 

@@ -370,7 +370,6 @@ static struct metac_runtime_object * create_runtime_object(struct metac_precompi
 	}
 
 	p_runtime_object->precompiled_type = p_precompiled_type;
-	p_runtime_object->is_tree = 1;
 	p_runtime_object->region = NULL;
 	p_runtime_object->regions_count = 0;
 
