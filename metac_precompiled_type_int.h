@@ -105,27 +105,45 @@ struct region_element {
 	struct array * p_array;
 };
 
+struct _location {
+	metac_count_t region_idx;
+	metac_data_member_location_t offset; /*< offset within region*/
+};
+
 struct region { /*can contain several elements of region_element_type*/
 	void *ptr;
 	metac_byte_size_t byte_size;
 
+	metac_count_t 			elements_count;
+	struct region_element * elements;
+
 	struct region * part_of_region; /*	sometimes pointers in one structs point not to the beginning of the region -
 									there is a tricky algorithm to find this. Also this is a common situation for arrays in structs*/
 
-
-	metac_count_t 			elements_count;
-	struct region_element * elements;
+	int 			 unique_region_id; /*will be -1 for non-unique*/
+	struct _location location;
 };
 
+struct pointer_table_item {
+	struct pointer * p_pointer;
+	struct _location location;
+	struct _location value;
+};
 
 struct metac_runtime_object {
 	struct metac_precompiled_type *precompiled_type;
 
-	int	regions_count;
+	metac_count_t	regions_count;
 	struct region ** region;
 
-	int	unique_regions_count;
+	/* really allocated memory regions (subset of all regions) */
+	metac_count_t	unique_regions_count;
 	struct region ** unique_region;
+
+	/* optimized table to copy runtime object*/
+	metac_count_t pointer_table_items_count;
+	struct pointer_table_item *pointer_table_items;
+
 };
 
 

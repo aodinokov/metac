@@ -20,7 +20,10 @@ struct metac_runtime_object * build_runtime_object(
 		struct metac_precompiled_type * p_precompiled_type,
 		metac_count_t elements_count
 		);
+void free_runtime_object(struct metac_runtime_object ** pp_runtime_object);
 
+void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object);
+void runtime_object_free(struct metac_runtime_object * p_runtime_object);
 
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
@@ -1038,22 +1041,21 @@ START_TEST(basic_tree_t_ut) {
 		});
 	}STRUCT_TYPE_CHECK_END;
 	do {
-		struct metac_type *type = &METAC_TYPE_NAME(basic_tree_t);
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type);
-		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", "basic_tree_t");
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
+		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
 		if (precompiled_type != NULL) {
 			metac_dump_precompiled_type(precompiled_type);
 			/*build hierarchy*/
 			basic_tree_t l = {
-				.data = (int[]){1,},
+				.data = (int[]){1, },
 				.desc = {NULL, NULL, },
 			},
 			r  = {
-				.data = (int[]){3,},
+				.data = (int[]){3, },
 				.desc = {NULL, NULL, },
 			},
 			x = {
-				.data = (int[]){2,},
+				.data = (int[]){2, },
 				.desc = {&l, &r, },
 			};
 
@@ -1061,6 +1063,20 @@ START_TEST(basic_tree_t_ut) {
 					build_runtime_object((void*)(&x), sizeof(x), precompiled_type, 1);
 
 			fail_unless(runtime_object->unique_regions_count == 6, "Number of unique regions is %d", (int)runtime_object->unique_regions_count);
+
+			basic_tree_t * y = (basic_tree_t*)runtime_object_cpy(runtime_object);
+			fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
+			fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
+			fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
+			fail_unless(y->desc[0]->desc[0] == NULL, "basic_tree check4 failed");
+			fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
+			fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
+			fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
+
+			struct metac_runtime_object * runtime_object1 =
+					build_runtime_object(y, sizeof(x), precompiled_type, 1);
+			runtime_object_free(runtime_object1);
+			free_runtime_object(&runtime_object1);
 
 			free_runtime_object(&runtime_object);
 			metac_free_precompiled_type(&precompiled_type);
