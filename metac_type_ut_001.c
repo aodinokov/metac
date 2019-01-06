@@ -859,24 +859,27 @@ static int _metac_type_t_discriminator_funtion(
 			case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
 			case DW_TAG_pointer_type: *p_discriminator_val = 1; return 0;
 			case DW_TAG_typedef: *p_discriminator_val = 2; return 0;
-			case DW_TAG_enumeration_type: *p_discriminator_val = 3; return 0;
-			case DW_TAG_subprogram: *p_discriminator_val = 4; return 0;
-			case DW_TAG_structure_type: *p_discriminator_val = 5; return 0;
-			case DW_TAG_union_type: *p_discriminator_val = 6; return 0;
-			case DW_TAG_array_type: *p_discriminator_val = 7; return 0;
+			case DW_TAG_const_type: *p_discriminator_val = 3; return 0;
+			case DW_TAG_enumeration_type: *p_discriminator_val = 4; return 0;
+			case DW_TAG_subprogram: *p_discriminator_val = 5; return 0;
+			case DW_TAG_structure_type: *p_discriminator_val = 6; return 0;
+			case DW_TAG_union_type: *p_discriminator_val = 7; return 0;
+			case DW_TAG_array_type: *p_discriminator_val = 8; return 0;
 			}
 			printf("callback failed: can't find val for 0x%x\n", (int)metac_type_obj->id);
-			return -1;
+			*p_discriminator_val = -1; /*there can be other values, but we don't mutch them with any union value*/
+			return 0; /*-1;*/
 		}else{
 			switch(*p_discriminator_val) {
 			case 0:metac_type_obj->id = DW_TAG_base_type; return 0;
 			case 1:metac_type_obj->id = DW_TAG_pointer_type; return 0;
 			case 2:metac_type_obj->id = DW_TAG_typedef; return 0;
-			case 3:metac_type_obj->id = DW_TAG_enumeration_type; return 0;
-			case 4:metac_type_obj->id = DW_TAG_subprogram; return 0;
-			case 5:metac_type_obj->id = DW_TAG_structure_type; return 0;
-			case 6:metac_type_obj->id = DW_TAG_union_type; return 0;
-			case 7:metac_type_obj->id = DW_TAG_array_type; return 0;
+			case 3:metac_type_obj->id = DW_TAG_const_type; return 0;
+			case 4:metac_type_obj->id = DW_TAG_enumeration_type; return 0;
+			case 5:metac_type_obj->id = DW_TAG_subprogram; return 0;
+			case 6:metac_type_obj->id = DW_TAG_structure_type; return 0;
+			case 7:metac_type_obj->id = DW_TAG_union_type; return 0;
+			case 8:metac_type_obj->id = DW_TAG_array_type; return 0;
 			}
 			return -1;
 		}
@@ -943,6 +946,12 @@ static int _metac_type_t_array_elements_count_funtion(
 	} else if (strcmp(key, "<ptr>.dwarf_info.child") == 0) {
 		*p_elements_count = metac_type_obj->dwarf_info.child_num;
 		res = 0;
+	} else if (strcmp(key, "<ptr>.<anon0>.structure_type_info.members") == 0) {
+		*p_elements_count = metac_type_obj->structure_type_info.members_count;
+		res = 0;
+	} else if (strcmp(key, "<ptr>.<anon0>.union_type_info.members") == 0) {
+		*p_elements_count = metac_type_obj->union_type_info.members_count;
+		res = 0;
 	} else if (strcmp(key, "<ptr>.name") == 0) {
 		printf("%p ? %p : %s\n", first_element_ptr, metac_type_obj->name, metac_type_obj->name);
 		return metac_array_elements_1d_with_null(write_operation, ptr,type,first_element_ptr,first_element_type, n, p_elements_count,array_elements_count_cb_context);
@@ -1004,17 +1013,12 @@ START_TEST(metac_type_t_ut) {
 		metac_precompiled_type_t * precompiled_type_4_metac_type_t = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
 		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
-
-		/*check runtime object*/
-		struct metac_runtime_object * runtime_object =
-				build_runtime_object((void*)&METAC_TYPE_NAME(char), sizeof(metac_type_t), precompiled_type_4_metac_type_t, 1);
-		free_runtime_object(&runtime_object);
-#if 0
-		fail_unless(metac_copy(precompiled_type, type, sizeof(*type), (void**)&copy, &copy_size) == 0, "metac_copy failed");
+#if 1
+		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
-		fail_unless(metac_delete(precompiled_type, copy, copy_size) == 0, "metac_delete failed");
+		fail_unless(metac_delete(copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 0, "metac_delete failed");
 #endif
 		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
 		fail_unless(precompiled_type_4_metac_type_t == NULL, "metac_free_precompiled_type failed");
@@ -1045,7 +1049,9 @@ START_TEST(basic_tree_t_ut) {
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
 		if (precompiled_type != NULL) {
 			metac_dump_precompiled_type(precompiled_type);
+
 			/*build hierarchy*/
+			basic_tree_t * y;
 			basic_tree_t l = {
 				.data = (int[]){1, },
 				.desc = {NULL, NULL, },
@@ -1059,12 +1065,8 @@ START_TEST(basic_tree_t_ut) {
 				.desc = {&l, &r, },
 			};
 
-			struct metac_runtime_object * runtime_object =
-					build_runtime_object((void*)(&x), sizeof(x), precompiled_type, 1);
+			fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
 
-			fail_unless(runtime_object->unique_regions_count == 6, "Number of unique regions is %d", (int)runtime_object->unique_regions_count);
-
-			basic_tree_t * y = (basic_tree_t*)runtime_object_cpy(runtime_object);
 			fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
 			fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
 			fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
@@ -1073,12 +1075,8 @@ START_TEST(basic_tree_t_ut) {
 			fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
 			fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
 
-			struct metac_runtime_object * runtime_object1 =
-					build_runtime_object(y, sizeof(x), precompiled_type, 1);
-			runtime_object_free(runtime_object1);
-			free_runtime_object(&runtime_object1);
+			fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
 
-			free_runtime_object(&runtime_object);
 			metac_free_precompiled_type(&precompiled_type);
 		} \
 	}while(0);

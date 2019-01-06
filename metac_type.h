@@ -244,18 +244,19 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type);
 void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type);
 void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 
+/* C-type-> C-type (simplified operation, like delete, but using memcpy) */
+int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);
+/* destruction */
+int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
+
 /* constructor */
-/* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
-int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
-		void **p_ptr, metac_byte_size_t * p_size);
+///* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
+//int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
+//		void **p_ptr, metac_byte_size_t * p_size);
 /*some format -> C-type - generic de-serialization*/
 int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
-/* destruction */
-int metac_delete(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size);
 /* C-type->some format - generic serialization*/
 int metac_unpack(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size /*, p_dst, func and etc ToBeAdded */);
-/* C-type-> C-type (simplified operation, like delete, but using memcpy) */
-int metac_copy(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size, void **p_ptr, metac_byte_size_t * p_size);
 /*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {

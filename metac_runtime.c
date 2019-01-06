@@ -41,7 +41,6 @@ static int destroy_region_element(struct region_element *p_region_element) {
 		return -EINVAL;
 	}
 
-	msg_stddbg("starting arrays\n");
 	if (p_region_element->p_array != NULL) {
 		for (i = 0; i < p_region_element->region_element_type->array_type_elements_count; i++) {
 			if (p_region_element->p_array[i].p_elements_count != NULL) {
@@ -53,7 +52,6 @@ static int destroy_region_element(struct region_element *p_region_element) {
 		p_region_element->p_array = NULL;
 	}
 
-	msg_stddbg("starting pointers\n");
 	if (p_region_element->p_pointer != NULL) {
 		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
 			if (p_region_element->p_pointer[i].p_elements_count != NULL) {
@@ -65,7 +63,6 @@ static int destroy_region_element(struct region_element *p_region_element) {
 		p_region_element->p_pointer = NULL;
 	}
 
-	msg_stddbg("starting discriminator values\n");
 	if (p_region_element->p_discriminator_value != NULL) {
 		free(p_region_element->p_discriminator_value);
 		p_region_element->p_discriminator_value = NULL;
@@ -83,12 +80,6 @@ static int init_region_element(struct region_element *p_region_element,
 		msg_stderr("invalid argument\n");
 		return -EINVAL;
 	}
-
-	msg_stddbg("p_region_element_type = %p (%s), ptr = %p, byte_size = %d\n",
-			region_element_type,
-			region_element_type->type->name,
-			ptr,
-			(int)byte_size);
 
 	p_region_element->region_element_type = region_element_type;
 	p_region_element->ptr = ptr;
@@ -480,8 +471,9 @@ static int _runtime_task_fn(
 
 	for (e = 0; e < p_region->elements_count; e++) {
 		struct region_element * p_region_element = &p_region->elements[e];
-		msg_stddbg("element %d\n", e);
-		msg_stddbg("pointers: %d items\n", p_region_element->region_element_type->pointer_type_elements_count);
+
+		if (p_region_element->region_element_type->array_type_elements_count > 0)
+			msg_stddbg("element %d pointers: %d items\n", e, p_region_element->region_element_type->pointer_type_elements_count);
 		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
 			int j;
 			int res;
@@ -580,7 +572,8 @@ static int _runtime_task_fn(
 			}
 		}
 
-		msg_stddbg("arrays: %d items\n", p_region_element->region_element_type->array_type_elements_count);
+		if (p_region_element->region_element_type->array_type_elements_count > 0)
+			msg_stddbg("element %d arrays: %d items\n", e, p_region_element->region_element_type->array_type_elements_count);
 		for (i = 0; i < p_region_element->region_element_type->array_type_elements_count; i++) {
 			int j;
 			int res;
@@ -711,7 +704,7 @@ int _compare_regions(const void *_a, const void *_b) {
 	return 1;
 }
 
-struct metac_runtime_object * build_runtime_object(
+static struct metac_runtime_object * build_runtime_object(
 		void * ptr,
 		metac_byte_size_t byte_size,
 		struct metac_precompiled_type * p_precompiled_type,
@@ -953,27 +946,10 @@ struct metac_runtime_object * build_runtime_object(
 	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.runtime_object;
 }
-
-void free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
-	delete_runtime_object(pp_runtime_object);
-}
-
-/* draft versions of functions */
-void runtime_object_free(struct metac_runtime_object * p_runtime_object) {
+/*****************************************************************************/
+static int runtime_object_check_pointer_table(
+		struct metac_runtime_object * p_runtime_object) {
 	int i;
-	for (i = 0; i < p_runtime_object->unique_regions_count; i++) {
-		msg_stddbg("freeing region with ptr %p\n", p_runtime_object->unique_region[i]->ptr);
-		free(p_runtime_object->unique_region[i]->ptr);
-		//p_runtime_object->unique_region[i]->ptr = NULL;
-	}
-}
-
-void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object) {
-	int i;
-	void * res;
-	void ** ptrs;
-
-	/* self check - it's better to do this for safety */
 	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ){
 		if (
 				p_runtime_object->pointer_table_items[i].location.region_idx < 0 ||
@@ -982,7 +958,7 @@ void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object) {
 				p_runtime_object->pointer_table_items[i].value.region_idx >= p_runtime_object->unique_regions_count
 			) {
 			msg_stderr("idx is incorrect for item %d\n", i);
-			return NULL;
+			return -EFAULT;
 		}
 		if (
 				p_runtime_object->pointer_table_items[i].location.offset + sizeof(void*) >
@@ -991,15 +967,66 @@ void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object) {
 					p_runtime_object->unique_region[p_runtime_object->pointer_table_items[i].value.region_idx]->byte_size
 			) {
 			msg_stderr("offset is incorrect for item %d\n", i);
-			return NULL;
+			return -EFAULT;
 		}
 	}
+	return 0;
+}
+/*****************************************************************************/
+static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
+	return delete_runtime_object(pp_runtime_object);
+}
+/*****************************************************************************/
+int metac_delete(
+		void *ptr,
+		metac_byte_size_t size,
+		metac_precompiled_type_t * precompiled_type,
+		metac_count_t elements_count) {
+	int i;
+	struct metac_runtime_object * p_runtime_object;
 
+	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	if (p_runtime_object == NULL) {
+		msg_stderr("Error while building runtime object\n");
+		return -EFAULT;
+	}
+
+	for (i = 0; i < p_runtime_object->unique_regions_count; i++) {
+		msg_stddbg("freeing region with ptr %p\n", p_runtime_object->unique_region[i]->ptr);
+		free(p_runtime_object->unique_region[i]->ptr);
+	}
+	free_runtime_object(&p_runtime_object);
+	return 0;
+}
+/*****************************************************************************/
+int metac_copy(
+		void *ptr,
+		metac_byte_size_t size,
+		metac_precompiled_type_t * precompiled_type,
+		metac_count_t elements_count,
+		void **p_ptr) {
+	int i;
+	struct metac_runtime_object * p_runtime_object;
+	void ** ptrs;
+
+	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	if (p_runtime_object == NULL) {
+		msg_stderr("Error while building runtime object\n");
+		return -EFAULT;
+	}
+
+	/* self check - it's better to do this for safety */
+	if (runtime_object_check_pointer_table(p_runtime_object) != 0) {
+		msg_stderr("runtime_object_check_pointer_table hasn't passed\n");
+		free_runtime_object(&p_runtime_object);
+		return -EFAULT;
+	}
 
 	ptrs = calloc(p_runtime_object->unique_regions_count, sizeof(*ptrs));
 	if (ptrs == NULL){
 		msg_stderr("Can't allocate memory for temporary array of regions\n");
-		return NULL;
+		free_runtime_object(&p_runtime_object);
+		return -ENOMEM;
 	}
 
 	for (i = 0; i < p_runtime_object->unique_regions_count; i++) {
@@ -1013,7 +1040,8 @@ void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object) {
 				}
 			}
 			free(ptrs);
-			return NULL;
+			free_runtime_object(&p_runtime_object);
+			return -ENOMEM;
 		}
 		memcpy(ptrs[i], p_runtime_object->unique_region[i]->ptr,
 				p_runtime_object->unique_region[i]->elements_count * p_runtime_object->unique_region[i]->byte_size);
@@ -1028,7 +1056,13 @@ void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object) {
 				(void*)(ptrs[p_runtime_object->pointer_table_items[i].value.region_idx] + p_runtime_object->pointer_table_items[i].value.offset);
 	}
 
-	res = ptrs[0];
+	if (p_ptr) { /*return value*/
+		*p_ptr = ptrs[0];
+	}
+
 	free(ptrs);
-	return res;
+	free_runtime_object(&p_runtime_object);
+
+	return 0;
 }
+
