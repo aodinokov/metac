@@ -691,7 +691,7 @@ static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
 }
 
 /*****************************************************************************/
-int _compare_regions(const void *_a, const void *_b) {
+static int _compare_regions(const void *_a, const void *_b) {
 	struct region *a = *((struct region **)_a);
 	struct region *b = *((struct region **)_b);
 	if (a->ptr < b->ptr)
