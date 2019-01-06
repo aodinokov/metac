@@ -74,8 +74,7 @@ static int destroy_region_element(struct region_element *p_region_element) {
 static int init_region_element(struct region_element *p_region_element,
 		void *ptr,
 		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type
-){
+		struct region_element_type * region_element_type) {
 	if (p_region_element == NULL || region_element_type == NULL) {
 		msg_stderr("invalid argument\n");
 		return -EINVAL;
@@ -117,7 +116,6 @@ static int init_region_element(struct region_element *p_region_element,
 
 	return 0;
 }
-
 /*****************************************************************************/
 static int delete_region(struct region **pp_region) {
 	struct region *p_region;
@@ -155,8 +153,7 @@ static struct region * create_region(
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
 		metac_count_t elements_count,
-		struct region * part_of_region
-){
+		struct region * part_of_region){
 	struct region *p_region;
 	metac_byte_size_t region_element_byte_size;
 
@@ -214,7 +211,9 @@ static struct region * create_region(
 	return p_region;
 }
 
-static int region_element_precondition_is_true(struct region_element * p_region_element, struct condition * p_precondition) {
+static int region_element_precondition_is_true(
+		struct region_element * p_region_element,
+		struct condition * p_precondition) {
 	int id;
 
 	assert(p_region_element);
@@ -251,8 +250,7 @@ static struct _region * create__region(
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
 		metac_count_t elements_count,
-		struct region * part_of_region
-		) {
+		struct region * part_of_region) {
 	struct _region * _region;
 
 	_region = calloc(1, sizeof(*_region));
@@ -279,7 +277,7 @@ static struct _region * find_or_create_region(
 		metac_count_t elements_count,
 		struct region * part_of_region,
 		int * p_created_flag) {
-	/*check if region_element_type for the same type already exists*/
+	/*check if region with the same addr already exists*/
 	struct _region * _region = NULL;
 	struct _region * _region_iter;
 
@@ -398,9 +396,7 @@ static struct runtime_task * create_and_add_runtime_task_4_region(
 		struct runtime_task * parent_task,
 		breadthfirst_engine_task_fn_t fn,
 		breadthfirst_engine_task_destructor_t destroy,
-		struct region * p_region
-		/*element_byte_size, int number_of_elemetns - this is to handle pointers with n elements*/
-		) {
+		struct region * p_region) {
 	struct runtime_task* p_task;
 
 	if (p_region == NULL){
@@ -708,8 +704,7 @@ static struct metac_runtime_object * build_runtime_object(
 		void * ptr,
 		metac_byte_size_t byte_size,
 		struct metac_precompiled_type * p_precompiled_type,
-		metac_count_t elements_count
-		) {
+		metac_count_t elements_count) {
 	int i, j, k, l;
 	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
