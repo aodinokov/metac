@@ -136,10 +136,10 @@ do {\
 		if (precompiled_type != NULL) { \
 			metac_dump_precompiled_type(precompiled_type); \
 			_type_ x; \
-			/*memset(&x, 0, sizeof(x));*/ \
-			struct metac_runtime_object * runtime_object = \
-					build_runtime_object(precompiled_type, (void*)(&x), sizeof(x)); \
-			free_runtime_object(&runtime_object); \
+			_type_ *copy; \
+			memset(&x, 0, sizeof(x)); \
+			fail_unless(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
+			fail_unless(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
 			metac_free_precompiled_type(&precompiled_type); \
 		} \
 	}while(0)
@@ -153,8 +153,7 @@ do {\
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
-
-//	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
+	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
 
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
@@ -1001,13 +1000,13 @@ START_TEST(metac_type_t_ut) {
 		metac_precompiled_type_t * precompiled_type_4_metac_type_t = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
 		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
-#if 1
+
 		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
 		fail_unless(metac_delete(copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 0, "metac_delete failed");
-#endif
+
 		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
 		fail_unless(precompiled_type_4_metac_type_t == NULL, "metac_free_precompiled_type failed");
 	}while(0);

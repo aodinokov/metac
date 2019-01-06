@@ -256,6 +256,8 @@ static struct region_element_type_element * create_region_element_type_element(
 		return NULL;
 	}
 
+	assert(type->id != DW_TAG_typedef && type->id != DW_TAG_const_type);
+
 	msg_stddbg("(name_local = %s, path_within_region = %s, path_global = %s, offset = %d, byte_size = %d)\n",
 			name_local, path_within_region, path_global,
 			(int)offset, (int)byte_size);
@@ -461,6 +463,8 @@ static struct _region_element_type * find_or_create_region_element_type(
 	struct _region_element_type * _region_element_type = NULL;
 	struct _region_element_type * _region_element_type_iter;
 
+	assert(type->id != DW_TAG_typedef && type->id != DW_TAG_const_type);
+
 	if (p_created_flag != NULL) *p_created_flag = 0;
 
 	cds_list_for_each_entry(_region_element_type_iter, &p_precompile_context->region_element_type_list, list) {
@@ -474,7 +478,7 @@ static struct _region_element_type * find_or_create_region_element_type(
 		/*create otherwise*/
 		msg_stddbg("create region_element_type for : %s\n", type->name);
 		_region_element_type = create__region_element_type(type);
-		msg_stddbg("create region_element_type result %p\n", _region_element_type);
+		msg_stddbg("create region_element_type result %p\n", _region_element_type->p_region_element_type);
 		if (_region_element_type == NULL) {
 			msg_stddbg("create__region_element_type failed\n");
 			return NULL;
@@ -671,7 +675,7 @@ static int _parse_type_task(
 
 	/*create struct region_element_type_element in our region_element_type based on the data from task*/
 	p_precompile_task->region_element_type_element = create_region_element_type_element(
-			p_precompile_task->type,
+			get_actual_type(p_precompile_task->type),
 			p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 			p_precompile_task->offset, p_precompile_task->byte_size,
 			p_precompile_task->parent_task != NULL?p_precompile_task->parent_task->region_element_type_element:NULL,

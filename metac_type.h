@@ -256,7 +256,7 @@ int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * p
 /*some format -> C-type - generic de-serialization*/
 int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
 /* C-type->some format - generic serialization*/
-int metac_unpack(metac_precompiled_type_t * precompiled_type, void *ptr, metac_byte_size_t size /*, p_dst, func and etc ToBeAdded */);
+int metac_unpack(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count/*, p_dst, func and etc ToBeAdded */);
 /*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {

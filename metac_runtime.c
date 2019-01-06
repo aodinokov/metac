@@ -638,8 +638,8 @@ static int _runtime_task_fn(
 			for (j = 1; j < p_region_element->p_array[i].n; j++)
 				elements_count *= p_region_element->p_array[i].p_elements_count[j];
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
-			elements_byte_size = p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
-					metac_type_byte_size(p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type):0;
+			elements_byte_size = p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
+					metac_type_byte_size(p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type):0;
 
 			if (elements_byte_size == 0 || elements_count == 0) {
 				msg_stddbg("skipping because size is 0\n");
@@ -936,7 +936,6 @@ static struct metac_runtime_object * build_runtime_object(
 		assert(context.runtime_object->pointer_table_items_count == l);
 	}
 
-
 	cleanup_runtime_context(&context);
 	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.runtime_object;
@@ -945,7 +944,7 @@ static struct metac_runtime_object * build_runtime_object(
 static int runtime_object_check_pointer_table(
 		struct metac_runtime_object * p_runtime_object) {
 	int i;
-	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ){
+	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ) {
 		if (
 				p_runtime_object->pointer_table_items[i].location.region_idx < 0 ||
 				p_runtime_object->pointer_table_items[i].location.region_idx >= p_runtime_object->unique_regions_count ||
@@ -1042,7 +1041,7 @@ int metac_copy(
 				p_runtime_object->unique_region[i]->elements_count * p_runtime_object->unique_region[i]->byte_size);
 	}
 
-	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ){
+	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ) {
 		msg_stddbg("Changing %p to %p\n",
 				*((void**)(ptrs[p_runtime_object->pointer_table_items[i].location.region_idx] + p_runtime_object->pointer_table_items[i].location.offset)),
 				(void*)(ptrs[p_runtime_object->pointer_table_items[i].value.region_idx] + p_runtime_object->pointer_table_items[i].value.offset));
@@ -1060,4 +1059,20 @@ int metac_copy(
 
 	return 0;
 }
+/*****************************************************************************/
+int metac_unpack(
+		void *ptr,
+		metac_byte_size_t size,
+		metac_precompiled_type_t * precompiled_type,
+		metac_count_t elements_count/*, p_dst, func and etc ToBeAdded */) {
+	//int i;
+	struct metac_runtime_object * p_runtime_object;
 
+	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	if (p_runtime_object == NULL) {
+		msg_stderr("Error while building runtime object\n");
+		return -EFAULT;
+	}
+
+	return -EFAULT;
+}
