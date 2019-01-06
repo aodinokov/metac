@@ -14,17 +14,6 @@
 #include <dlfcn.h>
 #include <complex.h>	/*complex*/
 
-struct metac_runtime_object * build_runtime_object(
-		void * ptr,
-		metac_byte_size_t byte_size,
-		struct metac_precompiled_type * p_precompiled_type,
-		metac_count_t elements_count
-		);
-void free_runtime_object(struct metac_runtime_object ** pp_runtime_object);
-
-void* runtime_object_cpy(struct metac_runtime_object * p_runtime_object);
-void runtime_object_free(struct metac_runtime_object * p_runtime_object);
-
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
 		int i; \
@@ -35,7 +24,6 @@ void runtime_object_free(struct metac_runtime_object * p_runtime_object);
 		} \
 		printf("\n"); \
 	}while(0)
-
 /*
  * ideas for UT:
  * 1. objects of exported metatype
