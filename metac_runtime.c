@@ -801,7 +801,7 @@ static struct metac_runtime_object * build_runtime_object(
 	qsort(context.runtime_object->region,
 			context.runtime_object->regions_count,
 			sizeof(*(context.runtime_object->region)),
-			_compare_regions); /*TODO: change to hsort?*/
+			_compare_regions); /*TODO: change to hsort? - low prio so far*/
 
 	region = context.runtime_object->region[0];
 
@@ -1060,12 +1060,36 @@ int metac_copy(
 	return 0;
 }
 /*****************************************************************************/
-int metac_unpack(
-		void *ptr,
-		metac_byte_size_t size,
-		metac_precompiled_type_t * precompiled_type,
-		metac_count_t elements_count/*, p_dst, func and etc ToBeAdded */) {
-	//int i;
+#define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, elements, elements_count, _p_region_element, _elements_val, _elements_count_val) \
+	do { \
+		int i; \
+		struct region_element_type_element ** elements = _elements_val; \
+		int elements_count = _elements_count_val; \
+		for (i = 0; i < elements_count; ++i) { \
+			if (region_element_precondition_is_true(p_region_element, &(elements[i]->precondition)))
+#define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE \
+		} \
+	}while(0)
+static int _get_region_element_type_element_count(
+		struct region_element * p_region_element,
+		struct region_element_type_element ** elements_,
+		int elements_count) {
+	int res = 0;
+	_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, elements, elements_count, p_region_element, elements, elements_count) {
+		++res;
+	}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
+	return res;
+}
+
+/*****************************************************************************/
+int metac_visit(
+	void *ptr,
+	metac_byte_size_t size,
+	metac_precompiled_type_t * precompiled_type,
+	metac_count_t elements_count,
+	struct metac_visitor * p_visitor) {
+	int i, j, k;
+	int h, e, b, p, a;
 	struct metac_runtime_object * p_runtime_object;
 
 	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
@@ -1074,5 +1098,140 @@ int metac_unpack(
 		return -EFAULT;
 	}
 
-	return -EFAULT;
+	if (p_visitor != NULL) {
+		if (p_visitor->start != NULL) {
+			p_visitor->start(
+					p_visitor,
+					p_runtime_object->regions_count,
+					p_runtime_object->unique_regions_count);
+		}
+		/* go through all regions */
+		for (i = 0; i < p_runtime_object->regions_count; ++i) {
+			if (p_visitor->region != NULL) {
+				p_visitor->region(
+						p_visitor,
+						i,
+						p_runtime_object->region[i]->ptr,
+						p_runtime_object->region[i]->byte_size,
+						p_runtime_object->region[i]->elements_count);
+			}
+
+			if (p_runtime_object->region[i]->part_of_region == NULL) {
+				if (p_visitor->unique_region) {
+					p_visitor->unique_region(
+							p_visitor,
+							i,
+							p_runtime_object->region[i]->unique_region_id);
+				}
+			}else{
+				if (p_visitor->non_unique_region) {
+					p_visitor->non_unique_region(
+							p_visitor,
+							i,
+							p_runtime_object->region[i]->location.region_idx,
+							p_runtime_object->region[i]->location.offset);
+				}
+			}
+		}
+		/* go through all region elements */
+		for (i = 0; i < p_runtime_object->regions_count; ++i) {
+			for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
+				h = _get_region_element_type_element_count(
+						&p_runtime_object->region[i]->elements[j],
+						p_runtime_object->region[i]->elements[j].region_element_type->hierarchy_element,
+						p_runtime_object->region[i]->elements[j].region_element_type->hierarchy_elements_count);
+				e = _get_region_element_type_element_count(
+						&p_runtime_object->region[i]->elements[j],
+						p_runtime_object->region[i]->elements[j].region_element_type->enum_type_element,
+						p_runtime_object->region[i]->elements[j].region_element_type->enum_type_elements_count);
+				b = _get_region_element_type_element_count(
+						&p_runtime_object->region[i]->elements[j],
+						p_runtime_object->region[i]->elements[j].region_element_type->base_type_element,
+						p_runtime_object->region[i]->elements[j].region_element_type->base_type_elements_count);
+				p = _get_region_element_type_element_count(
+						&p_runtime_object->region[i]->elements[j],
+						p_runtime_object->region[i]->elements[j].region_element_type->pointer_type_element,
+						p_runtime_object->region[i]->elements[j].region_element_type->pointer_type_elements_count);
+				a = _get_region_element_type_element_count(
+						&p_runtime_object->region[i]->elements[j],
+						p_runtime_object->region[i]->elements[j].region_element_type->array_type_element,
+						p_runtime_object->region[i]->elements[j].region_element_type->array_type_elements_count);
+
+				if (p_visitor->region_element) {
+					p_visitor->region_element(
+							p_visitor,
+							i,
+							j,
+							p_runtime_object->region[i]->elements[j].region_element_type->type,
+							p_runtime_object->region[i]->elements[j].ptr,
+							p_runtime_object->region[i]->elements[j].byte_size,
+							h, e, b, p, a);
+				}
+			}
+		}
+		/* go through all region element elements */
+		if (p_visitor->region_element_element) {
+			for (i = 0; i < p_runtime_object->regions_count; ++i) {
+				for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
+					int _n;
+					struct region_element * p_region_element = &p_runtime_object->region[i]->elements[j];
+
+					struct _rees_visit_plan {
+						enum region_element_element_subtype subtype;
+						struct region_element_type_element ** elements;
+						int elements_count;
+					} visit_plan[] = { {
+							reesHierarchy,
+							p_region_element->region_element_type->hierarchy_element,
+							p_region_element->region_element_type->hierarchy_elements_count,
+						}, {
+							reesEnum,
+							p_region_element->region_element_type->enum_type_element,
+							p_region_element->region_element_type->enum_type_elements_count,
+						}, {
+							reesBasic,
+							p_region_element->region_element_type->base_type_element,
+							p_region_element->region_element_type->base_type_elements_count,
+						}, {
+							reesPointer,
+							p_region_element->region_element_type->pointer_type_element,
+							p_region_element->region_element_type->pointer_type_elements_count,
+						}, {
+							reesArray,
+							p_region_element->region_element_type->array_type_element,
+							p_region_element->region_element_type->array_type_elements_count,
+						},
+					};
+
+					for (k = 0; k < sizeof(visit_plan)/sizeof(visit_plan[0]); ++k) {
+						_n = 0;
+						_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(
+								ee,
+								elements,
+								elements_count,
+								p_region_element,
+								visit_plan[k].elements,
+								visit_plan[k].elements_count) {
+							p_visitor->region_element_element(
+									p_visitor,
+									i,
+									j,
+									visit_plan[k].subtype,
+									_n,
+									elements[ee]->type,
+									p_region_element->ptr + elements[ee]->offset,
+									elements[ee]->byte_size,
+									elements[ee]->name_local,
+									elements[ee]->path_within_region_element
+									);
+							++_n;
+						}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
+					}
+				}
+			}
+		}
+	}
+
+	free_runtime_object(&p_runtime_object);
+	return 0;
 }

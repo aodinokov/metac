@@ -249,14 +249,75 @@ int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * pre
 /* destruction */
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 
+/* C-type->some format - generic serialization*/
+enum region_element_element_subtype {
+	reesHierarchy = 1,
+	reesEnum = 2,
+	reesBasic = 4,
+	reesPointer = 8,
+	reesArray = 16,
+};
+struct metac_visitor {
+	void (*start)(
+			struct metac_visitor *p_visitor,
+			metac_count_t regions_count,
+			metac_count_t unique_regions_count
+			);
+	void (*region)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			void *ptr,
+			metac_byte_size_t byte_size,
+			metac_count_t elements_count
+			);
+	void (*unique_region)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			metac_count_t u_idx
+			);
+	void (*non_unique_region)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			metac_count_t u_idx,
+			metac_data_member_location_t offset
+			);
+	void (*region_element)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			metac_type_t * type,
+			void *ptr,
+			metac_byte_size_t byte_size,
+			int h, int e, int b, int p, int a	/*number of different C objects (Hierarchy, enums, basic, pointers, arrays */
+			);
+	void (*region_element_element)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			enum region_element_element_subtype subtype,
+			metac_count_t ee_id,
+			metac_type_t * type,
+			void *ptr,
+			metac_byte_size_t byte_size,
+			char * name_local,
+			char * path_within_region_element
+			);
+};
+int metac_visit(
+	void *ptr,
+	metac_byte_size_t size,
+	metac_precompiled_type_t * precompiled_type,
+	metac_count_t elements_count,
+	/*possible: sequence of visit within region_elements - naturally desc or per sub-type */
+	struct metac_visitor * p_visitor);
+
+
 /* constructor */
 ///* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
 //int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
 //		void **p_ptr, metac_byte_size_t * p_size);
 /*some format -> C-type - generic de-serialization*/
 int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
-/* C-type->some format - generic serialization*/
-int metac_unpack(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count/*, p_dst, func and etc ToBeAdded */);
 /*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {
