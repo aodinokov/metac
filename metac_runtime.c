@@ -1060,22 +1060,20 @@ int metac_copy(
 	return 0;
 }
 /*****************************************************************************/
-#define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, elements, elements_count, _p_region_element, _elements_val, _elements_count_val) \
+#define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, _p_region_element, _elements, _elements_count) \
 	do { \
 		int i; \
-		struct region_element_type_element ** elements = _elements_val; \
-		int elements_count = _elements_count_val; \
-		for (i = 0; i < elements_count; ++i) { \
-			if (region_element_precondition_is_true(p_region_element, &(elements[i]->precondition)))
+		for (i = 0; i < _elements_count; ++i) { \
+			if (region_element_precondition_is_true(p_region_element, &(_elements[i]->precondition)))
 #define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE \
 		} \
 	}while(0)
 static int _get_region_element_type_element_count(
 		struct region_element * p_region_element,
-		struct region_element_type_element ** elements_,
+		struct region_element_type_element ** elements,
 		int elements_count) {
 	int res = 0;
-	_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, elements, elements_count, p_region_element, elements, elements_count) {
+	_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, p_region_element, elements, elements_count) {
 		++res;
 	}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
 	return res;
@@ -1087,6 +1085,8 @@ int metac_visit(
 	metac_byte_size_t size,
 	metac_precompiled_type_t * precompiled_type,
 	metac_count_t elements_count,
+	metac_region_ee_subtype_t *subtypes_sequence,
+	int subtypes_sequence_lenth,
 	struct metac_visitor * p_visitor) {
 	int i, j, k;
 	int h, e, b, p, a;
@@ -1175,48 +1175,60 @@ int metac_visit(
 				for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
 					int _n;
 					struct region_element * p_region_element = &p_runtime_object->region[i]->elements[j];
-
-					struct _rees_visit_plan {
-						enum region_element_element_subtype subtype;
-						struct region_element_type_element ** elements;
-						int elements_count;
-					} visit_plan[] = { {
-							reesHierarchy,
-							p_region_element->region_element_type->hierarchy_element,
-							p_region_element->region_element_type->hierarchy_elements_count,
-						}, {
-							reesEnum,
-							p_region_element->region_element_type->enum_type_element,
-							p_region_element->region_element_type->enum_type_elements_count,
-						}, {
-							reesBasic,
-							p_region_element->region_element_type->base_type_element,
-							p_region_element->region_element_type->base_type_elements_count,
-						}, {
-							reesPointer,
-							p_region_element->region_element_type->pointer_type_element,
-							p_region_element->region_element_type->pointer_type_elements_count,
-						}, {
-							reesArray,
-							p_region_element->region_element_type->array_type_element,
-							p_region_element->region_element_type->array_type_elements_count,
-						},
+					static metac_region_ee_subtype_t default_subtypes_sequence[] = {
+						reesHierarchy,
+						reesEnum,
+						reesBase,
+						reesPointer,
+						reesArray,
 					};
+					struct region_element_type_element ** elements;
+					int elements_count;
 
-					for (k = 0; k < sizeof(visit_plan)/sizeof(visit_plan[0]); ++k) {
+					if (subtypes_sequence == NULL) {
+						subtypes_sequence = default_subtypes_sequence;
+						subtypes_sequence_lenth =
+								sizeof(default_subtypes_sequence)/sizeof(default_subtypes_sequence[0]);
+					}
+
+					for (k = 0; k < subtypes_sequence_lenth; ++k) {
+						switch(subtypes_sequence[k]){
+						case reesOriginal:
+							elements = p_region_element->region_element_type->element;
+							elements_count = p_region_element->region_element_type->elements_count;
+							break;
+						case reesHierarchy:
+							elements = p_region_element->region_element_type->hierarchy_element;
+							elements_count = p_region_element->region_element_type->hierarchy_elements_count;
+							break;
+						case reesEnum:
+							elements = p_region_element->region_element_type->enum_type_element;
+							elements_count = p_region_element->region_element_type->enum_type_elements_count;
+							break;
+						case reesBase:
+							elements = p_region_element->region_element_type->base_type_element;
+							elements_count = p_region_element->region_element_type->base_type_elements_count;
+							break;
+						case reesPointer:
+							elements = p_region_element->region_element_type->pointer_type_element;
+							elements_count = p_region_element->region_element_type->pointer_type_elements_count;
+							break;
+						case reesArray:
+							elements = p_region_element->region_element_type->array_type_element;
+							elements_count = p_region_element->region_element_type->array_type_elements_count;
+							break;
+						}
 						_n = 0;
 						_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(
 								ee,
-								elements,
-								elements_count,
 								p_region_element,
-								visit_plan[k].elements,
-								visit_plan[k].elements_count) {
+								elements,
+								elements_count) {
 							p_visitor->region_element_element(
 									p_visitor,
 									i,
 									j,
-									visit_plan[k].subtype,
+									subtypes_sequence[k],
 									_n,
 									elements[ee]->type,
 									p_region_element->ptr + elements[ee]->offset,

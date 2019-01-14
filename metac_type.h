@@ -250,13 +250,14 @@ int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * pre
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 
 /* C-type->some format - generic serialization*/
-enum region_element_element_subtype {
-	reesHierarchy = 1,
-	reesEnum = 2,
-	reesBasic = 4,
-	reesPointer = 8,
-	reesArray = 16,
-};
+typedef enum _metac_region_element_element_subtype {
+	reesOriginal = 0,
+	reesHierarchy,
+	reesEnum,
+	reesBase,
+	reesPointer,
+	reesArray,
+}metac_region_ee_subtype_t;
 struct metac_visitor {
 	void (*start)(
 			struct metac_visitor *p_visitor,
@@ -294,7 +295,7 @@ struct metac_visitor {
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t e_id,
-			enum region_element_element_subtype subtype,
+			metac_region_ee_subtype_t subtype,
 			metac_count_t ee_id,
 			metac_type_t * type,
 			void *ptr,
@@ -308,7 +309,8 @@ int metac_visit(
 	metac_byte_size_t size,
 	metac_precompiled_type_t * precompiled_type,
 	metac_count_t elements_count,
-	/*possible: sequence of visit within region_elements - naturally desc or per sub-type */
+	metac_region_ee_subtype_t *subtypes_sequence,
+	int subtypes_sequence_lenth,
 	struct metac_visitor * p_visitor);
 
 
