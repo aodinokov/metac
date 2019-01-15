@@ -85,6 +85,109 @@ bug_with_unspecified_parameters 1
 /*****************************************************************************/
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
 METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
+/*****************************************************************************/
+static struct metac_visitor _basic_visitor;
+static void _visitor_start(
+		struct metac_visitor *p_visitor,
+		metac_count_t regions_count,
+		metac_count_t unique_regions_count
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_start: regions_count %d, unique_regions_count %d\n",
+			(int)regions_count,
+			(int)unique_regions_count);
+}
+static void _visitor_region(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		metac_count_t elements_count
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_region: r_id %d, ptr %p, byte_size %d, elements_count %d\n",
+			(int)r_id,
+			ptr,
+			(int)byte_size,
+			(int)elements_count);
+}
+static void _visitor_unique_region(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t u_idx
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_unique_region: r_id %d, u_idx %d\n",
+			(int)r_id,
+			(int)u_idx);
+}
+static void _visitor_non_unique_region(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t u_idx,
+		metac_data_member_location_t offset
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_non_unique_region: r_id %d, u_idx %d, offset %d\n",
+			(int)r_id,
+			(int)u_idx,
+			(int)offset);
+}
+static void _visitor_region_element(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_type_t * type,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		int * real_count_array, /*array with real number of elements_elements for each item in subtypes_sequence*/
+		int subtypes_sequence_lenth
+		) {
+	int i;
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, subtypes_sequence_lenth %d real_count_array",
+			(int)r_id,
+			(int)e_id,
+			ptr,
+			(int)byte_size,
+			(int)subtypes_sequence_lenth);
+	for (i = 0; i < subtypes_sequence_lenth; ++i)
+		printf(" %d", real_count_array[i]);
+	printf("\n");
+
+}
+static void _visitor_region_element_element(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_region_ee_subtype_t subtype,
+		metac_count_t ee_id,
+		metac_type_t * type,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		char * name_local,
+		char * path_within_region_element
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_region_element_element: r_id %d, e_id %d, subtype %d, ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
+			(int)r_id,
+			(int)e_id,
+			(int)subtype,
+			(int)ee_id,
+			ptr,
+			(int)byte_size,
+			name_local,
+			path_within_region_element);
+}
+static struct metac_visitor _basic_visitor = {
+		.start = _visitor_start,
+		.region = _visitor_region,
+		.non_unique_region = _visitor_non_unique_region,
+		.unique_region = _visitor_unique_region,
+		.region_element = _visitor_region_element,
+		.region_element_element = _visitor_region_element_element,
+};
+/*****************************************************************************/
 
 #define GENERAL_TYPE_CHECK_INIT(_type_) do { \
 		/*need to use the type, in the opposite case we'll not get type definintion in DWARF*/ \
@@ -138,12 +241,12 @@ do {\
 			_type_ x; \
 			_type_ *copy; \
 			memset(&x, 0, sizeof(x)); \
+			fail_unless(metac_visit(&x, sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed"); \
 			fail_unless(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
 			fail_unless(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
 			metac_free_precompiled_type(&precompiled_type); \
 		} \
 	}while(0)
-
 #define GENERAL_TYPE_CHECK(_type_, _id_, _n_td_id_, _spec_key_, _spec_val_) \
 	mark_point(); \
 	GENERAL_TYPE_CHECK_INIT(_type_); \
