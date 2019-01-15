@@ -289,7 +289,8 @@ struct metac_visitor {
 			metac_type_t * type,
 			void *ptr,
 			metac_byte_size_t byte_size,
-			int h, int e, int b, int p, int a	/*number of different C objects (Hierarchy, enums, basic, pointers, arrays */
+			int * real_count_array, /*array with real number of elements_elements for each item in subtypes_sequence*/
+			int subtypes_sequence_lenth
 			);
 	void (*region_element_element)(
 			struct metac_visitor *p_visitor,
