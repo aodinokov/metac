@@ -19,8 +19,11 @@
 #endif /*  #ifdef __cplusplus */
 
 /*TODO: to use some logging lib */
-#define msg_stddbg(_fmt, ...) //fprintf(stderr, "DBG:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
-//#define msg_stddbg(_fmt, ...) fprintf(stderr, "DBG:" /* __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__*/ _fmt, ##__VA_ARGS__)
+#ifdef METAC_DEBUG_ENABLE
+#define msg_stddbg(_fmt, ...) fprintf(stderr, "DBG:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
+#else
+#define msg_stddbg(_fmt, ...)
+#endif
 #define msg_stderr(_fmt, ...) fprintf(stderr, "ERR:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
 
 

@@ -1118,6 +1118,7 @@ static int _get_region_element_type_element_info(
 }
 
 /*****************************************************************************/
+/*TBD: handle errors from callbacks*/
 int metac_visit(
 	void *ptr,
 	metac_byte_size_t size,

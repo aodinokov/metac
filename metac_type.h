@@ -259,30 +259,30 @@ typedef enum _metac_region_element_element_subtype {
 	reesArray,
 }metac_region_ee_subtype_t;
 struct metac_visitor {
-	void (*start)(
+	int (*start)(
 			struct metac_visitor *p_visitor,
 			metac_count_t regions_count,
 			metac_count_t unique_regions_count
 			);
-	void (*region)(
+	int (*region)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			void *ptr,
 			metac_byte_size_t byte_size,
 			metac_count_t elements_count
 			);
-	void (*unique_region)(
+	int (*unique_region)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t u_idx
 			);
-	void (*non_unique_region)(
+	int (*non_unique_region)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t u_idx,
 			metac_data_member_location_t offset
 			);
-	void (*region_element)(
+	int (*region_element)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t e_id,
@@ -292,7 +292,7 @@ struct metac_visitor {
 			int * real_count_array, /*array with real number of elements_elements for each item in subtypes_sequence*/
 			int subtypes_sequence_lenth
 			);
-	void (*region_element_element)(
+	int (*region_element_element)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t e_id,

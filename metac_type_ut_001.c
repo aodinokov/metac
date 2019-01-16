@@ -87,7 +87,7 @@ METAC_DECLARE_EXTERN_TYPES_ARRAY;
 METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 /*****************************************************************************/
 static struct metac_visitor _basic_visitor;
-static void _visitor_start(
+static int _visitor_start(
 		struct metac_visitor *p_visitor,
 		metac_count_t regions_count,
 		metac_count_t unique_regions_count
@@ -96,8 +96,9 @@ static void _visitor_start(
 	printf("_visitor_start: regions_count %d, unique_regions_count %d\n",
 			(int)regions_count,
 			(int)unique_regions_count);
+	return 0;
 }
-static void _visitor_region(
+static int _visitor_region(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		void *ptr,
@@ -110,8 +111,9 @@ static void _visitor_region(
 			ptr,
 			(int)byte_size,
 			(int)elements_count);
+	return 0;
 }
-static void _visitor_unique_region(
+static int _visitor_unique_region(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t u_idx
@@ -120,8 +122,9 @@ static void _visitor_unique_region(
 	printf("_visitor_unique_region: r_id %d, u_idx %d\n",
 			(int)r_id,
 			(int)u_idx);
+	return 0;
 }
-static void _visitor_non_unique_region(
+static int _visitor_non_unique_region(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t u_idx,
@@ -132,8 +135,9 @@ static void _visitor_non_unique_region(
 			(int)r_id,
 			(int)u_idx,
 			(int)offset);
+	return 0;
 }
-static void _visitor_region_element(
+static int _visitor_region_element(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t e_id,
@@ -154,9 +158,9 @@ static void _visitor_region_element(
 	for (i = 0; i < subtypes_sequence_lenth; ++i)
 		printf(" %d", real_count_array[i]);
 	printf("\n");
-
+	return 0;
 }
-static void _visitor_region_element_element(
+static int _visitor_region_element_element(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t e_id,
@@ -178,6 +182,7 @@ static void _visitor_region_element_element(
 			(int)byte_size,
 			name_local,
 			path_within_region_element);
+	return 0;
 }
 static struct metac_visitor _basic_visitor = {
 		.start = _visitor_start,
@@ -256,7 +261,7 @@ do {\
 			_type_ x; \
 			json_object * p_json = NULL;\
 			memset(&x, 0, sizeof(x)); \
-			fail_unless(metac_unpack_to_json(&x, sizeof(x), precompiled_type, 1, NULL, 0, &p_json) == 0, "metac_pack2json failed"); \
+			fail_unless(metac_unpack_to_json(&x, sizeof(x), precompiled_type, 1, &p_json) == 0, "metac_pack2json failed"); \
 			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
 			json_object_put(p_json); \
 			metac_free_precompiled_type(&precompiled_type); \
@@ -271,7 +276,8 @@ do {\
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
-	GENERAL_TYPE_CHECK_PRECOMILED(_type_);
+	GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
+	GENERAL_TYPE_CHECK_JSON_UNPACK_PACK(_type_);
 
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
