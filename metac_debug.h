@@ -19,7 +19,7 @@
 #endif /*  #ifdef __cplusplus */
 
 /*TODO: to use some logging lib */
-#define msg_stddbg(_fmt, ...) fprintf(stderr, "DBG:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
+#define msg_stddbg(_fmt, ...) //fprintf(stderr, "DBG:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
 //#define msg_stddbg(_fmt, ...) fprintf(stderr, "DBG:" /* __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__*/ _fmt, ##__VA_ARGS__)
 #define msg_stderr(_fmt, ...) fprintf(stderr, "ERR:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
 

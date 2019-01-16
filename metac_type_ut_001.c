@@ -9,7 +9,7 @@
 #include "check_ext.h"
 #include "metac_type.h"
 
-#include "metac_precompiled_type_int.h" /*temporary: to make ut for runtime object*/
+#include "metac_json.h"
 
 #include <dlfcn.h>
 #include <complex.h>	/*complex*/
@@ -244,6 +244,21 @@ do {\
 			fail_unless(metac_visit(&x, sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed"); \
 			fail_unless(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
 			fail_unless(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
+			metac_free_precompiled_type(&precompiled_type); \
+		} \
+	}while(0)
+#define GENERAL_TYPE_CHECK_JSON_PACK(_type_) \
+do {\
+		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
+		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+		if (precompiled_type != NULL) { \
+			_type_ x; \
+			json_object * p_json = NULL;\
+			memset(&x, 0, sizeof(x)); \
+			fail_unless(metac_pack2json(&x, sizeof(x), precompiled_type, 1, NULL, 0, &p_json) == 0, "metac_pack2json failed"); \
+			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+			json_object_put(p_json); \
 			metac_free_precompiled_type(&precompiled_type); \
 		} \
 	}while(0)
