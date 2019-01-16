@@ -1104,6 +1104,7 @@ START_TEST(metac_type_t_ut) {
 		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
 		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
 
+		fail_unless(metac_visit(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
 		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
@@ -1155,6 +1156,7 @@ START_TEST(basic_tree_t_ut) {
 				.desc = {&l, &r, },
 			};
 
+			fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
 			fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
 
 			fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
