@@ -247,7 +247,7 @@ do {\
 			metac_free_precompiled_type(&precompiled_type); \
 		} \
 	}while(0)
-#define GENERAL_TYPE_CHECK_JSON_PACK(_type_) \
+#define GENERAL_TYPE_CHECK_JSON_UNPACK_PACK(_type_) \
 do {\
 		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
@@ -256,7 +256,7 @@ do {\
 			_type_ x; \
 			json_object * p_json = NULL;\
 			memset(&x, 0, sizeof(x)); \
-			fail_unless(metac_pack2json(&x, sizeof(x), precompiled_type, 1, NULL, 0, &p_json) == 0, "metac_pack2json failed"); \
+			fail_unless(metac_unpack_to_json(&x, sizeof(x), precompiled_type, 1, NULL, 0, &p_json) == 0, "metac_pack2json failed"); \
 			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
 			json_object_put(p_json); \
 			metac_free_precompiled_type(&precompiled_type); \
