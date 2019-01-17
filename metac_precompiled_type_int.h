@@ -26,6 +26,7 @@ struct discriminator {
 struct region_element_type_element {
 	struct condition precondition;			/*precondition for this region element*/
 
+	int id;										/* index in the region_element_type. needed to find parents quickier */
 	struct metac_type * type;					/*type without intermediate types (typdefs, consts &etc)*/
 	struct region_element_type_element * parent;		/*pointer to the parent element (structure/union)*/
 

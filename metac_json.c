@@ -33,7 +33,7 @@ struct json_visitor {
 	struct region ** unique_regions;
 	metac_count_t unique_regions_count;
 };
-
+/*****************************************************************************/
 static void json_visitor_cleanup(struct json_visitor * json_visitor) {
 
 	if (json_visitor->unique_regions != NULL) {
@@ -53,7 +53,9 @@ static void json_visitor_cleanup(struct json_visitor * json_visitor) {
 		json_visitor->regions = NULL;
 	}
 }
+/*****************************************************************************/
 
+/*****************************************************************************/
 static int json_visitor_start(
 		struct metac_visitor *p_visitor,
 		metac_count_t regions_count,
@@ -94,13 +96,6 @@ static int json_visitor_region(
 	json_visitor->regions[r_id].byte_size = byte_size;
 	json_visitor->regions[r_id].elements_count = elements_count;
 
-	json_visitor->regions[r_id].p_json_object = json_object_new_array();
-	if (json_visitor->regions[r_id].p_json_object == NULL) {
-		msg_stderr("Can't allocate memory\n");
-		json_visitor_cleanup(json_visitor);
-		return -ENOMEM;
-	}
-
 	return 0;
 }
 static int json_visitor_unique_region(
@@ -114,6 +109,14 @@ static int json_visitor_unique_region(
 
 	json_visitor->regions[r_id].u_idx = u_idx;
 	json_visitor->unique_regions[u_idx] = &json_visitor->regions[r_id];
+
+	json_visitor->regions[r_id].p_json_object = json_object_new_array();
+	if (json_visitor->regions[r_id].p_json_object == NULL) {
+		msg_stderr("Can't allocate memory\n");
+		json_visitor_cleanup(json_visitor);
+		return -ENOMEM;
+	}
+
 	return 0;
 }
 static int json_visitor_non_unique_region(
@@ -138,7 +141,8 @@ static int json_visitor_region_element(
 		metac_type_t * type,
 		void *ptr,
 		metac_byte_size_t byte_size,
-		int * real_count_array,
+		int real_region_element_element_count,
+		int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
 		int subtypes_sequence_lenth
 		) {
 	struct json_visitor * json_visitor = cds_list_entry(p_visitor, struct json_visitor, visitor);
@@ -149,8 +153,8 @@ static int json_visitor_region_element_element(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t e_id,
-		metac_region_ee_subtype_t subtype,
 		metac_count_t ee_id,
+		metac_count_t parent_ee_id,
 		metac_type_t * type,
 		void *ptr,
 		metac_byte_size_t byte_size,

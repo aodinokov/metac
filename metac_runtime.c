@@ -4,6 +4,9 @@
  *  Created on: Apr 1, 2018
  *      Author: mralex
  */
+
+//#define METAC_DEBUG_ENABLE
+
 #include "metac_type.h"
 #include "metac_precompiled_type_int.h"	/*definitions of internal objects*/
 #include "metac_debug.h"	/* msg_stderr, ...*/
@@ -1085,10 +1088,6 @@ static int _get_region_element_type_element_info(
 		int * p_elements_count) {
 	assert(ppp_elements && p_elements_count);
 	switch(subtype){
-	case reesOriginal:
-		*ppp_elements = p_region_element_type->element;
-		*p_elements_count = p_region_element_type->elements_count;
-		break;
 	case reesHierarchy:
 		*ppp_elements = p_region_element_type->hierarchy_element;
 		*p_elements_count = p_region_element_type->hierarchy_elements_count;
@@ -1109,10 +1108,11 @@ static int _get_region_element_type_element_info(
 		*ppp_elements = p_region_element_type->array_type_element;
 		*p_elements_count = p_region_element_type->array_type_elements_count;
 		break;
+	case reesAll:
 	default:
-		msg_stderr("Invalid subtype %d\n", (int)subtype);
-		assert(0);
-		return -EINVAL;
+		*ppp_elements = p_region_element_type->element;
+		*p_elements_count = p_region_element_type->elements_count;
+		break;
 	}
 	return 0;
 }
@@ -1136,6 +1136,7 @@ int metac_visit(
 		reesArray,
 	};
 	struct metac_runtime_object * p_runtime_object;
+	int real_region_element_element_count;
 	int * real_count_array;
 
 	if (subtypes_sequence == NULL) {
@@ -1194,16 +1195,22 @@ int metac_visit(
 		if (p_visitor->region_element) {
 			for (i = 0; i < p_runtime_object->regions_count; ++i) {
 				for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
-					if (real_count_array == NULL) {
-						msg_stderr("Error while building runtime object\n");
-						free_runtime_object(&p_runtime_object);
-						return -ENOMEM;
-					}
-					for (k = 0; k < subtypes_sequence_lenth; ++k) {
-						struct region_element * p_region_element = &p_runtime_object->region[i]->elements[j];
-						struct region_element_type_element ** elements;
-						int elements_count;
+					struct region_element * p_region_element = &p_runtime_object->region[i]->elements[j];
+					struct region_element_type_element ** elements;
+					int elements_count;
 
+					_get_region_element_type_element_info(
+							p_region_element->region_element_type,
+							reesAll,
+							&elements,
+							&elements_count);
+
+					real_region_element_element_count = _get_region_element_type_element_count(
+							p_region_element,
+							elements,
+							elements_count);
+
+					for (k = 0; k < subtypes_sequence_lenth; ++k) {
 						_get_region_element_type_element_info(
 								p_region_element->region_element_type,
 								subtypes_sequence[k],
@@ -1223,20 +1230,75 @@ int metac_visit(
 							p_runtime_object->region[i]->elements[j].region_element_type->type,
 							p_runtime_object->region[i]->elements[j].ptr,
 							p_runtime_object->region[i]->elements[j].byte_size,
+							real_region_element_element_count,
 							real_count_array,
 							subtypes_sequence_lenth);
 				}
 			}
 		}
 		/* go through all region element elements */
-		if (p_visitor->region_element_element) {
-			for (i = 0; i < p_runtime_object->regions_count; ++i) {
-				for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
-					int _n;
-					struct region_element * p_region_element = &p_runtime_object->region[i]->elements[j];
-					struct region_element_type_element ** elements;
-					int elements_count;
+		for (i = 0; i < p_runtime_object->regions_count; ++i) {
+			int _n;
+			struct region_element * p_region_element = &p_runtime_object->region[i]->elements[0];
+			struct region_element_type_element ** elements;
+			int elements_count;
+			/*real_ids array will be the same size because all elements in array has that same type*/
+			msg_stddbg("allocating %d elements\n", p_region_element->region_element_type->elements_count);
+			metac_count_t * elements_elements_real_ids = calloc(p_region_element->region_element_type->elements_count, sizeof(metac_count_t));
+			if (elements_elements_real_ids == NULL) {
+				msg_stderr("Error while allocation array for elements_elements_real_ids %d size\n",
+						(int)p_region_element->region_element_type->elements_count);
+				if (real_count_array != NULL)
+					free(real_count_array);
+				free_runtime_object(&p_runtime_object);
+				return -ENOMEM;
+			}
 
+			for (j = 0; j < p_runtime_object->region[i]->elements_count; ++j) {
+				p_region_element = &p_runtime_object->region[i]->elements[j];
+
+				memset(elements_elements_real_ids, 0, p_region_element->region_element_type->elements_count * sizeof(metac_count_t));
+
+				_get_region_element_type_element_info(
+						p_region_element->region_element_type,
+						reesAll,
+						&elements,
+						&elements_count);
+
+				_n = 0;
+				_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(
+						ee,
+						p_region_element,
+						elements,
+						elements_count) {
+					elements_elements_real_ids[ee] = _n;
+					++_n;
+				}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
+
+				if (p_visitor->region_element_element) {
+					_n = 0;
+					_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(
+							ee,
+							p_region_element,
+							elements,
+							elements_count) {
+						p_visitor->region_element_element(
+								p_visitor,
+								i,
+								j,
+								_n,
+								elements[ee]->parent!=NULL?elements_elements_real_ids[elements[ee]->parent->id]:-1,
+								elements[ee]->type,
+								p_region_element->ptr + elements[ee]->offset,
+								elements[ee]->byte_size,
+								elements[ee]->name_local,
+								elements[ee]->path_within_region_element
+								);
+						++_n;
+					}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
+				}
+
+				if (p_visitor->region_element_element_per_subtype != NULL) {
 					for (k = 0; k < subtypes_sequence_lenth; ++k) {
 						_get_region_element_type_element_info(
 								p_region_element->region_element_type,
@@ -1249,23 +1311,20 @@ int metac_visit(
 								p_region_element,
 								elements,
 								elements_count) {
-							p_visitor->region_element_element(
+							p_visitor->region_element_element_per_subtype(
 									p_visitor,
 									i,
 									j,
+									elements_elements_real_ids[elements[ee]->id],
 									subtypes_sequence[k],
-									_n,
-									elements[ee]->type,
-									p_region_element->ptr + elements[ee]->offset,
-									elements[ee]->byte_size,
-									elements[ee]->name_local,
-									elements[ee]->path_within_region_element
+									_n
 									);
 							++_n;
 						}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
 					}
 				}
 			}
+			free(elements_elements_real_ids);
 		}
 	}
 

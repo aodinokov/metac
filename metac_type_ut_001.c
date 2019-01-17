@@ -144,19 +144,21 @@ static int _visitor_region_element(
 		metac_type_t * type,
 		void *ptr,
 		metac_byte_size_t byte_size,
-		int * real_count_array, /*array with real number of elements_elements for each item in subtypes_sequence*/
+		int real_region_element_element_count,
+		int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
 		int subtypes_sequence_lenth
 		) {
 	int i;
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, subtypes_sequence_lenth %d real_count_array",
+	printf("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, real_region_element_element_count %d, subtypes_sequence_lenth %d real_count_array_per_type",
 			(int)r_id,
 			(int)e_id,
 			ptr,
 			(int)byte_size,
+			(int)real_region_element_element_count,
 			(int)subtypes_sequence_lenth);
 	for (i = 0; i < subtypes_sequence_lenth; ++i)
-		printf(" %d", real_count_array[i]);
+		printf(" %d", real_count_array_per_type[i]);
 	printf("\n");
 	return 0;
 }
@@ -164,8 +166,8 @@ static int _visitor_region_element_element(
 		struct metac_visitor *p_visitor,
 		metac_count_t r_id,
 		metac_count_t e_id,
-		metac_region_ee_subtype_t subtype,
 		metac_count_t ee_id,
+		metac_count_t parent_ee_id,
 		metac_type_t * type,
 		void *ptr,
 		metac_byte_size_t byte_size,
@@ -173,15 +175,33 @@ static int _visitor_region_element_element(
 		char * path_within_region_element
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region_element_element: r_id %d, e_id %d, subtype %d, ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
+	printf("_visitor_region_element_element: r_id %d, e_id %d, ee_id %d, parent_ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
 			(int)r_id,
 			(int)e_id,
-			(int)subtype,
 			(int)ee_id,
+			(int)parent_ee_id,
 			ptr,
 			(int)byte_size,
 			name_local,
 			path_within_region_element);
+	return 0;
+}
+int _visitor_region_element_element_per_subtype(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_count_t ee_id,
+		metac_region_ee_subtype_t subtype,
+		metac_count_t see_id
+		) {
+	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
+	printf("_visitor_region_element_element: r_id %d, e_id %d, ee_id %d, subtype %d, see_id %d\n",
+			(int)r_id,
+			(int)e_id,
+			(int)ee_id,
+			(int)subtype,
+			(int)see_id
+	);
 	return 0;
 }
 static struct metac_visitor _basic_visitor = {
@@ -191,6 +211,7 @@ static struct metac_visitor _basic_visitor = {
 		.unique_region = _visitor_unique_region,
 		.region_element = _visitor_region_element,
 		.region_element_element = _visitor_region_element_element,
+		.region_element_element_per_subtype = _visitor_region_element_element_per_subtype,
 };
 /*****************************************************************************/
 

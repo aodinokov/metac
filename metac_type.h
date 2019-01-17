@@ -251,7 +251,7 @@ int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * p
 
 /* C-type->some format - generic serialization*/
 typedef enum _metac_region_element_element_subtype {
-	reesOriginal = 0,
+	reesAll = 0,
 	reesHierarchy,
 	reesEnum,
 	reesBase,
@@ -289,20 +289,29 @@ struct metac_visitor {
 			metac_type_t * type,
 			void *ptr,
 			metac_byte_size_t byte_size,
-			int * real_count_array, /*array with real number of elements_elements for each item in subtypes_sequence*/
+			int real_region_element_element_count,
+			int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
 			int subtypes_sequence_lenth
 			);
 	int (*region_element_element)(
 			struct metac_visitor *p_visitor,
 			metac_count_t r_id,
 			metac_count_t e_id,
-			metac_region_ee_subtype_t subtype,
 			metac_count_t ee_id,
+			metac_count_t parent_ee_id,
 			metac_type_t * type,
 			void *ptr,
 			metac_byte_size_t byte_size,
 			char * name_local,
 			char * path_within_region_element
+			);
+	int (*region_element_element_per_subtype)(
+			struct metac_visitor *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			metac_count_t ee_id,
+			metac_region_ee_subtype_t subtype,
+			metac_count_t see_id
 			);
 };
 int metac_visit(

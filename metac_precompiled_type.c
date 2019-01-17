@@ -39,6 +39,8 @@ static void dump_discriminator(FILE * file, struct discriminator * p_discriminat
 static void dump_region_element_type_element(FILE * file, struct region_element_type_element * p_region_element_type_element) {
 
 	fprintf(file, "\t\tregion_element_type_element {\n");
+	fprintf(file, "\t\t\tid %d\n", (int)p_region_element_type_element->id);
+	fprintf(file, "\t\t\tparent %p\n", p_region_element_type_element->parent);
 	if (p_region_element_type_element->precondition.p_discriminator) {
 		fprintf(file, "\t\t\tprecondition discriminator: %d, \n"
 				"\t\t\texpected value: %d\n",
@@ -678,7 +680,11 @@ static int _parse_type_task(
 			get_actual_type(p_precompile_task->type),
 			p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 			p_precompile_task->offset, p_precompile_task->byte_size,
-			p_precompile_task->parent_task != NULL?p_precompile_task->parent_task->region_element_type_element:NULL,
+			p_precompile_task->parent_task != NULL?
+					p_precompile_task->parent_task->_region_element_type == p_precompile_task->_region_element_type?
+							p_precompile_task->parent_task->region_element_type_element:
+							NULL:
+					NULL,
 			p_precompile_task->name_local, path_within_region, path_global, NULL, NULL, NULL);
 
 	free(path_global);
@@ -916,6 +922,7 @@ static int _phase2_put_elements_per_type(
 			++p_precompile_task->_region_element_type->p_region_element_type->hierarchy_elements_count;
 	}
 	p_precompile_task->_region_element_type->p_region_element_type->element[p_precompile_task->_region_element_type->p_region_element_type->elements_count] = p_precompile_task->region_element_type_element;
+	p_precompile_task->region_element_type_element->id = p_precompile_task->_region_element_type->p_region_element_type->elements_count;
 	++p_precompile_task->_region_element_type->p_region_element_type->elements_count;
 	return 0;
 }
