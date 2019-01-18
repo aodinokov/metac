@@ -999,7 +999,7 @@ static int _metac_type_t_discriminator_funtion(
 			case DW_TAG_array_type: *p_discriminator_val = 8; return 0;
 			}
 			printf("callback failed: can't find val for 0x%x\n", (int)metac_type_obj->id);
-			*p_discriminator_val = -1; /*there can be other values, but we don't mutch them with any union value*/
+			*p_discriminator_val = -1; /*there can be other values, but we don't match them with any union value*/
 			return 0; /*-1;*/
 		}else{
 			switch(*p_discriminator_val) {

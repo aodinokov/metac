@@ -73,7 +73,7 @@ static void dump_region_element_type(FILE * file, struct region_element_type * p
 	int i;
 	fprintf(file, "region_element_type %p {\n", p_region_element_type);
 	if (p_region_element_type->discriminators_count > 0) {
-		fprintf(file, "\tdescriminators: [\n");
+		fprintf(file, "\tdiscriminators: [\n");
 		for (i = 0 ; i < p_region_element_type->discriminators_count; i++) {
 			dump_discriminator(file, p_region_element_type->discriminator[i]);
 		}
@@ -147,6 +147,8 @@ struct precompile_task {
 	char *	name_local;
 	char *	given_name_local;
 	metac_data_member_location_t offset;
+	metac_bit_offset_t * p_bit_offset;
+	metac_bit_size_t * p_bit_size;
 	metac_byte_size_t byte_size;
 
 	/* runtime data */
@@ -563,6 +565,8 @@ static struct precompile_task* create_and_add_precompile_task(
 		char * name_local,
 		char * given_name_local,
 		metac_data_member_location_t offset,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size) {
 	struct precompile_task* p_task;
 
@@ -586,6 +590,8 @@ static struct precompile_task* create_and_add_precompile_task(
 	p_task->name_local = name_local!=NULL?strdup(name_local):NULL;
 	p_task->given_name_local = given_name_local!=NULL?strdup(given_name_local):NULL;
 	p_task->offset = offset;
+	p_task->p_bit_offset = p_bit_offset;
+	p_task->p_bit_size = p_bit_size;
 	p_task->byte_size = byte_size;
 
 	if (p_discriminator != NULL) {	/*copy precondition*/
@@ -720,6 +726,8 @@ static int _parse_type_task(
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
 					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
+					type->structure_type_info.members[i].p_bit_offset,
+					type->structure_type_info.members[i].p_bit_size,
 					metac_type_byte_size(type->structure_type_info.members[i].type)) == NULL) {
 				msg_stderr("create_and_add_precompile_task failed\n");
 				return -EFAULT;
@@ -763,14 +771,16 @@ static int _parse_type_task(
 					p_breadthfirst_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
-					type->structure_type_info.members[i].type,
+					type->union_type_info.members[i].type,
 					_parse_type_task,
 					_parse_type_task_destroy,
 					_discriminator->p_discriminator, i,
-					type->structure_type_info.members[i].name,
-					is_anon?anon_name:type->structure_type_info.members[i].name,
-					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
-					metac_type_byte_size(type->structure_type_info.members[i].type)) == NULL) {
+					type->union_type_info.members[i].name,
+					is_anon?anon_name:type->union_type_info.members[i].name,
+					p_precompile_task->offset + type->union_type_info.members[i].data_member_location,
+					type->union_type_info.members[i].p_bit_offset,
+					type->union_type_info.members[i].p_bit_size,
+					metac_type_byte_size(type->union_type_info.members[i].type)) == NULL) {
 				msg_stderr("create_and_add_precompile_task failed\n");
 				return -EFAULT;
 			}
@@ -856,6 +866,8 @@ static int _parse_type_task(
 					"",
 					"<ptr>", //p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<a_elem_n>", /*may be it's better to keep ptr for all cases*/
 					0,
+					NULL,
+					NULL,
 					metac_type_byte_size(array_elements_type)) == NULL) {
 				msg_stderr("create_and_add_precompile_task failed\n");
 				return -EFAULT;
@@ -1047,7 +1059,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 			type,
 			_parse_type_task,
 			_parse_type_task_destroy,
-			NULL, 0, "", "<ptr>", 0, metac_type_byte_size(type)) == NULL) {
+			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 		/*TBD: test if it's ok - not sure, because some of objects are not linked at that time*/
 		cleanup_precompile_context(&context);

@@ -31,6 +31,8 @@ struct region_element_type_element {
 	struct region_element_type_element * parent;		/*pointer to the parent element (structure/union)*/
 
 	metac_data_member_location_t offset;		/*offset in local region element*/
+	metac_bit_offset_t *	p_bit_offset;		/* bit offset - used only when bits were specified. Can be NULL */
+	metac_bit_size_t *		p_bit_size;			/* bit size - used only when bits were specified. Can be NULL */
 	metac_byte_size_t byte_size;				/*bite size*/
 
 	char *	name_local;							/* member name if exists */
