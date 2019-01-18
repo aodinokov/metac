@@ -14,13 +14,25 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <assert.h>			/* assert */
 
-struct region {
-	json_object * p_json_object;
+struct region_element {
+	metac_type_t * type;
 
 	void *ptr;
 	metac_byte_size_t byte_size;
+
+	int real_region_element_element_count;
+};
+
+struct region {
+	void *ptr;
+	metac_byte_size_t byte_size;
 	metac_count_t elements_count;
-	metac_count_t u_idx;	/*for non_unique only*/
+
+	/*for unique only*/
+	json_object * p_json_object;
+
+	/*for non_unique only*/
+	metac_count_t u_idx;
 	metac_data_member_location_t offset;
 };
 
@@ -54,15 +66,41 @@ static void json_visitor_cleanup(struct json_visitor * json_visitor) {
 	}
 }
 /*****************************************************************************/
+#define _COPY_FROM_BITFIELDS_(_ptr_, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
+	metac_bit_offset_t shift = \
+		(byte_size << 3) - ((_p_bit_size?(*_p_bit_size):0) + (_p_bit_offset?(*_p_bit_offset):0)); \
+	_type_ mask = ~(((_type_)_mask_) << (_p_bit_size?(*_p_bit_size):0)); \
+	_type_ _i = *((_type_*)(ptr)); \
+	_i = (_i >> shift) & mask; \
+	if ((_signed_) && (_i & (1 << (_p_bit_size?(*_p_bit_size):0)))) { \
+		_i = (mask << ((_p_bit_size?(*_p_bit_size):0))) ^ _i;\
+	} \
+	*(_type_*)_ptr_ = _i; \
+}while(0)
+/*****************************************************************************/
 static int _metac_base_type_to_json(
 		struct metac_type * type,
 		void *ptr,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size,
 		json_object ** pp_json
 		) {
 	char buf[32] = {0,};
 
 	assert(type->id == DW_TAG_base_type);
+	if (p_bit_offset != NULL || p_bit_size != NULL) {
+		int is_signed = type->base_type_info.encoding == DW_ATE_signed_char || type->base_type_info.encoding == DW_ATE_signed;
+		switch(type->base_type_info.byte_size){
+		case sizeof(uint8_t):	_COPY_FROM_BITFIELDS_(buf, uint8_t,		is_signed , 0xff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint16_t):	_COPY_FROM_BITFIELDS_(buf, uint16_t,	is_signed , 0xffff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint32_t):	_COPY_FROM_BITFIELDS_(buf, uint32_t,	is_signed , 0xffffffff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint64_t):	_COPY_FROM_BITFIELDS_(buf, uint64_t,	is_signed , 0xffffffffffffffff, p_bit_offset, p_bit_size); break;
+		default: msg_stderr("BITFIELDS: byte_size %d isn't supported\n", (int)type->base_type_info.byte_size); return -EINVAL;
+		}
+		return _metac_base_type_to_json(type, buf, NULL, NULL, byte_size, pp_json);
+	}
+
 	switch(type->base_type_info.encoding) {
 	case DW_ATE_unsigned_char:
 	case DW_ATE_signed_char:
@@ -115,6 +153,7 @@ static int _metac_base_type_to_json(
 	}
 	return 0;
 }
+/*****************************************************************************/
 static int _metac_enumeration_type_to_json(
 		struct metac_type * type,
 		void *ptr,
@@ -199,6 +238,7 @@ static int json_visitor_unique_region(
 	json_visitor->regions[r_id].u_idx = u_idx;
 	json_visitor->unique_regions[u_idx] = &json_visitor->regions[r_id];
 
+	/*unique region - always need array of elements */
 	json_visitor->regions[r_id].p_json_object = json_object_new_array();
 	if (json_visitor->regions[r_id].p_json_object == NULL) {
 		msg_stderr("Can't allocate memory\n");
@@ -263,6 +303,14 @@ int metac_unpack_to_json(
 	int res = 0;
 	json_object * res_json = NULL;
 
+	static metac_region_ee_subtype_t subtypes_sequence[] = {
+		reesHierarchy,
+		reesEnum,
+		reesBase,
+		reesPointer,
+		reesArray,
+	};
+
 	struct json_visitor json_visitor = {
 		.visitor = {
 			.start = json_visitor_start,
@@ -274,7 +322,9 @@ int metac_unpack_to_json(
 		},
 	};
 
-	res = metac_visit(ptr, size, precompiled_type, elements_count, NULL, 0, &json_visitor.visitor);
+	res = metac_visit(ptr, size, precompiled_type, elements_count, subtypes_sequence,
+			sizeof(subtypes_sequence)/sizeof(subtypes_sequence[0]),
+			&json_visitor.visitor);
 	if (res != 0) {
 		msg_stderr("metac_visit failed\n");
 		json_visitor_cleanup(&json_visitor);
