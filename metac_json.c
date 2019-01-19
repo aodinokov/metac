@@ -571,7 +571,7 @@ int metac_unpack_to_json(
 				}
 			}
 			for (k = 0; k < json_visitor.unique_regions[i]->elements[j].pointers_count; ++k) {
-				if (json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region != NULL) {
+				if (json_visitor.unique_regions[i]->elements[j].pointers[k]->p_linked_region != NULL) {
 
 				}
 			}
