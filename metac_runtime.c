@@ -272,6 +272,28 @@ static struct _region * create__region(
 	return _region;
 }
 
+static struct _region * simply_create_region(
+		struct runtime_context * p_runtime_context,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type,
+		metac_count_t elements_count,
+		struct region * part_of_region) {
+	/*check if region with the same addr already exists*/
+	struct _region * _region = NULL;
+	/*create otherwise*/
+	msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
+	_region = create__region(ptr, byte_size, region_element_type, elements_count, part_of_region);
+	msg_stddbg("create region_element_type result %p\n", _region);
+	if (_region == NULL) {
+		msg_stddbg("create__region failed\n");
+		return NULL;
+	}
+	cds_list_add_tail(&_region->list, &p_runtime_context->region_list);
+	++p_runtime_context->runtime_object->regions_count;
+	return _region;
+}
+
 static struct _region * find_or_create_region(
 		struct runtime_context * p_runtime_context,
 		void *ptr,
@@ -295,18 +317,10 @@ static struct _region * find_or_create_region(
 	}
 
 	if (_region == NULL) {
-		/*create otherwise*/
-		msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
-		_region = create__region(ptr, byte_size, region_element_type, elements_count, part_of_region);
-		msg_stddbg("create region_element_type result %p\n", _region);
-		if (_region == NULL) {
-			msg_stddbg("create__region failed\n");
-			return NULL;
+		_region = simply_create_region(p_runtime_context, ptr, byte_size, region_element_type, elements_count, part_of_region);
+		if (_region != NULL) {
+			if (p_created_flag != NULL) *p_created_flag = 1;
 		}
-		cds_list_add_tail(&_region->list, &p_runtime_context->region_list);
-		++p_runtime_context->runtime_object->regions_count;
-
-		if (p_created_flag != NULL) *p_created_flag = 1;
 	}
 
 	return _region;
@@ -580,7 +594,6 @@ static int _runtime_task_fn(
 			metac_count_t elements_count;
 			metac_byte_size_t elements_byte_size;
 			struct _region * _region;
-			int new_region = 0;
 
 			msg_stddbg("array %s\n", p_region_element->region_element_type->array_type_element[i]->path_within_region_element);
 
@@ -650,28 +663,26 @@ static int _runtime_task_fn(
 			}
 
 			/*we have to create region and store it (need create or find to support loops) */
-			_region = find_or_create_region(
+			_region = simply_create_region(
 					p_context,
 					new_ptr,
 					elements_byte_size * elements_count,
 					p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type,
 					elements_count,
-					p_region, &new_region);
+					p_region);
 			if (_region == NULL) {
 				msg_stderr("Error calling find_or_create_region\n");
 				return -EFAULT;
 			}
 			p_region_element->p_array[i].p_region = _region->p_region;
 			/* add task to handle this region fields properly */
-			if (new_region == 1) {
-				/*create the new task for this region*/
-				if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
-						p_task,
-						_runtime_task_fn,
-						_runtime_task_destroy_fn, _region->p_region) == NULL) {
-					msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
-					return -EFAULT;
-				}
+			/*create the new task for this region*/
+			if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+					p_task,
+					_runtime_task_fn,
+					_runtime_task_destroy_fn, _region->p_region) == NULL) {
+				msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
+				return -EFAULT;
 			}
 		}
 	}
@@ -735,12 +746,11 @@ static struct metac_runtime_object * build_runtime_object(
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	_region = find_or_create_region(&context,
+	_region = simply_create_region(&context,
 			ptr,
 			byte_size,
 			p_precompiled_type->region_element_type[0],
 			elements_count,
-			NULL,
 			NULL);
 	if (_region == NULL) {
 		msg_stderr("find_or_create_region failed\n");
@@ -795,6 +805,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 	i = 0;
 	cds_list_for_each_entry(_region, &context.region_list, list) {
+		_region->p_region->id = i;
 		context.runtime_object->region[i] = _region->p_region;
 		++i;
 	}
@@ -1077,6 +1088,7 @@ static int _get_region_element_type_element_count(
 		int elements_count) {
 	int res = 0;
 	_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, p_region_element, elements, elements_count) {
+		/*TBD: skip zero-length arrays and pointers */
 		++res;
 	}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
 	return res;
@@ -1231,6 +1243,7 @@ int metac_visit(
 							p_runtime_object->region[i]->elements[j].ptr,
 							p_runtime_object->region[i]->elements[j].byte_size,
 							real_region_element_element_count,
+							subtypes_sequence,
 							real_count_array,
 							subtypes_sequence_lenth);
 				}
@@ -1282,6 +1295,7 @@ int metac_visit(
 							p_region_element,
 							elements,
 							elements_count) {
+						assert(ee == elements[ee]->id);
 						p_visitor->region_element_element(
 								p_visitor,
 								i,
@@ -1290,6 +1304,8 @@ int metac_visit(
 								elements[ee]->parent!=NULL?elements_elements_real_ids[elements[ee]->parent->id]:-1,
 								elements[ee]->type,
 								p_region_element->ptr + elements[ee]->offset,
+								elements[ee]->p_bit_offset,
+								elements[ee]->p_bit_size,
 								elements[ee]->byte_size,
 								elements[ee]->name_local,
 								elements[ee]->path_within_region_element
@@ -1311,14 +1327,50 @@ int metac_visit(
 								p_region_element,
 								elements,
 								elements_count) {
-							p_visitor->region_element_element_per_subtype(
-									p_visitor,
-									i,
-									j,
-									elements_elements_real_ids[elements[ee]->id],
-									subtypes_sequence[k],
-									_n
-									);
+							/* Careful: here ee means element number in array of the specific subtype */
+							switch(subtypes_sequence[k]) {
+							case reesHierarchy:
+							case reesEnum:
+							case reesBase:
+								p_visitor->region_element_element_per_subtype(
+										p_visitor,
+										i,
+										j,
+										elements_elements_real_ids[elements[ee]->id],
+										subtypes_sequence[k],
+										_n,
+										0, NULL, 0
+										);
+								break;
+							case reesPointer:
+								p_visitor->region_element_element_per_subtype(
+										p_visitor,
+										i,
+										j,
+										elements_elements_real_ids[elements[ee]->id],
+										subtypes_sequence[k],
+										_n,
+										p_region_element->p_pointer[ee].n,
+										p_region_element->p_pointer[ee].p_elements_count,
+										p_region_element->p_pointer[ee].p_region?&p_region_element->p_pointer[ee].p_region->id:NULL
+										);
+								break;
+							case reesArray:
+								p_visitor->region_element_element_per_subtype(
+										p_visitor,
+										i,
+										j,
+										elements_elements_real_ids[elements[ee]->id],
+										subtypes_sequence[k],
+										_n,
+										p_region_element->p_array[ee].n,
+										p_region_element->p_array[ee].p_elements_count,
+										p_region_element->p_array[ee].p_region?&p_region_element->p_array[ee].p_region->id:NULL
+										);
+								break;
+							default:
+								break;
+							}
 							++_n;
 						}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
 					}

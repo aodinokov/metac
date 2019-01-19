@@ -114,6 +114,7 @@ struct _location {
 };
 
 struct region { /*can contain several elements of region_element_type*/
+	metac_count_t id;
 	void *ptr;
 	metac_byte_size_t byte_size;
 

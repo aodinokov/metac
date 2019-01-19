@@ -251,12 +251,12 @@ int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * p
 
 /* C-type->some format - generic serialization*/
 typedef enum _metac_region_element_element_subtype {
-	reesAll = 0,
-	reesHierarchy,
+	reesHierarchy = 0,
 	reesEnum,
 	reesBase,
 	reesPointer,
 	reesArray,
+	reesAll,
 }metac_region_ee_subtype_t;
 struct metac_visitor {
 	int (*start)(
@@ -290,6 +290,7 @@ struct metac_visitor {
 			void *ptr,
 			metac_byte_size_t byte_size,
 			int real_region_element_element_count,
+			metac_region_ee_subtype_t *subtypes_sequence,
 			int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
 			int subtypes_sequence_lenth
 			);
@@ -301,6 +302,8 @@ struct metac_visitor {
 			metac_count_t parent_ee_id,
 			metac_type_t * type,
 			void *ptr,
+			metac_bit_offset_t * p_bit_offset,
+			metac_bit_size_t * p_bit_size,
 			metac_byte_size_t byte_size,
 			char * name_local,
 			char * path_within_region_element
@@ -311,7 +314,11 @@ struct metac_visitor {
 			metac_count_t e_id,
 			metac_count_t ee_id,
 			metac_region_ee_subtype_t subtype,
-			metac_count_t see_id
+			metac_count_t see_id,
+			/* for pointers and arrays only */
+			int n,
+			metac_count_t * p_elements_count,
+			metac_count_t * p_linked_r_id /*can be NULL*/
 			);
 };
 int metac_visit(

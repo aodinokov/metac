@@ -4,7 +4,7 @@
  *  Created on: Jan 15, 2019
  *      Author: mralex
  */
-#define METAC_DEBUG_ENABLE
+//#define METAC_DEBUG_ENABLE
 
 #include "metac_type.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
@@ -13,58 +13,10 @@
 #include <urcu/list.h>		/* cds_list_entry, ... */
 #include <errno.h>			/* ENOMEM etc */
 #include <assert.h>			/* assert */
+#include <stdint.h>			/* int8_t - int64_t*/
+#include <string.h>			/* strcmp*/
+#include <ctype.h>			/* isprint*/
 
-struct region_element {
-	metac_type_t * type;
-
-	void *ptr;
-	metac_byte_size_t byte_size;
-
-	int real_region_element_element_count;
-};
-
-struct region {
-	void *ptr;
-	metac_byte_size_t byte_size;
-	metac_count_t elements_count;
-
-	/*for unique only*/
-	json_object * p_json_object;
-
-	/*for non_unique only*/
-	metac_count_t u_idx;
-	metac_data_member_location_t offset;
-};
-
-struct json_visitor {
-	struct metac_visitor visitor; /**< parent type */
-
-	struct region * regions;
-	metac_count_t regions_count;
-
-	struct region ** unique_regions;
-	metac_count_t unique_regions_count;
-};
-/*****************************************************************************/
-static void json_visitor_cleanup(struct json_visitor * json_visitor) {
-
-	if (json_visitor->unique_regions != NULL) {
-		free(json_visitor->unique_regions);
-		json_visitor->unique_regions = NULL;
-	}
-
-	if (json_visitor->regions != NULL) {
-		int i;
-		for (i = 0; i < json_visitor->regions_count; ++i) {
-			if (json_visitor->regions[i].p_json_object != NULL) {
-				json_object_put(json_visitor->regions[i].p_json_object);
-				json_visitor->regions[i].p_json_object = NULL;
-			}
-		}
-		free(json_visitor->regions);
-		json_visitor->regions = NULL;
-	}
-}
 /*****************************************************************************/
 #define _COPY_FROM_BITFIELDS_(_ptr_, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
 	metac_bit_offset_t shift = \
@@ -145,6 +97,10 @@ static int _metac_base_type_to_json(
 		default: msg_stderr("DW_ATE_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
 		}
 		break;
+	case DW_ATE_complex_float:
+		/*TBD:*/
+		sprintf(buf, "complex");
+		break;
 	default: msg_stderr("Unsupported encoding %d\n",(int)type->base_type_info.encoding); return -EINVAL;
 	}
 
@@ -182,6 +138,115 @@ static int _metac_enumeration_type_to_json(
 	}
 	msg_stderr("wasn't able to find enum name for %d\n", (int)const_value);
 	return -EINVAL;
+}
+/*****************************************************************************/
+struct region_element_element {
+	metac_type_t * type;
+
+	void *ptr;
+	metac_bit_offset_t * p_bit_offset;
+	metac_bit_size_t * p_bit_size;
+	metac_byte_size_t byte_size;
+
+	char * name_local;
+	char * path_within_region_element;
+
+	struct region_element_element * parent;
+
+	metac_region_ee_subtype_t subtype;
+
+	/*for arrays or pointers only*/
+	struct region * p_linked_region;
+
+	json_object * p_json_object;
+};
+
+
+struct region_element {
+	metac_type_t * type;
+
+	void *ptr;
+	metac_byte_size_t byte_size;
+
+	int real_region_element_element_count;
+	struct region_element_element * real_region_element_element;
+
+	int arrays_count;
+	struct region_element_element ** arrays;
+	int pointers_count;
+	struct region_element_element ** pointers;
+};
+
+struct region {
+	void *ptr;
+	metac_byte_size_t byte_size;
+	metac_count_t elements_count;
+	struct region_element * elements;
+
+	/*for unique only*/
+	json_object * p_json_object;
+
+	/*for non_unique only*/
+	metac_count_t u_idx;
+	metac_data_member_location_t offset;
+};
+
+struct json_visitor {
+	struct metac_visitor visitor; /**< parent type */
+
+	struct region * regions;
+	metac_count_t regions_count;
+
+	struct region ** unique_regions;
+	metac_count_t unique_regions_count;
+};
+/*****************************************************************************/
+static void json_visitor_cleanup(struct json_visitor * json_visitor) {
+
+	if (json_visitor->unique_regions != NULL) {
+		free(json_visitor->unique_regions);
+		json_visitor->unique_regions = NULL;
+	}
+
+	if (json_visitor->regions != NULL) {
+		int i;
+		for (i = 0; i < json_visitor->regions_count; ++i) {
+			if (json_visitor->regions[i].p_json_object != NULL) {
+				json_object_put(json_visitor->regions[i].p_json_object);
+				json_visitor->regions[i].p_json_object = NULL;
+			}
+			if (json_visitor->regions[i].elements != NULL) {
+				int j;
+				for (j = 0 ;j < json_visitor->regions[i].elements_count; ++j) {
+					if (json_visitor->regions[i].elements[j].arrays != NULL) {
+						free(json_visitor->regions[i].elements[j].arrays);
+						json_visitor->regions[i].elements[j].arrays = NULL;
+					}
+
+					if (json_visitor->regions[i].elements[j].pointers != NULL) {
+						free(json_visitor->regions[i].elements[j].pointers);
+						json_visitor->regions[i].elements[j].pointers = NULL;
+					}
+
+					if (json_visitor->regions[i].elements[j].real_region_element_element != NULL) {
+						int k;
+						for (k = 0; k < json_visitor->regions[i].elements[j].real_region_element_element_count; ++k) {
+							if (json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object != NULL) {
+								json_object_put(json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object);
+								json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object = NULL;
+							}
+						}
+						free(json_visitor->regions[i].elements[j].real_region_element_element);
+						json_visitor->regions[i].elements[j].real_region_element_element = NULL;
+					}
+				}
+				free(json_visitor->regions[i].elements);
+				json_visitor->regions[i].elements = NULL;
+			}
+		}
+		free(json_visitor->regions);
+		json_visitor->regions = NULL;
+	}
 }
 /*****************************************************************************/
 static int json_visitor_start(
@@ -223,7 +288,11 @@ static int json_visitor_region(
 	json_visitor->regions[r_id].ptr = ptr;
 	json_visitor->regions[r_id].byte_size = byte_size;
 	json_visitor->regions[r_id].elements_count = elements_count;
-
+	json_visitor->regions[r_id].elements = calloc(elements_count, sizeof(*json_visitor->regions[r_id].elements));
+	if (json_visitor->regions[r_id].elements == NULL) {
+		msg_stderr("Can't allocate memory\n");
+		return -ENOMEM;
+	}
 	return 0;
 }
 static int json_visitor_unique_region(
@@ -271,11 +340,48 @@ static int json_visitor_region_element(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		int real_region_element_element_count,
+		metac_region_ee_subtype_t *subtypes_sequence,
 		int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
 		int subtypes_sequence_lenth
 		) {
 	struct json_visitor * json_visitor = cds_list_entry(p_visitor, struct json_visitor, visitor);
-	/*TBD: to*/
+	assert(r_id < json_visitor->regions_count);
+	assert(e_id < json_visitor->regions[r_id].elements_count);
+
+
+	json_visitor->regions[r_id].elements[e_id].type = type;
+	json_visitor->regions[r_id].elements[e_id].ptr = ptr;
+	json_visitor->regions[r_id].elements[e_id].byte_size = byte_size;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element_count = real_region_element_element_count;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element =
+			calloc(real_region_element_element_count, sizeof(*json_visitor->regions[r_id].elements[e_id].real_region_element_element));
+	if (json_visitor->regions[r_id].elements[e_id].real_region_element_element == NULL) {
+		msg_stderr("Can't allocate memory\n");
+		return -ENOMEM;
+	}
+
+	assert(subtypes_sequence[3] == reesPointer);
+	json_visitor->regions[r_id].elements[e_id].pointers_count = real_count_array_per_type[3];
+	if (json_visitor->regions[r_id].elements[e_id].pointers_count){
+		json_visitor->regions[r_id].elements[e_id].pointers = calloc(
+				json_visitor->regions[r_id].elements[e_id].pointers_count,
+				sizeof(*json_visitor->regions[r_id].elements[e_id].pointers));
+		if (json_visitor->regions[r_id].elements[e_id].pointers == NULL) {
+			msg_stderr("Can't allocate memory\n");
+			return -ENOMEM;
+		}
+	}
+
+	assert(subtypes_sequence[4] == reesArray);
+	json_visitor->regions[r_id].elements[e_id].arrays_count = real_count_array_per_type[4];
+	json_visitor->regions[r_id].elements[e_id].arrays = calloc(
+			json_visitor->regions[r_id].elements[e_id].arrays_count,
+			sizeof(*json_visitor->regions[r_id].elements[e_id].arrays));
+	if (json_visitor->regions[r_id].elements[e_id].arrays == NULL) {
+		msg_stderr("Can't allocate memory\n");
+		return -ENOMEM;
+	}
+
 	return 0;
 }
 static int json_visitor_region_element_element(
@@ -286,11 +392,112 @@ static int json_visitor_region_element_element(
 		metac_count_t parent_ee_id,
 		metac_type_t * type,
 		void *ptr,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size,
 		char * name_local,
 		char * path_within_region_element
 		) {
 	struct json_visitor * json_visitor = cds_list_entry(p_visitor, struct json_visitor, visitor);
+	assert(r_id < json_visitor->regions_count);
+	assert(e_id < json_visitor->regions[r_id].elements_count);
+	assert(ee_id < json_visitor->regions[r_id].elements[e_id].real_region_element_element_count);
+
+	if (ee_id != 0) {
+		json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].parent =
+				&json_visitor->regions[r_id].elements[e_id].real_region_element_element[parent_ee_id];
+	}
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].type = type;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].ptr = ptr;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].p_bit_offset = p_bit_offset;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].p_bit_size = p_bit_size;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].byte_size = byte_size;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].name_local = name_local;
+	json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id].path_within_region_element = path_within_region_element;
+
+	return 0;
+}
+int json_region_element_element_per_subtype(
+		struct metac_visitor *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_count_t ee_id,
+		metac_region_ee_subtype_t subtype,
+		metac_count_t see_id,
+		int n,
+		metac_count_t * p_elements_count,
+		metac_count_t * p_linked_r_id
+		){
+	struct json_visitor * json_visitor = cds_list_entry(p_visitor, struct json_visitor, visitor);
+	struct region_element_element * ee;
+	assert(r_id < json_visitor->regions_count);
+	assert(e_id < json_visitor->regions[r_id].elements_count);
+	assert(ee_id < json_visitor->regions[r_id].elements[e_id].real_region_element_element_count);
+	ee = &json_visitor->regions[r_id].elements[e_id].real_region_element_element[ee_id];
+
+	ee->subtype = subtype;
+	switch(subtype) {
+	case reesHierarchy:
+		if (ee->parent == NULL || strlen(ee->name_local) > 0) {
+			ee->p_json_object = json_object_new_object();
+			if (ee->parent != NULL) {
+				json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
+			}
+		}else{
+			ee->p_json_object = json_object_get(ee->parent->p_json_object);
+		}
+//		msg_stddbg("hierarchy %p\n", ee->p_json_object);
+		break;
+	case reesEnum:
+		if (_metac_enumeration_type_to_json(ee->type, ee->ptr, ee->byte_size, &ee->p_json_object) != 0) {
+			msg_stderr("_metac_enumeration_type_to_json error\n");
+			return -ENOMEM;
+		}
+		if (ee->parent != NULL) {
+			assert(strlen(ee->name_local) > 0);
+			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
+		}
+//		msg_stddbg("enum %p\n", ee->p_json_object);
+		break;
+	case reesBase:
+		if (_metac_base_type_to_json(ee->type, ee->ptr, ee->p_bit_offset, ee->p_bit_size, ee->byte_size, &ee->p_json_object) != 0) {
+			msg_stderr("_metac_base_type_to_json error\n");
+			return -ENOMEM;
+		}
+		if (ee->parent != NULL) {
+			assert(strlen(ee->name_local) > 0);
+			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
+		}
+//		msg_stddbg("base %p\n", ee->p_json_object);
+		break;
+	case reesPointer:
+		assert(p_linked_r_id ==NULL || *p_linked_r_id < json_visitor->regions_count);
+		ee->p_linked_region = (p_linked_r_id != NULL)?(&json_visitor->regions[*p_linked_r_id]):NULL;
+		assert(see_id < json_visitor->regions[r_id].elements[e_id].pointers_count);
+		json_visitor->regions[r_id].elements[e_id].pointers[see_id] = ee;
+		ee->p_json_object = json_object_new_object();
+		if (ee->p_json_object == NULL) {
+			msg_stderr("json_object_new_object failed\n");
+			json_visitor_cleanup(json_visitor);
+			return -ENOMEM;
+		}
+		break;
+	case reesArray:
+		assert(p_linked_r_id ==NULL || *p_linked_r_id < json_visitor->regions_count);
+		ee->p_linked_region = (p_linked_r_id != NULL)?(&json_visitor->regions[*p_linked_r_id]):NULL;
+		assert(see_id < json_visitor->regions[r_id].elements[e_id].arrays_count);
+		json_visitor->regions[r_id].elements[e_id].arrays[see_id] = ee;
+		ee->p_json_object = json_object_new_array();
+		if (ee->p_json_object == NULL) {
+			msg_stderr("json_object_new_array failed\n");
+			json_visitor_cleanup(json_visitor);
+			return -ENOMEM;
+		}
+		break;
+	default:
+		break;
+	}
+
 	return 0;
 }
 /*****************************************************************************/
@@ -300,6 +507,7 @@ int metac_unpack_to_json(
 		metac_precompiled_type_t * precompiled_type,
 		metac_count_t elements_count,
 		json_object ** pp_json) {
+	int i;
 	int res = 0;
 	json_object * res_json = NULL;
 
@@ -319,9 +527,12 @@ int metac_unpack_to_json(
 			.unique_region = json_visitor_unique_region,
 			.region_element = json_visitor_region_element,
 			.region_element_element = json_visitor_region_element_element,
+			.region_element_element_per_subtype = json_region_element_element_per_subtype,
 		},
 	};
 
+
+	//msg_stddbg("starting metac_visit\n");
 	res = metac_visit(ptr, size, precompiled_type, elements_count, subtypes_sequence,
 			sizeof(subtypes_sequence)/sizeof(subtypes_sequence[0]),
 			&json_visitor.visitor);
@@ -336,6 +547,42 @@ int metac_unpack_to_json(
 		msg_stderr("json_object_new_array failed\n");
 		json_visitor_cleanup(&json_visitor);
 		return -ENOMEM;
+	}
+
+	for (i = 0; i < json_visitor.unique_regions_count; ++i) {
+		int j;
+		assert(json_visitor.unique_regions[i]->p_json_object != NULL);
+		assert(json_visitor.unique_regions[i]->elements != NULL);
+
+		for (j = 0 ;j < json_visitor.unique_regions[i]->elements_count; ++j) {
+			int k;
+			for (k = 0; k < json_visitor.unique_regions[i]->elements[j].arrays_count; ++k) {
+				if (json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region != NULL) {
+					int l;
+					/*must be non-unique region*/
+					assert(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->p_json_object == NULL);
+
+					for (l = 0; l < json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements_count; ++l) {
+						/*TBD - make it n-dimention compatible!*/
+						assert(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements->real_region_element_element[0].p_json_object);
+						json_object_array_add(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_json_object,
+								json_object_get(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements->real_region_element_element[0].p_json_object));
+					}
+				}
+			}
+			for (k = 0; k < json_visitor.unique_regions[i]->elements[j].pointers_count; ++k) {
+				if (json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region != NULL) {
+
+				}
+			}
+
+
+			assert(json_visitor.unique_regions[i]->elements[j].real_region_element_element != NULL);
+			assert(json_visitor.unique_regions[i]->elements[j].real_region_element_element[0].p_json_object != NULL);
+			json_object_array_add(json_visitor.unique_regions[i]->p_json_object,
+					json_object_get(json_visitor.unique_regions[i]->elements[j].real_region_element_element[0].p_json_object));
+		}
+		json_object_array_add(res_json, json_object_get(json_visitor.unique_regions[i]->p_json_object));
 	}
 
 	if (pp_json) {
