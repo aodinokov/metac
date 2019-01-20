@@ -386,8 +386,13 @@ typedef double double_t;
 METAC_TYPE_GENERATE(double_t);
 typedef long double ldouble_t;
 METAC_TYPE_GENERATE(ldouble_t);
+typedef float complex floatcomplex_t;
+METAC_TYPE_GENERATE(floatcomplex_t);
 typedef double complex doublecomplex_t;
 METAC_TYPE_GENERATE(doublecomplex_t);
+typedef long double complex ldoublecomplex_t;
+METAC_TYPE_GENERATE(ldoublecomplex_t);
+
 
 START_TEST(base_types_ut) {
 	BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type, NULL, NULL);
@@ -439,7 +444,9 @@ START_TEST(base_types_ut) {
 	BASE_TYPE_CHECK(double_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
 	BASE_TYPE_CHECK(ldouble_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
 
+	BASE_TYPE_CHECK(floatcomplex_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
 	BASE_TYPE_CHECK(doublecomplex_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
+	BASE_TYPE_CHECK(ldoublecomplex_t, DW_TAG_typedef, DW_TAG_base_type, NULL, NULL);
 }END_TEST
 
 /*****************************************************************************/
@@ -553,14 +560,14 @@ START_TEST(enums_ut) {
 		{.name = "aeTwelve", .const_value = 12},
 		{.name = NULL},
 	});
-//	ENUM_TYPE_CHECK(aligned_enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, NULL, NULL, "aligned_enum_t", "_aligned_enum_",{
-//		{.name = "al_eZero", .const_value = 0},
-//		{.name = "al_eOne", .const_value = 1},
-//		{.name = "al_eTen", .const_value = 10},
-//		{.name = "al_eEleven", .const_value = 11},
-//		{.name = "al_eTwelve", .const_value = 12},
-//		{.name = NULL},
-//	});
+	ENUM_TYPE_CHECK(aligned_enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, NULL, NULL, "aligned_enum_t", "_aligned_enum_",{
+		{.name = "al_eZero", .const_value = 0},
+		{.name = "al_eOne", .const_value = 1},
+		{.name = "al_eTen", .const_value = 10},
+		{.name = "al_eEleven", .const_value = 11},
+		{.name = "al_eTwelve", .const_value = 12},
+		{.name = NULL},
+	});
 }END_TEST
 /*****************************************************************************/
 #define ARRAY_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \

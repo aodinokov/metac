@@ -14,10 +14,13 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <assert.h>			/* assert */
 #include <stdint.h>			/* int8_t - int64_t*/
+#include <complex.h>		/* complext */
 #include <string.h>			/* strcmp*/
 #include <ctype.h>			/* isprint*/
+#include <endian.h>			/* __BYTE_ORDER at compile time */
 
 /*****************************************************************************/
+/*Caution: this has been tested only with little-endian machines*/
 #define _COPY_FROM_BITFIELDS_(_ptr_, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
 	metac_bit_offset_t shift = \
 		(byte_size << 3) - ((_p_bit_size?(*_p_bit_size):0) + (_p_bit_offset?(*_p_bit_offset):0)); \
@@ -38,7 +41,7 @@ static int _metac_base_type_to_json(
 		metac_byte_size_t byte_size,
 		json_object ** pp_json
 		) {
-	char buf[32] = {0,};
+	char buf[64] = {0,};
 
 	assert(type->id == DW_TAG_base_type);
 	if (p_bit_offset != NULL || p_bit_size != NULL) {
@@ -103,8 +106,24 @@ static int _metac_base_type_to_json(
 		}
 		break;
 	case DW_ATE_complex_float:
-		/*TBD:*/
-		sprintf(buf, "complex");
+		switch(type->base_type_info.byte_size) {
+		case sizeof(float complex): {
+				float complex v = *((float complex*)ptr);
+				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		case sizeof(double complex): {
+				double complex v = *((double complex*)ptr);
+				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		case sizeof(long double complex): {
+				long double complex v = *((long double complex*)ptr);
+				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		default: msg_stderr("DW_ATE_complex_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
+		}
 		break;
 	default: msg_stderr("Unsupported encoding %d\n",(int)type->base_type_info.encoding); return -EINVAL;
 	}
@@ -130,7 +149,19 @@ static int _metac_enumeration_type_to_json(
 	case sizeof(int16_t):	const_value = *((int16_t*	)ptr);	break;
 	case sizeof(int32_t):	const_value = *((int32_t*	)ptr);	break;
 	case sizeof(int64_t):	const_value = *((int64_t*	)ptr);	break;
-	default: msg_stderr("byte_size %d isn't supported\n", (int)type->enumeration_type_info.byte_size); return -EINVAL;
+	default:
+#ifdef __BYTE_ORDER
+		/*read maximum bits we can*/
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		const_value = *((int64_t*	)ptr);	break;
+#else
+		const_value = *((int64_t*	)(ptr + (type->enumeration_type_info.byte_size-sizeof(int64_t))));	break;
+#endif
+#else
+		/*fallback if we don't know endian*/
+		msg_stderr("byte_size %d isn't supported\n", (int)type->enumeration_type_info.byte_size);
+		return -EINVAL;
+#endif
 	}
 
 	for (i = 0; i < type->enumeration_type_info.enumerators_count; ++i) {
@@ -451,7 +482,6 @@ int json_region_element_element_per_subtype(
 		}else{
 			ee->p_json_object = json_object_get(ee->parent->p_json_object);
 		}
-//		msg_stddbg("hierarchy %p\n", ee->p_json_object);
 		break;
 	case reesEnum:
 		if (_metac_enumeration_type_to_json(ee->type, ee->ptr, ee->byte_size, &ee->p_json_object) != 0) {
@@ -462,7 +492,6 @@ int json_region_element_element_per_subtype(
 			assert(strlen(ee->name_local) > 0);
 			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
 		}
-//		msg_stddbg("enum %p\n", ee->p_json_object);
 		break;
 	case reesBase:
 		if (_metac_base_type_to_json(ee->type, ee->ptr, ee->p_bit_offset, ee->p_bit_size, ee->byte_size, &ee->p_json_object) != 0) {
@@ -473,7 +502,6 @@ int json_region_element_element_per_subtype(
 			assert(strlen(ee->name_local) > 0);
 			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
 		}
-//		msg_stddbg("base %p\n", ee->p_json_object);
 		break;
 	case reesPointer:
 		assert(p_linked_r_id ==NULL || *p_linked_r_id < json_visitor->regions_count);
@@ -544,8 +572,6 @@ int metac_unpack_to_json(
 		},
 	};
 
-
-	//msg_stddbg("starting metac_visit\n");
 	res = metac_visit(ptr, size, precompiled_type, elements_count, subtypes_sequence,
 			sizeof(subtypes_sequence)/sizeof(subtypes_sequence[0]),
 			&json_visitor.visitor);
@@ -619,5 +645,4 @@ int metac_unpack_to_json(
 	json_visitor_cleanup(&json_visitor);
 	return 0;
 }
-
 
