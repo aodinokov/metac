@@ -58,8 +58,13 @@ static int _metac_base_type_to_json(
 	case DW_ATE_signed_char:
 		msg_stddbg("DW_ATE_(un)signed_char (byte)\n");
 		if (type->base_type_info.byte_size == sizeof(int8_t)) {
-			buf[0] = *((char*)ptr);
-			if (isprint(buf[0]))break;
+			char v = *((char*)ptr);
+			if (isprint(v)){
+				buf[0] = v;
+			}else{
+				sprintf(buf, "\\%"SCNi8"" , v);
+			}
+			break;
 		}
 	/* break removed - fallback to std approach*/
 	case DW_ATE_signed:
