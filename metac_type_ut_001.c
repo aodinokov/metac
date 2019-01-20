@@ -5,8 +5,10 @@
  *      Author: mralex
  */
 
+//#define METAC_DEBUG_ENABLE
 
 #include "check_ext.h"
+#include "metac_debug.h"	/* msg_stderr, ...*/
 #include "metac_type.h"
 
 #include "metac_json.h"
@@ -93,7 +95,7 @@ static int _visitor_start(
 		metac_count_t unique_regions_count
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_start: regions_count %d, unique_regions_count %d\n",
+	msg_stddbg("_visitor_start: regions_count %d, unique_regions_count %d\n",
 			(int)regions_count,
 			(int)unique_regions_count);
 	return 0;
@@ -106,7 +108,7 @@ static int _visitor_region(
 		metac_count_t elements_count
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region: r_id %d, ptr %p, byte_size %d, elements_count %d\n",
+	msg_stddbg("_visitor_region: r_id %d, ptr %p, byte_size %d, elements_count %d\n",
 			(int)r_id,
 			ptr,
 			(int)byte_size,
@@ -119,7 +121,7 @@ static int _visitor_unique_region(
 		metac_count_t u_idx
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_unique_region: r_id %d, u_idx %d\n",
+	msg_stddbg("_visitor_unique_region: r_id %d, u_idx %d\n",
 			(int)r_id,
 			(int)u_idx);
 	return 0;
@@ -131,7 +133,7 @@ static int _visitor_non_unique_region(
 		metac_data_member_location_t offset
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_non_unique_region: r_id %d, u_idx %d, offset %d\n",
+	msg_stddbg("_visitor_non_unique_region: r_id %d, u_idx %d, offset %d\n",
 			(int)r_id,
 			(int)u_idx,
 			(int)offset);
@@ -151,7 +153,7 @@ static int _visitor_region_element(
 		) {
 	int i;
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, real_region_element_element_count %d, subtypes_sequence_lenth %d real_count_array_per_type",
+	msg_stddbg("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, real_region_element_element_count %d, subtypes_sequence_lenth %d real_count_array_per_type",
 			(int)r_id,
 			(int)e_id,
 			ptr,
@@ -159,8 +161,8 @@ static int _visitor_region_element(
 			(int)real_region_element_element_count,
 			(int)subtypes_sequence_lenth);
 	for (i = 0; i < subtypes_sequence_lenth; ++i)
-		printf(" %d", real_count_array_per_type[i]);
-	printf("\n");
+		msg_stddbg(" %d", real_count_array_per_type[i]);
+	msg_stddbg("\n");
 	return 0;
 }
 static int _visitor_region_element_element(
@@ -178,7 +180,7 @@ static int _visitor_region_element_element(
 		char * path_within_region_element
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region_element_element: r_id %d, e_id %d, ee_id %d, parent_ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
+	msg_stddbg("_visitor_region_element_element: r_id %d, e_id %d, ee_id %d, parent_ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
 			(int)r_id,
 			(int)e_id,
 			(int)ee_id,
@@ -201,7 +203,7 @@ int _visitor_region_element_element_per_subtype(
 		metac_count_t * p_linked_r_id
 		) {
 	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	printf("_visitor_region_element_element_per_subtype: r_id %d, e_id %d, ee_id %d, subtype %d, see_id %d, linked_r_id %d\n",
+	msg_stddbg("_visitor_region_element_element_per_subtype: r_id %d, e_id %d, ee_id %d, subtype %d, see_id %d, linked_r_id %d\n",
 			(int)r_id,
 			(int)e_id,
 			(int)ee_id,
@@ -291,7 +293,7 @@ do {\
 			memset(&x, 0, sizeof(x)); \
 			fail_unless(metac_unpack_to_json(&x, sizeof(x), precompiled_type, 1, &p_json) == 0, "metac_pack2json failed"); \
 			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-			printf("json %s\n", json_object_to_json_string(p_json)); \
+			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
 			json_object_put(p_json); \
 			metac_free_precompiled_type(&precompiled_type); \
 		} \
@@ -990,7 +992,7 @@ static int _metac_type_t_discriminator_funtion(
 	void * specification_context) {
 
 	char * key = (char *)specification_context;
-	printf("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
+	msg_stddbg("callback: _metac_type_t_discriminator_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, "<ptr>.<anon0>") == 0) {
 		metac_type_t * metac_type_obj = (metac_type_t *)ptr;
@@ -1006,7 +1008,7 @@ static int _metac_type_t_discriminator_funtion(
 			case DW_TAG_union_type: *p_discriminator_val = 7; return 0;
 			case DW_TAG_array_type: *p_discriminator_val = 8; return 0;
 			}
-			printf("callback failed: can't find val for 0x%x\n", (int)metac_type_obj->id);
+			msg_stddbg("callback failed: can't find val for 0x%x\n", (int)metac_type_obj->id);
 			*p_discriminator_val = -1; /*there can be other values, but we don't match them with any union value*/
 			return 0; /*-1;*/
 		}else{
@@ -1075,7 +1077,7 @@ static int _metac_type_t_array_elements_count_funtion(
 	int res = -1;
 	char * key = (char *)array_elements_count_cb_context;
 	metac_type_t * metac_type_obj = (metac_type_t *)ptr;
-	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
+	msg_stddbg("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, "<ptr>.<anon0>.enumeration_type_info.enumerators") == 0) {
 		*p_elements_count = metac_type_obj->enumeration_type_info.enumerators_count;
@@ -1093,11 +1095,11 @@ static int _metac_type_t_array_elements_count_funtion(
 		*p_elements_count = metac_type_obj->union_type_info.members_count;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.name") == 0) {
-		printf("%p ? %p : %s\n", first_element_ptr, metac_type_obj->name, metac_type_obj->name);
+		msg_stddbg("%p ? %p : %s\n", first_element_ptr, metac_type_obj->name, metac_type_obj->name);
 		return metac_array_elements_1d_with_null(write_operation, ptr,type,first_element_ptr,first_element_type, n, p_elements_count,array_elements_count_cb_context);
 	}
 
-	printf("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s, output to p_elements_count %d returns %d\n",
+	msg_stddbg("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s, output to p_elements_count %d returns %d\n",
 			write_operation, key,
 			*p_elements_count, res);
 	return res;
@@ -1147,6 +1149,7 @@ START_TEST(metac_type_t_ut) {
 	}STRUCT_TYPE_CHECK_END;
 	/* pre-compilation & runtime test */
 	do {
+		json_object * p_json = NULL;
 		metac_type_t * copy;
 		metac_byte_size_t copy_size;
 		metac_type_t *type = &METAC_TYPE_NAME(metac_type_t);
@@ -1155,6 +1158,11 @@ START_TEST(metac_type_t_ut) {
 		metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
 
 		fail_unless(metac_visit(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+		fail_unless(metac_unpack_to_json(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, &p_json) == 0, "metac_pack2json failed"); \
+		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
+		json_object_put(p_json);
+		p_json = NULL;
 		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
@@ -1210,7 +1218,7 @@ START_TEST(basic_tree_t_ut) {
 			fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
 			fail_unless(metac_unpack_to_json((void*)(&x), sizeof(x), precompiled_type, 1, &p_json) == 0, "metac_pack2json failed"); \
 			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-			printf("json %s\n", json_object_to_json_string(p_json)); \
+			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
 			json_object_put(p_json);
 			p_json = NULL;
 
