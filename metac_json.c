@@ -481,6 +481,10 @@ int json_region_element_element_per_subtype(
 			json_visitor_cleanup(json_visitor);
 			return -ENOMEM;
 		}
+		if (ee->parent != NULL) {
+			assert(strlen(ee->name_local) > 0);
+			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
+		}
 		break;
 	case reesArray:
 		assert(p_linked_r_id ==NULL || *p_linked_r_id < json_visitor->regions_count);
@@ -492,6 +496,10 @@ int json_region_element_element_per_subtype(
 			msg_stderr("json_object_new_array failed\n");
 			json_visitor_cleanup(json_visitor);
 			return -ENOMEM;
+		}
+		if (ee->parent != NULL) {
+			assert(strlen(ee->name_local) > 0);
+			json_object_object_add(ee->parent->p_json_object, ee->name_local, json_object_get(ee->p_json_object));
 		}
 		break;
 	default:
@@ -549,34 +557,48 @@ int metac_unpack_to_json(
 		return -ENOMEM;
 	}
 
+	/*prepare pointers and arrays first*/
+	for (i = 0; i < json_visitor.regions_count; ++i) {
+		int j;
+		struct region * region= &json_visitor.regions[i];
+		for (j = 0 ;j < region->elements_count; ++j) {
+			int k;
+			for (k = 0; k < region->elements[j].arrays_count; ++k) {
+				if (region->elements[j].arrays[k]->p_linked_region != NULL) {
+					int l;
+					/*must be non-unique region*/
+					assert(region->elements[j].arrays[k]->p_linked_region->p_json_object == NULL);
+
+					for (l = 0; l < region->elements[j].arrays[k]->p_linked_region->elements_count; ++l) {
+						/*TBD - make it n-dimentions compatible!*/
+						assert(region->elements[j].arrays[k]->p_linked_region->elements[l].real_region_element_element[0].p_json_object);
+						json_object_array_add(region->elements[j].arrays[k]->p_json_object,
+								json_object_get(region->elements[j].arrays[k]->p_linked_region->elements[l].real_region_element_element[0].p_json_object));
+					}
+				}
+			}
+			for (k = 0; k < region->elements[j].pointers_count; ++k) {
+				if (region->elements[j].pointers[k]->p_linked_region != NULL) {
+					/*TBD: try to make it as arrays if it's tree*/
+					assert(region->elements[j].pointers[k]->p_json_object != NULL);
+					json_object_object_add(region->elements[j].pointers[k]->p_json_object,
+							"region_id", json_object_new_int(region->elements[j].pointers[k]->p_linked_region->u_idx));
+					if (region->elements[j].pointers[k]->p_linked_region->offset != 0) {
+						assert(region->elements[j].pointers[k]->p_linked_region->p_json_object == NULL);/* only unique regions have json_object created*/
+						json_object_object_add(region->elements[j].pointers[k]->p_json_object,
+								"offset", json_object_new_int(region->elements[j].pointers[k]->p_linked_region->offset));
+					}
+				}
+			}
+		}
+	}
+
 	for (i = 0; i < json_visitor.unique_regions_count; ++i) {
 		int j;
 		assert(json_visitor.unique_regions[i]->p_json_object != NULL);
 		assert(json_visitor.unique_regions[i]->elements != NULL);
 
 		for (j = 0 ;j < json_visitor.unique_regions[i]->elements_count; ++j) {
-			int k;
-			for (k = 0; k < json_visitor.unique_regions[i]->elements[j].arrays_count; ++k) {
-				if (json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region != NULL) {
-					int l;
-					/*must be non-unique region*/
-					assert(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->p_json_object == NULL);
-
-					for (l = 0; l < json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements_count; ++l) {
-						/*TBD - make it n-dimention compatible!*/
-						assert(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements->real_region_element_element[0].p_json_object);
-						json_object_array_add(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_json_object,
-								json_object_get(json_visitor.unique_regions[i]->elements[j].arrays[k]->p_linked_region->elements->real_region_element_element[0].p_json_object));
-					}
-				}
-			}
-			for (k = 0; k < json_visitor.unique_regions[i]->elements[j].pointers_count; ++k) {
-				if (json_visitor.unique_regions[i]->elements[j].pointers[k]->p_linked_region != NULL) {
-
-				}
-			}
-
-
 			assert(json_visitor.unique_regions[i]->elements[j].real_region_element_element != NULL);
 			assert(json_visitor.unique_regions[i]->elements[j].real_region_element_element[0].p_json_object != NULL);
 			json_object_array_add(json_visitor.unique_regions[i]->p_json_object,
