@@ -1139,6 +1139,7 @@ int metac_visit(
 	metac_region_ee_subtype_t *subtypes_sequence,
 	int subtypes_sequence_lenth,
 	struct metac_visitor * p_visitor) {
+	int cb_res;
 	int i, j, k;
 	static metac_region_ee_subtype_t default_subtypes_sequence[] = {
 		reesHierarchy,
@@ -1165,42 +1166,66 @@ int metac_visit(
 	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
 	if (p_runtime_object == NULL) {
 		msg_stderr("Error while building runtime object\n");
+		if (real_count_array != NULL)
+			free(real_count_array);
 		return -EFAULT;
 	}
 
 	if (p_visitor != NULL) {
 		if (p_visitor->start != NULL) {
-			p_visitor->start(
+			cb_res = p_visitor->start(
 					p_visitor,
 					p_runtime_object->regions_count,
 					p_runtime_object->unique_regions_count);
+			if (cb_res != 0) {
+				msg_stddbg("start cb returned failure - exiting\n");
+				if (real_count_array != NULL)
+					free(real_count_array);
+				free_runtime_object(&p_runtime_object);
+				return -EFAULT;
+			}
 		}
 		/* go through all regions */
 		for (i = 0; i < p_runtime_object->regions_count; ++i) {
 			if (p_visitor->region != NULL) {
-				p_visitor->region(
+				cb_res = p_visitor->region(
 						p_visitor,
 						i,
 						p_runtime_object->region[i]->ptr,
 						p_runtime_object->region[i]->byte_size,
 						p_runtime_object->region[i]->elements_count);
+				if (cb_res != 0) {
+					msg_stddbg("region cb returned failure - exiting\n");
+					if (real_count_array != NULL)
+						free(real_count_array);
+					free_runtime_object(&p_runtime_object);
+					return -EFAULT;
+				}
 			}
 
+			cb_res = 0;
 			if (p_runtime_object->region[i]->part_of_region == NULL) {
 				if (p_visitor->unique_region) {
-					p_visitor->unique_region(
+					cb_res = p_visitor->unique_region(
 							p_visitor,
 							i,
 							p_runtime_object->region[i]->unique_region_id);
 				}
 			}else{
 				if (p_visitor->non_unique_region) {
-					p_visitor->non_unique_region(
+					cb_res = p_visitor->non_unique_region(
 							p_visitor,
 							i,
 							p_runtime_object->region[i]->location.region_idx,
 							p_runtime_object->region[i]->location.offset);
 				}
+			}
+			if (cb_res != 0) {
+				msg_stddbg("(non_)unique_regio cb returned failure - exiting\n");
+				if (real_count_array != NULL)
+					free(real_count_array);
+				free_runtime_object(&p_runtime_object);
+				return -EFAULT;
 			}
 		}
 		/* go through all region elements */
@@ -1235,7 +1260,7 @@ int metac_visit(
 								elements_count);
 					}
 
-					p_visitor->region_element(
+					cb_res = p_visitor->region_element(
 							p_visitor,
 							i,
 							j,
@@ -1246,6 +1271,13 @@ int metac_visit(
 							subtypes_sequence,
 							real_count_array,
 							subtypes_sequence_lenth);
+					if (cb_res != 0) {
+						msg_stddbg("region_element cb returned failure - exiting\n");
+						if (real_count_array != NULL)
+							free(real_count_array);
+						free_runtime_object(&p_runtime_object);
+						return -EFAULT;
+					}
 				}
 			}
 		}
@@ -1296,7 +1328,7 @@ int metac_visit(
 							elements,
 							elements_count) {
 						assert(ee == elements[ee]->id);
-						p_visitor->region_element_element(
+						cb_res = p_visitor->region_element_element(
 								p_visitor,
 								i,
 								j,
@@ -1310,6 +1342,15 @@ int metac_visit(
 								elements[ee]->name_local,
 								elements[ee]->path_within_region_element
 								);
+						if (cb_res != 0) {
+							msg_stddbg("region_element_element cb returned failure - exiting\n");
+							if (elements_elements_real_ids != NULL)
+								free(elements_elements_real_ids);
+							if (real_count_array != NULL)
+								free(real_count_array);
+							free_runtime_object(&p_runtime_object);
+							return -EFAULT;
+						}
 						++_n;
 					}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
 				}
@@ -1328,11 +1369,12 @@ int metac_visit(
 								elements,
 								elements_count) {
 							/* Careful: here ee means element number in array of the specific subtype */
+							cb_res = 0;
 							switch(subtypes_sequence[k]) {
 							case reesHierarchy:
 							case reesEnum:
 							case reesBase:
-								p_visitor->region_element_element_per_subtype(
+								cb_res = p_visitor->region_element_element_per_subtype(
 										p_visitor,
 										i,
 										j,
@@ -1343,7 +1385,7 @@ int metac_visit(
 										);
 								break;
 							case reesPointer:
-								p_visitor->region_element_element_per_subtype(
+								cb_res = p_visitor->region_element_element_per_subtype(
 										p_visitor,
 										i,
 										j,
@@ -1356,7 +1398,7 @@ int metac_visit(
 										);
 								break;
 							case reesArray:
-								p_visitor->region_element_element_per_subtype(
+								cb_res = p_visitor->region_element_element_per_subtype(
 										p_visitor,
 										i,
 										j,
@@ -1370,6 +1412,15 @@ int metac_visit(
 								break;
 							default:
 								break;
+							}
+							if (cb_res != 0) {
+								msg_stddbg("region_element_element_per_subtype cb returned failure - exiting\n");
+								if (elements_elements_real_ids != NULL)
+									free(elements_elements_real_ids);
+								if (real_count_array != NULL)
+									free(real_count_array);
+								free_runtime_object(&p_runtime_object);
+								return -EFAULT;
 							}
 							++_n;
 						}_FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE;
