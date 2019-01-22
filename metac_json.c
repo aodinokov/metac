@@ -16,7 +16,6 @@
 #include <stdint.h>			/* int8_t - int64_t*/
 #include <complex.h>		/* complext */
 #include <string.h>			/* strcmp*/
-#include <ctype.h>			/* isprint*/
 #include <endian.h>			/* __BYTE_ORDER at compile time */
 
 /*****************************************************************************/
@@ -41,6 +40,7 @@ static int _metac_base_type_to_json(
 		metac_byte_size_t byte_size,
 		json_object ** pp_json
 		) {
+	int len = 0;
 	char buf[64] = {0,};
 
 	assert(type->id == DW_TAG_base_type);
@@ -62,11 +62,8 @@ static int _metac_base_type_to_json(
 		msg_stddbg("DW_ATE_(un)signed_char (byte)\n");
 		if (type->base_type_info.byte_size == sizeof(int8_t)) {
 			char v = *((char*)ptr);
-			if (isprint(v)){
-				buf[0] = v;
-			}else{
-				sprintf(buf, "\\%"SCNi8"" , v);
-			}
+			buf[0] = v;
+			len = 1;
 			break;
 		}
 	/* break removed - fallback to std approach*/
@@ -77,10 +74,10 @@ static int _metac_base_type_to_json(
 		case DW_ATE_signed_char:
 			msg_stddbg("DW_ATE_signed\n");
 			switch (type->base_type_info.byte_size) {
-			case sizeof(int8_t):  sprintf(buf, "%"SCNi8"" , *((int8_t* )ptr)); break;
-			case sizeof(int16_t): sprintf(buf, "%"SCNi16"", *((int16_t*)ptr)); break;
-			case sizeof(int32_t): sprintf(buf, "%"SCNi32"", *((int32_t*)ptr)); break;
-			case sizeof(int64_t): sprintf(buf, "%"SCNi64"", *((int64_t*)ptr)); break;
+			case sizeof(int8_t):  len = snprintf(buf, sizeof(buf), "%"SCNi8"" , *((int8_t* )ptr)); break;
+			case sizeof(int16_t): len = snprintf(buf, sizeof(buf), "%"SCNi16"", *((int16_t*)ptr)); break;
+			case sizeof(int32_t): len = snprintf(buf, sizeof(buf), "%"SCNi32"", *((int32_t*)ptr)); break;
+			case sizeof(int64_t): len = snprintf(buf, sizeof(buf), "%"SCNi64"", *((int64_t*)ptr)); break;
 			default: msg_stderr("DW_ATE_signed: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
 			}
 			break;
@@ -88,10 +85,10 @@ static int _metac_base_type_to_json(
 		case DW_ATE_unsigned_char:
 			msg_stddbg("DW_ATE_unsigned\n");
 			switch (type->base_type_info.byte_size) {
-			case sizeof(uint8_t):  sprintf(buf, "%"SCNu8"" , *((uint8_t* )ptr)); break;
-			case sizeof(uint16_t): sprintf(buf, "%"SCNu16"", *((uint16_t*)ptr)); break;
-			case sizeof(uint32_t): sprintf(buf, "%"SCNu32"", *((uint32_t*)ptr)); break;
-			case sizeof(uint64_t): sprintf(buf, "%"SCNu64"", *((uint64_t*)ptr)); break;
+			case sizeof(uint8_t):  len = snprintf(buf, sizeof(buf), "%"SCNu8"" , *((uint8_t* )ptr)); break;
+			case sizeof(uint16_t): len = snprintf(buf, sizeof(buf), "%"SCNu16"", *((uint16_t*)ptr)); break;
+			case sizeof(uint32_t): len = snprintf(buf, sizeof(buf), "%"SCNu32"", *((uint32_t*)ptr)); break;
+			case sizeof(uint64_t): len = snprintf(buf, sizeof(buf), "%"SCNu64"", *((uint64_t*)ptr)); break;
 			default: msg_stderr("DW_ATE_unsigned: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
 			}
 			break;
@@ -99,9 +96,9 @@ static int _metac_base_type_to_json(
 		break;
 	case DW_ATE_float:
 		switch(type->base_type_info.byte_size) {
-		case sizeof(float):			sprintf(buf, "%f",	*((float*		)ptr)); break;
-		case sizeof(double):		sprintf(buf, "%f",	*((double*		)ptr)); break;
-		case sizeof(long double):	sprintf(buf, "%Lf",	*((long double*	)ptr)); break;
+		case sizeof(float):			len = snprintf(buf, sizeof(buf), "%f",	*((float*		)ptr)); break;
+		case sizeof(double):		len = snprintf(buf, sizeof(buf), "%f",	*((double*		)ptr)); break;
+		case sizeof(long double):	len = snprintf(buf, sizeof(buf), "%Lf",	*((long double*	)ptr)); break;
 		default: msg_stderr("DW_ATE_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
 		}
 		break;
@@ -109,17 +106,17 @@ static int _metac_base_type_to_json(
 		switch(type->base_type_info.byte_size) {
 		case sizeof(float complex): {
 				float complex v = *((float complex*)ptr);
-				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+				len = snprintf(buf, sizeof(buf), "%f + i%f", creal(v), cimag(v));
 			}
 			break;
 		case sizeof(double complex): {
 				double complex v = *((double complex*)ptr);
-				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+				len = snprintf(buf, sizeof(buf), "%f + i%f", creal(v), cimag(v));
 			}
 			break;
 		case sizeof(long double complex): {
 				long double complex v = *((long double complex*)ptr);
-				sprintf(buf, "%f + i%f", creal(v), cimag(v));
+				len = snprintf(buf, sizeof(buf), "%f + i%f", creal(v), cimag(v));
 			}
 			break;
 		default: msg_stderr("DW_ATE_complex_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
@@ -129,7 +126,7 @@ static int _metac_base_type_to_json(
 	}
 
 	if (pp_json) {
-		*pp_json = json_object_new_string(buf);
+		*pp_json = json_object_new_string_len(buf, len);
 	}
 	return 0;
 }
