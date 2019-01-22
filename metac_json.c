@@ -189,6 +189,8 @@ struct region_element_element {
 	metac_region_ee_subtype_t subtype;
 
 	/*for arrays or pointers only*/
+	int n;
+	metac_count_t * p_elements_count;
 	struct region * p_linked_region;
 
 	json_object * p_json_object;
@@ -264,6 +266,11 @@ static void json_visitor_cleanup(struct json_visitor * json_visitor) {
 					if (json_visitor->regions[i].elements[j].real_region_element_element != NULL) {
 						int k;
 						for (k = 0; k < json_visitor->regions[i].elements[j].real_region_element_element_count; ++k) {
+							if (json_visitor->regions[i].elements[j].real_region_element_element[k].p_elements_count != NULL) {
+								free(json_visitor->regions[i].elements[j].real_region_element_element[k].p_elements_count);
+								json_visitor->regions[i].elements[j].real_region_element_element[k].p_elements_count = NULL;
+							}
+
 							if (json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object != NULL) {
 								json_object_put(json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object);
 								json_visitor->regions[i].elements[j].real_region_element_element[k].p_json_object = NULL;
@@ -521,6 +528,11 @@ int json_region_element_element_per_subtype(
 		ee->p_linked_region = (p_linked_r_id != NULL)?(&json_visitor->regions[*p_linked_r_id]):NULL;
 		assert(see_id < json_visitor->regions[r_id].elements[e_id].arrays_count);
 		json_visitor->regions[r_id].elements[e_id].arrays[see_id] = ee;
+		/*n-dimensions array support */
+		ee->n = n;
+		ee->p_elements_count = calloc(ee->n, sizeof(*ee->p_elements_count));
+		memcpy(ee->p_elements_count, p_elements_count, ee->n * sizeof(*ee->p_elements_count));
+		/* */
 		ee->p_json_object = json_object_new_array();
 		if (ee->p_json_object == NULL) {
 			msg_stderr("json_object_new_array failed\n");
@@ -593,16 +605,49 @@ int metac_unpack_to_json(
 			int k;
 			for (k = 0; k < region->elements[j].arrays_count; ++k) {
 				if (region->elements[j].arrays[k]->p_linked_region != NULL) {
-					int l;
+					int l, m, n;
+					metac_count_t * current_elements_count = calloc(region->elements[j].arrays[k]->n, sizeof(*current_elements_count));
+					if (current_elements_count == NULL) {
+						msg_stderr("json_object_new_array failed\n");
+						json_visitor_cleanup(&json_visitor);
+						return -ENOMEM;
+					}
 					/*must be non-unique region*/
 					assert(region->elements[j].arrays[k]->p_linked_region->p_json_object == NULL);
 
 					for (l = 0; l < region->elements[j].arrays[k]->p_linked_region->elements_count; ++l) {
-						/*TBD - make it n-dimentions compatible!*/
+						/*** fill-in N-dimension array ***/
 						assert(region->elements[j].arrays[k]->p_linked_region->elements[l].real_region_element_element[0].p_json_object);
-						json_object_array_add(region->elements[j].arrays[k]->p_json_object,
+
+						/*get place to add by counter*/
+						json_object * p_json_object_parent = region->elements[j].arrays[k]->p_json_object;
+						for (m = 0; m < region->elements[j].arrays[k]->n-1; ++m){
+							json_object * tmp = json_object_array_get_idx(p_json_object_parent, current_elements_count[m]);
+							if (tmp == NULL) {
+								assert(json_object_array_length(p_json_object_parent) == current_elements_count[m]);
+								tmp = json_object_new_array();
+								json_object_array_add(p_json_object_parent, tmp);
+							}
+							p_json_object_parent = tmp;
+						}
+						/*add element*/
+						json_object_array_add(p_json_object_parent,
 								json_object_get(region->elements[j].arrays[k]->p_linked_region->elements[l].real_region_element_element[0].p_json_object));
+						/*increase counter*/
+						m = region->elements[j].arrays[k]->n-1;
+						do {
+							++current_elements_count[m];
+							if (current_elements_count[m] >= region->elements[j].arrays[k]->p_elements_count[m]) {
+								current_elements_count[m] = 0;
+								--m;
+								if (m < 0)
+									break;
+							} else {
+								break;
+							}
+						}while(1);
 					}
+					free(current_elements_count);
 				}
 			}
 			for (k = 0; k < region->elements[j].pointers_count; ++k) {

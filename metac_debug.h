@@ -25,6 +25,7 @@
 #define msg_stddbg(_fmt, ...)
 #endif
 #define msg_stderr(_fmt, ...) fprintf(stderr, "ERR:" __FILE__ ":%d:%s: " _fmt, __LINE__, __LOG_FUNCTION__, ##__VA_ARGS__)
+#define msg_stderr_continue(_fmt, ...) fprintf(stderr, _fmt, ##__VA_ARGS__)
 
 
 #endif /* METAC_DEBUG_H_ */
