@@ -1174,6 +1174,10 @@ START_TEST(metac_type_t_ut) {
 		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
+		fail_unless(metac_equal(type, copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 1");
+		fail_unless(metac_equal(copy, type, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 2");
+
+
 		fail_unless(metac_delete(copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 0, "metac_delete failed");
 
 		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
@@ -1238,6 +1242,21 @@ START_TEST(basic_tree_t_ut) {
 			fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
 			fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
 			fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
+
+			fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 1");
+			fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 2");
+
+			/*modify original*/
+			*(x.data) = 0;
+			fail_unless(metac_unpack_to_json((void*)(&x), sizeof(x), precompiled_type, 1, &p_json) == 0, "metac_pack2json failed"); \
+			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
+			json_object_put(p_json);
+			p_json = NULL;
+
+			fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 3");
+			fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 4");
+
 
 			fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
 

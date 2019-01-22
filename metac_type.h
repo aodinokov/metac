@@ -246,6 +246,9 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);
+/* returns 0 if non-equal, 1 if equal, < 0 if there was a error*/
+int metac_equal(void *ptr0, void *ptr1,
+		metac_byte_size_t size1, metac_precompiled_type_t * precompiled_type1, metac_count_t elements_count1);
 /* destruction */
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 

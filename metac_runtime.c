@@ -1074,6 +1074,218 @@ int metac_copy(
 	return 0;
 }
 /*****************************************************************************/
+struct _ptr {
+	metac_data_member_location_t offset;
+	metac_byte_size_t len;
+};
+struct _ptr_per_region {
+	int i;
+	int count;
+	struct _ptr * ptrs;
+};
+static int _compare_ptr(const void *_a, const void *_b) {
+	struct _ptr *a = ((struct _ptr *)_a);
+	struct _ptr *b = ((struct _ptr *)_b);
+	if (a->offset == b->offset)
+		return 0;
+	if (a->offset < b->offset)
+		return -1;
+	return 1;
+}
+/*****************************************************************************/
+static int _metac_equal(
+		struct metac_runtime_object * p_runtime_object0,
+		struct metac_runtime_object * p_runtime_object1) {
+	int res;
+	int i, j, k, l;
+	struct _ptr_per_region * ptr_per_unique_region;
+
+	if (p_runtime_object0->pointer_table_items_count != p_runtime_object1->pointer_table_items_count ||
+		p_runtime_object0->regions_count != p_runtime_object1->regions_count ||
+		p_runtime_object0->unique_regions_count != p_runtime_object1->unique_regions_count ) {
+		return 0;
+	}
+
+	/*runtime-objects and their components are locate in mem in order of mem-parsing - we're relying on that */
+	for (i = 0; i < p_runtime_object0->regions_count; ++i) {
+		if (p_runtime_object0->region[i]->elements_count != p_runtime_object1->region[i]->elements_count ||
+			p_runtime_object0->region[i]->byte_size != p_runtime_object1->region[i]->byte_size) {
+			return 0;
+		}
+		for (j = 0; j < p_runtime_object0->region[i]->elements_count; ++j) {
+			if (p_runtime_object0->region[i]->elements[j].region_element_type != p_runtime_object1->region[i]->elements[j].region_element_type ||
+				p_runtime_object0->region[i]->elements[j].byte_size != p_runtime_object1->region[i]->elements[j].byte_size) {
+				return 0;
+			}
+			/* compare discriminator values */
+			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->discriminators_count; ++k) {
+				if (p_runtime_object0->region[i]->elements[j].p_discriminator_value[k].is_initialized != p_runtime_object1->region[i]->elements[j].p_discriminator_value[k].is_initialized) {
+					return 0;
+				}
+				if (p_runtime_object0->region[i]->elements[j].p_discriminator_value[k].is_initialized != 0 &&
+					p_runtime_object0->region[i]->elements[j].p_discriminator_value[k].value != p_runtime_object1->region[i]->elements[j].p_discriminator_value[k].value) {
+					return 0;
+				}
+			}
+			/*compare pointers*/
+			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->pointer_type_elements_count; ++k) {
+				if (p_runtime_object0->region[i]->elements[j].p_pointer[k].n != p_runtime_object1->region[i]->elements[j].p_pointer[k].n ||
+					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region == NULL) ||
+					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region != NULL &&
+						(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region->id))
+					) {
+					return 0;
+				}
+				/*compare lengths of regions we're pointing*/
+				for (l = 0; l < p_runtime_object0->region[i]->elements[j].p_pointer[k].n; ++l) {
+					if (p_runtime_object0->region[i]->elements[j].p_pointer[k].p_elements_count[l] != p_runtime_object1->region[i]->elements[j].p_pointer[k].p_elements_count[l]) {
+						return 0;
+					}
+				}
+			}
+			/*compare arrays*/
+			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->array_type_elements_count; ++k) {
+				if (p_runtime_object0->region[i]->elements[j].p_array[k].n != p_runtime_object1->region[i]->elements[j].p_array[k].n ||
+					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_array[k].p_region == NULL) ||
+					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region != NULL &&
+						(p_runtime_object0->region[i]->elements[j].p_array[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_array[k].p_region->id))
+					) {
+					return 0;
+				}
+				/*compare lengths of regions we're pointing*/
+				for (l = 0; l < p_runtime_object0->region[i]->elements[j].p_array[k].n; ++l) {
+					if (p_runtime_object0->region[i]->elements[j].p_array[k].p_elements_count[l] != p_runtime_object1->region[i]->elements[j].p_array[k].p_elements_count[l]) {
+						return 0;
+					}
+				}
+			}
+		}
+	}
+
+	/* Now precalc how many pointers per unique region */
+	ptr_per_unique_region = calloc(p_runtime_object0->unique_regions_count, sizeof(*ptr_per_unique_region));
+	if (ptr_per_unique_region == NULL) {
+		msg_stderr("can't allocate ptr_count_per_unique_region\n");
+		return -ENOMEM;
+	}
+	for (i = 0 ; i < p_runtime_object0->pointer_table_items_count; ++i) {
+		assert(p_runtime_object0->pointer_table_items[i].location.region_idx < p_runtime_object0->unique_regions_count);
+		++ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].count;
+	}
+	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
+		ptr_per_unique_region[i].ptrs = calloc(ptr_per_unique_region[i].count, sizeof(*ptr_per_unique_region[i].ptrs));
+		if (ptr_per_unique_region[i].ptrs == NULL) {
+			msg_stderr("can't allocate ptr_per_unique_region[i].ptrs\n");
+			for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
+				if (ptr_per_unique_region[i].ptrs != NULL) {
+					free(ptr_per_unique_region[i].ptrs);
+					ptr_per_unique_region[i].ptrs = NULL;
+				}
+			}
+			free(ptr_per_unique_region);
+			return -ENOMEM;
+		}
+	}
+	for (i = 0 ; i < p_runtime_object0->pointer_table_items_count; ++i) {
+		struct _ptr * p_ptr;
+		assert(p_runtime_object0->pointer_table_items[i].location.region_idx < p_runtime_object0->unique_regions_count);
+		assert(ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i < ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].count);
+
+		p_ptr = &ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].ptrs[ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i];
+		p_ptr->offset = p_runtime_object0->pointer_table_items[i].location.offset;
+		p_ptr->len = sizeof(void*);
+		++ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i;
+	}
+
+	res = 1;
+	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
+		metac_data_member_location_t prev_offset = 0;
+
+		/*sort by offset!*/
+		qsort(ptr_per_unique_region[i].ptrs,
+				ptr_per_unique_region[i].count,
+				sizeof(*(ptr_per_unique_region[i].ptrs)),
+				_compare_ptr); /*TODO: change to hsort? - low prio so far*/
+
+		for (j = 0; j < ptr_per_unique_region[i].count; ++j){
+			//msg_stderr("reg %d, off %d, sz %d\n", i, prev_offset, ptr_per_unique_region[i].ptrs[j].offset - prev_offset);
+			res = 	(
+					memcmp(
+							p_runtime_object0->unique_region[i]->ptr + prev_offset,
+							p_runtime_object1->unique_region[i]->ptr + prev_offset,
+							ptr_per_unique_region[i].ptrs[j].offset - prev_offset) == 0
+					)?1:0;
+			//msg_stderr("res1 %d\n", res);
+			if (res == 0)
+				break;
+			prev_offset = ptr_per_unique_region[i].ptrs[j].offset + ptr_per_unique_region[i].ptrs[j].len;
+		}
+		if (res == 0)
+			break;
+		/*compare tail*/
+		if (p_runtime_object0->unique_region[i]->byte_size > prev_offset) {
+			//msg_stderr("reg %d, off %d, sz %d\n", i, prev_offset, p_runtime_object0->unique_region[i]->byte_size - prev_offset);
+			res = 	(
+					memcmp(
+							p_runtime_object0->unique_region[i]->ptr + prev_offset,
+							p_runtime_object1->unique_region[i]->ptr + prev_offset,
+							p_runtime_object0->unique_region[i]->byte_size - prev_offset) == 0
+					)?1:0;
+			//msg_stderr("res2 %d\n", res);
+			if (res == 0)
+				break;
+		}
+	}
+
+	/*clean up*/
+	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
+		if (ptr_per_unique_region[i].ptrs != NULL) {
+			free(ptr_per_unique_region[i].ptrs);
+			ptr_per_unique_region[i].ptrs = NULL;
+		}
+	}
+	free(ptr_per_unique_region);
+
+	//msg_stderr("res %d\n", res);
+	return res;
+}
+int metac_equal(
+		void *ptr0,
+		void *ptr1,
+		metac_byte_size_t size,
+		metac_precompiled_type_t * precompiled_type,
+		metac_count_t elements_count) {
+	int res;
+	struct metac_runtime_object * p_runtime_object0;
+	struct metac_runtime_object * p_runtime_object1;
+
+	p_runtime_object0 = build_runtime_object(ptr0, size, precompiled_type, elements_count);
+	if (p_runtime_object0 == NULL) {
+		msg_stderr("Error while building runtime object0\n");
+		return -EFAULT;
+	}
+	p_runtime_object1 = build_runtime_object(ptr1, size, precompiled_type, elements_count);
+	if (p_runtime_object1 == NULL) {
+		msg_stderr("Error while building runtime object1\n");
+		free_runtime_object(&p_runtime_object0);
+		return -EFAULT;
+	}
+	/* self check - it's better to do this for safety */
+	if (runtime_object_check_pointer_table(p_runtime_object0) != 0 ||
+		runtime_object_check_pointer_table(p_runtime_object1) != 0) {
+		msg_stderr("runtime_object_check_pointer_table hasn't passed\n");
+		free_runtime_object(&p_runtime_object0);
+		free_runtime_object(&p_runtime_object1);
+		return -EFAULT;
+	}
+
+	res = _metac_equal(p_runtime_object0, p_runtime_object1);
+
+	free_runtime_object(&p_runtime_object0);
+	free_runtime_object(&p_runtime_object1);
+	return res;
+}
+/*****************************************************************************/
 #define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT(i, _p_region_element, _elements, _elements_count) \
 	do { \
 		int i; \
@@ -1130,7 +1342,6 @@ static int _get_region_element_type_element_info(
 }
 
 /*****************************************************************************/
-/*TBD: handle errors from callbacks*/
 int metac_visit(
 	void *ptr,
 	metac_byte_size_t size,
