@@ -552,9 +552,9 @@ int json_region_element_element_per_subtype(
 }
 /*****************************************************************************/
 int metac_unpack_to_json(
+		metac_precompiled_type_t * precompiled_type,
 		void *ptr,
 		metac_byte_size_t size,
-		metac_precompiled_type_t * precompiled_type,
 		metac_count_t elements_count,
 		json_object ** pp_json) {
 	int i;
@@ -687,4 +687,26 @@ int metac_unpack_to_json(
 	json_visitor_cleanup(&json_visitor);
 	return 0;
 }
+/*****************************************************************************/
+int metac_pack_from_json(
+		metac_precompiled_type_t * precompiled_type,
+		json_object * p_json,
+		void **p_ptr,
+		metac_byte_size_t * p_size,
+		metac_count_t * p_elements_count
+		) {
+	metac_count_t unique_regions_count;
 
+	/*check consistency first*/
+	if (json_object_get_type(p_json) != json_type_array) {
+		msg_stderr("p_json isn't array\n");
+		return -EINVAL;
+	}
+	unique_regions_count = json_object_array_length(p_json);
+	if (unique_regions_count == 0) {
+		msg_stderr("p_json has zero length\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}

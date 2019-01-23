@@ -77,7 +77,7 @@ struct metac_precompiled_type {
 	int	region_element_types_count;
 	struct region_element_type ** region_element_type;
 };
-
+/*****************************************************************************/
 struct discriminator_value {
 	int is_initialized;
 	metac_discriminator_value_t value;
@@ -144,7 +144,7 @@ struct metac_runtime_object {
 	metac_count_t	unique_regions_count;
 	struct region ** unique_region;
 
-	/* optimized table to copy runtime object*/
+	/* optimized table to copy runtime object - TODO: move it to a separate func and calc it on demand*/
 	metac_count_t pointer_table_items_count;
 	struct pointer_table_item *pointer_table_items;
 

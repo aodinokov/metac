@@ -326,7 +326,7 @@ static struct _region * find_or_create_region(
 	return _region;
 }
 /*****************************************************************************/
-static int delete_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
+static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
 	int i;
 	struct metac_runtime_object *p_runtime_object;
 
@@ -741,7 +741,7 @@ static struct metac_runtime_object * build_runtime_object(
 	p_breadthfirst_engine = create_breadthfirst_engine();
 	if (p_breadthfirst_engine == NULL){
 		msg_stderr("create_breadthfirst_engine failed\n");
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 	p_breadthfirst_engine->private_data = &context;
@@ -756,7 +756,7 @@ static struct metac_runtime_object * build_runtime_object(
 		msg_stderr("find_or_create_region failed\n");
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
@@ -772,7 +772,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
@@ -784,7 +784,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
@@ -799,7 +799,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
@@ -858,7 +858,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 		cleanup_runtime_context(&context);
 		delete_breadthfirst_engine(&p_breadthfirst_engine);
-		delete_runtime_object(&context.runtime_object);
+		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
@@ -902,7 +902,7 @@ static struct metac_runtime_object * build_runtime_object(
 
 			cleanup_runtime_context(&context);
 			delete_breadthfirst_engine(&p_breadthfirst_engine);
-			delete_runtime_object(&context.runtime_object);
+			free_runtime_object(&context.runtime_object);
 			return NULL;
 		}
 		l = 0;
@@ -979,10 +979,6 @@ static int runtime_object_check_pointer_table(
 		}
 	}
 	return 0;
-}
-/*****************************************************************************/
-static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
-	return delete_runtime_object(pp_runtime_object);
 }
 /*****************************************************************************/
 int metac_delete(

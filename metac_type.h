@@ -248,7 +248,7 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);
 /* returns 0 if non-equal, 1 if equal, < 0 if there was a error*/
 int metac_equal(void *ptr0, void *ptr1,
-		metac_byte_size_t size1, metac_precompiled_type_t * precompiled_type1, metac_count_t elements_count1);
+		metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 /* destruction */
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 
@@ -334,13 +334,13 @@ int metac_visit(
 	struct metac_visitor * p_visitor);
 
 
-/* constructor */
-///* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
-//int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
-//		void **p_ptr, metac_byte_size_t * p_size);
-/*some format -> C-type - generic de-serialization*/
-int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
-/*todo: metac_cmp????*/
+///* constructor */
+/////* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
+////int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
+////		void **p_ptr, metac_byte_size_t * p_size);
+///*some format -> C-type - generic de-serialization*/
+//int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
+///*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;
