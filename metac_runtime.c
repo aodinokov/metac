@@ -20,23 +20,40 @@
 
 /* separated this part from metac_precompiled_type */
 /*****************************************************************************/
-struct runtime_context {
-	struct metac_runtime_object * runtime_object;
-	struct cds_list_head region_list;
-};
+static int is_region_element_precondition_true(
+		struct region_element * p_region_element,
+		struct condition * p_precondition) {
+	int id;
 
-struct _region {
-	struct cds_list_head list;
-	struct region * p_region;
-};
+	assert(p_region_element);
+	assert(p_precondition);
+	assert(p_region_element->region_element_type);
 
-struct runtime_task {
-	struct breadthfirst_engine_task task;
-	struct runtime_task* parent_task;
-	struct region * p_region;
-};
-/*****************************************************************************/
-static int destroy_region_element(struct region_element *p_region_element) {
+	if (p_precondition->p_discriminator == NULL)
+		return 1;
+
+	id = p_precondition->p_discriminator->id;
+	assert(id < p_region_element->region_element_type->discriminators_count);
+
+	if (p_region_element->p_discriminator_value[id].is_initialized == 0) {
+		if (is_region_element_precondition_true(p_region_element, &p_precondition->p_discriminator->precondition) == 0)
+			return 0;
+		assert(p_precondition->p_discriminator->discriminator_cb);
+
+		if (p_precondition->p_discriminator->discriminator_cb(0,
+				p_region_element->ptr,
+				p_region_element->region_element_type->type,
+				&p_region_element->p_discriminator_value[id].value,
+				p_precondition->p_discriminator->discriminator_cb_context) != 0) {
+			msg_stderr("Error calling discriminatior_cb %d for type %s\n", id, p_region_element->region_element_type->type->name);
+			return -EFAULT;
+		}
+		msg_stddbg("discriminator returned %d\n", (int)p_region_element->p_discriminator_value[id].value);
+		p_region_element->p_discriminator_value[id].is_initialized = 1;
+	}
+	return p_region_element->p_discriminator_value[id].value == p_precondition->expected_discriminator_value;
+}
+static int cleanup_region_element(struct region_element *p_region_element) {
 	int i;
 
 	if (p_region_element == NULL) {
@@ -73,7 +90,6 @@ static int destroy_region_element(struct region_element *p_region_element) {
 
 	return 0;
 }
-
 static int init_region_element(struct region_element *p_region_element,
 		void *ptr,
 		metac_byte_size_t byte_size,
@@ -92,7 +108,7 @@ static int init_region_element(struct region_element *p_region_element,
 				calloc(region_element_type->discriminators_count, sizeof(*(p_region_element->p_discriminator_value)));
 		if (p_region_element->p_discriminator_value == NULL) {
 			msg_stderr("Can't create region_element's discriminator_value array: no memory\n");
-			destroy_region_element(p_region_element);
+			cleanup_region_element(p_region_element);
 			return -ENOMEM;
 		}
 	}
@@ -102,7 +118,7 @@ static int init_region_element(struct region_element *p_region_element,
 				calloc(region_element_type->pointer_type_elements_count, sizeof(*(p_region_element->p_pointer)));
 		if (p_region_element->p_pointer == NULL) {
 			msg_stderr("Can't create region_element's pointers array: no memory\n");
-			destroy_region_element(p_region_element);
+			cleanup_region_element(p_region_element);
 			return -ENOMEM;
 		}
 	}
@@ -112,7 +128,7 @@ static int init_region_element(struct region_element *p_region_element,
 				calloc(region_element_type->array_type_elements_count, sizeof(*(p_region_element->p_array)));
 		if (p_region_element->p_array == NULL) {
 			msg_stderr("Can't create region's arrays array: no memory\n");
-			destroy_region_element(p_region_element);
+			cleanup_region_element(p_region_element);
 			return -ENOMEM;
 		}
 	}
@@ -138,7 +154,7 @@ static int delete_region(struct region **pp_region) {
 	if (p_region->elements != NULL) {
 		msg_stddbg("deleting elements\n");
 		for (i = 0; i < p_region->elements_count; i++){
-			destroy_region_element(&p_region->elements[i]);
+			cleanup_region_element(&p_region->elements[i]);
 		}
 		free(p_region->elements);
 		p_region->elements = NULL;
@@ -150,7 +166,6 @@ static int delete_region(struct region **pp_region) {
 
 	return 0;
 }
-
 static struct region * create_region(
 		void *ptr,
 		metac_byte_size_t byte_size,
@@ -212,118 +227,6 @@ static struct region * create_region(
 	}
 
 	return p_region;
-}
-
-static int region_element_precondition_is_true(
-		struct region_element * p_region_element,
-		struct condition * p_precondition) {
-	int id;
-
-	assert(p_region_element);
-	assert(p_precondition);
-	assert(p_region_element->region_element_type);
-
-	if (p_precondition->p_discriminator == NULL)
-		return 1;
-
-	id = p_precondition->p_discriminator->id;
-	assert(id < p_region_element->region_element_type->discriminators_count);
-
-	if (p_region_element->p_discriminator_value[id].is_initialized == 0) {
-		if (region_element_precondition_is_true(p_region_element, &p_precondition->p_discriminator->precondition) == 0)
-			return 0;
-		assert(p_precondition->p_discriminator->discriminator_cb);
-
-		if (p_precondition->p_discriminator->discriminator_cb(0,
-				p_region_element->ptr,
-				p_region_element->region_element_type->type,
-				&p_region_element->p_discriminator_value[id].value,
-				p_precondition->p_discriminator->discriminator_cb_context) != 0) {
-			msg_stderr("Error calling discriminatior_cb %d for type %s\n", id, p_region_element->region_element_type->type->name);
-			return -EFAULT;
-		}
-		msg_stddbg("discriminator returned %d\n", (int)p_region_element->p_discriminator_value[id].value);
-		p_region_element->p_discriminator_value[id].is_initialized = 1;
-	}
-	return p_region_element->p_discriminator_value[id].value == p_precondition->expected_discriminator_value;
-}
-/*****************************************************************************/
-static struct _region * create__region(
-		void *ptr,
-		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
-		struct region * part_of_region) {
-	struct _region * _region;
-
-	_region = calloc(1, sizeof(*_region));
-	if (_region == NULL) {
-		msg_stderr("no memory\n");
-		return NULL;
-	}
-
-	_region->p_region = create_region(ptr, byte_size, region_element_type, elements_count, part_of_region);
-	if (_region->p_region == NULL) {
-		msg_stderr("create_region failed\n");
-		free(_region);
-		return NULL;
-	}
-
-	return _region;
-}
-
-static struct _region * simply_create_region(
-		struct runtime_context * p_runtime_context,
-		void *ptr,
-		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
-		struct region * part_of_region) {
-	/*check if region with the same addr already exists*/
-	struct _region * _region = NULL;
-	/*create otherwise*/
-	msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
-	_region = create__region(ptr, byte_size, region_element_type, elements_count, part_of_region);
-	msg_stddbg("create region_element_type result %p\n", _region);
-	if (_region == NULL) {
-		msg_stddbg("create__region failed\n");
-		return NULL;
-	}
-	cds_list_add_tail(&_region->list, &p_runtime_context->region_list);
-	++p_runtime_context->runtime_object->regions_count;
-	return _region;
-}
-
-static struct _region * find_or_create_region(
-		struct runtime_context * p_runtime_context,
-		void *ptr,
-		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
-		struct region * part_of_region,
-		int * p_created_flag) {
-	/*check if region with the same addr already exists*/
-	struct _region * _region = NULL;
-	struct _region * _region_iter;
-
-	if (p_created_flag != NULL) *p_created_flag = 0;
-
-	cds_list_for_each_entry(_region_iter, &p_runtime_context->region_list, list) {
-		if (ptr == _region_iter->p_region->ptr) { /* case when ptr is inside will be covered later */
-			_region = _region_iter;
-			msg_stddbg("found region %p\n", _region);
-			break;
-		}
-	}
-
-	if (_region == NULL) {
-		_region = simply_create_region(p_runtime_context, ptr, byte_size, region_element_type, elements_count, part_of_region);
-		if (_region != NULL) {
-			if (p_created_flag != NULL) *p_created_flag = 1;
-		}
-	}
-
-	return _region;
 }
 /*****************************************************************************/
 static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
@@ -388,6 +291,100 @@ static struct metac_runtime_object * create_runtime_object(struct metac_precompi
 }
 
 /*****************************************************************************/
+struct runtime_context {
+	struct metac_runtime_object * runtime_object;
+	struct cds_list_head region_list;
+};
+
+struct _region {
+	struct cds_list_head list;
+	struct region * p_region;
+};
+
+struct runtime_task {
+	struct breadthfirst_engine_task task;
+	struct runtime_task* parent_task;
+	struct region * p_region;
+};
+/*****************************************************************************/
+static struct _region * create__region(
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type,
+		metac_count_t elements_count,
+		struct region * part_of_region) {
+	struct _region * _region;
+
+	_region = calloc(1, sizeof(*_region));
+	if (_region == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+
+	_region->p_region = create_region(ptr, byte_size, region_element_type, elements_count, part_of_region);
+	if (_region->p_region == NULL) {
+		msg_stderr("create_region failed\n");
+		free(_region);
+		return NULL;
+	}
+
+	return _region;
+}
+/*****************************************************************************/
+static struct _region * simply_create__region(
+		struct runtime_context * p_runtime_context,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type,
+		metac_count_t elements_count,
+		struct region * part_of_region) {
+	/*check if region with the same addr already exists*/
+	struct _region * _region = NULL;
+	/*create otherwise*/
+	msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
+	_region = create__region(ptr, byte_size, region_element_type, elements_count, part_of_region);
+	msg_stddbg("create region_element_type result %p\n", _region);
+	if (_region == NULL) {
+		msg_stddbg("create__region failed\n");
+		return NULL;
+	}
+	cds_list_add_tail(&_region->list, &p_runtime_context->region_list);
+	++p_runtime_context->runtime_object->regions_count;
+	return _region;
+}
+/*****************************************************************************/
+static struct _region * find_or_create__region(
+		struct runtime_context * p_runtime_context,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type,
+		metac_count_t elements_count,
+		struct region * part_of_region,
+		int * p_created_flag) {
+	/*check if region with the same addr already exists*/
+	struct _region * _region = NULL;
+	struct _region * _region_iter;
+
+	if (p_created_flag != NULL) *p_created_flag = 0;
+
+	cds_list_for_each_entry(_region_iter, &p_runtime_context->region_list, list) {
+		if (ptr == _region_iter->p_region->ptr) { /* case when ptr is inside will be covered later */
+			_region = _region_iter;
+			msg_stddbg("found region %p\n", _region);
+			break;
+		}
+	}
+
+	if (_region == NULL) {
+		_region = simply_create__region(p_runtime_context, ptr, byte_size, region_element_type, elements_count, part_of_region);
+		if (_region != NULL) {
+			if (p_created_flag != NULL) *p_created_flag = 1;
+		}
+	}
+
+	return _region;
+}
+/*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
 	struct runtime_task * p_task;
 
@@ -408,7 +405,7 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 	return 0;
 }
 
-static struct runtime_task * create_and_add_runtime_task_4_region(
+static struct runtime_task * create_and_add_runtime_task(
 		struct breadthfirst_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
 		breadthfirst_engine_task_fn_t fn,
@@ -498,7 +495,7 @@ static int _runtime_task_fn(
 
 			msg_stddbg("pointer %s\n", p_region_element->region_element_type->pointer_type_element[i]->path_within_region_element);
 
-			res = region_element_precondition_is_true(p_region_element, &p_region_element->region_element_type->pointer_type_element[i]->precondition);
+			res = is_region_element_precondition_true(p_region_element, &p_region_element->region_element_type->pointer_type_element[i]->precondition);
 			if (res < 0) {
 				msg_stderr("Something wrong with conditions\n");
 				return -EFAULT;
@@ -557,7 +554,7 @@ static int _runtime_task_fn(
 			}
 
 			/*we have to create region and store it (need create or find to support loops) */
-			_region = find_or_create_region(
+			_region = find_or_create__region(
 					p_context,
 					new_ptr,
 					elements_byte_size * elements_count,
@@ -575,7 +572,7 @@ static int _runtime_task_fn(
 			/* add task to handle this region fields properly */
 			if (new_region == 1) {
 				/*create the new task for this region*/
-				if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+				if (create_and_add_runtime_task(p_breadthfirst_engine,
 						p_task,
 						_runtime_task_fn,
 						_runtime_task_destroy_fn, _region->p_region) == NULL) {
@@ -597,7 +594,7 @@ static int _runtime_task_fn(
 
 			msg_stddbg("array %s\n", p_region_element->region_element_type->array_type_element[i]->path_within_region_element);
 
-			res = region_element_precondition_is_true(p_region_element, &p_region_element->region_element_type->array_type_element[i]->precondition);
+			res = is_region_element_precondition_true(p_region_element, &p_region_element->region_element_type->array_type_element[i]->precondition);
 			if (res < 0) {
 				msg_stderr("Something wrong with conditions\n");
 				return -EFAULT;
@@ -663,7 +660,7 @@ static int _runtime_task_fn(
 			}
 
 			/*we have to create region and store it (need create or find to support loops) */
-			_region = simply_create_region(
+			_region = simply_create__region(
 					p_context,
 					new_ptr,
 					elements_byte_size * elements_count,
@@ -677,7 +674,7 @@ static int _runtime_task_fn(
 			p_region_element->p_array[i].p_region = _region->p_region;
 			/* add task to handle this region fields properly */
 			/*create the new task for this region*/
-			if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+			if (create_and_add_runtime_task(p_breadthfirst_engine,
 					p_task,
 					_runtime_task_fn,
 					_runtime_task_destroy_fn, _region->p_region) == NULL) {
@@ -746,7 +743,7 @@ static struct metac_runtime_object * build_runtime_object(
 	}
 	p_breadthfirst_engine->private_data = &context;
 
-	_region = simply_create_region(&context,
+	_region = simply_create__region(&context,
 			ptr,
 			byte_size,
 			p_precompiled_type->region_element_type[0],
@@ -760,7 +757,7 @@ static struct metac_runtime_object * build_runtime_object(
 		return NULL;
 	}
 
-	if (create_and_add_runtime_task_4_region(p_breadthfirst_engine,
+	if (create_and_add_runtime_task(p_breadthfirst_engine,
 			NULL,
 			_runtime_task_fn,
 			_runtime_task_destroy_fn, _region->p_region) == NULL) {
@@ -1286,7 +1283,7 @@ int metac_equal(
 	do { \
 		int i; \
 		for (i = 0; i < _elements_count; ++i) { \
-			if (region_element_precondition_is_true(p_region_element, &(_elements[i]->precondition)))
+			if (is_region_element_precondition_true(p_region_element, &(_elements[i]->precondition)))
 #define _FOR_EACH_REGION_ELEMENT_TYPE_ELEMENT_DONE \
 		} \
 	}while(0)
@@ -1377,7 +1374,7 @@ int metac_visit(
 			free(real_count_array);
 		return -EFAULT;
 	}
-
+	/* --- */
 	if (p_visitor != NULL) {
 		if (p_visitor->start != NULL) {
 			cb_res = p_visitor->start(
@@ -1637,7 +1634,7 @@ int metac_visit(
 			free(elements_elements_real_ids);
 		}
 	}
-
+	/* --- */
 	if (real_count_array != NULL)
 		free(real_count_array);
 	free_runtime_object(&p_runtime_object);
