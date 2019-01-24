@@ -568,7 +568,6 @@ static int _runtime_task_fn(
 				return -EFAULT;
 			}
 			p_region_element->p_pointer[i].p_region = _region->p_region;
-//			++p_context->runtime_object->pointer_table_items_count; /* count pointers with initialized region */
 
 			/* add task to handle this region fields properly */
 			if (new_region == 1) {
@@ -712,7 +711,7 @@ static int _compare_regions(const void *_a, const void *_b) {
 	return 1;
 }
 
-static struct metac_runtime_object * build_runtime_object(
+static struct metac_runtime_object * create_runtime_object_from_ptr(
 		void * ptr,
 		metac_byte_size_t byte_size,
 		struct metac_precompiled_type * p_precompiled_type,
@@ -1097,7 +1096,7 @@ int metac_delete(
 	int i;
 	struct metac_runtime_object * p_runtime_object;
 
-	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	p_runtime_object = create_runtime_object_from_ptr(ptr, size, precompiled_type, elements_count);
 	if (p_runtime_object == NULL) {
 		msg_stderr("Error while building runtime object\n");
 		return -EFAULT;
@@ -1122,7 +1121,7 @@ int metac_copy(
 	struct runtime_object_ponter_tables * p_ponter_tables;
 	void ** ptrs;
 
-	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	p_runtime_object = create_runtime_object_from_ptr(ptr, size, precompiled_type, elements_count);
 	if (p_runtime_object == NULL) {
 		msg_stderr("Error while building runtime object\n");
 		return -EFAULT;
@@ -1318,12 +1317,12 @@ int metac_equal(
 	struct metac_runtime_object * p_runtime_object0;
 	struct metac_runtime_object * p_runtime_object1;
 
-	p_runtime_object0 = build_runtime_object(ptr0, size, precompiled_type, elements_count);
+	p_runtime_object0 = create_runtime_object_from_ptr(ptr0, size, precompiled_type, elements_count);
 	if (p_runtime_object0 == NULL) {
 		msg_stderr("Error while building runtime object0\n");
 		return -EFAULT;
 	}
-	p_runtime_object1 = build_runtime_object(ptr1, size, precompiled_type, elements_count);
+	p_runtime_object1 = create_runtime_object_from_ptr(ptr1, size, precompiled_type, elements_count);
 	if (p_runtime_object1 == NULL) {
 		msg_stderr("Error while building runtime object1\n");
 		free_runtime_object(&p_runtime_object0);
@@ -1425,7 +1424,7 @@ int metac_visit(
 		return -ENOMEM;
 	}
 
-	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
+	p_runtime_object = create_runtime_object_from_ptr(ptr, size, precompiled_type, elements_count);
 	if (p_runtime_object == NULL) {
 		msg_stderr("Error while building runtime object\n");
 		if (real_count_array != NULL)
