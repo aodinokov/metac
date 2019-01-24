@@ -128,12 +128,6 @@ struct region { /*can contain several elements of region_element_type*/
 	struct _location location;
 };
 
-struct pointer_table_item {
-	struct pointer * p_pointer;
-	struct _location location;
-	struct _location value;
-};
-
 struct metac_runtime_object {
 	struct metac_precompiled_type *precompiled_type;
 
@@ -143,12 +137,6 @@ struct metac_runtime_object {
 	/* really allocated memory regions (subset of all regions) */
 	metac_count_t	unique_regions_count;
 	struct region ** unique_region;
-
-	/* optimized table to copy runtime object - TODO: move it to a separate func and calc it on demand*/
-	metac_count_t pointer_table_items_count;
-	struct pointer_table_item *pointer_table_items;
-
 };
-
 
 #endif /* METAC_PRECOMPILED_TYPE_INT_H_ */

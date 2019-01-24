@@ -20,6 +20,13 @@
 
 /* separated this part from metac_precompiled_type */
 /*****************************************************************************/
+static inline metac_count_t region_get_unique_region_id(
+		struct region * p_region) {
+	if (p_region->part_of_region)
+		return p_region->location.region_idx;
+	return p_region->unique_region_id;
+}
+
 static int is_region_element_precondition_true(
 		struct region_element * p_region_element,
 		struct condition * p_precondition) {
@@ -242,11 +249,6 @@ static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object)
 	if (p_runtime_object == NULL) {
 		msg_stderr("Can't delete runtime_object: already deleted\n");
 		return -EALREADY;
-	}
-
-	if (p_runtime_object->pointer_table_items) {
-		free(p_runtime_object->pointer_table_items);
-		p_runtime_object->pointer_table_items = NULL;
 	}
 
 	if (p_runtime_object->unique_region != NULL) {
@@ -567,7 +569,7 @@ static int _runtime_task_fn(
 				return -EFAULT;
 			}
 			p_region_element->p_pointer[i].p_region = _region->p_region;
-			++p_context->runtime_object->pointer_table_items_count; /* count pointers with initialized region */
+//			++p_context->runtime_object->pointer_table_items_count; /* count pointers with initialized region */
 
 			/* add task to handle this region fields properly */
 			if (new_region == 1) {
@@ -785,7 +787,6 @@ static struct metac_runtime_object * build_runtime_object(
 		return NULL;
 	}
 
-	/*TBD move to separate func???*/
 	context.runtime_object->region = calloc(context.runtime_object->regions_count, sizeof(*(context.runtime_object->region)));
 	if (context.runtime_object->region == NULL) {
 		msg_stderr("Can't allocate memory for regions array in runtime_object\n");
@@ -887,92 +888,205 @@ static struct metac_runtime_object * build_runtime_object(
 	}
 	assert(context.runtime_object->regions_count == i);
 
-	/* initialize pointers table */
-	if (context.runtime_object->pointer_table_items_count > 0) {
-		context.runtime_object->pointer_table_items = calloc(context.runtime_object->pointer_table_items_count, sizeof(*context.runtime_object->pointer_table_items));
-		if (context.runtime_object->pointer_table_items == NULL) {
-			msg_stderr("Can't allocate memory for pointer_table_items array in runtime_object\n");
-
-			cds_list_for_each_entry(_region, &context.region_list, list) {
-				delete_region(&_region->p_region);
-			}
-
-			cleanup_runtime_context(&context);
-			delete_breadthfirst_engine(&p_breadthfirst_engine);
-			free_runtime_object(&context.runtime_object);
-			return NULL;
-		}
-		l = 0;
-		for (i = 0; i < context.runtime_object->regions_count; i++) {
-			for (j = 0; j < context.runtime_object->region[i]->elements_count; j++) {
-				for (k = 0; k < context.runtime_object->region[i]->elements[j].region_element_type->pointer_type_elements_count; k++) {
-					if (context.runtime_object->region[i]->elements[j].p_pointer[k].p_region != NULL) {
-						context.runtime_object->pointer_table_items[l].p_pointer = &context.runtime_object->region[i]->elements[j].p_pointer[k];
-
-						/*set location*/
-						context.runtime_object->pointer_table_items[l].location.offset =
-								((metac_data_member_location_t)(context.runtime_object->region[i]->elements[j].ptr - context.runtime_object->region[i]->ptr)) +
-								context.runtime_object->region[i]->elements[j].region_element_type->pointer_type_element[k]->offset;
-
-						if (context.runtime_object->region[i]->part_of_region == NULL) {
-							assert(context.runtime_object->region[i]->unique_region_id != -1);
-							context.runtime_object->pointer_table_items[l].location.region_idx = context.runtime_object->region[i]->unique_region_id;
-						}else {
-							context.runtime_object->pointer_table_items[l].location.region_idx = context.runtime_object->region[i]->location.region_idx;
-							context.runtime_object->pointer_table_items[l].location.offset += context.runtime_object->region[i]->location.offset;
-						}
-
-						/*set value*/
-						context.runtime_object->pointer_table_items[l].value.offset =
-								0;//TBD:((metac_data_member_location_t)(new_ptr-context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->ptr));
-
-						if (context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->part_of_region == NULL) {
-							assert(context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->unique_region_id != -1);
-							context.runtime_object->pointer_table_items[l].value.region_idx = context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->unique_region_id;
-						}else {
-							context.runtime_object->pointer_table_items[l].value.region_idx = context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->location.region_idx;
-							context.runtime_object->pointer_table_items[l].value.offset += context.runtime_object->region[i]->elements[j].p_pointer[k].p_region->location.offset;
-						}
-						msg_stddbg("ptr %d location %d %d value %d %d\n",
-								l,
-								context.runtime_object->pointer_table_items[l].location.region_idx,
-								context.runtime_object->pointer_table_items[l].location.offset,
-								context.runtime_object->pointer_table_items[l].value.region_idx,
-								context.runtime_object->pointer_table_items[l].value.offset);
-						++l;
-					}
-				}
-			}
-		}
-		assert(context.runtime_object->pointer_table_items_count == l);
-	}
-
 	cleanup_runtime_context(&context);
 	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.runtime_object;
 }
 /*****************************************************************************/
-static int runtime_object_check_pointer_table(
-		struct metac_runtime_object * p_runtime_object) {
-	int i;
-	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ) {
-		if (
-				p_runtime_object->pointer_table_items[i].location.region_idx < 0 ||
-				p_runtime_object->pointer_table_items[i].location.region_idx >= p_runtime_object->unique_regions_count ||
-				p_runtime_object->pointer_table_items[i].value.region_idx < 0 ||
-				p_runtime_object->pointer_table_items[i].value.region_idx >= p_runtime_object->unique_regions_count
-			) {
-			msg_stderr("idx is incorrect for item %d\n", i);
-			return -EFAULT;
+struct pointer_table_item {
+	struct pointer * p_pointer;
+	struct _location location;
+	struct _location value;
+};
+struct pointer_table {
+	metac_count_t i;
+	metac_count_t items_count;
+	struct pointer_table_item * items;
+};
+struct runtime_object_ponter_tables {
+	metac_count_t tables_count;
+	struct pointer_table * tables;
+
+	struct metac_runtime_object * p_runtime_object;
+};
+/*****************************************************************************/
+static int _compare_pointer_table_item_per_location(const void *_a, const void *_b) {
+	struct pointer_table_item *a = ((struct pointer_table_item *)_a);
+	struct pointer_table_item *b = ((struct pointer_table_item *)_b);
+	if (a->location.offset == b->location.offset)
+		return 0;
+	if (a->location.offset < b->location.offset)
+		return -1;
+	return 1;
+}
+/*****************************************************************************/
+static int delete_runtime_object_ponter_tables(
+		struct runtime_object_ponter_tables ** pp_ponter_tables) {
+	struct runtime_object_ponter_tables *p_ponter_tables;
+
+	if (pp_ponter_tables != NULL) {
+		p_ponter_tables = *pp_ponter_tables;
+		if (p_ponter_tables != NULL) {
+			if (p_ponter_tables->tables != NULL) {
+				int i;
+				for (i = 0; i < p_ponter_tables->tables_count; ++i) {
+					if (p_ponter_tables->tables[i].items != NULL) {
+						free(p_ponter_tables->tables[i].items);
+						p_ponter_tables->tables[i].items = NULL;
+					}
+				}
+				free(p_ponter_tables->tables);
+				p_ponter_tables->tables = NULL;
+			}
+
+			p_ponter_tables->p_runtime_object = NULL;
+
+			free(p_ponter_tables);
+			*pp_ponter_tables = NULL;
 		}
-		if (
-				p_runtime_object->pointer_table_items[i].location.offset + sizeof(void*) >
-					p_runtime_object->unique_region[p_runtime_object->pointer_table_items[i].location.region_idx]->byte_size ||
-				p_runtime_object->pointer_table_items[i].value.offset + p_runtime_object->pointer_table_items[i].p_pointer->p_region->byte_size >
-					p_runtime_object->unique_region[p_runtime_object->pointer_table_items[i].value.region_idx]->byte_size
-			) {
-			msg_stderr("offset is incorrect for item %d\n", i);
-			return -EFAULT;
+	}
+	return 0;
+}
+
+static int create_runtime_object_pointer_table(
+		struct metac_runtime_object * p_runtime_object,
+		struct runtime_object_ponter_tables ** pp_pointer_tables) {
+	int i, j, k;
+	struct runtime_object_ponter_tables * p_pointer_tables;
+
+	p_pointer_tables = calloc(1, sizeof(*p_pointer_tables));
+	if (p_pointer_tables == NULL) {
+		msg_stderr("Can't allocate memory for pointer_table_items array in runtime_object\n");
+		delete_runtime_object_ponter_tables(&p_pointer_tables);
+		return -ENOMEM;
+	}
+
+	p_pointer_tables->p_runtime_object = p_runtime_object;
+	p_pointer_tables->tables_count = p_runtime_object->unique_regions_count;
+	p_pointer_tables->tables = calloc(p_pointer_tables->tables_count, sizeof(*p_pointer_tables->tables));
+	if (p_pointer_tables->tables == NULL) {
+		msg_stderr("Can't allocate memory tables\n");
+		delete_runtime_object_ponter_tables(&p_pointer_tables);
+		return -ENOMEM;
+	}
+
+	/* calculate number of pointers per unique regions, but without recursion */
+	for (i = 0; i < p_runtime_object->regions_count; i++) {
+		metac_count_t unique_region_idx =
+				region_get_unique_region_id(p_runtime_object->region[i]);
+		assert(unique_region_idx < p_runtime_object->unique_regions_count);
+
+		for (j = 0; j < p_runtime_object->region[i]->elements_count; j++) {
+			for (k = 0; k < p_runtime_object->region[i]->elements[j].region_element_type->pointer_type_elements_count; k++) {
+				if (p_runtime_object->region[i]->elements[j].p_pointer[k].p_region) { /*non-null pointer*/
+					++p_pointer_tables->tables[unique_region_idx].items_count;
+				}
+			}
+		}
+	}
+	/* allocate required number of items in tables */
+	for (i = 0; i < p_runtime_object->unique_regions_count; ++i) {
+		if (p_pointer_tables->tables[i].items_count > 0) {
+			p_pointer_tables->tables[i].items = calloc(p_pointer_tables->tables[i].items_count, sizeof(*p_pointer_tables->tables[i].items));
+			if (p_pointer_tables->tables[i].items == NULL) {
+				msg_stderr("Can't allocate memory items\n");
+				delete_runtime_object_ponter_tables(&p_pointer_tables);
+				return -ENOMEM;
+			}
+		}
+	}
+
+	for (i = 0; i < p_runtime_object->regions_count; i++) {
+		metac_count_t unique_region_idx =
+				region_get_unique_region_id(p_runtime_object->region[i]);
+		assert(unique_region_idx < p_runtime_object->unique_regions_count);
+
+		for (j = 0; j < p_runtime_object->region[i]->elements_count; j++) {
+			for (k = 0; k < p_runtime_object->region[i]->elements[j].region_element_type->pointer_type_elements_count; k++) {
+				if (p_runtime_object->region[i]->elements[j].p_pointer[k].p_region != NULL) {
+					metac_count_t _i = p_pointer_tables->tables[unique_region_idx].i;
+					++p_pointer_tables->tables[unique_region_idx].i;
+					assert(p_pointer_tables->tables[unique_region_idx].i <= p_pointer_tables->tables[unique_region_idx].items_count);
+
+					p_pointer_tables->tables[unique_region_idx].items[_i].p_pointer = &p_runtime_object->region[i]->elements[j].p_pointer[k];
+
+					/*set location*/
+					p_pointer_tables->tables[unique_region_idx].items[_i].location.offset =
+							((metac_data_member_location_t)(p_runtime_object->region[i]->elements[j].ptr - p_runtime_object->region[i]->ptr)) +
+							p_runtime_object->region[i]->elements[j].region_element_type->pointer_type_element[k]->offset;
+
+					if (p_runtime_object->region[i]->part_of_region == NULL) {
+						assert(p_runtime_object->region[i]->unique_region_id != -1);
+						p_pointer_tables->tables[unique_region_idx].items[_i].location.region_idx =
+								p_runtime_object->region[i]->unique_region_id;
+					}else {
+						p_pointer_tables->tables[unique_region_idx].items[_i].location.region_idx =
+								p_runtime_object->region[i]->location.region_idx;
+						p_pointer_tables->tables[unique_region_idx].items[_i].location.offset +=
+								p_runtime_object->region[i]->location.offset;
+					}
+
+					/*set value*/
+					p_pointer_tables->tables[unique_region_idx].items[_i].value.offset = 0;
+
+					if (p_runtime_object->region[i]->elements[j].p_pointer[k].p_region->part_of_region == NULL) {
+						assert(p_runtime_object->region[i]->elements[j].p_pointer[k].p_region->unique_region_id != -1);
+						p_pointer_tables->tables[unique_region_idx].items[_i].value.region_idx =
+								p_runtime_object->region[i]->elements[j].p_pointer[k].p_region->unique_region_id;
+					}else {
+						p_pointer_tables->tables[unique_region_idx].items[_i].value.region_idx =
+								p_runtime_object->region[i]->elements[j].p_pointer[k].p_region->location.region_idx;
+						p_pointer_tables->tables[unique_region_idx].items[_i].value.offset +=
+								p_runtime_object->region[i]->elements[j].p_pointer[k].p_region->location.offset;
+					}
+					msg_stddbg("ptr %d:%d location %d %d value %d %d\n",
+							unique_region_idx,
+							_i,
+							p_pointer_tables->tables[unique_region_idx].items[_i].location.region_idx,
+							p_pointer_tables->tables[unique_region_idx].items[_i].location.offset,
+							p_pointer_tables->tables[unique_region_idx].items[_i].value.region_idx,
+							p_pointer_tables->tables[unique_region_idx].items[_i].value.offset)
+				}
+			}
+		}
+	}
+
+	if (pp_pointer_tables != NULL){
+		*pp_pointer_tables = p_pointer_tables;
+	}
+
+	return 0;
+}
+/*****************************************************************************/
+static int check_runtime_object_pointer_table(
+		struct runtime_object_ponter_tables *p_pointer_tables) {
+	int i, j;
+
+	if (p_pointer_tables->tables_count != p_pointer_tables->p_runtime_object->unique_regions_count) {
+		msg_stderr("incorrect number of tables\n");
+		return -EFAULT;
+	}
+
+	for (i = 0; i < p_pointer_tables->tables_count; i++ ) {
+		for (j = 0; j < p_pointer_tables->tables[i].items_count; j++) {
+			if (
+					p_pointer_tables->tables[i].items[j].location.region_idx < 0 ||
+					p_pointer_tables->tables[i].items[j].location.region_idx >= p_pointer_tables->tables_count ||
+					p_pointer_tables->tables[i].items[j].value.region_idx < 0 ||
+					p_pointer_tables->tables[i].items[j].value.region_idx >= p_pointer_tables->tables_count
+				) {
+				msg_stderr("idx is incorrect for item %d\n", i);
+				return -EFAULT;
+			}
+			if (
+					p_pointer_tables->tables[i].items[j].location.offset + sizeof(void*) >
+						p_pointer_tables->p_runtime_object->unique_region[p_pointer_tables->tables[i].items[j].location.region_idx]->byte_size ||
+					p_pointer_tables->tables[i].items[j].value.offset + p_pointer_tables->tables[i].items[j].p_pointer->p_region->byte_size >
+						p_pointer_tables->p_runtime_object->unique_region[p_pointer_tables->tables[i].items[j].value.region_idx]->byte_size
+				) {
+				msg_stderr("offset is incorrect for item %d\n", i);
+				return -EFAULT;
+			}
 		}
 	}
 	return 0;
@@ -1006,8 +1120,9 @@ int metac_copy(
 		metac_precompiled_type_t * precompiled_type,
 		metac_count_t elements_count,
 		void **p_ptr) {
-	int i;
+	int i, j;
 	struct metac_runtime_object * p_runtime_object;
+	struct runtime_object_ponter_tables * p_ponter_tables;
 	void ** ptrs;
 
 	p_runtime_object = build_runtime_object(ptr, size, precompiled_type, elements_count);
@@ -1016,9 +1131,16 @@ int metac_copy(
 		return -EFAULT;
 	}
 
+	if (create_runtime_object_pointer_table(p_runtime_object, &p_ponter_tables) != 0) {
+		msg_stderr("create_runtime_object_pointer_table failed\n");
+		free_runtime_object(&p_runtime_object);
+		return -EFAULT;
+	}
+
 	/* self check - it's better to do this for safety */
-	if (runtime_object_check_pointer_table(p_runtime_object) != 0) {
-		msg_stderr("runtime_object_check_pointer_table hasn't passed\n");
+	if (check_runtime_object_pointer_table(p_ponter_tables) != 0) {
+		msg_stderr("check_runtime_object_pointer_table hasn't passed\n");
+		delete_runtime_object_ponter_tables(&p_ponter_tables);
 		free_runtime_object(&p_runtime_object);
 		return -EFAULT;
 	}
@@ -1026,6 +1148,7 @@ int metac_copy(
 	ptrs = calloc(p_runtime_object->unique_regions_count, sizeof(*ptrs));
 	if (ptrs == NULL){
 		msg_stderr("Can't allocate memory for temporary array of regions\n");
+		delete_runtime_object_ponter_tables(&p_ponter_tables);
 		free_runtime_object(&p_runtime_object);
 		return -ENOMEM;
 	}
@@ -1041,6 +1164,7 @@ int metac_copy(
 				}
 			}
 			free(ptrs);
+			delete_runtime_object_ponter_tables(&p_ponter_tables);
 			free_runtime_object(&p_runtime_object);
 			return -ENOMEM;
 		}
@@ -1048,13 +1172,15 @@ int metac_copy(
 				p_runtime_object->unique_region[i]->elements_count * p_runtime_object->unique_region[i]->byte_size);
 	}
 
-	for (i = 0; i < p_runtime_object->pointer_table_items_count; i++ ) {
-		msg_stddbg("Changing %p to %p\n",
-				*((void**)(ptrs[p_runtime_object->pointer_table_items[i].location.region_idx] + p_runtime_object->pointer_table_items[i].location.offset)),
-				(void*)(ptrs[p_runtime_object->pointer_table_items[i].value.region_idx] + p_runtime_object->pointer_table_items[i].value.offset));
+	for (i = 0; i < p_ponter_tables->tables_count; i++ ) {
+		for (j = 0; j < p_ponter_tables->tables[i].items_count; j++) {
+			msg_stddbg("Changing %p to %p\n",
+					*((void**)(ptrs[p_ponter_tables->tables[i].items[j].location.region_idx] + p_ponter_tables->tables[i].items[j].location.offset)),
+					(void*)(ptrs[p_ponter_tables->tables[i].items[j].value.region_idx] + p_ponter_tables->tables[i].items[j].value.offset));
 
-		*((void**)(ptrs[p_runtime_object->pointer_table_items[i].location.region_idx] + p_runtime_object->pointer_table_items[i].location.offset)) =
-				(void*)(ptrs[p_runtime_object->pointer_table_items[i].value.region_idx] + p_runtime_object->pointer_table_items[i].value.offset);
+			*((void**)(ptrs[p_ponter_tables->tables[i].items[j].location.region_idx] + p_ponter_tables->tables[i].items[j].location.offset)) =
+					(void*)(ptrs[p_ponter_tables->tables[i].items[j].value.region_idx] + p_ponter_tables->tables[i].items[j].value.offset);
+		}
 	}
 
 	if (p_ptr) { /*return value*/
@@ -1062,43 +1188,23 @@ int metac_copy(
 	}
 
 	free(ptrs);
+	delete_runtime_object_ponter_tables(&p_ponter_tables);
 	free_runtime_object(&p_runtime_object);
 
 	return 0;
 }
 /*****************************************************************************/
-struct _ptr {
-	metac_data_member_location_t offset;
-	metac_byte_size_t len;
-};
-struct _ptr_per_region {
-	int i;
-	int count;
-	struct _ptr * ptrs;
-};
-static int _compare_ptr(const void *_a, const void *_b) {
-	struct _ptr *a = ((struct _ptr *)_a);
-	struct _ptr *b = ((struct _ptr *)_b);
-	if (a->offset == b->offset)
-		return 0;
-	if (a->offset < b->offset)
-		return -1;
-	return 1;
-}
-/*****************************************************************************/
 static int _metac_equal(
 		struct metac_runtime_object * p_runtime_object0,
 		struct metac_runtime_object * p_runtime_object1) {
-	int res;
+	int res = 1;
 	int i, j, k, l;
-	struct _ptr_per_region * ptr_per_unique_region;
+	struct runtime_object_ponter_tables * p_pointer_tables;
 
-	if (p_runtime_object0->pointer_table_items_count != p_runtime_object1->pointer_table_items_count ||
-		p_runtime_object0->regions_count != p_runtime_object1->regions_count ||
+	if (p_runtime_object0->regions_count != p_runtime_object1->regions_count ||
 		p_runtime_object0->unique_regions_count != p_runtime_object1->unique_regions_count ) {
 		return 0;
 	}
-
 	/*runtime-objects and their components are locate in mem in order of mem-parsing - we're relying on that */
 	for (i = 0; i < p_runtime_object0->regions_count; ++i) {
 		if (p_runtime_object0->region[i]->elements_count != p_runtime_object1->region[i]->elements_count ||
@@ -1155,63 +1261,32 @@ static int _metac_equal(
 		}
 	}
 
-	/* Now precalc how many pointers per unique region */
-	ptr_per_unique_region = calloc(p_runtime_object0->unique_regions_count, sizeof(*ptr_per_unique_region));
-	if (ptr_per_unique_region == NULL) {
-		msg_stderr("can't allocate ptr_count_per_unique_region\n");
+	if (create_runtime_object_pointer_table(p_runtime_object0, &p_pointer_tables) != 0) {
+		msg_stderr("create_runtime_object_pointer_table failed\n");
 		return -ENOMEM;
 	}
-	for (i = 0 ; i < p_runtime_object0->pointer_table_items_count; ++i) {
-		assert(p_runtime_object0->pointer_table_items[i].location.region_idx < p_runtime_object0->unique_regions_count);
-		++ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].count;
-	}
-	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
-		ptr_per_unique_region[i].ptrs = calloc(ptr_per_unique_region[i].count, sizeof(*ptr_per_unique_region[i].ptrs));
-		if (ptr_per_unique_region[i].ptrs == NULL) {
-			msg_stderr("can't allocate ptr_per_unique_region[i].ptrs\n");
-			for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
-				if (ptr_per_unique_region[i].ptrs != NULL) {
-					free(ptr_per_unique_region[i].ptrs);
-					ptr_per_unique_region[i].ptrs = NULL;
-				}
-			}
-			free(ptr_per_unique_region);
-			return -ENOMEM;
-		}
-	}
-	for (i = 0 ; i < p_runtime_object0->pointer_table_items_count; ++i) {
-		struct _ptr * p_ptr;
-		assert(p_runtime_object0->pointer_table_items[i].location.region_idx < p_runtime_object0->unique_regions_count);
-		assert(ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i < ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].count);
 
-		p_ptr = &ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].ptrs[ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i];
-		p_ptr->offset = p_runtime_object0->pointer_table_items[i].location.offset;
-		p_ptr->len = sizeof(void*);
-		++ptr_per_unique_region[p_runtime_object0->pointer_table_items[i].location.region_idx].i;
-	}
-
-	res = 1;
-	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
+	for (i = 0; i < p_pointer_tables->tables_count; i++ ) {
 		metac_data_member_location_t prev_offset = 0;
 
 		/*sort by offset!*/
-		qsort(ptr_per_unique_region[i].ptrs,
-				ptr_per_unique_region[i].count,
-				sizeof(*(ptr_per_unique_region[i].ptrs)),
-				_compare_ptr); /*TODO: change to hsort? - low prio so far*/
-
-		for (j = 0; j < ptr_per_unique_region[i].count; ++j){
+		qsort(p_pointer_tables->tables[i].items,
+				p_pointer_tables->tables[i].items_count,
+				sizeof(*(p_pointer_tables->tables[i].items)),
+				_compare_pointer_table_item_per_location); /*TODO: change to hsort? - low prio so far*/
+		/*now go though*/
+		for (j = 0; j < p_pointer_tables->tables[i].items_count; j++) {
 			//msg_stderr("reg %d, off %d, sz %d\n", i, prev_offset, ptr_per_unique_region[i].ptrs[j].offset - prev_offset);
 			res = 	(
 					memcmp(
 							p_runtime_object0->unique_region[i]->ptr + prev_offset,
 							p_runtime_object1->unique_region[i]->ptr + prev_offset,
-							ptr_per_unique_region[i].ptrs[j].offset - prev_offset) == 0
+							p_pointer_tables->tables[i].items[j].location.offset - prev_offset) == 0
 					)?1:0;
 			//msg_stderr("res1 %d\n", res);
 			if (res == 0)
 				break;
-			prev_offset = ptr_per_unique_region[i].ptrs[j].offset + ptr_per_unique_region[i].ptrs[j].len;
+			prev_offset = p_pointer_tables->tables[i].items[j].location.offset + sizeof(void*);
 		}
 		if (res == 0)
 			break;
@@ -1230,18 +1305,12 @@ static int _metac_equal(
 		}
 	}
 
-	/*clean up*/
-	for (i = 0; i < p_runtime_object0->unique_regions_count; ++i) {
-		if (ptr_per_unique_region[i].ptrs != NULL) {
-			free(ptr_per_unique_region[i].ptrs);
-			ptr_per_unique_region[i].ptrs = NULL;
-		}
-	}
-	free(ptr_per_unique_region);
+	delete_runtime_object_ponter_tables(&p_pointer_tables);
 
 	//msg_stderr("res %d\n", res);
 	return res;
 }
+
 int metac_equal(
 		void *ptr0,
 		void *ptr1,
@@ -1261,14 +1330,6 @@ int metac_equal(
 	if (p_runtime_object1 == NULL) {
 		msg_stderr("Error while building runtime object1\n");
 		free_runtime_object(&p_runtime_object0);
-		return -EFAULT;
-	}
-	/* self check - it's better to do this for safety */
-	if (runtime_object_check_pointer_table(p_runtime_object0) != 0 ||
-		runtime_object_check_pointer_table(p_runtime_object1) != 0) {
-		msg_stderr("runtime_object_check_pointer_table hasn't passed\n");
-		free_runtime_object(&p_runtime_object0);
-		free_runtime_object(&p_runtime_object1);
 		return -EFAULT;
 	}
 
