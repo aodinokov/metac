@@ -19,6 +19,12 @@
 #include "metac_debug.h"	/* msg_stderr, ...*/
 
 /*****************************************************************************/
+static struct metac_runtime_object * create_runtime_object_from_json(
+		struct metac_precompiled_type * p_precompiled_type,
+		json_object * p_json) {
+	return NULL;
+}
+/*****************************************************************************/
 int metac_pack_from_json(
 		metac_precompiled_type_t * precompiled_type,
 		json_object * p_json,
@@ -38,6 +44,6 @@ int metac_pack_from_json(
 		msg_stderr("p_json has zero length\n");
 		return -EINVAL;
 	}
-
+	create_runtime_object_from_json(precompiled_type, p_json);
 	return 0;
 }
