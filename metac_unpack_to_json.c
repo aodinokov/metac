@@ -5,19 +5,17 @@
  *      Author: mralex
  */
 //#define METAC_DEBUG_ENABLE
-
-#include "metac_type.h"
-#include "metac_debug.h"	/* msg_stderr, ...*/
-
-#include <json/json.h>		/* json_... */
-#include <urcu/list.h>		/* cds_list_entry, ... */
 #include <errno.h>			/* ENOMEM etc */
 #include <assert.h>			/* assert */
 #include <stdint.h>			/* int8_t - int64_t*/
 #include <complex.h>		/* complext */
 #include <string.h>			/* strcmp*/
 #include <endian.h>			/* __BYTE_ORDER at compile time */
+#include <json/json.h>		/* json_... */
+#include <urcu/list.h>		/* cds_list_entry, ... */
 
+#include "metac_type.h"
+#include "metac_debug.h"	/* msg_stderr, ...*/
 /*****************************************************************************/
 /*Caution: this has been tested only with little-endian machines*/
 #define _COPY_FROM_BITFIELDS_(_ptr_, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
