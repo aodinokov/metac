@@ -332,15 +332,6 @@ int metac_visit(
 	metac_region_ee_subtype_t *subtypes_sequence,
 	int subtypes_sequence_lenth,
 	struct metac_visitor * p_visitor);
-
-
-///* constructor */
-/////* flex_array_elements_count - what about encapsulated arrays??? - we need some runtime spec, like we can use the same format as specifications*/
-////int metac_create(metac_precompiled_type_t * precompiled_type, metac_count_t flex_array_elements_count,
-////		void **p_ptr, metac_byte_size_t * p_size);
-///*some format -> C-type - generic de-serialization*/
-//int metac_pack(metac_precompiled_type_t * precompiled_type, void **p_ptr, metac_byte_size_t * p_size/*, p_src, func and etc ToBeAdded */);
-///*todo: metac_cmp????*/
 /*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;

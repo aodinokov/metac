@@ -1,15 +1,18 @@
 /*
- * metac_precompiled_type_int.h
+ * metac_internals.h
  *
  *  Created on: Feb 19, 2018
  *      Author: mralex
  */
 
-#ifndef METAC_PRECOMPILED_TYPE_INT_H_
-#define METAC_PRECOMPILED_TYPE_INT_H_
+#ifndef METAC_INTERNALS_H_
+#define METAC_INTERNALS_H_
 
-struct region_element_type;
+#include "metac_type.h"
+
 struct discriminator;
+struct region_element_type;
+
 struct condition {
 	struct discriminator *		p_discriminator;
 	metac_discriminator_value_t	expected_discriminator_value;
@@ -139,4 +142,71 @@ struct metac_runtime_object {
 	struct region ** unique_region;
 };
 
-#endif /* METAC_PRECOMPILED_TYPE_INT_H_ */
+/*****************************************************************************/
+
+struct metac_precompiled_type * create_precompiled_type(struct metac_type * type);
+int delete_precompiled_type(struct metac_precompiled_type ** pp_precompiled_type);
+
+struct region_element_type * create_region_element_type(struct metac_type * type);
+int delete_region_element_type(struct region_element_type ** pp_region_element_type);
+
+struct region_element_type_element * create_region_element_type_element(
+		struct metac_type * type,
+		struct discriminator * p_discriminator,
+		metac_discriminator_value_t expected_discriminator_value,
+		metac_data_member_location_t offset,
+		metac_byte_size_t byte_size,
+		struct region_element_type_element * parent,
+		char *	name_local,
+		char *	path_within_region,
+		char *	path_global,
+		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr,
+		void *	array_elements_count_cb_context,
+		struct region_element_type * array_elements_region_element_type);
+int delete_region_element_type_element(
+		struct region_element_type_element **pp_region_element_type_element);
+void update_region_element_type_element_array_params(
+		struct region_element_type_element *p_region_element_type_element,
+		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr,
+		void *	array_elements_count_cb_context,
+		struct region_element_type * array_elements_region_element_type);
+
+struct discriminator * create_discriminator(
+		struct discriminator * p_previous_discriminator,
+		metac_discriminator_value_t previous_expected_discriminator_value,
+		metac_discriminator_cb_ptr_t discriminator_cb,
+		void * discriminator_cb_context);
+int delete_discriminator(struct discriminator ** pp_discriminator);
+
+/*****************************************************************************/
+struct metac_runtime_object * create_runtime_object(
+		struct metac_precompiled_type * p_precompiled_type);
+int free_runtime_object(
+		struct metac_runtime_object ** pp_runtime_object);
+
+struct region * create_region(
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type,
+		metac_count_t elements_count,
+		struct region * part_of_region);
+int delete_region(struct region **pp_region);
+
+static inline metac_count_t get_region_unique_region_id(
+		struct region * p_region) {
+	if (p_region->part_of_region)
+		return p_region->location.region_idx;
+	return p_region->unique_region_id;
+}
+
+int init_region_element(
+		struct region_element *p_region_element,
+		void *ptr,
+		metac_byte_size_t byte_size,
+		struct region_element_type * region_element_type);
+int cleanup_region_element(struct region_element *p_region_element);
+int is_region_element_precondition_true(
+		struct region_element * p_region_element,
+		struct condition * p_precondition);
+
+#endif /* METAC_INTERNALS_H_ */

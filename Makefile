@@ -24,23 +24,20 @@ _always_:
 	#@cat $@
 	@echo "-----------------------------------------------------------------------"
 
+metac_objs = \
+	breadthfirst_engine.o \
+	metac_type.o \
+	metac_internals.o \
+	metac_precompile_type.o \
+	metac_runtime.o \
+	metac_pack_from_json.o \
+	metac_unpack_to_json.o
+
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
-#metac_type_ut_001: metac_type.o metac_s11n_json.o metac_type_ut_001.o metac_type_ut_001.metac.o
-metac_type_ut_001: metac_type.o breadthfirst_engine.o metac_precompiled_type.o metac_runtime.o metac_json.o metac_type_ut_001.o metac_type_ut_001.metac.o
+metac_type_ut_001: $(metac_objs) metac_type_ut_001.o metac_type_ut_001.metac.o
 metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson
 all: metac_type_ut_001.run metac_type_ut_001.metac.c 
-
-
-metac_s11n_json_ut_001: LDFLAGS=-pthread
-metac_s11n_json_ut_001: metac_type.o metac_s11n_json.o metac_s11n_json_ut_001.o metac_s11n_json_ut_001.metac.o
-metac_s11n_json_ut_001: -lcheck -lm -lrt -ljson
-#all: metac_s11n_json_ut_001.run metac_s11n_json_ut_001.metac.c
-
-metac_s11n_json_ut_002: LDFLAGS=-pthread
-metac_s11n_json_ut_002: metac_type.o metac_s11n_json.o metac_s11n_json_ut_002.o metac_s11n_json_ut_002.metac.o
-metac_s11n_json_ut_002: -lcheck -lm -lrt -ljson
-#all: metac_s11n_json_ut_002.run metac_s11n_json_ut_002.metac.c
 
 %.run: % _always_
 	#./$<

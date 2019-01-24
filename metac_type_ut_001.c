@@ -7,14 +7,14 @@
 
 //#define METAC_DEBUG_ENABLE
 
+#include <dlfcn.h>
+#include <complex.h>		/*complex*/
+
 #include "check_ext.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
 #include "metac_type.h"
 
 #include "metac_json.h"
-
-#include <dlfcn.h>
-#include <complex.h>	/*complex*/
 
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \

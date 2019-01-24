@@ -5,6 +5,8 @@
  *      Author: mralex
  */
 
+//#define METAC_DEBUG_ENABLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -232,120 +234,61 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	return NULL;
 }
 /*****************************************************************************/
-//
-//static int _metac_delete(struct metac_type *type, void *ptr){
-//	metac_type_id_t id;
-//	if (type == NULL || ptr == NULL)
-//		return -1;
-//
-//	type = metac_type_typedef_skip(type);
-//	assert(type);
-//
-//	id = metac_type_id(type);
-//	switch (id) {
-//	case DW_TAG_base_type:
-//	case DW_TAG_enumeration_type:
-//		/*nothing to do*/
-//		return 0;
-//	case DW_TAG_pointer_type: {
-//			int res = 0;
-//			/*get info about what type of the pointer*/
-//			if (type->p_at.p_at_type) {
-//				void *_ptr = *((void**)ptr);
-//				res = _metac_delete(type->p_at.p_at_type->type, _ptr);
-//				if (_ptr)
-//					free(_ptr);
-//			}
-//			return res;
-//		}
-//	case DW_TAG_array_type: {
-//			int res = 0;
-//			metac_num_t i;
-//			struct metac_type_array_info info;
-//
-//			if (metac_type_array_info(type, &info) != 0)
-//				return -1;
-//
-//			for (i = 0; i < info.elements_count; i++) {
-//				struct metac_type_element_info einfo;
-//				if (metac_type_array_element_info(type, i, &einfo) != 0) {
-//					++res;
-//					continue;
-//				}
-//				res += _metac_delete(einfo.type, ptr + einfo.data_location);
-//			}
-//
-//			return res;
-//		}
-//	case DW_TAG_structure_type: {
-//			int res = 0;
-//			metac_num_t i;
-//			struct metac_type_structure_info info;
-//
-//			if (metac_type_structure_info(type, &info) != 0)
-//				return -1;
-//
-//			for (i = 0; i < info.members_count; i++) {
-//				struct metac_type_member_info minfo;
-//
-//				if (metac_type_structure_member_info(type, i, &minfo) != 0) {
-//					++res;
-//					continue;
-//				}
-//
-//				assert( (metac_type_id(minfo.type) != DW_TAG_pointer_type) ||
-//						(metac_type_id(minfo.type) == DW_TAG_pointer_type && (minfo.p_bit_offset == NULL || minfo.p_bit_size == NULL)));
-//				if (minfo.p_bit_offset != NULL || minfo.p_bit_size != NULL) {
-//					/*
-//					 * we can continue, because bit_fields can't contain pointers.
-//					 * Both gcc and clang notifies about error on ptr with bit fields
-//					 */
-//					continue;
-//				}
-//
-//				res += _metac_delete(minfo.type, ptr + (minfo.p_data_member_location?(*minfo.p_data_member_location):0));
-//			}
-//			return res;
-//		}
-//	case DW_TAG_union_type:
-//		/*TODO: don't know what to do here */
-//		//assert(0);
-//		return 0;
-//	}
-//
-//	return 0;
-//}
-//
-//static int _metac_object_delete(struct metac_object * object) {
-//	if (object) {
-//		int res = _metac_delete(object->type, object->ptr);
-//		if (object->ptr)
-//			free(object->ptr);
-//		free(object);
-//		return res;
-//	}
-//	return -1;
-//}
-//
-//struct metac_object * metac_object_get(struct metac_object * object) {
-//	if (object) {
-//		if (object->ref_count != 0) {
-//			++object->ref_count;
-//		}
-//	}
-//	return object;
-//}
-//
-//int metac_object_put(struct metac_object * object) {
-//	if (object) {
-//		if (object->ref_count != 0) {
-//			--object->ref_count;
-//			if (object->ref_count == 0) {
-//				_metac_object_delete(object);
-//				return 1;
-//			}
-//		}
-//	}
-//	return 0;
-//}
+int metac_array_elements_single(
+	int write_operation,
+	void * ptr,
+	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
+	int n,
+	metac_count_t * p_elements_count,
+	void * array_elements_count_cb_context) {
+	int i;
+	if (write_operation == 0) {
+		for (i = 0; i < n; i++)
+			p_elements_count[i]= 1;
+		return 0;
+	}
+	return -EFAULT;
+}
+
+int metac_array_elements_1d_with_null(
+	int write_operation,
+	void * ptr,
+	metac_type_t * type,
+	void * first_element_ptr,
+	metac_type_t * first_element_type,
+	int n,
+	metac_count_t * p_elements_count,
+	void * array_elements_count_cb_context) {
+
+	if (n != 1) {
+		msg_stderr("metac_array_elements_1d_with_null can work only with 1 dimension arrays\n");
+		return -EFAULT;
+	}
+
+	if (write_operation == 0) {
+		metac_byte_size_t j;
+		metac_byte_size_t element_size = metac_type_byte_size(first_element_type);
+		metac_count_t i = 0;
+		msg_stddbg("elements_size %d\n", (int)element_size);
+		do {
+			unsigned char * _ptr;
+			for (j=0; j<element_size; j++) { /*non optimal - can use different sized to char,short,int &etc, see memcmp for reference*/
+				_ptr = ((unsigned char *)first_element_ptr) + i*element_size + j;
+				if ((*_ptr) != 0){
+					++i;
+					break;
+				}
+			}
+			if ((*_ptr) == 0) break;
+		}while(1);
+		/*found all zeroes*/
+		++i;
+		p_elements_count[0]= i;
+		msg_stddbg("p_elements_count %d\n", (int)i);
+		return 0;
+	}
+	return -EFAULT;
+}
 

@@ -7,290 +7,16 @@
 
 //#define METAC_DEBUG_ENABLE
 
-#include "metac_type.h"
-#include "metac_precompiled_type_int.h"	/*definitions of internal objects*/
-#include "metac_debug.h"	/* msg_stderr, ...*/
-#include "breadthfirst_engine.h" /*breadthfirst_engine module*/
-
 #include <stdlib.h>			/* calloc, qsort... */
 #include <string.h>			/* strlen, strcpy */
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
 #include <urcu/list.h>		/* I like struct cds_list_head :) */
 
-/* separated this part from metac_precompiled_type */
-/*****************************************************************************/
-static int is_region_element_precondition_true(
-		struct region_element * p_region_element,
-		struct condition * p_precondition) {
-	int id;
-
-	assert(p_region_element);
-	assert(p_precondition);
-	assert(p_region_element->region_element_type);
-
-	if (p_precondition->p_discriminator == NULL)
-		return 1;
-
-	id = p_precondition->p_discriminator->id;
-	assert(id < p_region_element->region_element_type->discriminators_count);
-
-	if (p_region_element->p_discriminator_value[id].is_initialized == 0) {
-		if (is_region_element_precondition_true(p_region_element, &p_precondition->p_discriminator->precondition) == 0)
-			return 0;
-		assert(p_precondition->p_discriminator->discriminator_cb);
-
-		if (p_precondition->p_discriminator->discriminator_cb(0,
-				p_region_element->ptr,
-				p_region_element->region_element_type->type,
-				&p_region_element->p_discriminator_value[id].value,
-				p_precondition->p_discriminator->discriminator_cb_context) != 0) {
-			msg_stderr("Error calling discriminatior_cb %d for type %s\n", id, p_region_element->region_element_type->type->name);
-			return -EFAULT;
-		}
-		msg_stddbg("discriminator returned %d\n", (int)p_region_element->p_discriminator_value[id].value);
-		p_region_element->p_discriminator_value[id].is_initialized = 1;
-	}
-	return p_region_element->p_discriminator_value[id].value == p_precondition->expected_discriminator_value;
-}
-static int cleanup_region_element(struct region_element *p_region_element) {
-	int i;
-
-	if (p_region_element == NULL) {
-		msg_stderr("invalid parameter\n");
-		return -EINVAL;
-	}
-
-	if (p_region_element->p_array != NULL) {
-		for (i = 0; i < p_region_element->region_element_type->array_type_elements_count; i++) {
-			if (p_region_element->p_array[i].p_elements_count != NULL) {
-				free (p_region_element->p_array[i].p_elements_count);
-				p_region_element->p_array[i].p_elements_count = NULL;
-			}
-		}
-		free(p_region_element->p_array);
-		p_region_element->p_array = NULL;
-	}
-
-	if (p_region_element->p_pointer != NULL) {
-		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
-			if (p_region_element->p_pointer[i].p_elements_count != NULL) {
-				free (p_region_element->p_pointer[i].p_elements_count);
-				p_region_element->p_pointer[i].p_elements_count = NULL;
-			}
-		}
-		free(p_region_element->p_pointer);
-		p_region_element->p_pointer = NULL;
-	}
-
-	if (p_region_element->p_discriminator_value != NULL) {
-		free(p_region_element->p_discriminator_value);
-		p_region_element->p_discriminator_value = NULL;
-	}
-
-	return 0;
-}
-static int init_region_element(struct region_element *p_region_element,
-		void *ptr,
-		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type) {
-	if (p_region_element == NULL || region_element_type == NULL) {
-		msg_stderr("invalid argument\n");
-		return -EINVAL;
-	}
-
-	p_region_element->region_element_type = region_element_type;
-	p_region_element->ptr = ptr;
-	p_region_element->byte_size = byte_size;
-
-	if (region_element_type->discriminators_count > 0) {
-		p_region_element->p_discriminator_value =
-				calloc(region_element_type->discriminators_count, sizeof(*(p_region_element->p_discriminator_value)));
-		if (p_region_element->p_discriminator_value == NULL) {
-			msg_stderr("Can't create region_element's discriminator_value array: no memory\n");
-			cleanup_region_element(p_region_element);
-			return -ENOMEM;
-		}
-	}
-
-	if (region_element_type->pointer_type_elements_count > 0) {
-		p_region_element->p_pointer =
-				calloc(region_element_type->pointer_type_elements_count, sizeof(*(p_region_element->p_pointer)));
-		if (p_region_element->p_pointer == NULL) {
-			msg_stderr("Can't create region_element's pointers array: no memory\n");
-			cleanup_region_element(p_region_element);
-			return -ENOMEM;
-		}
-	}
-
-	if (region_element_type->array_type_elements_count > 0) {
-		p_region_element->p_array =
-				calloc(region_element_type->array_type_elements_count, sizeof(*(p_region_element->p_array)));
-		if (p_region_element->p_array == NULL) {
-			msg_stderr("Can't create region's arrays array: no memory\n");
-			cleanup_region_element(p_region_element);
-			return -ENOMEM;
-		}
-	}
-
-	return 0;
-}
-/*****************************************************************************/
-static int delete_region(struct region **pp_region) {
-	struct region *p_region;
-	int i;
-
-	if (pp_region == NULL) {
-		msg_stderr("Can't delete region: invalid parameter\n");
-		return -EINVAL;
-	}
-
-	p_region = *pp_region;
-	if (p_region == NULL) {
-		msg_stderr("Can't delete region: already deleted\n");
-		return -EALREADY;
-	}
-
-	if (p_region->elements != NULL) {
-		msg_stddbg("deleting elements\n");
-		for (i = 0; i < p_region->elements_count; i++){
-			cleanup_region_element(&p_region->elements[i]);
-		}
-		free(p_region->elements);
-		p_region->elements = NULL;
-	}
-
-	msg_stddbg("deleting the object itself\n");
-	free(p_region);
-	*pp_region = NULL;
-
-	return 0;
-}
-static struct region * create_region(
-		void *ptr,
-		metac_byte_size_t byte_size,
-		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
-		struct region * part_of_region){
-	struct region *p_region;
-	metac_byte_size_t region_element_byte_size;
-
-	if (region_element_type == NULL || elements_count <= 0) {
-		msg_stderr("invalid argument\n");
-		return NULL;
-	}
-
-	assert(region_element_type->type);
-	region_element_byte_size = metac_type_byte_size(region_element_type->type);
-
-	msg_stddbg("p_region(_element)_type = %p (%s,%d), ptr = %p, byte_size = %d\n",
-			region_element_type,
-			region_element_type->type->name,
-			(int)region_element_byte_size,
-			ptr,
-			(int)byte_size);
-
-	p_region = calloc(1, sizeof(*(p_region)));
-	if (p_region == NULL) {
-		msg_stderr("Can't create region: no memory\n");
-		return NULL;
-	}
-
-	p_region->ptr = ptr;
-	p_region->byte_size = byte_size;
-	p_region->elements_count = elements_count;
-	p_region->part_of_region = part_of_region;
-	p_region->unique_region_id = -1;
-
-	if (p_region->elements_count > 0) {
-		int i;
-
-		p_region->elements =
-				calloc(p_region->elements_count, sizeof(*(p_region->elements)));
-		if (p_region->elements == NULL) {
-			msg_stderr("Can't create region's elements array: no memory\n");
-			delete_region(&p_region);
-			return NULL;
-		}
-
-		for (i = 0; i < p_region->elements_count; i++) {
-			if (init_region_element(
-					&p_region->elements[i],
-					ptr + i*region_element_byte_size,
-					region_element_byte_size,
-					region_element_type)!=0) {
-				msg_stderr("init_region_element for element %d\n", i);
-				delete_region(&p_region);
-				return NULL;
-			}
-		}
-	}
-
-	return p_region;
-}
-static inline metac_count_t get_region_unique_region_id(
-		struct region * p_region) {
-	if (p_region->part_of_region)
-		return p_region->location.region_idx;
-	return p_region->unique_region_id;
-}
-/*****************************************************************************/
-static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
-	int i;
-	struct metac_runtime_object *p_runtime_object;
-
-	if (pp_runtime_object == NULL) {
-		msg_stderr("Can't delete runtime_object: invalid parameter\n");
-		return -EINVAL;
-	}
-
-	p_runtime_object = *pp_runtime_object;
-	if (p_runtime_object == NULL) {
-		msg_stderr("Can't delete runtime_object: already deleted\n");
-		return -EALREADY;
-	}
-
-	if (p_runtime_object->unique_region != NULL) {
-		free(p_runtime_object->unique_region);
-		p_runtime_object->unique_region = NULL;
-	}
-
-	if (p_runtime_object->region != NULL){
-		for (i = 0; i < p_runtime_object->regions_count; i++) {
-			delete_region(&p_runtime_object->region[i]);
-		}
-		free(p_runtime_object->region);
-		p_runtime_object->region = NULL;
-	}
-
-	free(p_runtime_object);
-	*pp_runtime_object = NULL;
-
-	return 0;
-}
-
-static struct metac_runtime_object * create_runtime_object(struct metac_precompiled_type * p_precompiled_type) {
-
-	struct metac_runtime_object * p_runtime_object;
-
-	if (p_precompiled_type == NULL) {
-		msg_stderr("invalid argument\n");
-		return NULL;
-	}
-
-	p_runtime_object = calloc(1, sizeof(*(p_runtime_object)));
-	if (p_runtime_object == NULL) {
-		msg_stderr("Can't create create_runtime_object: no memory\n");
-		return NULL;
-	}
-
-	p_runtime_object->precompiled_type = p_precompiled_type;
-	p_runtime_object->region = NULL;
-	p_runtime_object->regions_count = 0;
-
-	return p_runtime_object;
-}
-
+#include "metac_type.h"
+#include "metac_internals.h"	/*definitions of internal objects*/
+#include "metac_debug.h"	/* msg_stderr, ...*/
+#include "breadthfirst_engine.h" /*breadthfirst_engine module*/
 /*****************************************************************************/
 struct runtime_context {
 	struct metac_runtime_object * runtime_object;
@@ -1272,14 +998,14 @@ static int _metac_equal(
 				_compare_pointer_table_item_per_location); /*TODO: change to hsort? - low prio so far*/
 		/*now go though*/
 		for (j = 0; j < p_pointer_tables->tables[i].items_count; j++) {
-			//msg_stderr("reg %d, off %d, sz %d\n", i, prev_offset, ptr_per_unique_region[i].ptrs[j].offset - prev_offset);
+			msg_stddbg("reg %d, off %d, sz %d\n", i, prev_offset, ptr_per_unique_region[i].ptrs[j].offset - prev_offset);
 			res = 	(
 					memcmp(
 							p_runtime_object0->unique_region[i]->ptr + prev_offset,
 							p_runtime_object1->unique_region[i]->ptr + prev_offset,
 							p_pointer_tables->tables[i].items[j].location.offset - prev_offset) == 0
 					)?1:0;
-			//msg_stderr("res1 %d\n", res);
+			msg_stddbg("res1 %d\n", res);
 			if (res == 0)
 				break;
 			prev_offset = p_pointer_tables->tables[i].items[j].location.offset + sizeof(void*);
@@ -1288,14 +1014,14 @@ static int _metac_equal(
 			break;
 		/*compare tail*/
 		if (p_runtime_object0->unique_region[i]->byte_size > prev_offset) {
-			//msg_stderr("reg %d, off %d, sz %d\n", i, prev_offset, p_runtime_object0->unique_region[i]->byte_size - prev_offset);
+			msg_stddbg("reg %d, off %d, sz %d\n", i, prev_offset, p_runtime_object0->unique_region[i]->byte_size - prev_offset);
 			res = 	(
 					memcmp(
 							p_runtime_object0->unique_region[i]->ptr + prev_offset,
 							p_runtime_object1->unique_region[i]->ptr + prev_offset,
 							p_runtime_object0->unique_region[i]->byte_size - prev_offset) == 0
 					)?1:0;
-			//msg_stderr("res2 %d\n", res);
+			msg_stddbg("res2 %d\n", res);
 			if (res == 0)
 				break;
 		}
@@ -1303,7 +1029,7 @@ static int _metac_equal(
 
 	delete_runtime_object_ponter_tables(&p_pointer_tables);
 
-	//msg_stderr("res %d\n", res);
+	msg_stddbg("res %d\n", res);
 	return res;
 }
 
