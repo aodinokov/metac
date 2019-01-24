@@ -20,13 +20,6 @@
 
 /* separated this part from metac_precompiled_type */
 /*****************************************************************************/
-static inline metac_count_t region_get_unique_region_id(
-		struct region * p_region) {
-	if (p_region->part_of_region)
-		return p_region->location.region_idx;
-	return p_region->unique_region_id;
-}
-
 static int is_region_element_precondition_true(
 		struct region_element * p_region_element,
 		struct condition * p_precondition) {
@@ -234,6 +227,12 @@ static struct region * create_region(
 	}
 
 	return p_region;
+}
+static inline metac_count_t get_region_unique_region_id(
+		struct region * p_region) {
+	if (p_region->part_of_region)
+		return p_region->location.region_idx;
+	return p_region->unique_region_id;
 }
 /*****************************************************************************/
 static int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
@@ -973,7 +972,7 @@ static int create_runtime_object_pointer_table(
 	/* calculate number of pointers per unique regions, but without recursion */
 	for (i = 0; i < p_runtime_object->regions_count; i++) {
 		metac_count_t unique_region_idx =
-				region_get_unique_region_id(p_runtime_object->region[i]);
+				get_region_unique_region_id(p_runtime_object->region[i]);
 		assert(unique_region_idx < p_runtime_object->unique_regions_count);
 
 		for (j = 0; j < p_runtime_object->region[i]->elements_count; j++) {
@@ -998,7 +997,7 @@ static int create_runtime_object_pointer_table(
 
 	for (i = 0; i < p_runtime_object->regions_count; i++) {
 		metac_count_t unique_region_idx =
-				region_get_unique_region_id(p_runtime_object->region[i]);
+				get_region_unique_region_id(p_runtime_object->region[i]);
 		assert(unique_region_idx < p_runtime_object->unique_regions_count);
 
 		for (j = 0; j < p_runtime_object->region[i]->elements_count; j++) {
@@ -1070,9 +1069,7 @@ static int check_runtime_object_pointer_table(
 	for (i = 0; i < p_pointer_tables->tables_count; i++ ) {
 		for (j = 0; j < p_pointer_tables->tables[i].items_count; j++) {
 			if (
-					p_pointer_tables->tables[i].items[j].location.region_idx < 0 ||
 					p_pointer_tables->tables[i].items[j].location.region_idx >= p_pointer_tables->tables_count ||
-					p_pointer_tables->tables[i].items[j].value.region_idx < 0 ||
 					p_pointer_tables->tables[i].items[j].value.region_idx >= p_pointer_tables->tables_count
 				) {
 				msg_stderr("idx is incorrect for item %d\n", i);
