@@ -190,6 +190,11 @@ static int _runtime_task_fn(
 		return -ENOMEM;
 	}
 
+	/*calculate size*/
+	/*cover case when we have 1 element and flexible array - we have to increase region size*/
+
+	/*allocate mem and reinitialize region and elements*/
+
 	assert(p_task->p__region->p_region->elements_count == json_object_array_length(p_task->p__region->p_json));
 	for (e = 0; e < p_task->p__region->p_region->elements_count; e++) {
 		struct region_element * p_region_element = &p_task->p__region->p_region->elements[e];
@@ -200,7 +205,9 @@ static int _runtime_task_fn(
 		memset(p_data, 0, p_region_element->region_element_type->elements_count * sizeof(*p_data));
 		p_data[0].p_json = json_object_array_get_idx(p_task->p__region->p_json, e);
 
-		/*TODO: found out how to understand what fields were not used */
+		/*TODO: found out how to understand what fields were not used -
+		 * count children in _region_element_element_data_ and compare with number of fields - json_object_object_length
+		 */
 		for (i = 0; i < p_region_element->region_element_type->elements_count; ++i) {
 			if (p_region_element->region_element_type->element[i]->parent != NULL) {
 				assert(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json != NULL);
@@ -231,7 +238,14 @@ static int _runtime_task_fn(
 					}
 				}
 			}
+			/*check that all of them are initialized properly?*/
 		}
+		/*write conditions (conditions now can check )*/
+		/*handle all base, enums - make a warning if we're writing to non 0 and value isn't the same*/
+		/*handle pointers - if offset is 0 - create unique region and store it immediatly. if offset isn't 0 - find region with the same id and offset,
+		 * if no such - create like for array(handle location)*/
+		/*handle arrays - create simple regions (with correct ptr and size for array), initialzie location immediatly*/
+		/*TODO: to understand when call array/pointer functions for len*/
 	}
 
 
