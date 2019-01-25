@@ -112,6 +112,15 @@ static struct _region * find_or_create__region(
 	return _region;
 }
 /*****************************************************************************/
+static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
+	struct _region * _region, * __region;
+
+	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
+		cds_list_del(&_region->list);
+		free(_region);
+	}
+}
+/*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
 	struct runtime_task * p_task;
 
@@ -413,16 +422,6 @@ static int _runtime_task_fn(
 	msg_stddbg("finished task\n");
 	return 0;
 }
-/*****************************************************************************/
-static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
-	struct _region * _region, * __region;
-
-	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
-		cds_list_del(&_region->list);
-		free(_region);
-	}
-}
-
 /*****************************************************************************/
 static int _compare_regions(const void *_a, const void *_b) {
 	struct region *a = *((struct region **)_a);

@@ -415,6 +415,33 @@ int is_region_element_precondition_true(
 	}
 	return p_region_element->p_discriminator_value[id].value == p_precondition->expected_discriminator_value;
 }
+/*****************************************************************************/
+int set_region_element_precondition(
+		struct region_element * p_region_element,
+		struct condition * p_precondition) {
+	int id;
+
+	assert(p_region_element);
+	assert(p_precondition);
+	assert(p_region_element->region_element_type);
+
+	if (p_precondition->p_discriminator == NULL)
+		return 0;	/*nothing to do*/
+
+	id = p_precondition->p_discriminator->id;
+	assert(id < p_region_element->region_element_type->discriminators_count);
+
+	if (p_region_element->p_discriminator_value[id].is_initialized == 0) {
+		if (set_region_element_precondition(p_region_element, &p_precondition->p_discriminator->precondition) != 0)
+			return -EEXIST;
+		p_region_element->p_discriminator_value[id].value = p_precondition->expected_discriminator_value;
+		p_region_element->p_discriminator_value[id].is_initialized = 1;
+	}
+	if (p_region_element->p_discriminator_value[id].value != p_precondition->expected_discriminator_value)
+		return -EEXIST;
+	return 0;
+}
+/*****************************************************************************/
 int cleanup_region_element(struct region_element *p_region_element) {
 	int i;
 
@@ -545,7 +572,6 @@ struct region * create_region(
 
 	assert(region_element_type->type);
 	region_element_byte_size = metac_type_byte_size(region_element_type->type);
-
 	msg_stddbg("p_region(_element)_type = %p (%s,%d), ptr = %p, byte_size = %d\n",
 			region_element_type,
 			region_element_type->type->name,

@@ -208,5 +208,8 @@ int cleanup_region_element(struct region_element *p_region_element);
 int is_region_element_precondition_true(
 		struct region_element * p_region_element,
 		struct condition * p_precondition);
+int set_region_element_precondition(
+		struct region_element * p_region_element,
+		struct condition * p_precondition);
 
 #endif /* METAC_INTERNALS_H_ */

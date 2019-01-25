@@ -1213,63 +1213,72 @@ START_TEST(basic_tree_t_ut) {
 		});
 	}STRUCT_TYPE_CHECK_END;
 	do {
+		basic_tree_t * p_x = NULL;
+		metac_byte_size_t size = 0;
+		metac_count_t elements_count = 0;
+
 		json_object * p_json = NULL;
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
-		if (precompiled_type != NULL) {
-			metac_dump_precompiled_type(precompiled_type);
+		metac_dump_precompiled_type(precompiled_type);
 
-			/*build hierarchy*/
-			basic_tree_t * y;
-			basic_tree_t l = {
-				.data = (int[]){1, },
-				.desc = {NULL, NULL, },
-			},
-			r  = {
-				.data = (int[]){3, },
-				.desc = {NULL, NULL, },
-			},
-			x = {
-				.data = (int[]){2, },
-				.desc = {&l, &r, },
-			};
+		/*build hierarchy*/
+		basic_tree_t * y;
+		basic_tree_t l = {
+			.data = (int[]){1, },
+			.desc = {NULL, NULL, },
+		},
+		r  = {
+			.data = (int[]){3, },
+			.desc = {NULL, NULL, },
+		},
+		x = {
+			.data = (int[]){2, },
+			.desc = {&l, &r, },
+		};
 
-			fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
-			fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
-			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
-			json_object_put(p_json);
-			p_json = NULL;
+		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
+		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object");
+		printf("json:\n %s\n", json_object_to_json_string(p_json));
 
-			fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
-
-			fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
-			fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
-			fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
-			fail_unless(y->desc[0]->desc[0] == NULL, "basic_tree check4 failed");
-			fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
-			fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
-			fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
-
-			fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 1");
-			fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 2");
-
-			/*modify original*/
-			*(x.data) = 0;
-			fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
-			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
-			json_object_put(p_json);
-			p_json = NULL;
-
-			fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 3");
-			fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 4");
+		fail_unless(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed");
+		json_object_put(p_json);
+		p_json = NULL;
+//		fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size");
+//		fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size");
+//		fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 0, "object created by metac_pack_from_json isn't equal with the original");
+//		fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed");
 
 
-			fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
+		fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
 
-			metac_free_precompiled_type(&precompiled_type);
-		} \
+		fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
+		fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
+		fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
+		fail_unless(y->desc[0]->desc[0] == NULL, "basic_tree check4 failed");
+		fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
+		fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
+		fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
+
+		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 1");
+		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 2");
+
+		/*modify original*/
+		*(x.data) = 0;
+		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
+		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
+		json_object_put(p_json);
+		p_json = NULL;
+
+		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 3");
+		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 4");
+
+
+		fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
+
+		metac_free_precompiled_type(&precompiled_type);
 	}while(0);
 }END_TEST
 
