@@ -191,6 +191,10 @@ struct region * create_region(
 		metac_count_t elements_count,
 		struct region * part_of_region);
 int delete_region(struct region **pp_region);
+int update_region_ptr_and_size(
+		struct region *p_region,
+		void *ptr,
+		metac_byte_size_t byte_size);
 
 static inline metac_count_t get_region_unique_region_id(
 		struct region * p_region) {
@@ -211,5 +215,7 @@ int is_region_element_precondition_true(
 int set_region_element_precondition(
 		struct region_element * p_region_element,
 		struct condition * p_precondition);
+int write_region_element_discriminators(
+		struct region_element * p_region_element);
 
 #endif /* METAC_INTERNALS_H_ */

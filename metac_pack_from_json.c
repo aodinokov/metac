@@ -41,6 +41,155 @@ struct runtime_task {
 	struct _region * p__region;
 };
 /*****************************************************************************/
+static int _metac_base_type_from_json(
+		struct metac_type * type,
+		json_object * p_json,
+		void *ptr,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
+		metac_byte_size_t byte_size) {
+	int count;
+	const char *buf;
+	int len;
+
+	assert(type->id == DW_TAG_base_type);
+	assert(json_object_get_type(p_json) == json_type_string);
+
+	buf = json_object_get_string(p_json);
+	len = json_object_get_string_len(p_json);
+
+//	if (p_bit_offset != NULL || p_bit_size != NULL) {
+//		int is_signed = type->base_type_info.encoding == DW_ATE_signed_char || type->base_type_info.encoding == DW_ATE_signed;
+//		switch(type->base_type_info.byte_size){
+//		case sizeof(uint8_t):	_COPY_FROM_BITFIELDS_(buf, uint8_t,		is_signed , 0xff, p_bit_offset, p_bit_size); break;
+//		case sizeof(uint16_t):	_COPY_FROM_BITFIELDS_(buf, uint16_t,	is_signed , 0xffff, p_bit_offset, p_bit_size); break;
+//		case sizeof(uint32_t):	_COPY_FROM_BITFIELDS_(buf, uint32_t,	is_signed , 0xffffffff, p_bit_offset, p_bit_size); break;
+//		case sizeof(uint64_t):	_COPY_FROM_BITFIELDS_(buf, uint64_t,	is_signed , 0xffffffffffffffff, p_bit_offset, p_bit_size); break;
+//		default: msg_stderr("BITFIELDS: byte_size %d isn't supported\n", (int)type->base_type_info.byte_size); return -EINVAL;
+//		}
+//		return _metac_base_type_to_json(type, buf, NULL, NULL, byte_size, pp_json);
+//	}
+
+	switch(type->base_type_info.encoding) {
+	case DW_ATE_unsigned_char:
+	case DW_ATE_signed_char:
+		msg_stddbg("DW_ATE_(un)signed_char (byte)\n");
+		if (type->base_type_info.byte_size == sizeof(int8_t)) {
+			if (len != 1) {
+				msg_stddbg("expected single character and got: %s\n", buf);
+				return -EFAULT;
+			}
+			char v = buf[0];
+			*((char*)ptr) = v;
+			break;
+		}
+	/* break removed - fallback to std approach*/
+	case DW_ATE_signed:
+	case DW_ATE_unsigned:
+		switch (type->base_type_info.encoding) {
+		case DW_ATE_signed:
+		case DW_ATE_signed_char:
+			msg_stddbg("DW_ATE_signed\n");
+			switch (type->base_type_info.byte_size) {
+			case sizeof(int8_t):  count = sscanf(buf, "%"SCNi8"" , ((int8_t* )ptr)); break;
+			case sizeof(int16_t): count = sscanf(buf, "%"SCNi16"", ((int16_t*)ptr)); break;
+			case sizeof(int32_t): count = sscanf(buf, "%"SCNi32"", ((int32_t*)ptr)); break;
+			case sizeof(int64_t): count = sscanf(buf, "%"SCNi64"", ((int64_t*)ptr)); break;
+			default: msg_stderr("DW_ATE_signed: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
+			}
+			break;
+		case DW_ATE_unsigned:
+		case DW_ATE_unsigned_char:
+			msg_stddbg("DW_ATE_unsigned\n");
+			switch (type->base_type_info.byte_size) {
+			case sizeof(uint8_t):  count = sscanf(buf, "%"SCNu8"" , ((uint8_t* )ptr)); break;
+			case sizeof(uint16_t): count = sscanf(buf, "%"SCNu16"", ((uint16_t*)ptr)); break;
+			case sizeof(uint32_t): count = sscanf(buf, "%"SCNu32"", ((uint32_t*)ptr)); break;
+			case sizeof(uint64_t): count = sscanf(buf, "%"SCNu64"", ((uint64_t*)ptr)); break;
+			default: msg_stderr("DW_ATE_unsigned: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
+			}
+			break;
+		}
+		break;
+	case DW_ATE_float:
+		switch(type->base_type_info.byte_size) {
+		case sizeof(float):			count = sscanf(buf, "%f",	((float*		)ptr)); break;
+		case sizeof(double):		count = sscanf(buf, "%f",	((double*		)ptr)); break;
+		case sizeof(long double):	count = sscanf(buf, "%Lf",	((long double*	)ptr)); break;
+		default: msg_stderr("DW_ATE_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
+		}
+		break;
+	case DW_ATE_complex_float:
+		switch(type->base_type_info.byte_size) {
+		case sizeof(float complex): {
+//				float complex v = *((float complex*)ptr);
+//				count = snprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		case sizeof(double complex): {
+//				double complex v = *((double complex*)ptr);
+//				count = snprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		case sizeof(long double complex): {
+//				long double complex v = *((long double complex*)ptr);
+//				count = snprintf(buf, "%f + i%f", creal(v), cimag(v));
+			}
+			break;
+		default: msg_stderr("DW_ATE_complex_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
+		}
+		break;
+	default: msg_stderr("Unsupported encoding %d\n",(int)type->base_type_info.encoding); return -EINVAL;
+	}
+
+//	if (pp_json) {
+//		*pp_json = json_object_new_string_len(buf, len);
+//	}
+	return 0;
+}
+/*****************************************************************************/
+static int _metac_enumeration_type_from_json(
+		struct metac_type * type,
+		json_object * p_json,
+		void *ptr,
+		metac_byte_size_t byte_size) {
+//	metac_num_t i;
+//	metac_const_value_t const_value;
+//
+//	assert(type->id == DW_TAG_enumeration_type);
+//	switch(type->enumeration_type_info.byte_size) {
+//	case sizeof(int8_t):	const_value = *((int8_t*	)ptr);	break;
+//	case sizeof(int16_t):	const_value = *((int16_t*	)ptr);	break;
+//	case sizeof(int32_t):	const_value = *((int32_t*	)ptr);	break;
+//	case sizeof(int64_t):	const_value = *((int64_t*	)ptr);	break;
+//	default:
+//#ifdef __BYTE_ORDER
+//		/*read maximum bits we can*/
+//#if __BYTE_ORDER == __LITTLE_ENDIAN
+//		const_value = *((int64_t*	)ptr);	break;
+//#else
+//		const_value = *((int64_t*	)(ptr + (type->enumeration_type_info.byte_size-sizeof(int64_t))));	break;
+//#endif
+//#else
+//		/*fallback if we don't know endian*/
+//		msg_stderr("byte_size %d isn't supported\n", (int)type->enumeration_type_info.byte_size);
+//		return -EINVAL;
+//#endif
+//	}
+//
+//	for (i = 0; i < type->enumeration_type_info.enumerators_count; ++i) {
+//		if (const_value == type->enumeration_type_info.enumerators[i].const_value) {
+//			if (pp_json) {
+//				*pp_json = json_object_new_string(type->enumeration_type_info.enumerators[i].name);
+//			}
+//			return 0;
+//		}
+//	}
+//	msg_stderr("wasn't able to find enum name for %d\n", (int)const_value);
+	//return -EINVAL;
+	return 0;
+}
+/*****************************************************************************/
 static struct _region * create__region(
 		void *ptr,
 		metac_byte_size_t byte_size,
@@ -162,6 +311,7 @@ static int _runtime_task_destroy_fn(
 }
 /*****************************************************************************/
 struct _region_element_element_data_ {
+	metac_count_t children_count;
 	json_bool found;
 	json_object * p_json;
 };
@@ -171,6 +321,9 @@ static int _runtime_task_fn(
 		struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
 	int i;
 	int e;
+	metac_byte_size_t region_element_byte_size;
+	void * region_ptr;
+	metac_byte_size_t region_byte_size;
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
 	struct runtime_context * p_context = (struct runtime_context *)p_breadthfirst_engine->private_data;
 	struct _region_element_element_data_ * p_data;
@@ -191,9 +344,25 @@ static int _runtime_task_fn(
 	}
 
 	/*calculate size*/
+	region_element_byte_size = metac_type_byte_size(p_task->p__region->p_region->elements[0].region_element_type->type);
 	/*cover case when we have 1 element and flexible array - we have to increase region size*/
+	//TBD:if (p_task->p__region->p_region->elements[0].region_element_type->is_flexible)
 
 	/*allocate mem and reinitialize region and elements*/
+	region_byte_size = region_element_byte_size * p_task->p__region->p_region->elements_count;
+	region_ptr = calloc(p_task->p__region->p_region->elements_count, region_element_byte_size);
+	if (region_ptr == NULL) {
+		msg_stderr("can't allocate data for p_data\n");
+		free(p_data);
+		return -ENOMEM;
+	}
+	if (update_region_ptr_and_size(p_task->p__region->p_region,
+			region_ptr,
+			region_byte_size) != 0) {
+		msg_stderr("update_region_ptr_and_size failed\n");
+		free(p_data);
+		return -ENOMEM;
+	}
 
 	assert(p_task->p__region->p_region->elements_count == json_object_array_length(p_task->p__region->p_json));
 	for (e = 0; e < p_task->p__region->p_region->elements_count; e++) {
@@ -211,23 +380,40 @@ static int _runtime_task_fn(
 		for (i = 0; i < p_region_element->region_element_type->elements_count; ++i) {
 			if (p_region_element->region_element_type->element[i]->parent != NULL) {
 				assert(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json != NULL);
+				assert(i == p_region_element->region_element_type->element[i]->id);
 				if (json_object_get_type(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json) != json_type_object) {
 					msg_stderr("json isn't object: %s\n", json_object_to_json_string(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json));
 					free(p_data);
 					return -ENOMEM;
 				}
 				if (strlen(p_region_element->region_element_type->element[i]->name_local) > 0) {
-					p_data[p_region_element->region_element_type->element[i]->id].found = json_object_object_get_ex(
+					p_data[i].found = json_object_object_get_ex(
 							p_data[p_region_element->region_element_type->element[i]->parent->id].p_json,
 							p_region_element->region_element_type->element[i]->name_local,
-							&p_data[p_region_element->region_element_type->element[i]->id].p_json);
+							&p_data[i].p_json);
+					++p_data[p_region_element->region_element_type->element[i]->parent->id].children_count;
 				} else {
-					p_data[p_region_element->region_element_type->element[i]->id].p_json =
-							p_data[p_region_element->region_element_type->element[i]->parent->id].p_json;
+					p_data[i].p_json = p_data[p_region_element->region_element_type->element[i]->parent->id].p_json;
 				}
 			}
 		}
-
+		/*found out how to understand what fields were not used*/
+		for (i = 0; i < p_region_element->region_element_type->hierarchy_elements_count; ++i) {
+			int id = p_region_element->region_element_type->hierarchy_element[i]->id;
+			if (json_object_get_type(p_data[id].p_json) != json_type_object) {
+				msg_stderr("hierarchy type got invalid json type: %s\n",
+						json_object_to_json_string(p_data[id].p_json));
+				free(p_data);
+				return -EINVAL;
+			}
+			if (json_object_object_length(p_data[id].p_json) > p_data[id].children_count) {
+				msg_stderr("there are not used fields: %s\n", json_object_to_json_string(p_data[id].p_json));
+				/* ignore it for now
+				 * free(p_data);
+				 * return -EINVAL;
+				 */
+			}
+		}
 		/* initialize conditions */
 		if (p_region_element->region_element_type->discriminators_count > 0) {
 			for (i = 0; i < p_region_element->region_element_type->elements_count; ++i) {
@@ -238,16 +424,62 @@ static int _runtime_task_fn(
 					}
 				}
 			}
-			/*check that all of them are initialized properly?*/
+			/*check that all of them are initialized properly? how? - TBD ?*/
+			/*write conditions */
+			write_region_element_discriminators(p_region_element);
 		}
-		/*write conditions (conditions now can check )*/
-		/*handle all base, enums - make a warning if we're writing to non 0 and value isn't the same*/
+		/*handle base - TODO:make a warning if we're writing to non 0 and value isn't the same*/
+		for (i = 0; i < p_region_element->region_element_type->base_type_elements_count; ++i) {
+			int id = p_region_element->region_element_type->base_type_element[i]->id;
+			if (json_object_get_type(p_data[id].p_json) != json_type_string) {
+				msg_stderr("base type got invalid json type: %s\n",
+						json_object_to_json_string(p_data[id].p_json));
+				free(p_data);
+				return -EINVAL;
+			}
+			/*pack base from json*/
+			if (_metac_base_type_from_json(
+					p_region_element->region_element_type->base_type_element[i]->type,
+					p_data[id].p_json,
+					p_region_element->ptr + p_region_element->region_element_type->base_type_element[i]->offset,
+					p_region_element->region_element_type->base_type_element[i]->p_bit_offset,
+					p_region_element->region_element_type->base_type_element[i]->p_bit_size,
+					p_region_element->region_element_type->base_type_element[i]->byte_size ) != 0) {
+				msg_stderr("_metac_base_type_from_json failed for : %s\n",
+						json_object_to_json_string(p_data[id].p_json));
+				free(p_data);
+				return -EINVAL;
+			}
+		}
+		/*handle enums - TODO:make a warning if we're writing to non 0 and value isn't the same*/
+		for (i = 0; i < p_region_element->region_element_type->enum_type_elements_count; ++i) {
+			int id = p_region_element->region_element_type->enum_type_element[i]->id;
+			if (json_object_get_type(p_data[id].p_json) != json_type_string) {
+				msg_stderr("base type got invalid json type: %s\n",
+						json_object_to_json_string(p_data[id].p_json));
+				free(p_data);
+				return -EINVAL;
+			}
+			/*pack enum from json*/
+			if (_metac_enumeration_type_from_json(
+					p_region_element->region_element_type->base_type_element[i]->type,
+					p_data[id].p_json,
+					p_region_element->ptr + p_region_element->region_element_type->base_type_element[i]->offset,
+					p_region_element->region_element_type->base_type_element[i]->byte_size ) != 0) {
+				msg_stderr("_metac_enumeration_type_from_json failed for : %s\n",
+						json_object_to_json_string(p_data[id].p_json));
+				free(p_data);
+				return -EINVAL;
+			}
+		}
 		/*handle pointers - if offset is 0 - create unique region and store it immediatly. if offset isn't 0 - find region with the same id and offset,
 		 * if no such - create like for array(handle location)*/
+
 		/*handle arrays - create simple regions (with correct ptr and size for array), initialzie location immediatly*/
+
+
 		/*TODO: to understand when call array/pointer functions for len*/
 	}
-
 
 	free(p_data);
 	msg_stddbg("finished task\n");

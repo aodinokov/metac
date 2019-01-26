@@ -402,7 +402,8 @@ int is_region_element_precondition_true(
 			return 0;
 		assert(p_precondition->p_discriminator->discriminator_cb);
 
-		if (p_precondition->p_discriminator->discriminator_cb(0,
+		if (p_precondition->p_discriminator->discriminator_cb(
+				0,
 				p_region_element->ptr,
 				p_region_element->region_element_type->type,
 				&p_region_element->p_discriminator_value[id].value,
@@ -440,6 +441,30 @@ int set_region_element_precondition(
 	if (p_region_element->p_discriminator_value[id].value != p_precondition->expected_discriminator_value)
 		return -EEXIST;
 	return 0;
+}
+/*****************************************************************************/
+int write_region_element_discriminators(
+		struct region_element * p_region_element) {
+	int res = 0;
+	int id;
+	assert(p_region_element);
+	assert(p_region_element->region_element_type);
+
+	for (id = 0; id < p_region_element->region_element_type->discriminators_count; ++id) {
+		if (p_region_element->p_discriminator_value[id].is_initialized != 0 &&
+			p_region_element->region_element_type->discriminator[id]->discriminator_cb != NULL) {
+			if (p_region_element->region_element_type->discriminator[id]->discriminator_cb(
+					1,
+					p_region_element->ptr,
+					p_region_element->region_element_type->type,
+					&p_region_element->p_discriminator_value[id].value,
+					p_region_element->region_element_type->discriminator[id]->discriminator_cb_context)!=0) {
+				msg_stderr("Cb failed for discriminator: %d\n", id);
+				res = -EFAULT;
+			}
+		}
+	}
+	return res;
 }
 /*****************************************************************************/
 int cleanup_region_element(struct region_element *p_region_element) {
@@ -616,6 +641,39 @@ struct region * create_region(
 	}
 
 	return p_region;
+}
+
+int update_region_ptr_and_size(
+		struct region *p_region,
+		void *ptr,
+		metac_byte_size_t byte_size) {
+	int i;
+	metac_byte_size_t region_element_byte_size;
+	struct region_element_type * region_element_type;
+
+	if (p_region == NULL) {
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
+	}
+
+	p_region->ptr = ptr;
+	p_region->byte_size = byte_size;
+
+	region_element_byte_size = p_region->elements[0].byte_size;
+	region_element_type = p_region->elements[0].region_element_type;
+
+	for (i = 0; i < p_region->elements_count; i++) {
+		if (init_region_element(
+				&p_region->elements[i],
+				ptr + i*region_element_byte_size,
+				region_element_byte_size,
+				region_element_type)!=0) {
+			msg_stderr("init_region_element for element %d\n", i);
+			return -EFAULT;
+		}
+	}
+
+	return 0;
 }
 
 /*****************************************************************************/
