@@ -289,6 +289,6 @@ int metac_array_elements_1d_with_null(
 		msg_stddbg("p_elements_count %d\n", (int)i);
 		return 0;
 	}
-	return -EFAULT;
+	return 0;
 }
 
