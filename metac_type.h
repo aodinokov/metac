@@ -197,7 +197,7 @@ typedef int (*metac_array_elements_count_cb_ptr_t)(
 	metac_type_t * region_element_type, /*pointer to memory region element and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges)*/
+	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges) - TBD:incorrect. Flex arrays can change only 1 dimension*/
 	void * array_elements_count_cb_context);
 
 /*some helpful generic functions */

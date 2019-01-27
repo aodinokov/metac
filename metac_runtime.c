@@ -95,7 +95,8 @@ static struct _region * find_or_create__region(
 	if (p_created_flag != NULL) *p_created_flag = 0;
 
 	cds_list_for_each_entry(_region_iter, &p_runtime_context->region_list, list) {
-		if (ptr == _region_iter->p_region->ptr) { /* case when ptr is inside will be covered later */
+		if (ptr == _region_iter->p_region->ptr &&
+				byte_size == _region_iter->p_region->byte_size) { /* case when ptr is inside will be covered later */
 			_region = _region_iter;
 			msg_stddbg("found region %p\n", _region);
 			break;
@@ -394,7 +395,7 @@ static int _runtime_task_fn(
 				continue;
 			}
 
-			/*we have to create region and store it (need create or find to support loops) */
+			/*we have to create region and store it */
 			_region = simply_create__region(
 					p_context,
 					new_ptr,
@@ -554,6 +555,13 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 
 		if (	context.runtime_object->region[i]->ptr >= region->ptr &&
 				context.runtime_object->region[i]->ptr < region->ptr + region->byte_size) { /*within the previous*/
+
+			if (context.runtime_object->region[i]->ptr == region->ptr &&
+				context.runtime_object->region[i]->byte_size == region->byte_size) {
+				/*TBD: this has to be handled*/
+				msg_stderr("Ambiguity between 2 regions\n");
+			}
+
 			if (context.runtime_object->region[i]->ptr + context.runtime_object->region[i]->byte_size > region->ptr + region->byte_size) {
 				msg_stderr("Warning: region(%d) %p %d is partially within previous %p %d\n",
 						i,
@@ -563,7 +571,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 						region->byte_size);
 			}
 			context.runtime_object->region[i]->part_of_region = region;
-		}else {
+		} else {
 			region = context.runtime_object->region[0];
 			++context.runtime_object->unique_regions_count;
 		}

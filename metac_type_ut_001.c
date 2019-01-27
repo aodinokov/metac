@@ -1245,10 +1245,15 @@ START_TEST(basic_tree_t_ut) {
 		fail_unless(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed");
 		json_object_put(p_json);
 		p_json = NULL;
-//		fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size");
-//		fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size");
-//		fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 0, "object created by metac_pack_from_json isn't equal with the original");
-//		fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed");
+		fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size");
+		fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size");
+		fail_unless(metac_unpack_to_json(precompiled_type, p_x, sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
+		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object");
+		printf("json_from_packed_obj:\n %s\n", json_object_to_json_string(p_json));
+		json_object_put(p_json);
+		p_json = NULL;
+		fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 1, "object created by metac_pack_from_json isn't equal with the original");
+		fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed");
 
 
 		fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");

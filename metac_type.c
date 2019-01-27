@@ -249,7 +249,7 @@ int metac_array_elements_single(
 			p_elements_count[i]= 1;
 		return 0;
 	}
-	return -EFAULT;
+	return 0;
 }
 
 int metac_array_elements_1d_with_null(

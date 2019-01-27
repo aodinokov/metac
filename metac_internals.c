@@ -518,7 +518,8 @@ int init_region_element(
 	p_region_element->ptr = ptr;
 	p_region_element->byte_size = byte_size;
 
-	if (region_element_type->discriminators_count > 0) {
+	if (region_element_type->discriminators_count > 0 &&
+		p_region_element->p_discriminator_value == NULL) {
 		p_region_element->p_discriminator_value =
 				calloc(region_element_type->discriminators_count, sizeof(*(p_region_element->p_discriminator_value)));
 		if (p_region_element->p_discriminator_value == NULL) {
@@ -528,7 +529,8 @@ int init_region_element(
 		}
 	}
 
-	if (region_element_type->pointer_type_elements_count > 0) {
+	if (region_element_type->pointer_type_elements_count > 0 &&
+		p_region_element->p_pointer == NULL) {
 		p_region_element->p_pointer =
 				calloc(region_element_type->pointer_type_elements_count, sizeof(*(p_region_element->p_pointer)));
 		if (p_region_element->p_pointer == NULL) {
@@ -538,7 +540,8 @@ int init_region_element(
 		}
 	}
 
-	if (region_element_type->array_type_elements_count > 0) {
+	if (region_element_type->array_type_elements_count > 0 &&
+		p_region_element->p_array == NULL) {
 		p_region_element->p_array =
 				calloc(region_element_type->array_type_elements_count, sizeof(*(p_region_element->p_array)));
 		if (p_region_element->p_array == NULL) {

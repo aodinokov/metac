@@ -654,8 +654,7 @@ int metac_unpack_to_json(
 					assert(region->elements[j].pointers[k]->p_json_object != NULL);
 					json_object_object_add(region->elements[j].pointers[k]->p_json_object,
 							"region_id", json_object_new_int(region->elements[j].pointers[k]->p_linked_region->u_idx));
-					if (region->elements[j].pointers[k]->p_linked_region->offset != 0) {
-						assert(region->elements[j].pointers[k]->p_linked_region->p_json_object == NULL);/* only unique regions have json_object created*/
+					if (region->elements[j].pointers[k]->p_linked_region->p_json_object == 0) {
 						json_object_object_add(region->elements[j].pointers[k]->p_json_object,
 								"offset", json_object_new_int(region->elements[j].pointers[k]->p_linked_region->offset));
 					}
