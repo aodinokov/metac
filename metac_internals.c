@@ -477,9 +477,8 @@ int cleanup_region_element(struct region_element *p_region_element) {
 
 	if (p_region_element->p_array != NULL) {
 		for (i = 0; i < p_region_element->region_element_type->array_type_elements_count; i++) {
-			if (p_region_element->p_array[i].p_elements_count != NULL) {
-				free (p_region_element->p_array[i].p_elements_count);
-				p_region_element->p_array[i].p_elements_count = NULL;
+			if (p_region_element->p_array[i].p_array_info != NULL) {
+				metac_array_info_delete(&p_region_element->p_array[i].p_array_info);
 			}
 		}
 		free(p_region_element->p_array);
@@ -488,9 +487,8 @@ int cleanup_region_element(struct region_element *p_region_element) {
 
 	if (p_region_element->p_pointer != NULL) {
 		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
-			if (p_region_element->p_pointer[i].p_elements_count != NULL) {
-				free (p_region_element->p_pointer[i].p_elements_count);
-				p_region_element->p_pointer[i].p_elements_count = NULL;
+			if (p_region_element->p_pointer[i].p_array_info != NULL) {
+				metac_array_info_delete(&p_region_element->p_pointer[i].p_array_info);
 			}
 		}
 		free(p_region_element->p_pointer);
@@ -735,3 +733,5 @@ struct metac_runtime_object * create_runtime_object(struct metac_precompiled_typ
 
 	return p_runtime_object;
 }
+/*****************************************************************************/
+

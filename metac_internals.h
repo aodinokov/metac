@@ -87,16 +87,12 @@ struct discriminator_value {
 };
 
 struct pointer {
-	int n;		/*1-dimention*/
-	metac_count_t * p_elements_count;
-
+	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 
 struct array {
-	int n;
-	metac_count_t * p_elements_count;
-
+	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 

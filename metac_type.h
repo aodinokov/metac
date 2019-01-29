@@ -34,13 +34,17 @@ typedef unsigned int					metac_num_t;
 typedef struct metac_type_specification_value
 										metac_type_specification_value_t;
 
-struct metac_type_specification {
+typedef struct metac_type_specification {
 	/*const*/ char *key;
 	/*const*/ metac_type_specification_value_t	*value;
-};												/* pointer to explicit specifications array for this type*/
+}metac_type_specification_t;										/* pointer to explicit specifications array for this type*/
 
-
-typedef struct metac_type_specification metac_type_specification_t;
+typedef struct metac_array_info {
+	metac_num_t subranges_count;
+	struct _metac_array_subrange_info {
+		metac_count_t count;
+	}subranges[];
+}metac_array_info_t;
 
 struct metac_type {
 	metac_type_id_t						id;							/* type id */
@@ -171,6 +175,12 @@ int 					metac_type_array_member_location(struct metac_type *type, metac_num_t s
 const metac_type_specification_value_t *
 						metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
+metac_array_info_t * 	metac_array_info_create(struct metac_type *type);
+metac_array_info_t * 	metac_array_info_copy(metac_array_info_t *p_array_info_orig);
+metac_count_t 			metac_array_info_get_element_count(metac_array_info_t * p_array_info);
+int 					metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1);
+int 					metac_array_info_delete(metac_array_info_t ** pp_array_info);
+
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions and their params in code*/
@@ -181,7 +191,6 @@ const metac_type_specification_value_t *
 #define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
 #define _METAC_TYPE_SPECIFICATION(_key_, _value_...) {.key = _key_, .value = _value_},
 #define METAC_TYPE_SPECIFICATION_END {NULL, NULL}};
-
 
 /* precompiled type specification values: */
 typedef int metac_discriminator_value_t;
@@ -197,7 +206,7 @@ typedef int (*metac_array_elements_count_cb_ptr_t)(
 	metac_type_t * region_element_type, /*pointer to memory region element and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n, metac_count_t * p_elements_count,/* supports n-dimensional arrays (see array subranges) - TBD:incorrect. Flex arrays can change only 1 dimension*/
+	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 
 /*some helpful generic functions */
@@ -208,7 +217,7 @@ int metac_array_elements_single( /*this array has only 1 elements/pointer points
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n, metac_count_t * p_elements_count,
+	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*/
 	int write_operation,
@@ -216,7 +225,7 @@ int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n, metac_count_t * p_elements_count,
+	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 
 struct metac_type_specification_value {
@@ -247,8 +256,7 @@ void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);
 /* returns 0 if non-equal, 1 if equal, < 0 if there was a error*/
-int metac_equal(void *ptr0, void *ptr1,
-		metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
+int metac_equal(void *ptr0, void *ptr1, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 /* destruction */
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 
@@ -319,8 +327,7 @@ struct metac_visitor {
 			metac_region_ee_subtype_t subtype,
 			metac_count_t see_id,
 			/* for pointers and arrays only */
-			int n,
-			metac_count_t * p_elements_count,
+			metac_array_info_t * p_array_info,
 			metac_count_t * p_linked_r_id /*can be NULL*/
 			);
 };

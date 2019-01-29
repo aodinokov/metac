@@ -241,12 +241,9 @@ static int _runtime_task_fn(
 				continue;
 			}
 
-			p_region_element->p_pointer[i].n = 1; /*pointers are always 1d */
-
-			p_region_element->p_pointer[i].p_elements_count =
-					calloc(p_region_element->p_pointer[i].n, sizeof(*(p_region_element->p_pointer[i].p_elements_count)));
-			if (p_region_element->p_pointer[i].p_elements_count == NULL) {
-				msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			p_region_element->p_pointer[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->pointer_type_element[i]->type);
+			if (p_region_element->p_pointer[i].p_array_info == NULL) {
+				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
 
@@ -269,8 +266,7 @@ static int _runtime_task_fn(
 					new_ptr,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 							p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type:NULL,
-					p_region_element->p_pointer[i].n,
-					p_region_element->p_pointer[i].p_elements_count,
+							p_region_element->p_pointer[i].p_array_info,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_cb_context) != 0) {
 				msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 						i, p_region_element->region_element_type->type->name);
@@ -278,9 +274,7 @@ static int _runtime_task_fn(
 			}
 
 			/* calculate byte_size using length */
-			elements_count = p_region_element->p_pointer[i].p_elements_count[0];
-			for (j = 1; j < p_region_element->p_pointer[i].n; j++)
-				elements_count *= p_region_element->p_pointer[i].p_elements_count[j];
+			elements_count = metac_array_info_get_element_count(p_region_element->p_pointer[i].p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type):0;
@@ -341,26 +335,16 @@ static int _runtime_task_fn(
 
 			assert(p_region_element->region_element_type->array_type_element[i]->type->id == DW_TAG_array_type);
 
-			p_region_element->p_array[i].n = p_region_element->region_element_type->array_type_element[i]->type->array_type_info.subranges_count;
-
-			p_region_element->p_array[i].p_elements_count = calloc(p_region_element->p_array[i].n, sizeof(*(p_region_element->p_array[i].p_elements_count)));
-			if (p_region_element->p_array[i].p_elements_count == NULL) {
-				msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			p_region_element->p_array[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->array_type_element[i]->type);
+			if (p_region_element->p_array[i].p_array_info == NULL) {
+				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
 
 			/* set ptr to the first element */
 			new_ptr = (void*)(p_region_element->ptr + p_region_element->region_element_type->array_type_element[i]->offset);
 
-			/*use different approaches to calculate lengths*/
-			if (!p_region_element->region_element_type->array_type_element[i]->type->array_type_info.is_flexible){
-				for (j = 0; j < p_region_element->p_array[i].n; j++){
-					metac_type_array_subrange_count(
-							p_region_element->region_element_type->array_type_element[i]->type,
-							j,
-							&p_region_element->p_array[i].p_elements_count[j]);
-				}
-			}else{
+			if (p_region_element->region_element_type->array_type_element[i]->type->array_type_info.is_flexible) {
 				if (p_region_element->region_element_type->array_type_element[i]->array_elements_count_funtion_ptr == NULL) {
 					msg_stddbg("skipping because don't have a cb to determine elements count\n");
 					continue; /*we don't handle pointers if we can't get fn*/
@@ -373,8 +357,7 @@ static int _runtime_task_fn(
 						new_ptr,
 						p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 								p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type:NULL,
-						p_region_element->p_array[i].n,
-						p_region_element->p_array[i].p_elements_count,
+						p_region_element->p_array[i].p_array_info,
 						p_region_element->region_element_type->array_type_element[i]->array_elements_count_cb_context) != 0) {
 					msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 							i, p_region_element->region_element_type->type->name);
@@ -383,9 +366,7 @@ static int _runtime_task_fn(
 			}
 
 			/* calculate overall elements_count */
-			elements_count = p_region_element->p_array[i].p_elements_count[0];
-			for (j = 1; j < p_region_element->p_array[i].n; j++)
-				elements_count *= p_region_element->p_array[i].p_elements_count[j];
+			elements_count = metac_array_info_get_element_count(p_region_element->p_array[i].p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type):0;
@@ -957,34 +938,22 @@ static int _metac_equal(
 			}
 			/*compare pointers*/
 			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->pointer_type_elements_count; ++k) {
-				if (p_runtime_object0->region[i]->elements[j].p_pointer[k].n != p_runtime_object1->region[i]->elements[j].p_pointer[k].n ||
+				if (metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_array_info, p_runtime_object1->region[i]->elements[j].p_pointer[k].p_array_info) == 0 ||
 					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region == NULL) ||
 					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region != NULL &&
 						(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region->id))
 					) {
 					return 0;
 				}
-				/*compare lengths of regions we're pointing*/
-				for (l = 0; l < p_runtime_object0->region[i]->elements[j].p_pointer[k].n; ++l) {
-					if (p_runtime_object0->region[i]->elements[j].p_pointer[k].p_elements_count[l] != p_runtime_object1->region[i]->elements[j].p_pointer[k].p_elements_count[l]) {
-						return 0;
-					}
-				}
 			}
 			/*compare arrays*/
 			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->array_type_elements_count; ++k) {
-				if (p_runtime_object0->region[i]->elements[j].p_array[k].n != p_runtime_object1->region[i]->elements[j].p_array[k].n ||
+				if (metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_array[k].p_array_info, p_runtime_object1->region[i]->elements[j].p_array[k].p_array_info) == 0 ||
 					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_array[k].p_region == NULL) ||
 					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region != NULL &&
 						(p_runtime_object0->region[i]->elements[j].p_array[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_array[k].p_region->id))
 					) {
 					return 0;
-				}
-				/*compare lengths of regions we're pointing*/
-				for (l = 0; l < p_runtime_object0->region[i]->elements[j].p_array[k].n; ++l) {
-					if (p_runtime_object0->region[i]->elements[j].p_array[k].p_elements_count[l] != p_runtime_object1->region[i]->elements[j].p_array[k].p_elements_count[l]) {
-						return 0;
-					}
 				}
 			}
 		}
@@ -1375,7 +1344,7 @@ int metac_visit(
 										elements_elements_real_ids[elements[ee]->id],
 										subtypes_sequence[k],
 										_n,
-										0, NULL, 0
+										NULL, 0
 										);
 								break;
 							case reesPointer:
@@ -1386,8 +1355,7 @@ int metac_visit(
 										elements_elements_real_ids[elements[ee]->id],
 										subtypes_sequence[k],
 										_n,
-										p_region_element->p_pointer[ee].n,
-										p_region_element->p_pointer[ee].p_elements_count,
+										p_region_element->p_pointer[ee].p_array_info,
 										p_region_element->p_pointer[ee].p_region?&p_region_element->p_pointer[ee].p_region->id:NULL
 										);
 								break;
@@ -1399,8 +1367,7 @@ int metac_visit(
 										elements_elements_real_ids[elements[ee]->id],
 										subtypes_sequence[k],
 										_n,
-										p_region_element->p_array[ee].n,
-										p_region_element->p_array[ee].p_elements_count,
+										p_region_element->p_array[ee].p_array_info,
 										p_region_element->p_array[ee].p_region?&p_region_element->p_array[ee].p_region->id:NULL
 										);
 								break;

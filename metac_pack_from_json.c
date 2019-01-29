@@ -530,27 +530,15 @@ static int _runtime_task_fn(
 				return -EINVAL;
 			}
 			assert(json_object_array_length(p_task->p__region->p_json));
-			//json_object_array_length(p_task->p__region->p_json)
+			assert(p_region_element->region_element_type->array_type_element[i]->type->id == DW_TAG_array_type);
 
-			p_region_element->p_array[i].n = p_region_element->region_element_type->array_type_element[i]->type->array_type_info.subranges_count;
-
-			p_region_element->p_array[i].p_elements_count = calloc(p_region_element->p_array[i].n, sizeof(*(p_region_element->p_array[i].p_elements_count)));
-			if (p_region_element->p_array[i].p_elements_count == NULL) {
-				msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			p_region_element->p_array[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->array_type_element[i]->type);
+			if (p_region_element->p_array[i].p_array_info == NULL) {
+				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
-
-			/*fill in p_elements_count*/
-			p_json_current = p_data[id].p_json;
-			for (j = 0; j < p_region_element->p_array[i].n; ++j) {
-				if (json_object_get_type(p_json_current) != json_type_array) {
-					msg_stderr("array type got invalid json type: %s\n",
-							json_object_to_json_string(p_data[id].p_json));
-					free(p_data);
-					return -EINVAL;
-				}
-				p_region_element->p_array[i].p_elements_count[j] = json_object_array_length(p_json_current);
-				p_json_current = json_object_array_get_idx(p_json_current, 0);
+			if (p_region_element->region_element_type->array_type_element[i]->type->array_type_info.is_flexible) {
+				p_region_element->p_array[i].p_array_info->subranges[0].count = json_object_array_length(p_data[id].p_json);
 			}
 
 			/* set ptr to the first element */
@@ -574,8 +562,7 @@ static int _runtime_task_fn(
 							new_ptr,
 							p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 									p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type:NULL,
-							p_region_element->p_array[i].n,
-							p_region_element->p_array[i].p_elements_count,
+							p_region_element->p_array[i].p_array_info,
 							p_region_element->region_element_type->array_type_element[i]->array_elements_count_cb_context) != 0) {
 						msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 								i, p_region_element->region_element_type->type->name);
@@ -583,29 +570,10 @@ static int _runtime_task_fn(
 						return -EFAULT;
 					}
 				}
-			} else {
-				for (j = 0; j < p_region_element->p_array[i].n; ++j) {
-					metac_count_t count;
-					metac_type_array_subrange_count(
-							p_region_element->region_element_type->array_type_element[i]->type,
-							j,
-							&count);
-					if (p_region_element->p_array[i].p_elements_count[j] != count) {
-						msg_stderr("Array came with incorrect size in dimension %d: got %d, expected %d, json: %s\n",
-								(int)j,
-								(int)p_region_element->p_array[i].p_elements_count[j],
-								(int)count,
-								json_object_to_json_string(p_data[id].p_json));
-						free(p_data);
-						return -EFAULT;
-					}
-				}
 			}
 			/*create region and add it to the task*/
 			/* calculate overall elements_count */
-			elements_count = p_region_element->p_array[i].p_elements_count[0];
-			for (j = 1; j < p_region_element->p_array[i].n; j++)
-				elements_count *= p_region_element->p_array[i].p_elements_count[j];
+			elements_count = metac_array_info_get_element_count(p_region_element->p_array[i].p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type):0;
@@ -702,16 +670,13 @@ static int _runtime_task_fn(
 			}
 
 			p_json_region = json_object_array_get_idx(p_context->p_json, json_object_get_int(p_json_region_id));
-			p_region_element->p_pointer[i].n = 1; /*pointers are always 1d */
 
-			p_region_element->p_pointer[i].p_elements_count =
-					calloc(p_region_element->p_pointer[i].n, sizeof(*(p_region_element->p_pointer[i].p_elements_count)));
-			if (p_region_element->p_pointer[i].p_elements_count == NULL) {
-				msg_stderr("Pointer p_elements_count allocation failed - exiting\n");
+			p_region_element->p_pointer[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->pointer_type_element[i]->type);
+			if (p_region_element->p_pointer[i].p_array_info == NULL) {
+				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
-
-			p_region_element->p_pointer[i].p_elements_count[0] = json_object_array_length(p_json_region);
+			p_region_element->p_pointer[i].p_array_info->subranges[0].count = json_object_array_length(p_json_region);
 
 			if (p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr == NULL) {
 				msg_stddbg("skipping because don't have a cb to determine elements count\n");
@@ -728,8 +693,7 @@ static int _runtime_task_fn(
 					new_ptr,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 							p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type:NULL,
-					p_region_element->p_pointer[i].n,
-					p_region_element->p_pointer[i].p_elements_count,
+					p_region_element->p_pointer[i].p_array_info,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_cb_context) != 0) {
 				msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 						i, p_region_element->region_element_type->type->name);
@@ -737,9 +701,7 @@ static int _runtime_task_fn(
 			}
 
 			/* calculate byte_size using length */
-			elements_count = p_region_element->p_pointer[i].p_elements_count[0];
-			for (j = 1; j < p_region_element->p_pointer[i].n; j++)
-				elements_count *= p_region_element->p_pointer[i].p_elements_count[j];
+			elements_count = metac_array_info_get_element_count(p_region_element->p_pointer[i].p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type):0;

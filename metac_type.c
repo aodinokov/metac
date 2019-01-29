@@ -234,19 +234,125 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	return NULL;
 }
 /*****************************************************************************/
+metac_array_info_t * metac_array_info_create(struct metac_type *type) {
+	metac_num_t i;
+	metac_num_t subranges_count;
+	metac_array_info_t * p_array_info;
+	metac_type_id_t id;
+
+	if (type == NULL) {
+		msg_stderr("invalid argument value: type\n");
+		return NULL;
+	}
+
+	id = metac_type_typedef_skip(type)->id;
+	switch (id) {
+	case DW_TAG_pointer_type:
+		subranges_count = 1;
+		break;
+	case DW_TAG_array_type:
+		subranges_count = type->array_type_info.subranges_count;
+		break;
+	default:
+		msg_stderr("metac_array_info_t can't be created(%d)\n", (int)id);
+		return NULL;
+	}
+
+	p_array_info = calloc(1, sizeof(*p_array_info) + subranges_count * sizeof(struct _metac_array_subrange_info));
+	if (p_array_info == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+	p_array_info->subranges_count = subranges_count;
+	p_array_info->subranges[0].count = 1;
+
+	if (id == DW_TAG_array_type) {
+		for (i = 0; i < subranges_count; ++i) {
+			metac_type_array_subrange_count(type, i, &p_array_info->subranges[i].count);
+		}
+	}
+
+	return p_array_info;
+}
+metac_array_info_t * metac_array_info_copy(metac_array_info_t *p_array_info_orig) {
+	metac_num_t i;
+	metac_num_t subranges_count;
+	metac_array_info_t * p_array_info;
+	metac_type_id_t id;
+
+	if (p_array_info_orig == NULL) {
+		msg_stderr("invalid argument value: p_array_info\n");
+		return NULL;
+	}
+
+	subranges_count = p_array_info_orig->subranges_count;
+
+	p_array_info = calloc(1, sizeof(*p_array_info) + subranges_count * sizeof(struct _metac_array_subrange_info));
+	if (p_array_info == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+	p_array_info->subranges_count = subranges_count;
+
+	for (i = 0; i < p_array_info->subranges_count; ++i) {
+		p_array_info->subranges[i].count = p_array_info_orig->subranges[i].count;
+	}
+
+	return p_array_info;
+}
+int metac_array_info_delete(metac_array_info_t ** pp_array_info) {
+	if (pp_array_info != NULL) {
+		metac_array_info_t * p_array_info = *pp_array_info;
+
+		free(p_array_info);
+		*pp_array_info = NULL;
+	}
+	return 0;
+}
+metac_count_t metac_array_info_get_element_count(metac_array_info_t * p_array_info) {
+	metac_num_t i;
+	metac_count_t element_count;
+
+	if (p_array_info == NULL || p_array_info->subranges_count == 0)
+		return 0;
+
+	element_count = p_array_info->subranges[0].count;
+	for (i = 1; i < p_array_info->subranges_count; ++i) {
+		element_count *= p_array_info->subranges[i].count;
+	}
+	return element_count;
+}
+int metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1) {
+	metac_num_t i;
+
+	if (p_array_info0 == NULL ||
+		p_array_info1 == NULL) {
+		return -EINVAL;
+	}
+
+	if (p_array_info0->subranges_count != p_array_info1->subranges_count)
+		return 0;
+
+	for (i = 0; i < p_array_info0->subranges_count; ++i) {
+		if (p_array_info0->subranges[i].count != p_array_info1->subranges[i].count)
+			return 0;
+	}
+
+	return 1;
+}
+/*****************************************************************************/
 int metac_array_elements_single(
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n,
-	metac_count_t * p_elements_count,
+	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context) {
-	int i;
+	metac_count_t i;
 	if (write_operation == 0) {
-		for (i = 0; i < n; i++)
-			p_elements_count[i]= 1;
+		for (i = 0; i < p_array_info->subranges_count; i++)
+			p_array_info->subranges[i].count = 1;
 		return 0;
 	}
 	return 0;
@@ -258,11 +364,10 @@ int metac_array_elements_1d_with_null(
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	int n,
-	metac_count_t * p_elements_count,
+	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context) {
 
-	if (n != 1) {
+	if (p_array_info->subranges_count != 1) {
 		msg_stderr("metac_array_elements_1d_with_null can work only with 1 dimension arrays\n");
 		return -EFAULT;
 	}
@@ -285,7 +390,7 @@ int metac_array_elements_1d_with_null(
 		}while(1);
 		/*found all zeroes*/
 		++i;
-		p_elements_count[0]= i;
+		p_array_info->subranges[0].count = i;
 		msg_stddbg("p_elements_count %d\n", (int)i);
 		return 0;
 	}
