@@ -241,17 +241,6 @@ static int _runtime_task_fn(
 				continue;
 			}
 
-			p_region_element->p_pointer[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->pointer_type_element[i]->type);
-			if (p_region_element->p_pointer[i].p_array_info == NULL) {
-				msg_stderr("metac_array_info_create failed - exiting\n");
-				return -EFAULT;
-			}
-
-			if (p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr == NULL) {
-				msg_stddbg("skipping because don't have a cb to determine elements count\n");
-				continue; /*we don't handle pointers if we can't get fn*/
-			}
-
 			/* now read the pointer */
 			new_ptr = *((void**)(p_region_element->ptr + p_region_element->region_element_type->pointer_type_element[i]->offset));
 			if (new_ptr == NULL) {
@@ -259,7 +248,14 @@ static int _runtime_task_fn(
 				continue;
 			}
 
-			if (p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr(
+			p_region_element->p_pointer[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->pointer_type_element[i]->type);
+			if (p_region_element->p_pointer[i].p_array_info == NULL) {
+				msg_stderr("metac_array_info_create failed - exiting\n");
+				return -EFAULT;
+			}
+
+			if (p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr != NULL &&
+				p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr(
 					0,
 					p_region_element->ptr,
 					p_region_element->region_element_type->type,
