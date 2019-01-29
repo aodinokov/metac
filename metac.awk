@@ -225,8 +225,13 @@ function dump_main_types(type, i) {
                             elements_count = elements_count ")";
                             res1 = res1 ",\n"
                         } else {
-                            is_flexible = 1;
-                            res1 = res1 "\t\t\t\t.is_flexible = 1,\n"
+                            if (count == 0) { # only first subrange can be flexible in C
+                                is_flexible = 1;
+                                res1 = res1 "\t\t\t\t.is_flexible = 1,\n"
+                            } else {
+                                elements_count = elements_count " * 0";
+                                res1 = res1 "\t\t\t\t.count = 0,\n";
+                            }
                         }
                         if (length(res2))
                             res1 = res1 "\t\t\t\t.raw_data = {\n" res2 "\t\t\t\t},\n"; 

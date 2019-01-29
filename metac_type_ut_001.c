@@ -677,8 +677,8 @@ START_TEST(arrays_ut) {
 		_ARRAY_TYPE_CHECK_LOCATION([1][3][2], 0, 3, {1, 3, 2, });
 	}ARRAY_TYPE_CHECK_END;
 	ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, NULL, NULL, {}) {
-		_ARRAY_TYPE_CHECK_VALS("char", _BUG_ZERO_LEN_IS_FLEXIBLE_); /*this array looks like a flexible for DWARF*/
-		_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {_BUG_ZERO_LEN_IS_FLEXIBLE_, 0}, {0, 3}, });
+		_ARRAY_TYPE_CHECK_VALS("char", 0); /*this array looks like a flexible for DWARF*/
+		_ARRAY_TYPE_CHECK_SUBRANGES(3, {{0, 5}, {0, 0}, {0, 3}, });
 		_ARRAY_TYPE_CHECK_LOCATION([4][2][4], 2, 3, {4, 2, 4, });
 	}ARRAY_TYPE_CHECK_END;
 }END_TEST
