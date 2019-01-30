@@ -476,21 +476,11 @@ int cleanup_region_element(struct region_element *p_region_element) {
 	}
 
 	if (p_region_element->p_array != NULL) {
-		for (i = 0; i < p_region_element->region_element_type->array_type_elements_count; i++) {
-			if (p_region_element->p_array[i].p_array_info != NULL) {
-				metac_array_info_delete(&p_region_element->p_array[i].p_array_info);
-			}
-		}
 		free(p_region_element->p_array);
 		p_region_element->p_array = NULL;
 	}
 
 	if (p_region_element->p_pointer != NULL) {
-		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
-			if (p_region_element->p_pointer[i].p_array_info != NULL) {
-				metac_array_info_delete(&p_region_element->p_pointer[i].p_array_info);
-			}
-		}
 		free(p_region_element->p_pointer);
 		p_region_element->p_pointer = NULL;
 	}
@@ -576,6 +566,10 @@ int delete_region(struct region **pp_region) {
 		p_region->elements = NULL;
 	}
 
+	if (p_region->p_array_info != NULL) {
+		metac_array_info_delete(&p_region->p_array_info);
+	}
+
 	msg_stddbg("deleting the object itself\n");
 	free(p_region);
 	*pp_region = NULL;
@@ -586,12 +580,12 @@ struct region * create_region(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
 		struct region * part_of_region) {
 	struct region *p_region;
 	metac_byte_size_t region_element_byte_size;
 
-	if (region_element_type == NULL || elements_count <= 0) {
+	if (region_element_type == NULL || p_array_info == NULL) {
 		msg_stderr("invalid argument\n");
 		return NULL;
 	}
@@ -613,7 +607,8 @@ struct region * create_region(
 
 	p_region->ptr = ptr;
 	p_region->byte_size = byte_size;
-	p_region->elements_count = elements_count;
+	p_region->p_array_info = p_array_info;
+	p_region->elements_count = metac_array_info_get_element_count(p_array_info);
 	p_region->part_of_region = part_of_region;
 	p_region->unique_region_id = -1;
 

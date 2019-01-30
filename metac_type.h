@@ -175,7 +175,8 @@ int 					metac_type_array_member_location(struct metac_type *type, metac_num_t s
 const metac_type_specification_value_t *
 						metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
 
-metac_array_info_t * 	metac_array_info_create(struct metac_type *type);
+metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
+metac_array_info_t * 	metac_array_info_create_from_elements_count(metac_count_t elements_count);
 metac_array_info_t * 	metac_array_info_copy(metac_array_info_t *p_array_info_orig);
 metac_count_t 			metac_array_info_get_element_count(metac_array_info_t * p_array_info);
 int 					metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1);

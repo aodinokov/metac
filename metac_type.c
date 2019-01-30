@@ -234,7 +234,7 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	return NULL;
 }
 /*****************************************************************************/
-metac_array_info_t * metac_array_info_create(struct metac_type *type) {
+metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type) {
 	metac_num_t i;
 	metac_num_t subranges_count;
 	metac_array_info_t * p_array_info;
@@ -274,6 +274,20 @@ metac_array_info_t * metac_array_info_create(struct metac_type *type) {
 
 	return p_array_info;
 }
+metac_array_info_t * metac_array_info_create_from_elements_count(metac_count_t elements_count) {
+	metac_num_t subranges_count = 1;
+	metac_array_info_t * p_array_info;
+
+	p_array_info = calloc(1, sizeof(*p_array_info) + subranges_count * sizeof(struct _metac_array_subrange_info));
+	if (p_array_info == NULL) {
+		msg_stderr("no memory\n");
+		return NULL;
+	}
+	p_array_info->subranges_count = subranges_count;
+	p_array_info->subranges[0].count = elements_count;
+
+	return p_array_info;
+}
 metac_array_info_t * metac_array_info_copy(metac_array_info_t *p_array_info_orig) {
 	metac_num_t i;
 	metac_num_t subranges_count;
@@ -303,8 +317,9 @@ metac_array_info_t * metac_array_info_copy(metac_array_info_t *p_array_info_orig
 int metac_array_info_delete(metac_array_info_t ** pp_array_info) {
 	if (pp_array_info != NULL) {
 		metac_array_info_t * p_array_info = *pp_array_info;
-
-		free(p_array_info);
+		if (p_array_info != NULL) {
+			free(p_array_info);
+		}
 		*pp_array_info = NULL;
 	}
 	return 0;

@@ -525,11 +525,13 @@ int json_region_element_element_per_subtype(
 		assert(see_id < json_visitor->regions[r_id].elements[e_id].arrays_count);
 		json_visitor->regions[r_id].elements[e_id].arrays[see_id] = ee;
 		/*n-dimensions array support */
-		ee->p_array_info = metac_array_info_copy(p_array_info);
-		if (ee->p_array_info == NULL) {
-			msg_stderr("metac_array_info_copy failed\n");
-			json_visitor_cleanup(json_visitor);
-			return -ENOMEM;
+		if (p_array_info != NULL) {
+			ee->p_array_info = metac_array_info_copy(p_array_info);
+			if (ee->p_array_info == NULL) {
+				msg_stderr("metac_array_info_copy failed\n");
+				json_visitor_cleanup(json_visitor);
+				return -ENOMEM;
+			}
 		}
 		/* */
 		ee->p_json_object = json_object_new_array();
@@ -603,7 +605,8 @@ int metac_unpack_to_json(
 		for (j = 0 ;j < region->elements_count; ++j) {
 			int k;
 			for (k = 0; k < region->elements[j].arrays_count; ++k) {
-				if (region->elements[j].arrays[k]->p_linked_region != NULL) {
+				if (region->elements[j].arrays[k]->p_linked_region != NULL &&
+					region->elements[j].arrays[k]->p_array_info != NULL) {
 					int l, m, n;
 					metac_count_t * current_elements_count = calloc(
 							region->elements[j].arrays[k]->p_array_info->subranges_count,

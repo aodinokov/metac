@@ -38,7 +38,7 @@ static struct _region * create__region(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
 		struct region * part_of_region) {
 	struct _region * _region;
 
@@ -48,7 +48,7 @@ static struct _region * create__region(
 		return NULL;
 	}
 
-	_region->p_region = create_region(ptr, byte_size, region_element_type, elements_count, part_of_region);
+	_region->p_region = create_region(ptr, byte_size, region_element_type, p_array_info, part_of_region);
 	if (_region->p_region == NULL) {
 		msg_stderr("create_region failed\n");
 		free(_region);
@@ -63,13 +63,13 @@ static struct _region * simply_create__region(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
 		struct region * part_of_region) {
 	/*check if region with the same addr already exists*/
 	struct _region * _region = NULL;
 	/*create otherwise*/
 	msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
-	_region = create__region(ptr, byte_size, region_element_type, elements_count, part_of_region);
+	_region = create__region(ptr, byte_size, region_element_type, p_array_info, part_of_region);
 	msg_stddbg("create region_element_type result %p\n", _region);
 	if (_region == NULL) {
 		msg_stddbg("create__region failed\n");
@@ -85,7 +85,7 @@ static struct _region * find_or_create__region(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
 		struct region * part_of_region,
 		int * p_created_flag) {
 	/*check if region with the same addr already exists*/
@@ -104,7 +104,7 @@ static struct _region * find_or_create__region(
 	}
 
 	if (_region == NULL) {
-		_region = simply_create__region(p_runtime_context, ptr, byte_size, region_element_type, elements_count, part_of_region);
+		_region = simply_create__region(p_runtime_context, ptr, byte_size, region_element_type, p_array_info, part_of_region);
 		if (_region != NULL) {
 			if (p_created_flag != NULL) *p_created_flag = 1;
 		}
@@ -224,6 +224,7 @@ static int _runtime_task_fn(
 		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; i++) {
 			int j;
 			int res;
+			metac_array_info_t * p_array_info;
 			metac_count_t elements_count;
 			metac_byte_size_t elements_byte_size;
 			struct _region * _region;
@@ -248,8 +249,8 @@ static int _runtime_task_fn(
 				continue;
 			}
 
-			p_region_element->p_pointer[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->pointer_type_element[i]->type);
-			if (p_region_element->p_pointer[i].p_array_info == NULL) {
+			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->pointer_type_element[i]->type);
+			if (p_array_info == NULL) {
 				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
@@ -262,21 +263,23 @@ static int _runtime_task_fn(
 					new_ptr,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 							p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type:NULL,
-							p_region_element->p_pointer[i].p_array_info,
+							p_array_info,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_cb_context) != 0) {
 				msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 						i, p_region_element->region_element_type->type->name);
+				metac_array_info_delete(&p_array_info);
 				return -EFAULT;
 			}
 
 			/* calculate byte_size using length */
-			elements_count = metac_array_info_get_element_count(p_region_element->p_pointer[i].p_array_info);
+			elements_count = metac_array_info_get_element_count(p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type):0;
 
 			if (elements_byte_size == 0 || elements_count == 0) {
 				msg_stddbg("skipping because size is 0\n");
+				metac_array_info_delete(&p_array_info);
 				continue;
 			}
 
@@ -286,11 +289,12 @@ static int _runtime_task_fn(
 					new_ptr,
 					elements_byte_size * elements_count,
 					p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type,
-					elements_count,
+					p_array_info,
 					NULL,
 					&new_region);
 			if (_region == NULL) {
 				msg_stderr("Error calling find_or_create_region\n");
+				metac_array_info_delete(&p_array_info);
 				return -EFAULT;
 			}
 			p_region_element->p_pointer[i].p_region = _region->p_region;
@@ -305,6 +309,8 @@ static int _runtime_task_fn(
 					msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
 					return -EFAULT;
 				}
+			}else{
+				metac_array_info_delete(&p_array_info);
 			}
 		}
 
@@ -314,6 +320,7 @@ static int _runtime_task_fn(
 			int j;
 			int res;
 			void * new_ptr;
+			metac_array_info_t * p_array_info;
 			metac_count_t elements_count;
 			metac_byte_size_t elements_byte_size;
 			struct _region * _region;
@@ -331,8 +338,8 @@ static int _runtime_task_fn(
 
 			assert(p_region_element->region_element_type->array_type_element[i]->type->id == DW_TAG_array_type);
 
-			p_region_element->p_array[i].p_array_info = metac_array_info_create(p_region_element->region_element_type->array_type_element[i]->type);
-			if (p_region_element->p_array[i].p_array_info == NULL) {
+			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->array_type_element[i]->type);
+			if (p_array_info == NULL) {
 				msg_stderr("metac_array_info_create failed - exiting\n");
 				return -EFAULT;
 			}
@@ -343,6 +350,7 @@ static int _runtime_task_fn(
 			if (p_region_element->region_element_type->array_type_element[i]->type->array_type_info.is_flexible) {
 				if (p_region_element->region_element_type->array_type_element[i]->array_elements_count_funtion_ptr == NULL) {
 					msg_stddbg("skipping because don't have a cb to determine elements count\n");
+					metac_array_info_delete(&p_array_info);
 					continue; /*we don't handle pointers if we can't get fn*/
 				}
 
@@ -353,7 +361,7 @@ static int _runtime_task_fn(
 						new_ptr,
 						p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 								p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type:NULL,
-						p_region_element->p_array[i].p_array_info,
+						p_array_info,
 						p_region_element->region_element_type->array_type_element[i]->array_elements_count_cb_context) != 0) {
 					msg_stderr("Error calling array_elements_count_funtion_ptr for pointer element %d in type %s\n",
 							i, p_region_element->region_element_type->type->name);
@@ -362,13 +370,14 @@ static int _runtime_task_fn(
 			}
 
 			/* calculate overall elements_count */
-			elements_count = metac_array_info_get_element_count(p_region_element->p_array[i].p_array_info);
+			elements_count = metac_array_info_get_element_count(p_array_info);
 			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type):0;
 
 			if (elements_byte_size == 0 || elements_count == 0) {
 				msg_stddbg("skipping because size is 0\n");
+				metac_array_info_delete(&p_array_info);
 				continue;
 			}
 
@@ -378,10 +387,11 @@ static int _runtime_task_fn(
 					new_ptr,
 					elements_byte_size * elements_count,
 					p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type,
-					elements_count,
+					p_array_info,
 					p_region);
 			if (_region == NULL) {
 				msg_stderr("Error calling find_or_create_region\n");
+				metac_array_info_delete(&p_array_info);
 				return -EFAULT;
 			}
 			p_region_element->p_array[i].p_region = _region->p_region;
@@ -422,6 +432,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	int i, j, k, l;
 	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
+	metac_array_info_t * p_array_info;
 	struct region * region;
 	struct _region * _region;
 
@@ -446,11 +457,20 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	}
 	p_breadthfirst_engine->private_data = &context;
 
+	p_array_info = metac_array_info_create_from_elements_count(elements_count);
+	if (p_array_info == NULL){
+		msg_stderr("metac_array_info_create_from_elements_count failed\n");
+		cleanup_runtime_context(&context);
+		delete_breadthfirst_engine(&p_breadthfirst_engine);
+		free_runtime_object(&context.runtime_object);
+		return NULL;
+	}
+
 	_region = simply_create__region(&context,
 			ptr,
 			byte_size,
 			p_precompiled_type->region_element_type[0],
-			elements_count,
+			p_array_info,
 			NULL);
 	if (_region == NULL) {
 		msg_stderr("find_or_create_region failed\n");
@@ -934,7 +954,9 @@ static int _metac_equal(
 			}
 			/*compare pointers*/
 			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->pointer_type_elements_count; ++k) {
-				if (metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_array_info, p_runtime_object1->region[i]->elements[j].p_pointer[k].p_array_info) == 0 ||
+				if ((p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region != NULL &&
+					p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region != NULL &&
+					metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region->p_array_info, p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region->p_array_info) == 0) ||
 					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region == NULL) ||
 					(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region != NULL &&
 						(p_runtime_object0->region[i]->elements[j].p_pointer[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_pointer[k].p_region->id))
@@ -944,7 +966,9 @@ static int _metac_equal(
 			}
 			/*compare arrays*/
 			for (k = 0; k < p_runtime_object0->region[i]->elements[j].region_element_type->array_type_elements_count; ++k) {
-				if (metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_array[k].p_array_info, p_runtime_object1->region[i]->elements[j].p_array[k].p_array_info) == 0 ||
+				if ((p_runtime_object0->region[i]->elements[j].p_array[k].p_region != NULL &&
+					p_runtime_object1->region[i]->elements[j].p_array[k].p_region != NULL &&
+					metac_array_info_equal(p_runtime_object0->region[i]->elements[j].p_array[k].p_region->p_array_info, p_runtime_object1->region[i]->elements[j].p_array[k].p_region->p_array_info) == 0) ||
 					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region == NULL) != (p_runtime_object1->region[i]->elements[j].p_array[k].p_region == NULL) ||
 					(p_runtime_object0->region[i]->elements[j].p_array[k].p_region != NULL &&
 						(p_runtime_object0->region[i]->elements[j].p_array[k].p_region->id != p_runtime_object1->region[i]->elements[j].p_array[k].p_region->id))
@@ -1351,7 +1375,7 @@ int metac_visit(
 										elements_elements_real_ids[elements[ee]->id],
 										subtypes_sequence[k],
 										_n,
-										p_region_element->p_pointer[ee].p_array_info,
+										p_region_element->p_pointer[ee].p_region?p_region_element->p_pointer[ee].p_region->p_array_info:NULL,
 										p_region_element->p_pointer[ee].p_region?&p_region_element->p_pointer[ee].p_region->id:NULL
 										);
 								break;
@@ -1363,7 +1387,7 @@ int metac_visit(
 										elements_elements_real_ids[elements[ee]->id],
 										subtypes_sequence[k],
 										_n,
-										p_region_element->p_array[ee].p_array_info,
+										p_region_element->p_array[ee].p_region?p_region_element->p_array[ee].p_region->p_array_info:NULL,
 										p_region_element->p_array[ee].p_region?&p_region_element->p_array[ee].p_region->id:NULL
 										);
 								break;

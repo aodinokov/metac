@@ -87,12 +87,12 @@ struct discriminator_value {
 };
 
 struct pointer {
-	metac_array_info_t * p_array_info;
+//	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 
 struct array {
-	metac_array_info_t * p_array_info;
+//	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 
@@ -117,7 +117,8 @@ struct region { /*can contain several elements of region_element_type*/
 	void *ptr;
 	metac_byte_size_t byte_size;
 
-	metac_count_t 			elements_count;
+	metac_array_info_t * 	p_array_info;
+	metac_count_t 			elements_count;	/*elements_count - cached value of metac_array_info_get_element_count(p_array_info)*/
 	struct region_element * elements;
 
 	struct region * part_of_region; /*	sometimes pointers in one structs point not to the beginning of the region -
@@ -184,7 +185,7 @@ struct region * create_region(
 		void *ptr,
 		metac_byte_size_t byte_size,
 		struct region_element_type * region_element_type,
-		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
 		struct region * part_of_region);
 int delete_region(struct region **pp_region);
 int update_region_ptr_and_size(
