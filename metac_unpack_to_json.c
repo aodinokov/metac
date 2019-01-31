@@ -562,6 +562,11 @@ int metac_unpack_to_json(
 	int res = 0;
 	json_object * res_json = NULL;
 
+	/*todo: check ptr*/
+	if (ptr == NULL){
+		return -EINVAL;
+	}
+
 	static metac_region_ee_subtype_t subtypes_sequence[] = {
 		reesHierarchy,
 		reesEnum,

@@ -639,10 +639,9 @@ struct region * create_region(
 	return p_region;
 }
 
-int update_region_ptr_and_size(
+int update_region_ptr(
 		struct region *p_region,
-		void *ptr,
-		metac_byte_size_t byte_size) {
+		void *ptr) {
 	int i;
 	metac_byte_size_t region_element_byte_size;
 	struct region_element_type * region_element_type;
@@ -653,7 +652,6 @@ int update_region_ptr_and_size(
 	}
 
 	p_region->ptr = ptr;
-	p_region->byte_size = byte_size;
 
 	region_element_byte_size = p_region->elements[0].byte_size;
 	region_element_type = p_region->elements[0].region_element_type;

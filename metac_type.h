@@ -182,6 +182,9 @@ metac_count_t 			metac_array_info_get_element_count(metac_array_info_t * p_array
 int 					metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1);
 int 					metac_array_info_delete(metac_array_info_t ** pp_array_info);
 
+metac_array_info_t * 	metac_array_info_counter_init(metac_array_info_t *p_array_info_orig);
+int 					metac_array_info_counter_increment(metac_array_info_t *p_array_info_orig, metac_array_info_t *p_array_info_current);
+
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions and their params in code*/

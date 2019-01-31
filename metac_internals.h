@@ -188,10 +188,9 @@ struct region * create_region(
 		metac_array_info_t * p_array_info,
 		struct region * part_of_region);
 int delete_region(struct region **pp_region);
-int update_region_ptr_and_size(
+int update_region_ptr(
 		struct region *p_region,
-		void *ptr,
-		metac_byte_size_t byte_size);
+		void *ptr);
 
 static inline metac_count_t get_region_unique_region_id(
 		struct region * p_region) {
