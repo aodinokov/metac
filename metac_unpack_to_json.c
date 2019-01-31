@@ -18,16 +18,16 @@
 #include "metac_debug.h"	/* msg_stderr, ...*/
 /*****************************************************************************/
 /*Caution: this has been tested only with little-endian machines*/
-#define _COPY_FROM_BITFIELDS_(_ptr_, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
+#define _COPY_FROM_BITFIELDS_(_in_ptr, _out_ptr, _type_, _signed_, _mask_, _p_bit_offset, _p_bit_size) do { \
 	metac_bit_offset_t shift = \
 		(byte_size << 3) - ((_p_bit_size?(*_p_bit_size):0) + (_p_bit_offset?(*_p_bit_offset):0)); \
 	_type_ mask = ~(((_type_)_mask_) << (_p_bit_size?(*_p_bit_size):0)); \
-	_type_ _i = *((_type_*)(ptr)); \
+	_type_ _i = *((_type_*)(_in_ptr)); \
 	_i = (_i >> shift) & mask; \
 	if ((_signed_) && (_i & (1 << (_p_bit_size?(*_p_bit_size):0)))) { \
 		_i = (mask << ((_p_bit_size?(*_p_bit_size):0))) ^ _i;\
 	} \
-	*(_type_*)_ptr_ = _i; \
+	*(_type_*)_out_ptr = _i; \
 }while(0)
 /*****************************************************************************/
 static int _metac_base_type_to_json(
@@ -45,10 +45,10 @@ static int _metac_base_type_to_json(
 	if (p_bit_offset != NULL || p_bit_size != NULL) {
 		int is_signed = type->base_type_info.encoding == DW_ATE_signed_char || type->base_type_info.encoding == DW_ATE_signed;
 		switch(type->base_type_info.byte_size){
-		case sizeof(uint8_t):	_COPY_FROM_BITFIELDS_(buf, uint8_t,		is_signed , 0xff, p_bit_offset, p_bit_size); break;
-		case sizeof(uint16_t):	_COPY_FROM_BITFIELDS_(buf, uint16_t,	is_signed , 0xffff, p_bit_offset, p_bit_size); break;
-		case sizeof(uint32_t):	_COPY_FROM_BITFIELDS_(buf, uint32_t,	is_signed , 0xffffffff, p_bit_offset, p_bit_size); break;
-		case sizeof(uint64_t):	_COPY_FROM_BITFIELDS_(buf, uint64_t,	is_signed , 0xffffffffffffffff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint8_t):	_COPY_FROM_BITFIELDS_(ptr, buf, uint8_t,	is_signed , 0xff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint16_t):	_COPY_FROM_BITFIELDS_(ptr, buf, uint16_t,	is_signed , 0xffff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint32_t):	_COPY_FROM_BITFIELDS_(ptr, buf, uint32_t,	is_signed , 0xffffffff, p_bit_offset, p_bit_size); break;
+		case sizeof(uint64_t):	_COPY_FROM_BITFIELDS_(ptr, buf, uint64_t,	is_signed , 0xffffffffffffffff, p_bit_offset, p_bit_size); break;
 		default: msg_stderr("BITFIELDS: byte_size %d isn't supported\n", (int)type->base_type_info.byte_size); return -EINVAL;
 		}
 		return _metac_base_type_to_json(type, buf, NULL, NULL, byte_size, pp_json);
@@ -95,7 +95,7 @@ static int _metac_base_type_to_json(
 	case DW_ATE_float:
 		switch(type->base_type_info.byte_size) {
 		case sizeof(float):			len = snprintf(buf, sizeof(buf), "%f",	*((float*		)ptr)); break;
-		case sizeof(double):		len = snprintf(buf, sizeof(buf), "%f",	*((double*		)ptr)); break;
+		case sizeof(double):		len = snprintf(buf, sizeof(buf), "%lf",	*((double*		)ptr)); break;
 		case sizeof(long double):	len = snprintf(buf, sizeof(buf), "%Lf",	*((long double*	)ptr)); break;
 		default: msg_stderr("DW_ATE_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
 		}
@@ -109,12 +109,12 @@ static int _metac_base_type_to_json(
 			break;
 		case sizeof(double complex): {
 				double complex v = *((double complex*)ptr);
-				len = snprintf(buf, sizeof(buf), "%f + i%f", creal(v), cimag(v));
+				len = snprintf(buf, sizeof(buf), "%lf + i%lf", (double)creal(v), (double)cimag(v));
 			}
 			break;
 		case sizeof(long double complex): {
 				long double complex v = *((long double complex*)ptr);
-				len = snprintf(buf, sizeof(buf), "%f + i%f", creal(v), cimag(v));
+				len = snprintf(buf, sizeof(buf), "%Lf + i%Lf", (long double)creal(v), (long double)cimag(v));
 			}
 			break;
 		default: msg_stderr("DW_ATE_complex_float: Unsupported byte_size %d\n",(int)type->base_type_info.byte_size); return -EINVAL;
