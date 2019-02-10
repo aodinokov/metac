@@ -1191,7 +1191,7 @@ START_TEST(metac_type_t_ut) {
 		json_object_put(p_json);
 		p_json = NULL;
 		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
-		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just compiled");
+		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just copied");
 		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
 
 		fail_unless(metac_equal(type, copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 1");

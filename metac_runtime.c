@@ -19,8 +19,10 @@
 #include "breadthfirst_engine.h" /*breadthfirst_engine module*/
 /*****************************************************************************/
 struct runtime_context {
+	struct breadthfirst_engine breadthfirst_engine;
 	struct metac_runtime_object * runtime_object;
 	struct cds_list_head region_list;
+	struct cds_list_head executed_tasks_queue;
 };
 
 struct _region {
@@ -113,15 +115,6 @@ static struct _region * find_or_create__region(
 	return _region;
 }
 /*****************************************************************************/
-static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
-	struct _region * _region, * __region;
-
-	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
-		cds_list_del(&_region->list);
-		free(_region);
-	}
-}
-/*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
 	struct runtime_task * p_task;
 
@@ -146,7 +139,6 @@ static struct runtime_task * create_and_add_runtime_task(
 		struct breadthfirst_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
 		breadthfirst_engine_task_fn_t fn,
-		breadthfirst_engine_task_destructor_t destroy,
 		struct region * p_region) {
 	struct runtime_task* p_task;
 
@@ -171,8 +163,6 @@ static struct runtime_task * create_and_add_runtime_task(
 	}
 
 	p_task->task.fn = fn;
-	p_task->task.destroy = destroy;
-
 	p_task->parent_task = parent_task;
 
 	p_task->p_region = p_region;
@@ -185,23 +175,38 @@ static struct runtime_task * create_and_add_runtime_task(
 	return p_task;
 }
 /*****************************************************************************/
-static int _runtime_task_destroy_fn(
-	struct breadthfirst_engine * p_breadthfirst_engine,
-	struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
-	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
-	delete_runtime_task(&p_task);
-	return 0;
+static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
+	struct breadthfirst_engine_task * task, *_task;
+	struct _region * _region, * __region;
+
+	cleanup_breadthfirst_engine(&p_runtime_context->breadthfirst_engine);
+
+	cds_list_for_each_entry_safe(task, _task, &p_runtime_context->executed_tasks_queue, list) {
+		struct runtime_task  * p_task = cds_list_entry(task, struct runtime_task, task);
+		cds_list_del(&task->list);
+		delete_runtime_task(&p_task);
+	}
+
+	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
+		cds_list_del(&_region->list);
+		free(_region);
+	}
 }
 /*****************************************************************************/
 static int _runtime_task_fn(
 		struct breadthfirst_engine * p_breadthfirst_engine,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+		struct breadthfirst_engine_task * p_breadthfirst_engine_task,
+		int error_flag) {
+	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, breadthfirst_engine);
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
-	struct runtime_context * p_context = (struct runtime_context *)p_breadthfirst_engine->private_data;
 
 	int e;
 	int i;
 	struct region * p_region;
+
+	cds_list_add_tail(&p_breadthfirst_engine_task->list, &p_context->executed_tasks_queue);
+	if (error_flag != 0) return 0;
+
 
 	p_region = p_task->p_region;
 	if (p_region == NULL) {
@@ -305,7 +310,7 @@ static int _runtime_task_fn(
 				if (create_and_add_runtime_task(p_breadthfirst_engine,
 						p_task,
 						_runtime_task_fn,
-						_runtime_task_destroy_fn, _region->p_region) == NULL) {
+						_region->p_region) == NULL) {
 					msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
 					return -EFAULT;
 				}
@@ -400,7 +405,7 @@ static int _runtime_task_fn(
 			if (create_and_add_runtime_task(p_breadthfirst_engine,
 					p_task,
 					_runtime_task_fn,
-					_runtime_task_destroy_fn, _region->p_region) == NULL) {
+					_region->p_region) == NULL) {
 				msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
 				return -EFAULT;
 			}
@@ -430,7 +435,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		struct metac_precompiled_type * p_precompiled_type,
 		metac_count_t elements_count) {
 	int i, j, k, l;
-	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
 	metac_array_info_t * p_array_info;
 	struct region * region;
@@ -447,21 +451,19 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		return NULL;
 	}
 	CDS_INIT_LIST_HEAD(&context.region_list);
+	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
 
 	/*use breadthfirst_engine*/
-	p_breadthfirst_engine = create_breadthfirst_engine();
-	if (p_breadthfirst_engine == NULL){
+	if (init_breadthfirst_engine(&context.breadthfirst_engine)!=0){
 		msg_stderr("create_breadthfirst_engine failed\n");
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	p_breadthfirst_engine->private_data = &context;
 
 	p_array_info = metac_array_info_create_from_elements_count(elements_count);
 	if (p_array_info == NULL){
 		msg_stderr("metac_array_info_create_from_elements_count failed\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -475,15 +477,14 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	if (_region == NULL) {
 		msg_stderr("find_or_create_region failed\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
 
-	if (create_and_add_runtime_task(p_breadthfirst_engine,
+	if (create_and_add_runtime_task(&context.breadthfirst_engine,
 			NULL,
 			_runtime_task_fn,
-			_runtime_task_destroy_fn, _region->p_region) == NULL) {
+			_region->p_region) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {
@@ -491,11 +492,10 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
+	if (run_breadthfirst_engine(&context.breadthfirst_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {
@@ -503,7 +503,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -517,7 +516,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -583,7 +581,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -617,7 +614,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	assert(context.runtime_object->regions_count == i);
 
 	cleanup_runtime_context(&context);
-	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	return context.runtime_object;
 }
 /*****************************************************************************/
@@ -773,7 +769,7 @@ static int create_runtime_object_pointer_table(
 							p_pointer_tables->tables[unique_region_idx].items[_i].location.region_idx,
 							p_pointer_tables->tables[unique_region_idx].items[_i].location.offset,
 							p_pointer_tables->tables[unique_region_idx].items[_i].value.region_idx,
-							p_pointer_tables->tables[unique_region_idx].items[_i].value.offset)
+							p_pointer_tables->tables[unique_region_idx].items[_i].value.offset);
 				}
 			}
 		}
@@ -994,7 +990,7 @@ static int _metac_equal(
 				_compare_pointer_table_item_per_location); /*TODO: change to hsort? - low prio so far*/
 		/*now go though*/
 		for (j = 0; j < p_pointer_tables->tables[i].items_count; j++) {
-			msg_stddbg("reg %d, off %d, sz %d\n", i, prev_offset, ptr_per_unique_region[i].ptrs[j].offset - prev_offset);
+			msg_stddbg("reg %d, off %d, sz %d\n", i, prev_offset, p_pointer_tables->tables[i].items[j].location.offset - prev_offset);
 			res = 	(
 					memcmp(
 							p_runtime_object0->unique_region[i]->ptr + prev_offset,

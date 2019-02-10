@@ -21,10 +21,12 @@
 #include "breadthfirst_engine.h"	/*breadthfirst_engine module*/
 /*****************************************************************************/
 struct runtime_context {
+	struct breadthfirst_engine breadthfirst_engine;
 	struct metac_runtime_object * runtime_object;
 	json_object * p_json;
 
 	struct cds_list_head region_list;
+	struct cds_list_head executed_tasks_queue;
 };
 
 struct _region_element_element_data_ {
@@ -277,27 +279,6 @@ static struct _region * simply_create__region(
 	return _region;
 }
 /*****************************************************************************/
-static void cleanup_runtime_context(
-		struct runtime_context *p_runtime_context) {
-	struct _region * _region, * __region;
-
-	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
-		cds_list_del(&_region->list);
-		if (_region->pp_data) {
-			int i;
-			for (i = 0; i < _region->p_region->elements_count; ++i) {
-				if (_region->pp_data[i] != NULL) {
-					free(_region->pp_data[i]);
-					_region->pp_data[i] = NULL;
-				}
-			}
-			free(_region->pp_data);
-			_region->pp_data = NULL;
-		}
-		free(_region);
-	}
-}
-/*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
 	struct runtime_task * p_task;
 
@@ -322,7 +303,6 @@ static struct runtime_task * create_and_add_runtime_task(
 		struct breadthfirst_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
 		breadthfirst_engine_task_fn_t fn,
-		breadthfirst_engine_task_destructor_t destroy,
 		struct _region * p__region) {
 	struct runtime_task* p_task;
 	struct region * p_region = p__region->p_region;
@@ -342,7 +322,6 @@ static struct runtime_task * create_and_add_runtime_task(
 	}
 
 	p_task->task.fn = fn;
-	p_task->task.destroy = destroy;
 
 	p_task->parent_task = parent_task;
 
@@ -356,25 +335,51 @@ static struct runtime_task * create_and_add_runtime_task(
 	return p_task;
 }
 /*****************************************************************************/
-static int _runtime_task_destroy_fn(
-	struct breadthfirst_engine * p_breadthfirst_engine,
-	struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
-	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
-	delete_runtime_task(&p_task);
-	return 0;
+static void cleanup_runtime_context(
+		struct runtime_context *p_runtime_context) {
+	struct breadthfirst_engine_task * task, *_task;
+	struct _region * _region, * __region;
+
+	cleanup_breadthfirst_engine(&p_runtime_context->breadthfirst_engine);
+
+	cds_list_for_each_entry_safe(task, _task, &p_runtime_context->executed_tasks_queue, list) {
+		struct runtime_task  * p_task = cds_list_entry(task, struct runtime_task, task);
+		cds_list_del(&task->list);
+		delete_runtime_task(&p_task);
+	}
+
+	cds_list_for_each_entry_safe(_region, __region, &p_runtime_context->region_list, list) {
+		cds_list_del(&_region->list);
+		if (_region->pp_data) {
+			int i;
+			for (i = 0; i < _region->p_region->elements_count; ++i) {
+				if (_region->pp_data[i] != NULL) {
+					free(_region->pp_data[i]);
+					_region->pp_data[i] = NULL;
+				}
+			}
+			free(_region->pp_data);
+			_region->pp_data = NULL;
+		}
+		free(_region);
+	}
 }
 /*****************************************************************************/
 static int _runtime_task_fn(
 		struct breadthfirst_engine * p_breadthfirst_engine,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+		struct breadthfirst_engine_task * p_breadthfirst_engine_task,
+		int error_flag) {
 	int i;
 	int e;
 	metac_array_info_t * array_counter;
 	metac_byte_size_t region_element_byte_size;
 	void * region_ptr;
 	metac_byte_size_t region_byte_size;
+	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, breadthfirst_engine);
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
-	struct runtime_context * p_context = (struct runtime_context *)p_breadthfirst_engine->private_data;
+
+	cds_list_add_tail(&p_breadthfirst_engine_task->list, &p_context->executed_tasks_queue);
+	if (error_flag != 0) return 0;
 
 	assert(p_task->p__region);
 	assert(p_task->p__region->p_json);
@@ -563,7 +568,7 @@ json_from_packed_obj:
 			if (create_and_add_runtime_task(p_breadthfirst_engine,
 					p_task,
 					_runtime_task_fn,
-					_runtime_task_destroy_fn, _region) == NULL) {
+					_region) == NULL) {
 				msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
 				metac_array_info_delete(&array_counter);
 				return -EFAULT;
@@ -682,7 +687,7 @@ json_from_packed_obj:
 			if (create_and_add_runtime_task(p_breadthfirst_engine,
 					p_task,
 					_runtime_task_fn,
-					_runtime_task_destroy_fn, _region) == NULL) {
+					_region) == NULL) {
 				msg_stderr("Error calling create_and_add_runtime_task_4_region\n");
 				metac_array_info_delete(&array_counter);
 				return -EFAULT;
@@ -701,7 +706,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		json_object * p_json) {
 	int i, j, k;
 	metac_array_info_t * p_array_info;
-	struct breadthfirst_engine* p_breadthfirst_engine;
 	struct runtime_context context;
 	struct region * region;
 	struct _region * _region;
@@ -713,15 +717,14 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		return NULL;
 	}
 	CDS_INIT_LIST_HEAD(&context.region_list);
+	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
 
 	/*use breadthfirst_engine*/
-	p_breadthfirst_engine = create_breadthfirst_engine();
-	if (p_breadthfirst_engine == NULL){
+	if (init_breadthfirst_engine(&context.breadthfirst_engine) != 0){
 		msg_stderr("create_breadthfirst_engine failed\n");
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	p_breadthfirst_engine->private_data = &context;
 
 	context.p_json = p_json;
 	context.runtime_object->unique_regions_count = json_object_array_length(p_json);
@@ -732,7 +735,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	if (context.runtime_object->unique_region == NULL) {
 		msg_stderr("create_runtime_object failed\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -741,7 +743,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	if (json_object_get_type(p_json_unique_region) != json_type_array) {
 		msg_stderr("p_json_unique_region isn't array\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -750,7 +751,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	if (p_array_info == NULL){
 		msg_stderr("metac_array_info_create_from_elements_count failed\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -764,7 +764,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	if (_region == NULL) {
 		msg_stderr("create_region failed\n");
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -772,10 +771,10 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	context.runtime_object->unique_region[_region->p_region->unique_region_id] = _region->p_region;
 
 	/*add task for the first region*/
-	if (create_and_add_runtime_task(p_breadthfirst_engine,
+	if (create_and_add_runtime_task(&context.breadthfirst_engine,
 			NULL,
 			_runtime_task_fn,
-			_runtime_task_destroy_fn, _region) == NULL) {
+			_region) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {
@@ -783,11 +782,10 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(p_breadthfirst_engine, NULL) != 0) {
+	if (run_breadthfirst_engine(&context.breadthfirst_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {
@@ -795,7 +793,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -809,7 +806,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		}
 
 		cleanup_runtime_context(&context);
-		delete_breadthfirst_engine(&p_breadthfirst_engine);
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
@@ -829,7 +825,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		if (ptr == NULL) {
 			msg_stderr("can't allocate unique region %d size\n", context.runtime_object->unique_region[i]->byte_size);
 			cleanup_runtime_context(&context);
-			delete_breadthfirst_engine(&p_breadthfirst_engine);
 			free_runtime_object(&context.runtime_object);
 			return NULL;
 		}
@@ -898,7 +893,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 						msg_stderr("base type got invalid json type: %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);
-						delete_breadthfirst_engine(&p_breadthfirst_engine);
 						free_runtime_object(&context.runtime_object);
 						return NULL;
 					}
@@ -913,7 +907,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 						msg_stderr("_metac_base_type_from_json failed for : %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);
-						delete_breadthfirst_engine(&p_breadthfirst_engine);
 						free_runtime_object(&context.runtime_object);
 						return NULL;
 					}
@@ -928,7 +921,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 						msg_stderr("enum type got invalid json type: %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);
-						delete_breadthfirst_engine(&p_breadthfirst_engine);
 						free_runtime_object(&context.runtime_object);
 						return NULL;
 					}
@@ -941,7 +933,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 						msg_stderr("_metac_enumeration_type_from_json failed for : %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);
-						delete_breadthfirst_engine(&p_breadthfirst_engine);
 						free_runtime_object(&context.runtime_object);
 						return NULL;
 					}
@@ -951,7 +942,6 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		}
 	}
 	cleanup_runtime_context(&context);
-	delete_breadthfirst_engine(&p_breadthfirst_engine);
 	msg_stddbg("obj %p\n", context.runtime_object);
 	return context.runtime_object;
 }

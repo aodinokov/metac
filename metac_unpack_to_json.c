@@ -520,6 +520,7 @@ int json_region_element_element_per_subtype(
 		}
 		break;
 	case reesArray:
+		msg_stddbg("array\n");
 		assert(p_linked_r_id ==NULL || *p_linked_r_id < json_visitor->regions_count);
 		ee->p_linked_region = (p_linked_r_id != NULL)?(&json_visitor->regions[*p_linked_r_id]):NULL;
 		assert(see_id < json_visitor->regions[r_id].elements[e_id].arrays_count);

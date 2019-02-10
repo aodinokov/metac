@@ -12,22 +12,19 @@
 #include <errno.h>			/* ENOMEM etc */
 
 #ifndef cds_list_for_each_safe
-/*some versions of urcu don't have cds_list_for_each_safe, but it will be ok to delete elements in reverse direction in our case*/
-#define cds_list_for_each_safe cds_list_for_each_prev_safe
+#define cds_list_for_each_safe(pos, p, head) \
+	for (pos = (head)->next, p = pos->next; \
+		pos != (head); \
+		pos = p, p = pos->next)
 #endif
 
-struct breadthfirst_engine* create_breadthfirst_engine(void) {
-	struct breadthfirst_engine* p_breadthfirst_engine;
-
-	p_breadthfirst_engine = calloc(1, sizeof(*(p_breadthfirst_engine)));
+int init_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine) {
 	if (p_breadthfirst_engine == NULL) {
-		msg_stderr("Can't create p_breadthfirst_engine: no memory\n");
-		return NULL;
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
 	}
-
 	CDS_INIT_LIST_HEAD(&p_breadthfirst_engine->queue);
-
-	return p_breadthfirst_engine;
+	return 0;
 }
 
 int add_breadthfirst_task(struct breadthfirst_engine* p_breadthfirst_engine, struct breadthfirst_engine_task * task) {
@@ -43,58 +40,41 @@ int add_breadthfirst_task(struct breadthfirst_engine* p_breadthfirst_engine, str
 	return 0;
 }
 
-int run_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine, breadthfirst_engine_task_fn_t override_fn) {
-	struct cds_list_head *pos;
+int run_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine) {
+	int error_flag = 0;
 
 	if (p_breadthfirst_engine == NULL) {
 		msg_stderr("Invalid argument: p_breadthfirst_engine\n");
 		return -EINVAL;
 	}
 
-	cds_list_for_each(pos, &p_breadthfirst_engine->queue) {
-		int res = 0;
-		struct breadthfirst_engine_task * task = cds_list_entry(pos, struct breadthfirst_engine_task, list);
-		if (override_fn == NULL) {
-			if (task->fn != NULL) {
-				res = task->fn(p_breadthfirst_engine, task);
+	while (!cds_list_empty(&p_breadthfirst_engine->queue)) {
+		struct breadthfirst_engine_task * task = cds_list_first_entry(&p_breadthfirst_engine->queue, struct breadthfirst_engine_task, list);
+		cds_list_del(&task->list);
+		if (task->fn != NULL) {
+			int res = task->fn(p_breadthfirst_engine, task, error_flag);
+			if (error_flag == 0 && res != 0) {
+				msg_stddbg("task returned error - raising error_flag\n");
+				error_flag = 1;
 			}
-		}else {
-			res = override_fn(p_breadthfirst_engine, task);
 		}
-		if (res != 0) {
-			msg_stddbg("task returned error - aborting\n");
-			return res;
-		}
-
 	}
-	return 0;
+	return error_flag==0?0:-EFAULT;
 }
 
-int delete_breadthfirst_engine(struct breadthfirst_engine ** pp_breadthfirst_engine) {
-	struct cds_list_head *pos, *_pos;
-	struct breadthfirst_engine *p_breadthfirst_engine;
-
-	if (pp_breadthfirst_engine == NULL) {
-		msg_stderr("Can't delete breadthfirst_engine: invalid parameter\n");
+int cleanup_breadthfirst_engine(struct breadthfirst_engine *p_breadthfirst_engine) {
+	if (p_breadthfirst_engine == NULL) {
+		msg_stderr("Invalid argument: p_breadthfirst_engine\n");
 		return -EINVAL;
 	}
 
-	p_breadthfirst_engine = *pp_breadthfirst_engine;
-	if (p_breadthfirst_engine == NULL) {
-		msg_stderr("Can't delete breadthfirst_engine: already deleted\n");
-		return -EALREADY;
-	}
-
-	cds_list_for_each_safe(pos, _pos, &p_breadthfirst_engine->queue) {
-		struct breadthfirst_engine_task * task = cds_list_entry(pos, struct breadthfirst_engine_task, list);
-		cds_list_del(pos);
-		if (task->destroy != NULL) {
-			task->destroy(p_breadthfirst_engine, task);
+	while (!cds_list_empty(&p_breadthfirst_engine->queue)) {
+		struct breadthfirst_engine_task * task = cds_list_first_entry(&p_breadthfirst_engine->queue, struct breadthfirst_engine_task, list);
+		cds_list_del(&task->list);
+		if (task->fn != NULL) {
+			task->fn(p_breadthfirst_engine, task, 1);
 		}
 	}
-
-	free(p_breadthfirst_engine);
-	*pp_breadthfirst_engine = NULL;
 
 	return 0;
 }
