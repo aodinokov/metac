@@ -11,13 +11,6 @@
 #include <stdlib.h>			/* calloc, ... */
 #include <errno.h>			/* ENOMEM etc */
 
-#ifndef cds_list_for_each_safe
-#define cds_list_for_each_safe(pos, p, head) \
-	for (pos = (head)->next, p = pos->next; \
-		pos != (head); \
-		pos = p, p = pos->next)
-#endif
-
 int init_breadthfirst_engine(struct breadthfirst_engine* p_breadthfirst_engine) {
 	if (p_breadthfirst_engine == NULL) {
 		msg_stderr("invalid argument\n");
