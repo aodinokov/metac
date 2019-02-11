@@ -53,6 +53,14 @@ struct metac_type {
 
 	/* METAC specific data */
 	union {
+		/* .id == DW_TAG_typedef */
+		struct {
+			metac_type_t *				type;						/* universal field */
+		}typedef_info;
+		/* .id == DW_TAG_const_type */
+		struct {
+			metac_type_t *				type;						/* universal field */
+		}const_type_info;
 		/* .id == DW_TAG_base_type */
 		struct {
 			metac_byte_size_t			byte_size;					/* mandatory field */
@@ -63,14 +71,6 @@ struct metac_type {
 			metac_byte_size_t			byte_size;					/* can be optional */
 			metac_type_t *				type;						/* universal field */
 		}pointer_type_info;
-		/* .id == DW_TAG_typedef */
-		struct {
-			metac_type_t *				type;						/* universal field */
-		}typedef_info;
-		/* .id == DW_TAG_const_type */
-		struct {
-			metac_type_t *				type;						/* universal field */
-		}const_type_info;
 		/* .id == DW_TAG_enumeration_type */
 		struct {
 			metac_byte_size_t			byte_size;					/* mandatory field */
@@ -167,7 +167,7 @@ struct metac_type {
 
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
-struct metac_type *		metac_type_typedef_skip(struct metac_type *type);	/*< returns real type*/
+struct metac_type *		metac_type_actual_type(struct metac_type *type);	/*< skips DW_TAG_typedef & DW_TAG_const_type */
 int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);

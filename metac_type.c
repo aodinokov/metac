@@ -36,17 +36,26 @@ const metac_type_specification_value_t *
 	return NULL;
 }
 
-struct metac_type *metac_type_typedef_skip(struct metac_type *type) {
+struct metac_type *metac_type_actual_type(struct metac_type *type) {
 	if (type == NULL){
 		msg_stderr("invalid argument value: return NULL\n");
 		return NULL;
 	}
-	if (type->id == DW_TAG_typedef) {
-		if (type->typedef_info.type == NULL) {
+	while (
+			type->id == DW_TAG_typedef ||
+			type->id == DW_TAG_const_type) {
+		switch(type->id) {
+		case DW_TAG_typedef:
+			type = type->typedef_info.type;
+			break;
+		case DW_TAG_const_type:
+			type = type->const_type_info.type;
+			break;
+		}
+		if (type == NULL) {
 			msg_stderr("typedef has to contain type in attributes: return NULL\n");
 			return NULL;
 		}
-		return metac_type_typedef_skip(type->typedef_info.type);
 	}
 	return type;
 }
@@ -57,7 +66,7 @@ metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
 		return 0;
 	}
 
-	type = metac_type_typedef_skip(type);
+	type = metac_type_actual_type(type);
 	assert(type);
 
 	switch(type->id) {
@@ -245,7 +254,7 @@ metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type) 
 		return NULL;
 	}
 
-	id = metac_type_typedef_skip(type)->id;
+	id = metac_type_actual_type(type)->id;
 	switch (id) {
 	case DW_TAG_pointer_type:
 		subranges_count = 1;

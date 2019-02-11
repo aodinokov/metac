@@ -252,7 +252,7 @@ static struct metac_visitor _basic_visitor = {
 	}while(0)
 #define GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _id_) do { \
 		struct metac_type *type = &METAC_TYPE_NAME(_type_);\
-		struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+		struct metac_type *typedef_skip_type = metac_type_actual_type(type); \
 		fail_unless(typedef_skip_type->id == _id_, "NOT_TYPEDEF_ID: must be " #_id_ ", but it's 0x%x", (int)typedef_skip_type->id); \
 	}while(0)
 #define GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_) do { \
@@ -497,7 +497,7 @@ START_TEST(pointers_ut) {
 /*****************************************************************************/
 #define ENUM_TYPE_CHECK_NAME(_type_, _expected_name_, _expected_name_skip_typedef_) do {\
 	struct metac_type *type = &METAC_TYPE_NAME(_type_);\
-	struct metac_type *typedef_skip_type = metac_type_typedef_skip(type); \
+	struct metac_type *typedef_skip_type = metac_type_actual_type(type); \
 	char * expected_name_skip_typedef = _expected_name_skip_typedef_ /*can be NULL for anonymous enums*/; \
 	char * type_name = metac_type_name(type); \
 	char * type_name_skip_typedef = metac_type_name(typedef_skip_type); \
@@ -511,7 +511,7 @@ START_TEST(pointers_ut) {
 				"check_name_skip_typedef: Got non-NULL string instead of NULL"); \
 	}while(0)
 #define ENUM_TYPE_CHECK_VALS(_type_, _expected_vals_...) do {\
-		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_)); \
+		struct metac_type *type = metac_type_actual_type(&METAC_TYPE_NAME(_type_)); \
 		static struct metac_type_enumerator_info expected_values[] = _expected_vals_; \
 		int i = 0; \
 		fail_unless(type->enumeration_type_info.byte_size == sizeof(_type_), \
@@ -590,7 +590,7 @@ START_TEST(enums_ut) {
 /*****************************************************************************/
 #define ARRAY_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
 		static _type_ obj = _init_; \
-		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+		struct metac_type *type = metac_type_actual_type(&METAC_TYPE_NAME(_type_));
 #define _ARRAY_TYPE_CHECK_VALS(_element_type_name_, _expected_is_flexible_) do { \
 			char * element_type_name = _element_type_name_; \
 			int is_flexible = _expected_is_flexible_; \
@@ -696,7 +696,7 @@ START_TEST(arrays_ut) {
 /*****************************************************************************/
 #define STRUCT_UNION_TYPE_CHECK_BEGIN_(_type_, _init_...) do { \
 		static _type_ obj = _init_; \
-		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+		struct metac_type *type = metac_type_actual_type(&METAC_TYPE_NAME(_type_));
 #define _STRUCT_UNION_TYPE_CHECK_BYTESIZE(_type_info_) do { \
 			metac_byte_size_t byte_size = sizeof(obj); \
 			fail_unless(byte_size == type->_type_info_.byte_size, "byte_size doesn't match"); \
@@ -923,7 +923,7 @@ START_TEST(unions_ut) {
 /*****************************************************************************/
 #define FUNCTION_CHECK_BEGIN_(_type_) do { \
 		char *type_name = #_type_; \
-		struct metac_type *type = metac_type_typedef_skip(&METAC_TYPE_NAME(_type_));
+		struct metac_type *type = metac_type_actual_type(&METAC_TYPE_NAME(_type_));
 #define _FUNCTION_CHECK_GLOBALLY_ACCESSIBLE do { \
 			struct metac_object * p_object; \
 			mark_point(); \
@@ -1023,10 +1023,10 @@ static int _metac_type_t_discriminator_funtion(
 		metac_type_t * metac_type_obj = (metac_type_t *)ptr;
 		if (write_operation == 0) {
 			switch(metac_type_obj->id) {
-			case DW_TAG_base_type: *p_discriminator_val = 0; return 0;
-			case DW_TAG_pointer_type: *p_discriminator_val = 1; return 0;
-			case DW_TAG_typedef: *p_discriminator_val = 2; return 0;
-			case DW_TAG_const_type: *p_discriminator_val = 3; return 0;
+			case DW_TAG_typedef: *p_discriminator_val = 0; return 0;
+			case DW_TAG_const_type: *p_discriminator_val = 1; return 0;
+			case DW_TAG_base_type: *p_discriminator_val = 2; return 0;
+			case DW_TAG_pointer_type: *p_discriminator_val = 3; return 0;
 			case DW_TAG_enumeration_type: *p_discriminator_val = 4; return 0;
 			case DW_TAG_subprogram: *p_discriminator_val = 5; return 0;
 			case DW_TAG_structure_type: *p_discriminator_val = 6; return 0;
@@ -1038,10 +1038,10 @@ static int _metac_type_t_discriminator_funtion(
 			return 0; /*-1;*/
 		}else{
 			switch(*p_discriminator_val) {
-			case 0:metac_type_obj->id = DW_TAG_base_type; return 0;
-			case 1:metac_type_obj->id = DW_TAG_pointer_type; return 0;
-			case 2:metac_type_obj->id = DW_TAG_typedef; return 0;
-			case 3:metac_type_obj->id = DW_TAG_const_type; return 0;
+			case 0:metac_type_obj->id = DW_TAG_typedef; return 0;
+			case 1:metac_type_obj->id = DW_TAG_const_type; return 0;
+			case 2:metac_type_obj->id = DW_TAG_base_type; return 0;
+			case 3:metac_type_obj->id = DW_TAG_pointer_type; return 0;
 			case 4:metac_type_obj->id = DW_TAG_enumeration_type; return 0;
 			case 5:metac_type_obj->id = DW_TAG_subprogram; return 0;
 			case 6:metac_type_obj->id = DW_TAG_structure_type; return 0;

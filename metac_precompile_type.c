@@ -17,23 +17,6 @@
 #include "breadthfirst_engine.h"	/*breadthfirst_engine module*/
 
 /*****************************************************************************/
-/* similar to metac_type_typedef_skip, but skips more types (like constant and etc ) */
-static struct metac_type *get_actual_type(struct metac_type *type) {
-	if (type == NULL){
-		msg_stderr("invalid argument value: return NULL\n");
-		return NULL;
-	}
-	if (	type->id == DW_TAG_typedef ||
-			type->id == DW_TAG_const_type) {
-		if (type->typedef_info.type == NULL) {
-			msg_stderr("typedef/const_type has to contain type in attributes: return NULL\n");
-			return NULL;
-		}
-		return get_actual_type((type->id == DW_TAG_typedef)?(type->typedef_info.type):(type->const_type_info.type));
-	}
-	return type;
-}
-/*****************************************************************************/
 /*temporary types for types pre-compilation*/
 /*****************************************************************************/
 struct _discriminator {
@@ -291,7 +274,7 @@ static int _parse_type_task(
 	if (error_flag != 0) return 0;
 
 	/* get actual type */
-	p_precompile_task->actual_type = get_actual_type(p_precompile_task->type);
+	p_precompile_task->actual_type = metac_type_actual_type(p_precompile_task->type);
 
 	/* generate paths */
 	if (	p_precompile_task->parent_task != NULL &&
@@ -320,7 +303,7 @@ static int _parse_type_task(
 
 	/*create struct region_element_type_element in our region_element_type based on the data from task*/
 	p_precompile_task->region_element_type_element = create_region_element_type_element(
-			get_actual_type(p_precompile_task->type),
+			metac_type_actual_type(p_precompile_task->type),
 			p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
 			p_precompile_task->offset, p_precompile_task->byte_size,
 			p_precompile_task->parent_task != NULL?
@@ -479,9 +462,9 @@ static int _parse_type_task(
 		}
 
 		if (p_precompile_task->actual_type->id == DW_TAG_pointer_type) {
-			array_elements__region_element_type = find_or_create__region_element_type(p_precompile_context, get_actual_type(array_elements_type), &new_region_was_created);
+			array_elements__region_element_type = find_or_create__region_element_type(p_precompile_context, metac_type_actual_type(array_elements_type), &new_region_was_created);
 		}else {
-			array_elements__region_element_type = simply_create__region_element_type(p_precompile_context, get_actual_type(array_elements_type));
+			array_elements__region_element_type = simply_create__region_element_type(p_precompile_context, metac_type_actual_type(array_elements_type));
 			new_region_was_created = 1;
 		}
 		if (array_elements__region_element_type == NULL) {
@@ -706,7 +689,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 		return NULL;
 	}
 
-	if (create_and_add_precompile_task_to_front(&context.traversing_engine, NULL, find_or_create__region_element_type(&context, get_actual_type(type), NULL),
+	if (create_and_add_precompile_task_to_front(&context.traversing_engine, NULL, find_or_create__region_element_type(&context, metac_type_actual_type(type), NULL),
 			type,
 			_parse_type_task,
 			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
