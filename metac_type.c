@@ -199,11 +199,11 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 
 		current_index_value -= type->array_type_info.subranges[index].lower_bound;
 		offset +=  ratio*current_index_value;
-		//msg_stddbg("DBG: index %d, current index %d, ratio %d\n", index, current_index_value, ratio);
+		msg_stddbg("DBG: index %d, current index %d, ratio %d\n", index, current_index_value, ratio);
 		ratio*= type->array_type_info.subranges[index].count;
 
 	}
-	//msg_stddbg("DBG: offset %d\n", offset);
+	msg_stddbg("DBG: offset %d\n", offset);
 	if (p_data_member_location)
 		*p_data_member_location = offset*metac_type_byte_size(type->array_type_info.type);
 	return res;

@@ -167,7 +167,7 @@ struct metac_type {
 
 metac_name_t			metac_type_name(struct metac_type *type);
 metac_byte_size_t		metac_type_byte_size(struct metac_type *type);	/*< returns length in bytes of any type */
-struct metac_type *		metac_type_actual_type(struct metac_type *type);	/*< skips DW_TAG_typedef & DW_TAG_const_type */
+struct metac_type *		metac_type_actual_type(struct metac_type *type);	/*< skips DW_TAG_typedef & DW_TAG_const_type and return actual type */
 int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
