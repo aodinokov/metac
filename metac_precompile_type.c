@@ -431,8 +431,9 @@ static int _parse_type_task(
 		}
 		if (array_elements_type == NULL /* void* */ ||
 			array_elements_type->id == DW_TAG_subprogram){
-			msg_stddbg("Warning: The type at %s can't be parsed further - skipping its children\n",
-					p_precompile_task->region_element_type_element->path_global);
+			msg_stderr("Warning: The type at %s can't be parsed further: %s - skipping its children\n",
+					p_precompile_task->region_element_type_element->path_global,
+					array_elements_type == NULL?"void*":"pointer to function");
 			return 0;
 		}
 
@@ -454,7 +455,7 @@ static int _parse_type_task(
 					default_spec.array_elements_count_funtion_ptr = metac_array_elements_single;
 					spec = &default_spec;
 				}else {
-					msg_stddbg("Warning: Can't get array/pointer spec at %s - skipping its children\n",
+					msg_stderr("Warning: Can't get array/pointer spec at %s - skipping its children\n",
 							p_precompile_task->region_element_type_element->path_global);
 					return 0;
 				}
