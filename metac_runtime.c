@@ -19,7 +19,7 @@
 #include "breadthfirst_engine.h" /*breadthfirst_engine module*/
 /*****************************************************************************/
 struct runtime_context {
-	struct breadthfirst_engine breadthfirst_engine;
+	struct traversing_engine traversing_engine;
 	struct metac_runtime_object * runtime_object;
 	struct cds_list_head region_list;
 	struct cds_list_head executed_tasks_queue;
@@ -31,7 +31,7 @@ struct _region {
 };
 
 struct runtime_task {
-	struct breadthfirst_engine_task task;
+	struct traversing_engine_task task;
 	struct runtime_task* parent_task;
 	struct region * p_region;
 };
@@ -136,9 +136,9 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 }
 
 static struct runtime_task * create_and_add_runtime_task(
-		struct breadthfirst_engine * p_breadthfirst_engine,
+		struct traversing_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
-		breadthfirst_engine_task_fn_t fn,
+		traversing_engine_task_fn_t fn,
 		struct region * p_region) {
 	struct runtime_task* p_task;
 
@@ -167,7 +167,7 @@ static struct runtime_task * create_and_add_runtime_task(
 
 	p_task->p_region = p_region;
 
-	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
+	if (add_traversing_task_to_tail(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
 		free(p_task);
 		return NULL;
@@ -176,10 +176,10 @@ static struct runtime_task * create_and_add_runtime_task(
 }
 /*****************************************************************************/
 static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
-	struct breadthfirst_engine_task * task, *_task;
+	struct traversing_engine_task * task, *_task;
 	struct _region * _region, * __region;
 
-	cleanup_breadthfirst_engine(&p_runtime_context->breadthfirst_engine);
+	cleanup_traversing_engine(&p_runtime_context->traversing_engine);
 
 	cds_list_for_each_entry_safe(task, _task, &p_runtime_context->executed_tasks_queue, list) {
 		struct runtime_task  * p_task = cds_list_entry(task, struct runtime_task, task);
@@ -194,10 +194,10 @@ static void cleanup_runtime_context(struct runtime_context *p_runtime_context) {
 }
 /*****************************************************************************/
 static int _runtime_task_fn(
-		struct breadthfirst_engine * p_breadthfirst_engine,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task,
+		struct traversing_engine * p_breadthfirst_engine,
+		struct traversing_engine_task * p_breadthfirst_engine_task,
 		int error_flag) {
-	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, breadthfirst_engine);
+	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, traversing_engine);
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
 
 	int e;
@@ -454,7 +454,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
 
 	/*use breadthfirst_engine*/
-	if (init_breadthfirst_engine(&context.breadthfirst_engine)!=0){
+	if (init_traversing_engine(&context.traversing_engine)!=0){
 		msg_stderr("create_breadthfirst_engine failed\n");
 		free_runtime_object(&context.runtime_object);
 		return NULL;
@@ -481,7 +481,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		return NULL;
 	}
 
-	if (create_and_add_runtime_task(&context.breadthfirst_engine,
+	if (create_and_add_runtime_task(&context.traversing_engine,
 			NULL,
 			_runtime_task_fn,
 			_region->p_region) == NULL) {
@@ -495,7 +495,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(&context.breadthfirst_engine) != 0) {
+	if (run_traversing_engine(&context.traversing_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {

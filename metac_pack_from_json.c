@@ -21,7 +21,7 @@
 #include "breadthfirst_engine.h"	/*breadthfirst_engine module*/
 /*****************************************************************************/
 struct runtime_context {
-	struct breadthfirst_engine breadthfirst_engine;
+	struct traversing_engine traversing_engine;
 	struct metac_runtime_object * runtime_object;
 	json_object * p_json;
 
@@ -47,7 +47,7 @@ struct _region {
 };
 
 struct runtime_task {
-	struct breadthfirst_engine_task task;
+	struct traversing_engine_task task;
 	struct runtime_task* parent_task;
 
 	struct _region * p__region;
@@ -300,9 +300,9 @@ static int delete_runtime_task(struct runtime_task ** pp_task) {
 }
 /*****************************************************************************/
 static struct runtime_task * create_and_add_runtime_task(
-		struct breadthfirst_engine * p_breadthfirst_engine,
+		struct traversing_engine * p_breadthfirst_engine,
 		struct runtime_task * parent_task,
-		breadthfirst_engine_task_fn_t fn,
+		traversing_engine_task_fn_t fn,
 		struct _region * p__region) {
 	struct runtime_task* p_task;
 	struct region * p_region = p__region->p_region;
@@ -327,7 +327,7 @@ static struct runtime_task * create_and_add_runtime_task(
 
 	p_task->p__region = p__region;
 
-	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
+	if (add_traversing_task_to_tail(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
 		free(p_task);
 		return NULL;
@@ -337,10 +337,10 @@ static struct runtime_task * create_and_add_runtime_task(
 /*****************************************************************************/
 static void cleanup_runtime_context(
 		struct runtime_context *p_runtime_context) {
-	struct breadthfirst_engine_task * task, *_task;
+	struct traversing_engine_task * task, *_task;
 	struct _region * _region, * __region;
 
-	cleanup_breadthfirst_engine(&p_runtime_context->breadthfirst_engine);
+	cleanup_traversing_engine(&p_runtime_context->traversing_engine);
 
 	cds_list_for_each_entry_safe(task, _task, &p_runtime_context->executed_tasks_queue, list) {
 		struct runtime_task  * p_task = cds_list_entry(task, struct runtime_task, task);
@@ -366,8 +366,8 @@ static void cleanup_runtime_context(
 }
 /*****************************************************************************/
 static int _runtime_task_fn(
-		struct breadthfirst_engine * p_breadthfirst_engine,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task,
+		struct traversing_engine * p_breadthfirst_engine,
+		struct traversing_engine_task * p_breadthfirst_engine_task,
 		int error_flag) {
 	int i;
 	int e;
@@ -375,7 +375,7 @@ static int _runtime_task_fn(
 	metac_byte_size_t region_element_byte_size;
 	void * region_ptr;
 	metac_byte_size_t region_byte_size;
-	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, breadthfirst_engine);
+	struct runtime_context * p_context = cds_list_entry(p_breadthfirst_engine, struct runtime_context, traversing_engine);
 	struct runtime_task * p_task = cds_list_entry(p_breadthfirst_engine_task, struct runtime_task, task);
 
 	cds_list_add_tail(&p_breadthfirst_engine_task->list, &p_context->executed_tasks_queue);
@@ -720,7 +720,7 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
 
 	/*use breadthfirst_engine*/
-	if (init_breadthfirst_engine(&context.breadthfirst_engine) != 0){
+	if (init_traversing_engine(&context.traversing_engine) != 0){
 		msg_stderr("create_breadthfirst_engine failed\n");
 		free_runtime_object(&context.runtime_object);
 		return NULL;
@@ -771,7 +771,7 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 	context.runtime_object->unique_region[_region->p_region->unique_region_id] = _region->p_region;
 
 	/*add task for the first region*/
-	if (create_and_add_runtime_task(&context.breadthfirst_engine,
+	if (create_and_add_runtime_task(&context.traversing_engine,
 			NULL,
 			_runtime_task_fn,
 			_region) == NULL) {
@@ -785,7 +785,7 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		free_runtime_object(&context.runtime_object);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(&context.breadthfirst_engine) != 0) {
+	if (run_traversing_engine(&context.traversing_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {

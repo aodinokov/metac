@@ -50,7 +50,7 @@ struct _region_element_type {
 };
 
 struct precompile_context {
-	struct breadthfirst_engine breadthfirst_engine;
+	struct traversing_engine traversing_engine;
 	metac_precompiled_type_t * precompiled_type;
 
 	struct cds_list_head executed_tasks_queue;
@@ -58,7 +58,7 @@ struct precompile_context {
 };
 
 struct precompile_task {
-	struct breadthfirst_engine_task task;
+	struct traversing_engine_task task;
 
 	struct precompile_task* parent_task;
 	struct _region_element_type * _region_element_type;
@@ -191,12 +191,12 @@ static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 	return 0;
 }
 
-static struct precompile_task* create_and_add_precompile_task(
-		struct breadthfirst_engine* p_breadthfirst_engine,
+static struct precompile_task* create_and_add_precompile_task_to_front(
+		struct traversing_engine* p_breadthfirst_engine,
 		struct precompile_task * parent_task,
 		struct _region_element_type * _region_element_type,
 		struct metac_type * type,
-		breadthfirst_engine_task_fn_t fn,
+		traversing_engine_task_fn_t fn,
 		struct discriminator * p_discriminator,
 		metac_discriminator_value_t expected_discriminator_value,
 		char * name_local,
@@ -235,7 +235,7 @@ static struct precompile_task* create_and_add_precompile_task(
 		p_task->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
-	if (add_breadthfirst_task(p_breadthfirst_engine, &p_task->task) != 0) {
+	if (add_traversing_task_to_front(p_breadthfirst_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
 		free(p_task);
 		return NULL;
@@ -267,15 +267,15 @@ static char * build_path(char * parent_path, char * name_local){
 
 /*****************************************************************************/
 static int _parse_type_task(
-		struct breadthfirst_engine * p_breadthfirst_engine,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task,
+		struct traversing_engine * p_breadthfirst_engine,
+		struct traversing_engine_task * p_breadthfirst_engine_task,
 		int error_flag){
 	/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
 	char * path_global;
 	char * path_within_region;
 	char * parent_path_global;
 	char * parent_path_within_region;
-	struct precompile_context * p_precompile_context = cds_list_entry(p_breadthfirst_engine, struct precompile_context, breadthfirst_engine);
+	struct precompile_context * p_precompile_context = cds_list_entry(p_breadthfirst_engine, struct precompile_context, traversing_engine);
 	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
 
 	cds_list_add_tail(&p_breadthfirst_engine_task->list, &p_precompile_context->executed_tasks_queue);
@@ -335,15 +335,16 @@ static int _parse_type_task(
 		metac_type_t * type = p_precompile_task->actual_type;
 		int is_anon;
 		int anon_members_count = 0;
-		metac_num_t i;
-		for (i = 0; i < type->structure_type_info.members_count; i++) {
+		metac_num_t i, _i;
+		for (_i = 0; _i < type->structure_type_info.members_count; _i++) {
+			i = type->structure_type_info.members_count - _i -1;
 			char anon_name[15];
 			is_anon = 0;
 			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
 			}
-			if (create_and_add_precompile_task(
+			if (create_and_add_precompile_task_to_front(
 					p_breadthfirst_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
@@ -366,7 +367,7 @@ static int _parse_type_task(
 		struct _discriminator * _discriminator;
 		int is_anon;
 		int anon_members_count = 0;
-		metac_num_t i;
+		metac_num_t i, _i;
 		/* try to find discriminator ptr */
 		const metac_type_specification_value_t * spec =
 				metac_type_specification(p_precompile_context->precompiled_type->type, p_precompile_task->region_element_type_element->path_global);
@@ -386,7 +387,8 @@ static int _parse_type_task(
 			return -EFAULT;
 		}
 
-		for (i = 0; i < type->union_type_info.members_count; i++) {
+		for (_i = 0; _i < type->union_type_info.members_count; _i++) {
+			i = type->union_type_info.members_count - _i - 1;
 			char anon_name[15];
 
 			is_anon = 0;
@@ -394,7 +396,7 @@ static int _parse_type_task(
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
 			}
-			if (create_and_add_precompile_task(
+			if (create_and_add_precompile_task_to_front(
 					p_breadthfirst_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
@@ -481,7 +483,7 @@ static int _parse_type_task(
 				array_elements__region_element_type->p_region_element_type);
 
 		if (new_region_was_created != 0) {
-			if (create_and_add_precompile_task(
+			if (create_and_add_precompile_task_to_front(
 					p_breadthfirst_engine,
 					p_precompile_task,
 					array_elements__region_element_type,
@@ -507,7 +509,7 @@ static int _parse_type_task(
 /*****************************************************************************/
 static int _phase2_calc_elements_per_type(
 		struct precompile_context *p_precompile_context,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+		struct traversing_engine_task * p_breadthfirst_engine_task) {
 	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
 
 	switch (p_precompile_task->actual_type->id) {
@@ -532,7 +534,7 @@ static int _phase2_calc_elements_per_type(
 
 static int _phase2_put_elements_per_type(
 		struct precompile_context *p_precompile_context,
-		struct breadthfirst_engine_task * p_breadthfirst_engine_task) {
+		struct traversing_engine_task * p_breadthfirst_engine_task) {
 	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
 
 	switch (p_precompile_task->actual_type->id) {
@@ -565,7 +567,7 @@ static int _phase2_put_elements_per_type(
 static int _phase2(
 		struct precompile_context *p_precompile_context) {
 	int i = 0;
-	struct breadthfirst_engine_task * task;
+	struct traversing_engine_task * task;
 	struct _region_element_type * _region_element_type;
 	struct _discriminator * _discriminator;
 
@@ -645,11 +647,11 @@ static int _phase2(
 }
 /*****************************************************************************/
 static void cleanup_precompile_context(struct precompile_context *p_precompile_context) {
-	struct breadthfirst_engine_task * task, *_task;
+	struct traversing_engine_task * task, *_task;
 	struct _region_element_type * _region_element_type, * __region_element_type;
 	struct _discriminator * _discriminator, * __discriminator;
 
-	cleanup_breadthfirst_engine(&p_precompile_context->breadthfirst_engine);
+	cleanup_traversing_engine(&p_precompile_context->traversing_engine);
 
 	cds_list_for_each_entry_safe(task, _task, &p_precompile_context->executed_tasks_queue, list) {
 		struct precompile_task * p_precompile_task = cds_list_entry(task, struct precompile_task, task);
@@ -684,13 +686,13 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 	CDS_INIT_LIST_HEAD(&context.region_element_type_list);
 
 	/*use breadthfirst_engine*/
-	if (init_breadthfirst_engine(&context.breadthfirst_engine) != 0){
+	if (init_traversing_engine(&context.traversing_engine) != 0){
 		msg_stderr("create_breadthfirst_engine failed\n");
 		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 
-	if (create_and_add_precompile_task(&context.breadthfirst_engine, NULL, find_or_create__region_element_type(&context, get_actual_type(type), NULL),
+	if (create_and_add_precompile_task_to_front(&context.traversing_engine, NULL, find_or_create__region_element_type(&context, get_actual_type(type), NULL),
 			type,
 			_parse_type_task,
 			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
@@ -700,7 +702,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
-	if (run_breadthfirst_engine(&context.breadthfirst_engine) != 0) {
+	if (run_traversing_engine(&context.traversing_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 		cleanup_precompile_context(&context);
 		delete_precompiled_type(&context.precompiled_type);
