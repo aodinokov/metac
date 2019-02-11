@@ -97,6 +97,23 @@ static struct _region_element_type * create__region_element_type(
 	return _region_element_type;
 }
 
+static struct _region_element_type * simply_create__region_element_type(
+		struct precompile_context * p_precompile_context,
+		struct metac_type * type ) {
+	struct _region_element_type * _region_element_type = NULL;
+	/*create otherwise*/
+	msg_stddbg("create region_element_type for : %s\n", type->name);
+	_region_element_type = create__region_element_type(type);
+	msg_stddbg("create region_element_type result %p\n", _region_element_type->p_region_element_type);
+	if (_region_element_type == NULL) {
+		msg_stddbg("create__region_element_type failed\n");
+		return NULL;
+	}
+	cds_list_add_tail(&_region_element_type->list, &p_precompile_context->region_element_type_list);
+	++p_precompile_context->precompiled_type->region_element_types_count;
+	return _region_element_type;
+}
+
 static struct _region_element_type * find_or_create__region_element_type(
 		struct precompile_context * p_precompile_context,
 		struct metac_type * type,
@@ -117,18 +134,10 @@ static struct _region_element_type * find_or_create__region_element_type(
 		}
 	}
 	if (_region_element_type == NULL) {
-		/*create otherwise*/
-		msg_stddbg("create region_element_type for : %s\n", type->name);
-		_region_element_type = create__region_element_type(type);
-		msg_stddbg("create region_element_type result %p\n", _region_element_type->p_region_element_type);
-		if (_region_element_type == NULL) {
-			msg_stddbg("create__region_element_type failed\n");
-			return NULL;
+		_region_element_type = simply_create__region_element_type(p_precompile_context, type);
+		if (_region_element_type != NULL) {
+			if (p_created_flag != NULL) *p_created_flag = 1;
 		}
-		cds_list_add_tail(&_region_element_type->list, &p_precompile_context->region_element_type_list);
-		++p_precompile_context->precompiled_type->region_element_types_count;
-
-		if (p_created_flag != NULL) *p_created_flag = 1;
 	}
 
 	return _region_element_type;
@@ -192,7 +201,7 @@ static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 }
 
 static struct precompile_task* create_and_add_precompile_task_to_front(
-		struct traversing_engine* p_breadthfirst_engine,
+		struct traversing_engine* p_traversing_engine,
 		struct precompile_task * parent_task,
 		struct _region_element_type * _region_element_type,
 		struct metac_type * type,
@@ -235,7 +244,7 @@ static struct precompile_task* create_and_add_precompile_task_to_front(
 		p_task->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
-	if (add_traversing_task_to_front(p_breadthfirst_engine, &p_task->task) != 0) {
+	if (add_traversing_task_to_front(p_traversing_engine, &p_task->task) != 0) {
 		msg_stderr("add_breadthfirst_task failed\n");
 		free(p_task);
 		return NULL;
@@ -267,18 +276,18 @@ static char * build_path(char * parent_path, char * name_local){
 
 /*****************************************************************************/
 static int _parse_type_task(
-		struct traversing_engine * p_breadthfirst_engine,
-		struct traversing_engine_task * p_breadthfirst_engine_task,
+		struct traversing_engine * p_traversing_engine,
+		struct traversing_engine_task * p_traversing_engine_task,
 		int error_flag){
 	/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
 	char * path_global;
 	char * path_within_region;
 	char * parent_path_global;
 	char * parent_path_within_region;
-	struct precompile_context * p_precompile_context = cds_list_entry(p_breadthfirst_engine, struct precompile_context, traversing_engine);
-	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+	struct precompile_context * p_precompile_context = cds_list_entry(p_traversing_engine, struct precompile_context, traversing_engine);
+	struct precompile_task * p_precompile_task = cds_list_entry(p_traversing_engine_task, struct precompile_task, task);
 
-	cds_list_add_tail(&p_breadthfirst_engine_task->list, &p_precompile_context->executed_tasks_queue);
+	cds_list_add_tail(&p_traversing_engine_task->list, &p_precompile_context->executed_tasks_queue);
 	if (error_flag != 0) return 0;
 
 	/* get actual type */
@@ -345,7 +354,7 @@ static int _parse_type_task(
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
 			}
 			if (create_and_add_precompile_task_to_front(
-					p_breadthfirst_engine,
+					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
 					type->structure_type_info.members[i].type,
@@ -397,7 +406,7 @@ static int _parse_type_task(
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
 			}
 			if (create_and_add_precompile_task_to_front(
-					p_breadthfirst_engine,
+					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
 					type->union_type_info.members[i].type,
@@ -469,7 +478,12 @@ static int _parse_type_task(
 			}
 		}
 
-		array_elements__region_element_type = find_or_create__region_element_type(p_precompile_context, get_actual_type(array_elements_type), &new_region_was_created);
+		if (p_precompile_task->actual_type->id == DW_TAG_pointer_type) {
+			array_elements__region_element_type = find_or_create__region_element_type(p_precompile_context, get_actual_type(array_elements_type), &new_region_was_created);
+		}else {
+			array_elements__region_element_type = simply_create__region_element_type(p_precompile_context, get_actual_type(array_elements_type));
+			new_region_was_created = 1;
+		}
 		if (array_elements__region_element_type == NULL) {
 			msg_stderr("ERROR: cant create region_element_type - exiting\n");
 			return -EFAULT;
@@ -484,7 +498,7 @@ static int _parse_type_task(
 
 		if (new_region_was_created != 0) {
 			if (create_and_add_precompile_task_to_front(
-					p_breadthfirst_engine,
+					p_traversing_engine,
 					p_precompile_task,
 					array_elements__region_element_type,
 					array_elements_type,
@@ -509,8 +523,8 @@ static int _parse_type_task(
 /*****************************************************************************/
 static int _phase2_calc_elements_per_type(
 		struct precompile_context *p_precompile_context,
-		struct traversing_engine_task * p_breadthfirst_engine_task) {
-	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+		struct traversing_engine_task * p_traversing_engine_task) {
+	struct precompile_task * p_precompile_task = cds_list_entry(p_traversing_engine_task, struct precompile_task, task);
 
 	switch (p_precompile_task->actual_type->id) {
 		case DW_TAG_base_type:
@@ -534,8 +548,8 @@ static int _phase2_calc_elements_per_type(
 
 static int _phase2_put_elements_per_type(
 		struct precompile_context *p_precompile_context,
-		struct traversing_engine_task * p_breadthfirst_engine_task) {
-	struct precompile_task * p_precompile_task = cds_list_entry(p_breadthfirst_engine_task, struct precompile_task, task);
+		struct traversing_engine_task * p_traversing_engine_task) {
+	struct precompile_task * p_precompile_task = cds_list_entry(p_traversing_engine_task, struct precompile_task, task);
 
 	switch (p_precompile_task->actual_type->id) {
 		case DW_TAG_base_type:
