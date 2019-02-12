@@ -223,18 +223,15 @@ struct region_element_type_member * create_region_element_type_member(
 
 	p_region_element_type_member->parent = parent;
 
-	p_region_element_type_member->name_local = (name_local != NULL)?strdup(name_local):NULL;
-	p_region_element_type_member->path_within_region_element = (path_within_region != NULL)?strdup(path_within_region):NULL;
-	p_region_element_type_member->path_global = (path_global != NULL)?strdup(path_global):NULL;;
-	if (	(name_local != NULL && p_region_element_type_member->name_local == NULL) ||
-			(path_within_region != NULL && p_region_element_type_member->path_within_region_element == NULL) ||
-			(path_global != NULL && p_region_element_type_member->path_global == NULL) ) {
-		delete_region_element_type_member(&p_region_element_type_member);
-		return NULL;
-	}
+	p_region_element_type_member->name_local = name_local;
+	p_region_element_type_member->path_within_region_element = path_within_region;
+	p_region_element_type_member->path_global = path_global;
 
-	update_region_element_type_member_array_params(p_region_element_type_member,
-			array_elements_count_funtion_ptr, array_elements_count_cb_context, array_elements_region_element_type);
+	update_region_element_type_member_array_params(
+			p_region_element_type_member,
+			array_elements_count_funtion_ptr,
+			array_elements_count_cb_context,
+			array_elements_region_element_type);
 
 	return p_region_element_type_member;
 }

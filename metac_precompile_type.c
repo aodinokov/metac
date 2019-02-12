@@ -293,7 +293,8 @@ static char * build_path(char * parent_path, char * name_local){
 static int _parse_type_task(
 		struct traversing_engine * p_traversing_engine,
 		struct traversing_engine_task * p_traversing_engine_task,
-		int error_flag){
+		int error_flag) {
+	char * name_local;
 	char * path_global;
 	char * path_within_region;
 	char * parent_path_global;
@@ -304,10 +305,8 @@ static int _parse_type_task(
 	cds_list_add_tail(&p_traversing_engine_task->list, &p_precompile_context->executed_tasks_queue);
 	if (error_flag != 0) return 0;
 
-	/* get actual type */
-	p_precompile_task->actual_type = metac_type_actual_type(p_precompile_task->type);
-
 	/* generate paths */
+	/* get parent global and within region paths */
 	if (	p_precompile_task->parent_task != NULL &&
 			p_precompile_task->parent_task->region_element_type_member != NULL &&
 			p_precompile_task->parent_task->region_element_type_member->path_global != NULL) {
@@ -319,36 +318,54 @@ static int _parse_type_task(
 		parent_path_global = "";
 		parent_path_within_region = "";
 	}
-
+	/* build global path */
 	path_global = build_path(parent_path_global, p_precompile_task->given_name_local);
 	if (path_global == NULL) {
 		msg_stderr("build path for path_global\n");
 		return -EFAULT;
 	}
+	/* build path within region */
 	path_within_region = build_path(parent_path_within_region, p_precompile_task->given_name_local);
 	if (path_within_region == NULL) {
 		free(path_global);
 		msg_stderr("build path for path_within_region\n");
 		return -EFAULT;
 	}
+	/*copy local name */
+	name_local = strdup(p_precompile_task->name_local);
+	if (name_local == NULL) {
+		free(path_within_region);
+		free(path_global);
+		msg_stderr("strdup for name_local\n");
+		return -ENOMEM;
+	}
 
-	/*create struct region_element_type_element in our region_element_type based on the data from task*/
+	/* fill it runtime data */
+	/* get actual type */
+	p_precompile_task->actual_type = metac_type_actual_type(p_precompile_task->type);
+	/* create struct region_element_type_member in our region_element_type based on the data from task*/
 	p_precompile_task->region_element_type_member = create_region_element_type_member(
-			metac_type_actual_type(p_precompile_task->type),
-			p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
-			p_precompile_task->offset, p_precompile_task->byte_size,
-			p_precompile_task->parent_task != NULL?
-					p_precompile_task->parent_task->_region_element_type == p_precompile_task->_region_element_type?
-							p_precompile_task->parent_task->region_element_type_member:
-							NULL:
+			p_precompile_task->actual_type,
+
+			p_precompile_task->precondition.p_discriminator,
+			p_precompile_task->precondition.expected_discriminator_value,
+
+			p_precompile_task->offset,
+			p_precompile_task->byte_size,
+
+			(p_precompile_task->parent_task != NULL && p_precompile_task->parent_task->_region_element_type == p_precompile_task->_region_element_type)?
+					p_precompile_task->parent_task->region_element_type_member:
 					NULL,
-			p_precompile_task->name_local, path_within_region, path_global, NULL, NULL, NULL);
 
-	free(path_global);
-	free(path_within_region);
+			name_local,
+			path_within_region,
+			path_global,
 
+			NULL,
+			NULL,
+			NULL);
 	if (p_precompile_task->region_element_type_member == NULL) {
-		msg_stddbg("failed to create region_element_type_element\n");
+		msg_stddbg("failed to create create_region_element_type_member\n");
 		return -EFAULT;
 	}
 
@@ -356,13 +373,12 @@ static int _parse_type_task(
 	switch(p_precompile_task->actual_type->id) {
 	case DW_TAG_structure_type: {
 		metac_type_t * type = p_precompile_task->actual_type;
-		int is_anon;
 		int anon_members_count = _get_anonymous_members_count(type);
 		metac_num_t i, _i;
 		for (_i = 0; _i < type->structure_type_info.members_count; _i++) {
 			i = type->structure_type_info.members_count - _i -1;
 			char anon_name[15];
-			is_anon = 0;
+			int is_anon = 0;
 			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
@@ -372,11 +388,16 @@ static int _parse_type_task(
 					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
+
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
-					p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
+
+					p_precompile_task->precondition.p_discriminator,
+					p_precompile_task->precondition.expected_discriminator_value,
+
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
+
 					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
 					type->structure_type_info.members[i].p_bit_offset,
 					type->structure_type_info.members[i].p_bit_size,
@@ -388,33 +409,33 @@ static int _parse_type_task(
 	} break;
 	case DW_TAG_union_type: {
 		metac_type_t * type = p_precompile_task->actual_type;
-		struct _discriminator * _discriminator;
-		int is_anon;
 		int anon_members_count = _get_anonymous_members_count(type);
 		metac_num_t i, _i;
-		/* try to find discriminator ptr */
+		struct _discriminator * _discriminator;
+
 		const metac_type_specification_value_t * spec =
 				metac_type_specification(p_precompile_context->type, p_precompile_task->region_element_type_member->path_global);
-
 		if (spec == NULL || spec->discriminator_funtion_ptr == NULL) {
 			msg_stddbg("Warning: Union %s doesn't have a union-type specification - skipping its children\n",
 					p_precompile_task->region_element_type_member->path_global);
 			break;
 		}
-		/*we have new discriminator in spec - let's create it*/
-		_discriminator = create__discriminator(p_precompile_task->_region_element_type,
-				p_precompile_task->precondition.p_discriminator, p_precompile_task->precondition.expected_discriminator_value,
+		_discriminator = create__discriminator(
+				p_precompile_task->_region_element_type,
+
+				p_precompile_task->precondition.p_discriminator,
+				p_precompile_task->precondition.expected_discriminator_value,
 				spec->discriminator_funtion_ptr,
 				spec->specification_context);
 		if (_discriminator == NULL) {
+			msg_stddbg("create__discriminator failed\n");
 			return -EFAULT;
 		}
 
 		for (_i = 0; _i < type->union_type_info.members_count; _i++) {
 			i = type->union_type_info.members_count - _i - 1;
 			char anon_name[15];
-
-			is_anon = 0;
+			int is_anon = 0;
 			if (strcmp(type->union_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
@@ -424,11 +445,16 @@ static int _parse_type_task(
 					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
+
 					type->union_type_info.members[i].type,
 					_parse_type_task,
-					_discriminator->p_discriminator, i,
+
+					_discriminator->p_discriminator,
+					i,
+
 					type->union_type_info.members[i].name,
 					is_anon?anon_name:type->union_type_info.members[i].name,
+
 					p_precompile_task->offset + type->union_type_info.members[i].data_member_location,
 					type->union_type_info.members[i].p_bit_offset,
 					type->union_type_info.members[i].p_bit_size,
@@ -438,12 +464,8 @@ static int _parse_type_task(
 			}
 		}
 	} break;
-	case DW_TAG_array_type:
-	case DW_TAG_pointer_type: {
-		int new_region_was_created = 0;
+	case DW_TAG_array_type: {
 		struct _region_element_type * array_elements__region_element_type = NULL;
-		metac_type_t * array_elements_type = NULL;
-
 		const metac_type_specification_value_t * spec = metac_type_specification(
 				p_precompile_context->type, p_precompile_task->region_element_type_member->path_global);
 		metac_type_specification_value_t default_spec = {
@@ -451,16 +473,68 @@ static int _parse_type_task(
 			.array_elements_count_funtion_ptr = NULL,
 			.specification_context = NULL,
 		};
-
-		/*get type array consists of or pointer points to*/
-		switch(p_precompile_task->actual_type->id) {
-			case DW_TAG_pointer_type:
-				array_elements_type = p_precompile_task->actual_type->pointer_type_info.type;
-			break;
-			case DW_TAG_array_type:
-				array_elements_type = p_precompile_task->actual_type->array_type_info.type;
-			break;
+		metac_type_t * array_elements_type = p_precompile_task->actual_type->array_type_info.type;
+		if (array_elements_type == NULL /* void */ ||
+			array_elements_type->id == DW_TAG_subprogram){
+			msg_stderr("The array at %s can't be parsed further: %s - skipping its children\n",
+					p_precompile_task->region_element_type_member->path_global,
+					array_elements_type == NULL?"array of void":"array of functions");
+			return -EFAULT;
 		}
+
+		if (p_precompile_task->actual_type->array_type_info.is_flexible) {
+			if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
+				msg_stderr("Warning: Can't get flexible array spec at %s - skipping its children\n",
+						p_precompile_task->region_element_type_member->path_global);
+				return 0;
+			}
+		}
+
+		array_elements__region_element_type = simply_create__region_element_type(
+				p_precompile_context,
+				metac_type_actual_type(array_elements_type));
+		if (array_elements__region_element_type == NULL) {
+			msg_stderr("ERROR: can't create region_element_type - exiting\n");
+			return -EFAULT;
+		}
+
+		msg_stddbg("p_precompile_task %p array_elements__region_element_type %p\n", p_precompile_task, array_elements__region_element_type);
+		update_region_element_type_member_array_params(
+				p_precompile_task->region_element_type_member,
+				spec?spec->array_elements_count_funtion_ptr:NULL,
+				spec?spec->specification_context:NULL,
+				array_elements__region_element_type->p_region_element_type);
+
+		if (create_and_add_precompile_task(
+				1,
+				p_traversing_engine,
+				p_precompile_task,
+				array_elements__region_element_type,
+				array_elements_type,
+				_parse_type_task,
+				NULL, 0,
+				"",
+				"<ptr>", //p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<a_elem_n>", /*may be it's better to keep ptr for all cases*/
+				0,
+				NULL,
+				NULL,
+				metac_type_byte_size(array_elements_type)) == NULL) {
+			msg_stderr("create_and_add_precompile_task failed\n");
+			return -EFAULT;
+		}
+	}break;
+	case DW_TAG_pointer_type: {
+		int new_region_was_created = 0;
+		struct _region_element_type * array_elements__region_element_type = NULL;
+		const metac_type_specification_value_t * spec = metac_type_specification(
+				p_precompile_context->type, p_precompile_task->region_element_type_member->path_global);
+		metac_type_specification_value_t default_spec = {
+			.discriminator_funtion_ptr = NULL,
+			.array_elements_count_funtion_ptr = NULL,
+			.specification_context = NULL,
+		};
+		metac_type_t * array_elements_type = p_precompile_task->actual_type->pointer_type_info.type;
+
 		if (array_elements_type == NULL /* void* */ ||
 			array_elements_type->id == DW_TAG_subprogram){
 			msg_stderr("Warning: The type at %s can't be parsed further: %s - skipping its children\n",
@@ -469,37 +543,27 @@ static int _parse_type_task(
 			return 0;
 		}
 
-		if (p_precompile_task->actual_type->id == DW_TAG_pointer_type || (
-				p_precompile_task->actual_type->id == DW_TAG_array_type &&
-				p_precompile_task->actual_type->array_type_info.is_flexible)) {
-			if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
-				/* try to find better defaults:
-				 * for char* - metac_array_elements_1d_with_null
-				 * for any other type* - metac_array_elements_single
-				 */
-				if (p_precompile_task->actual_type->id == DW_TAG_pointer_type &&
-					array_elements_type->id == DW_TAG_base_type &&
-					array_elements_type->name != NULL &&
-					strcmp(array_elements_type->name, "char")==0) {
-					default_spec.array_elements_count_funtion_ptr = metac_array_elements_1d_with_null;
-					spec = &default_spec;
-				}else if (p_precompile_task->actual_type->id == DW_TAG_pointer_type) {
-					default_spec.array_elements_count_funtion_ptr = metac_array_elements_single;
-					spec = &default_spec;
-				}else {
-					msg_stderr("Warning: Can't get array/pointer spec at %s - skipping its children\n",
-							p_precompile_task->region_element_type_member->path_global);
-					return 0;
-				}
+		if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
+			/* try to find better defaults:
+			 * for char* - metac_array_elements_1d_with_null
+			 * for any other type* - metac_array_elements_single
+			 */
+			if (p_precompile_task->actual_type->id == DW_TAG_pointer_type &&
+				array_elements_type->id == DW_TAG_base_type &&
+				array_elements_type->name != NULL &&
+				strcmp(array_elements_type->name, "char")==0) {
+				default_spec.array_elements_count_funtion_ptr = metac_array_elements_1d_with_null;
+				spec = &default_spec;
+			}else {
+				default_spec.array_elements_count_funtion_ptr = metac_array_elements_single;
+				spec = &default_spec;
 			}
 		}
 
-		if (p_precompile_task->actual_type->id == DW_TAG_pointer_type) {
-			array_elements__region_element_type = find_or_create__region_element_type(p_precompile_context, metac_type_actual_type(array_elements_type), &new_region_was_created);
-		}else {
-			array_elements__region_element_type = simply_create__region_element_type(p_precompile_context, metac_type_actual_type(array_elements_type));
-			new_region_was_created = 1;
-		}
+		array_elements__region_element_type = find_or_create__region_element_type(
+				p_precompile_context,
+				metac_type_actual_type(array_elements_type),
+				&new_region_was_created);
 		if (array_elements__region_element_type == NULL) {
 			msg_stderr("ERROR: cant create region_element_type - exiting\n");
 			return -EFAULT;
@@ -514,7 +578,7 @@ static int _parse_type_task(
 
 		if (new_region_was_created != 0) {
 			if (create_and_add_precompile_task(
-					p_precompile_task->actual_type->id == DW_TAG_array_type?1:0,
+					0,
 					p_traversing_engine,
 					p_precompile_task,
 					array_elements__region_element_type,
@@ -522,7 +586,7 @@ static int _parse_type_task(
 					_parse_type_task,
 					NULL, 0,
 					"",
-					"<ptr>", //p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<a_elem_n>", /*may be it's better to keep ptr for all cases*/
+					"<ptr>",
 					0,
 					NULL,
 					NULL,
