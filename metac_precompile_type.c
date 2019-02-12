@@ -34,10 +34,11 @@ struct _region_element_type {
 
 struct precompile_context {
 	struct traversing_engine traversing_engine;
-	metac_precompiled_type_t * precompiled_type;
-
 	struct cds_list_head executed_tasks_queue;
+
 	struct cds_list_head region_element_type_list;	/*current list of all created region types for precompiled type */
+
+	metac_precompiled_type_t * precompiled_type;
 };
 
 struct precompile_task {
@@ -295,7 +296,6 @@ static int _parse_type_task(
 		struct traversing_engine * p_traversing_engine,
 		struct traversing_engine_task * p_traversing_engine_task,
 		int error_flag){
-	/*TODO: check spec on global level - e.g. that will allow to make Stop for some type*/
 	char * path_global;
 	char * path_within_region;
 	char * parent_path_global;
@@ -397,11 +397,10 @@ static int _parse_type_task(
 		/* try to find discriminator ptr */
 		const metac_type_specification_value_t * spec =
 				metac_type_specification(p_precompile_context->precompiled_type->type, p_precompile_task->region_element_type_element->path_global);
-		/*TODO: we can check p_precompile_task->type */
+
 		if (spec == NULL || spec->discriminator_funtion_ptr == NULL) {
 			msg_stddbg("Warning: Union %s doesn't have a union-type specification - skipping its children\n",
 					p_precompile_task->region_element_type_element->path_global);
-			/*TODO: mark to skip the step */
 			break;
 		}
 		/*we have new discriminator in spec - let's create it*/
@@ -476,9 +475,9 @@ static int _parse_type_task(
 				p_precompile_task->actual_type->id == DW_TAG_array_type &&
 				p_precompile_task->actual_type->array_type_info.is_flexible)) {
 			if (spec == NULL || spec->array_elements_count_funtion_ptr == NULL) {
-				/*try to find better defaults:
+				/* try to find better defaults:
 				 * for char* - metac_array_elements_1d_with_null
-				 * for anyothertyep* - metac_array_elements_single
+				 * for any other type* - metac_array_elements_single
 				 */
 				if (p_precompile_task->actual_type->id == DW_TAG_pointer_type &&
 					array_elements_type->id == DW_TAG_base_type &&
@@ -701,9 +700,13 @@ static void cleanup_precompile_context(struct precompile_context *p_precompile_c
 		cds_list_del(&_region_element_type->list);
 		free(_region_element_type);
 	}
+
+	if (p_precompile_context->precompiled_type != NULL)
+		delete_precompiled_type(&p_precompile_context->precompiled_type);
 }
 /*****************************************************************************/
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
+	metac_precompiled_type_t * precompiled_type;
 	struct precompile_context context;
 
 	if (type == NULL) {
@@ -711,18 +714,18 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 		return NULL;
 	}
 
-	context.precompiled_type = create_precompiled_type(type);
-	if (context.precompiled_type == NULL) {
-		msg_stderr("create_precompiled_type failed\n");
-		return NULL;
-	}
 	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
 	CDS_INIT_LIST_HEAD(&context.region_element_type_list);
 
-	/*use breadthfirst_engine*/
 	if (init_traversing_engine(&context.traversing_engine) != 0){
-		msg_stderr("create_breadthfirst_engine failed\n");
-		delete_precompiled_type(&context.precompiled_type);
+		msg_stderr("init_traversing_engine failed\n");
+		return NULL;
+	}
+
+	context.precompiled_type = create_precompiled_type(type);
+	if (context.precompiled_type == NULL) {
+		msg_stderr("create_precompiled_type failed\n");
+		cleanup_precompile_context(&context);
 		return NULL;
 	}
 
@@ -737,24 +740,24 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 		msg_stderr("add_initial_precompile_task failed\n");
 		/*TBD: test if it's ok - not sure, because some of objects are not linked at that time*/
 		cleanup_precompile_context(&context);
-		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 	if (run_traversing_engine(&context.traversing_engine) != 0) {
 		msg_stderr("run_breadthfirst_engine failed\n");
 		cleanup_precompile_context(&context);
-		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 
 	if (_phase2(&context) != 0) {
 		msg_stderr("Phase 2 returned error\n");
 		cleanup_precompile_context(&context);
-		delete_precompiled_type(&context.precompiled_type);
 		return NULL;
 	}
 
+	precompiled_type = context.precompiled_type;
+	context.precompiled_type = NULL;
+
 	cleanup_precompile_context(&context);
-	return context.precompiled_type;
+	return precompiled_type;
 }
 
