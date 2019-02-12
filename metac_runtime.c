@@ -219,7 +219,7 @@ static int _runtime_task_fn(
 	msg_stddbg("started task %p (%s) for %d elements\n",
 			p_region->ptr,
 			p_region->elements[0].region_element_type->type->name,
-			p_region->members_count);
+			p_region->elements_count);
 
 	for (e = 0; e < p_region->elements_count; e++) {
 		struct region_element * p_region_element = &p_region->elements[e];
@@ -278,7 +278,7 @@ static int _runtime_task_fn(
 
 			/* calculate byte_size using length */
 			elements_count = metac_array_info_get_element_count(p_array_info);
-			msg_stddbg("elements_count: %d\n", (int)members_count);
+			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->pointer_type_members[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->pointer_type_members[i]->array_elements_region_element_type->type):0;
 
@@ -376,7 +376,7 @@ static int _runtime_task_fn(
 
 			/* calculate overall elements_count */
 			elements_count = metac_array_info_get_element_count(p_array_info);
-			msg_stddbg("elements_count: %d\n", (int)members_count);
+			msg_stddbg("elements_count: %d\n", (int)elements_count);
 			elements_byte_size = p_region_element->region_element_type->array_type_members[i]->array_elements_region_element_type?
 					metac_type_byte_size(p_region_element->region_element_type->array_type_members[i]->array_elements_region_element_type->type):0;
 
@@ -507,6 +507,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		return NULL;
 	}
 
+	msg_stddbg("regions_count: %d\n", (int)context.runtime_object->regions_count);
 	context.runtime_object->region = calloc(context.runtime_object->regions_count, sizeof(*(context.runtime_object->region)));
 	if (context.runtime_object->region == NULL) {
 		msg_stderr("Can't allocate memory for regions array in runtime_object\n");
@@ -572,6 +573,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 		}
 	}
 
+	msg_stddbg("unique_regions_count: %d\n", (int)context.runtime_object->unique_regions_count);
 	context.runtime_object->unique_region = calloc(context.runtime_object->unique_regions_count, sizeof(*(context.runtime_object->region)));
 	if (context.runtime_object->region == NULL) {
 		msg_stderr("Can't allocate memory for unique_region array in runtime_object\n");

@@ -45,16 +45,8 @@ struct precompile_task {
 
 	struct precompile_task* parent_task;
 	struct _region_element_type * _region_element_type;
-	struct metac_type *type;
-	struct condition precondition;
-	char *	name_local;
-	char *	given_name_local;
-	metac_data_member_location_t offset;
-	metac_bit_offset_t * p_bit_offset;
-	metac_bit_size_t * p_bit_size;
-	metac_byte_size_t byte_size;
 
-	/* runtime data */
+	struct metac_type *type;
 	struct metac_type *actual_type;
 	struct region_element_type_member * region_element_type_member;
 };
@@ -153,6 +145,52 @@ static struct _discriminator * create__discriminator(
 	return _discriminator;
 }
 /*****************************************************************************/
+static metac_count_t _get_anonymous_members_count(metac_type_t * type) {
+	metac_count_t count = 0;
+	int i;
+	switch(type->id){
+	case DW_TAG_structure_type:
+		for (i = 0; i < type->structure_type_info.members_count; i++) {
+			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
+				++count;
+			}
+		}
+		break;
+	case DW_TAG_union_type:
+		for (i = 0; i < type->union_type_info.members_count; i++) {
+			if (strcmp(type->union_type_info.members[i].name, "") == 0) {
+				++count;
+			}
+		}
+		break;
+	defaut:
+		return 0;
+	}
+	return count;
+}
+/*****************************************************************************/
+static char * build_path(char * parent_path, char * name_local){
+	char * result;
+	size_t size1;
+	size_t size2;
+
+	if (parent_path == NULL)parent_path = "";
+	if (name_local == NULL)name_local = "";
+
+	size1 = strlen(parent_path);
+	size2 = strlen(name_local);
+	result = calloc(sizeof(char), size1 + (size_t)((size1 > 0)?1:0) + size2 + (size_t)1);
+	if (result == NULL){
+		return NULL;
+	}
+	if (size1 > 0){
+		strcpy(result, parent_path);
+		strcpy(result + size1, ".");
+	}
+	strcpy(result + size1 + (size_t)((size1 > 0)?1:0), name_local);
+	return result;
+}
+/*****************************************************************************/
 static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 	struct precompile_task * p_ptask;
 
@@ -165,15 +203,6 @@ static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 	if (p_ptask == NULL) {
 		msg_stderr("Can't delete ptask: already deleted\n");
 		return -EALREADY;
-	}
-
-	if (p_ptask->name_local) {
-		free(p_ptask->name_local);
-		p_ptask->name_local = NULL;
-	}
-	if (p_ptask->given_name_local) {
-		free(p_ptask->given_name_local);
-		p_ptask->given_name_local = NULL;
 	}
 
 	free(p_ptask);
@@ -198,6 +227,11 @@ static struct precompile_task* create_and_add_precompile_task(
 		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size) {
 	struct precompile_task* p_task;
+	char * _name_local;
+	char * _path_global;
+	char * _path_within_region;
+	char * parent_path_global;
+	char * parent_path_within_region;
 
 	msg_stddbg("(name_local = %s, given_name_local = %s, offset = %d, byte_size = %d)\n",
 			name_local, given_name_local,
@@ -215,17 +249,72 @@ static struct precompile_task* create_and_add_precompile_task(
 	p_task->parent_task = parent_task;
 	p_task->_region_element_type = _region_element_type;
 	p_task->type = type;
-	p_task->name_local = name_local!=NULL?strdup(name_local):NULL;
-	p_task->given_name_local = given_name_local!=NULL?strdup(given_name_local):NULL;
-	p_task->offset = offset;
-	p_task->p_bit_offset = p_bit_offset;
-	p_task->p_bit_size = p_bit_size;
-	p_task->byte_size = byte_size;
 
-	if (p_discriminator != NULL) {	/*copy precondition*/
-		p_task->precondition.p_discriminator = p_discriminator;
-		p_task->precondition.expected_discriminator_value = expected_discriminator_value;
+	/* fill in p_task->region_element_type_member: */
+	/* generate paths for member */
+	/* get parent global and within region paths */
+	if (	p_task->parent_task != NULL &&
+			p_task->parent_task->region_element_type_member != NULL &&
+			p_task->parent_task->region_element_type_member->path_global != NULL) {
+		parent_path_global = p_task->parent_task->region_element_type_member->path_global;
+		parent_path_within_region = p_task->parent_task->_region_element_type == p_task->_region_element_type?
+				p_task->parent_task->region_element_type_member->path_within_region_element:
+				"";
+	}else{
+		parent_path_global = "";
+		parent_path_within_region = "";
 	}
+	/* build global path */
+	_path_global = build_path(parent_path_global, given_name_local);
+	if (_path_global == NULL) {
+		msg_stderr("build path for path_global\n");
+		return NULL;
+	}
+	/* build path within region */
+	_path_within_region = build_path(parent_path_within_region, given_name_local);
+	if (_path_within_region == NULL) {
+		free(_path_global);
+		msg_stderr("build path for path_within_region\n");
+		return NULL;
+	}
+	/*copy local name */
+	_name_local = strdup(name_local);
+	if (name_local == NULL) {
+		free(_path_within_region);
+		free(_path_global);
+		msg_stderr("strdup for name_local\n");
+		return NULL;
+	}
+
+	/* fill it runtime data */
+	/* get actual type */
+	p_task->actual_type = metac_type_actual_type(p_task->type);
+	/* create struct region_element_type_member in our region_element_type based on the data from task*/
+	p_task->region_element_type_member = create_region_element_type_member(
+			p_task->actual_type,
+
+			p_discriminator,
+			expected_discriminator_value,
+
+			offset,
+			byte_size,
+
+			(p_task->parent_task != NULL && p_task->parent_task->_region_element_type == p_task->_region_element_type)?
+					p_task->parent_task->region_element_type_member:
+					NULL,
+
+			_name_local,
+			_path_within_region,
+			_path_global,
+
+			NULL,
+			NULL,
+			NULL);
+	if (p_task->region_element_type_member == NULL) {
+		msg_stddbg("failed to create create_region_element_type_member\n");
+		return NULL;
+	}
+
 
 	if (to_front) {
 		if (add_traversing_task_to_front(p_traversing_engine, &p_task->traversing_engine_task) != 0) {
@@ -242,132 +331,16 @@ static struct precompile_task* create_and_add_precompile_task(
 	}
 	return p_task;
 }
-
-static metac_count_t _get_anonymous_members_count(metac_type_t * type) {
-	metac_count_t count = 0;
-	int i;
-	switch(type->id){
-	case DW_TAG_structure_type:
-		for (i = 0; i < type->structure_type_info.members_count; i++) {
-			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
-				++count;
-			}
-		}
-		break;
-	case DW_TAG_union_type:
-		for (i = 0; i < type->union_type_info.members_count; i++) {
-			if (strcmp(type->union_type_info.members[i].name, "") == 0) {
-				++count;
-			}
-		}
-		break;
-	defaut:
-		return 0;
-	}
-	return count;
-}
-
-static char * build_path(char * parent_path, char * name_local){
-	char * result;
-	size_t size1;
-	size_t size2;
-
-	if (parent_path == NULL)parent_path = "";
-	if (name_local == NULL)name_local = "";
-
-	size1 = strlen(parent_path);
-	size2 = strlen(name_local);
-	result = calloc(sizeof(char), size1 + (size_t)((size1 > 0)?1:0) + size2 + (size_t)1);
-	if (result == NULL){
-		return NULL;
-	}
-	if (size1 > 0){
-		strcpy(result, parent_path);
-		strcpy(result + size1, ".");
-	}
-	strcpy(result + size1 + (size_t)((size1 > 0)?1:0), name_local);
-	return result;
-}
-
 /*****************************************************************************/
 static int _parse_type_task(
 		struct traversing_engine * p_traversing_engine,
 		struct traversing_engine_task * p_traversing_engine_task,
 		int error_flag) {
-	char * name_local;
-	char * path_global;
-	char * path_within_region;
-	char * parent_path_global;
-	char * parent_path_within_region;
 	struct precompile_context * p_precompile_context = cds_list_entry(p_traversing_engine, struct precompile_context, traversing_engine);
 	struct precompile_task * p_precompile_task = cds_list_entry(p_traversing_engine_task, struct precompile_task, traversing_engine_task);
 
 	cds_list_add_tail(&p_traversing_engine_task->list, &p_precompile_context->executed_tasks_queue);
 	if (error_flag != 0) return 0;
-
-	/* generate paths */
-	/* get parent global and within region paths */
-	if (	p_precompile_task->parent_task != NULL &&
-			p_precompile_task->parent_task->region_element_type_member != NULL &&
-			p_precompile_task->parent_task->region_element_type_member->path_global != NULL) {
-		parent_path_global = p_precompile_task->parent_task->region_element_type_member->path_global;
-		parent_path_within_region = p_precompile_task->parent_task->_region_element_type == p_precompile_task->_region_element_type?
-				p_precompile_task->parent_task->region_element_type_member->path_within_region_element:
-				"";
-	}else{
-		parent_path_global = "";
-		parent_path_within_region = "";
-	}
-	/* build global path */
-	path_global = build_path(parent_path_global, p_precompile_task->given_name_local);
-	if (path_global == NULL) {
-		msg_stderr("build path for path_global\n");
-		return -EFAULT;
-	}
-	/* build path within region */
-	path_within_region = build_path(parent_path_within_region, p_precompile_task->given_name_local);
-	if (path_within_region == NULL) {
-		free(path_global);
-		msg_stderr("build path for path_within_region\n");
-		return -EFAULT;
-	}
-	/*copy local name */
-	name_local = strdup(p_precompile_task->name_local);
-	if (name_local == NULL) {
-		free(path_within_region);
-		free(path_global);
-		msg_stderr("strdup for name_local\n");
-		return -ENOMEM;
-	}
-
-	/* fill it runtime data */
-	/* get actual type */
-	p_precompile_task->actual_type = metac_type_actual_type(p_precompile_task->type);
-	/* create struct region_element_type_member in our region_element_type based on the data from task*/
-	p_precompile_task->region_element_type_member = create_region_element_type_member(
-			p_precompile_task->actual_type,
-
-			p_precompile_task->precondition.p_discriminator,
-			p_precompile_task->precondition.expected_discriminator_value,
-
-			p_precompile_task->offset,
-			p_precompile_task->byte_size,
-
-			(p_precompile_task->parent_task != NULL && p_precompile_task->parent_task->_region_element_type == p_precompile_task->_region_element_type)?
-					p_precompile_task->parent_task->region_element_type_member:
-					NULL,
-
-			name_local,
-			path_within_region,
-			path_global,
-
-			NULL,
-			NULL,
-			NULL);
-	if (p_precompile_task->region_element_type_member == NULL) {
-		msg_stddbg("failed to create create_region_element_type_member\n");
-		return -EFAULT;
-	}
 
 	/* generate children tasks */
 	switch(p_precompile_task->actual_type->id) {
@@ -392,13 +365,13 @@ static int _parse_type_task(
 					type->structure_type_info.members[i].type,
 					_parse_type_task,
 
-					p_precompile_task->precondition.p_discriminator,
-					p_precompile_task->precondition.expected_discriminator_value,
+					p_precompile_task->region_element_type_member->precondition.p_discriminator,
+					p_precompile_task->region_element_type_member->precondition.expected_discriminator_value,
 
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
 
-					p_precompile_task->offset + type->structure_type_info.members[i].data_member_location,
+					p_precompile_task->region_element_type_member->offset + type->structure_type_info.members[i].data_member_location,
 					type->structure_type_info.members[i].p_bit_offset,
 					type->structure_type_info.members[i].p_bit_size,
 					metac_type_byte_size(type->structure_type_info.members[i].type)) == NULL) {
@@ -423,8 +396,8 @@ static int _parse_type_task(
 		_discriminator = create__discriminator(
 				p_precompile_task->_region_element_type,
 
-				p_precompile_task->precondition.p_discriminator,
-				p_precompile_task->precondition.expected_discriminator_value,
+				p_precompile_task->region_element_type_member->precondition.p_discriminator,
+				p_precompile_task->region_element_type_member->precondition.expected_discriminator_value,
 				spec->discriminator_funtion_ptr,
 				spec->specification_context);
 		if (_discriminator == NULL) {
@@ -455,7 +428,7 @@ static int _parse_type_task(
 					type->union_type_info.members[i].name,
 					is_anon?anon_name:type->union_type_info.members[i].name,
 
-					p_precompile_task->offset + type->union_type_info.members[i].data_member_location,
+					p_precompile_task->region_element_type_member->offset + type->union_type_info.members[i].data_member_location,
 					type->union_type_info.members[i].p_bit_offset,
 					type->union_type_info.members[i].p_bit_size,
 					metac_type_byte_size(type->union_type_info.members[i].type)) == NULL) {
