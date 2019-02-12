@@ -235,6 +235,30 @@ static struct precompile_task* create_and_add_precompile_task_to_front(
 	return p_task;
 }
 
+static metac_count_t _get_anonymous_members_count(metac_type_t * type) {
+	metac_count_t count = 0;
+	int i;
+	switch(type->id){
+	case DW_TAG_structure_type:
+		for (i = 0; i < type->structure_type_info.members_count; i++) {
+			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
+				++count;
+			}
+		}
+		break;
+	case DW_TAG_union_type:
+		for (i = 0; i < type->union_type_info.members_count; i++) {
+			if (strcmp(type->union_type_info.members[i].name, "") == 0) {
+				++count;
+			}
+		}
+		break;
+	defaut:
+		return 0;
+	}
+	return count;
+}
+
 static char * build_path(char * parent_path, char * name_local){
 	char * result;
 	size_t size1;
@@ -326,7 +350,7 @@ static int _parse_type_task(
 	case DW_TAG_structure_type: {
 		metac_type_t * type = p_precompile_task->actual_type;
 		int is_anon;
-		int anon_members_count = 0;
+		int anon_members_count = _get_anonymous_members_count(type);
 		metac_num_t i, _i;
 		for (_i = 0; _i < type->structure_type_info.members_count; _i++) {
 			i = type->structure_type_info.members_count - _i -1;
@@ -334,7 +358,7 @@ static int _parse_type_task(
 			is_anon = 0;
 			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
-				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
+				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
 			}
 			if (create_and_add_precompile_task_to_front(
 					p_traversing_engine,
@@ -358,7 +382,7 @@ static int _parse_type_task(
 		metac_type_t * type = p_precompile_task->actual_type;
 		struct _discriminator * _discriminator;
 		int is_anon;
-		int anon_members_count = 0;
+		int anon_members_count = _get_anonymous_members_count(type);
 		metac_num_t i, _i;
 		/* try to find discriminator ptr */
 		const metac_type_specification_value_t * spec =
@@ -386,7 +410,7 @@ static int _parse_type_task(
 			is_anon = 0;
 			if (strcmp(type->union_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
-				snprintf(anon_name, sizeof(anon_name), "<anon%d>", anon_members_count++);
+				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
 			}
 			if (create_and_add_precompile_task_to_front(
 					p_traversing_engine,

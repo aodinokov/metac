@@ -87,12 +87,10 @@ struct discriminator_value {
 };
 
 struct pointer {
-//	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 
 struct array {
-//	metac_array_info_t * p_array_info;
 	struct region* p_region;
 };
 
