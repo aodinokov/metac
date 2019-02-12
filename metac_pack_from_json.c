@@ -404,7 +404,7 @@ static int _runtime_task_fn(
 		assert(p_task->p__region->p_region->elements[e].region_element_type == p_task->p__region->p_region->elements[0].region_element_type);
 
 		/* create p_data for new element*/
-		p_data = calloc(p_task->p__region->p_region->elements[0].region_element_type->elements_count, sizeof(*p_data));
+		p_data = calloc(p_task->p__region->p_region->elements[0].region_element_type->members_count, sizeof(*p_data));
 		if (p_data == NULL) {
 			msg_stderr("can't allocate data for p_data\n");
 			return -ENOMEM;
@@ -420,15 +420,15 @@ static int _runtime_task_fn(
 		}
 
 		/* count children in _region_element_element_data_ and compare with number of fields - json_object_object_length */
-		for (i = 0; i < p_region_element->region_element_type->elements_count; ++i) {
-			if (p_region_element->region_element_type->element[i]->parent != NULL) {
-				msg_stddbg("%d, parent id %d\n", i, p_region_element->region_element_type->element[i]->parent->id);
-				assert(i == p_region_element->region_element_type->element[i]->id);
-				if (p_data[p_region_element->region_element_type->element[i]->parent->id].p_json == NULL)
+		for (i = 0; i < p_region_element->region_element_type->members_count; ++i) {
+			if (p_region_element->region_element_type->members[i]->parent != NULL) {
+				msg_stddbg("%d, parent id %d\n", i, p_region_element->region_element_type->members[i]->parent->id);
+				assert(i == p_region_element->region_element_type->members[i]->id);
+				if (p_data[p_region_element->region_element_type->members[i]->parent->id].p_json == NULL)
 					continue;
 				//assert(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json != NULL);
-				if (json_object_get_type(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json) != json_type_object) {
-					msg_stderr("json isn't object: %s\n", json_object_to_json_string(p_data[p_region_element->region_element_type->element[i]->parent->id].p_json));
+				if (json_object_get_type(p_data[p_region_element->region_element_type->members[i]->parent->id].p_json) != json_type_object) {
+					msg_stderr("json isn't object: %s\n", json_object_to_json_string(p_data[p_region_element->region_element_type->members[i]->parent->id].p_json));
 					metac_array_info_delete(&array_counter);
 					return -ENOMEM;
 				}
@@ -442,21 +442,21 @@ ERR:metac_pack_from_json.c:448:_runtime_task_fn: there are not used fields: got 
 json_from_packed_obj:
  [ [ { "e": "0", "a": "0", "b": "0", "c": "0", "d": "0.000000" } ] ]
 				 * */
-				if (strlen(p_region_element->region_element_type->element[i]->name_local) > 0) {
+				if (strlen(p_region_element->region_element_type->members[i]->name_local) > 0) {
 					p_data[i].found = json_object_object_get_ex(
-							p_data[p_region_element->region_element_type->element[i]->parent->id].p_json,
-							p_region_element->region_element_type->element[i]->name_local,
+							p_data[p_region_element->region_element_type->members[i]->parent->id].p_json,
+							p_region_element->region_element_type->members[i]->name_local,
 							&p_data[i].p_json);
-					++p_data[p_region_element->region_element_type->element[i]->parent->id].children_count;
+					++p_data[p_region_element->region_element_type->members[i]->parent->id].children_count;
 				} else {
-					p_data[i].p_json = p_data[p_region_element->region_element_type->element[i]->parent->id].p_json;
+					p_data[i].p_json = p_data[p_region_element->region_element_type->members[i]->parent->id].p_json;
 				}
 				msg_stddbg("%d, json %p\n", i, p_data[i].p_json);
 			}
 		}
 		/*found out how to understand what fields were not used*/
-		for (i = 0; i < p_region_element->region_element_type->hierarchy_elements_count; ++i) {
-			int id = p_region_element->region_element_type->hierarchy_element[i]->id;
+		for (i = 0; i < p_region_element->region_element_type->hierarchy_members_count; ++i) {
+			int id = p_region_element->region_element_type->hierarchy_members[i]->id;
 			if (p_data[id].p_json == NULL)
 				continue;
 			if (json_object_get_type(p_data[id].p_json) != json_type_object) {
@@ -475,11 +475,11 @@ json_from_packed_obj:
 		}
 		/* initialize conditions */
 		if (p_region_element->region_element_type->discriminators_count > 0) {
-			for (i = 0; i < p_region_element->region_element_type->elements_count; ++i) {
-				if (p_data[p_region_element->region_element_type->element[i]->id].p_json != NULL) {
-					if (set_region_element_precondition(p_region_element, &p_region_element->region_element_type->element[i]->precondition) != 0){
+			for (i = 0; i < p_region_element->region_element_type->members_count; ++i) {
+				if (p_data[p_region_element->region_element_type->members[i]->id].p_json != NULL) {
+					if (set_region_element_precondition(p_region_element, &p_region_element->region_element_type->members[i]->precondition) != 0){
 						msg_stderr("Element %s can't be used with others: precondition validation failed\n",
-								p_region_element->region_element_type->element[i]->path_within_region_element);
+								p_region_element->region_element_type->members[i]->path_within_region_element);
 					}
 				}
 			}
@@ -497,7 +497,7 @@ json_from_packed_obj:
 			metac_byte_size_t elements_byte_size;
 			struct _region * _region;
 			json_object * p_json_current;
-			int id = p_region_element->region_element_type->array_type_element[i]->id;
+			int id = p_region_element->region_element_type->array_type_members[i]->id;
 			if (p_data[id].p_json == NULL)
 				continue;
 			if (json_object_get_type(p_data[id].p_json) != json_type_array) {
@@ -507,15 +507,15 @@ json_from_packed_obj:
 				return -EINVAL;
 			}
 			assert(json_object_array_length(p_task->p__region->p_json));
-			assert(p_region_element->region_element_type->array_type_element[i]->type->id == DW_TAG_array_type);
+			assert(p_region_element->region_element_type->array_type_members[i]->type->id == DW_TAG_array_type);
 
-			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->array_type_element[i]->type);
+			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->array_type_members[i]->type);
 			if (p_array_info == NULL) {
 				msg_stderr("metac_array_info_create failed - exiting\n");
 				metac_array_info_delete(&array_counter);
 				return -EFAULT;
 			}
-			if (p_region_element->region_element_type->array_type_element[i]->type->array_type_info.is_flexible) {
+			if (p_region_element->region_element_type->array_type_members[i]->type->array_type_info.is_flexible) {
 				p_array_info->subranges[0].count = json_object_array_length(p_data[id].p_json);
 				/*TBD: incorrect - insert the part that implemented for non flexible*/
 				/*inform that the size is the following*/
@@ -527,9 +527,9 @@ json_from_packed_obj:
 			/*create region and add it to the task*/
 			/* calculate overall elements_count */
 			elements_count = metac_array_info_get_element_count(p_array_info);
-			msg_stddbg("elements_count: %d\n", (int)elements_count);
-			elements_byte_size = p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type?
-					metac_type_byte_size(p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type->type):0;
+			msg_stddbg("elements_count: %d\n", (int)members_count);
+			elements_byte_size = p_region_element->region_element_type->array_type_members[i]->array_elements_region_element_type?
+					metac_type_byte_size(p_region_element->region_element_type->array_type_members[i]->array_elements_region_element_type->type):0;
 
 			if (elements_byte_size == 0 || elements_count == 0) {
 				msg_stddbg("skipping because size is 0\n");
@@ -542,7 +542,7 @@ json_from_packed_obj:
 					p_context,
 					p_data[id].p_json,
 					elements_byte_size * elements_count,
-					p_region_element->region_element_type->array_type_element[i]->array_elements_region_element_type,
+					p_region_element->region_element_type->array_type_members[i]->array_elements_region_element_type,
 					p_array_info,
 					p_task->p__region->p_region /*TODO: probably we want to store offset*/);
 			if (_region == NULL) {
@@ -556,12 +556,12 @@ json_from_packed_obj:
 			if (p_task->p__region->p_region->part_of_region == NULL) {
 				_region->p_region->location.region_idx = p_task->p__region->p_region->unique_region_id;
 				_region->p_region->location.offset =
-						p_region_element->byte_size * i + p_region_element->region_element_type->array_type_element[i]->offset;
+						p_region_element->byte_size * i + p_region_element->region_element_type->array_type_members[i]->offset;
 			}else{
 				_region->p_region->location.region_idx = p_task->p__region->p_region->location.region_idx;
 				_region->p_region->location.offset =
 						p_task->p__region->p_region->location.offset +
-						p_region_element->byte_size * i + p_region_element->region_element_type->array_type_element[i]->offset;
+						p_region_element->byte_size * i + p_region_element->region_element_type->array_type_members[i]->offset;
 			}
 			/* add task to handle this region fields properly */
 			/*create the new task for this region*/
@@ -577,7 +577,7 @@ json_from_packed_obj:
 
 		/*handle pointers - if offset is 0 - create unique region and store it immediately. if offset isn't 0 - find region with the same id and offset,
 		 * if no such - create like for array(handle location)*/
-		for (i = 0; i < p_region_element->region_element_type->pointer_type_elements_count; ++i) {
+		for (i = 0; i < p_region_element->region_element_type->pointer_type_members_count; ++i) {
 			int j;
 			void * new_ptr;
 			int children = 0;
@@ -591,7 +591,7 @@ json_from_packed_obj:
 			metac_byte_size_t elements_byte_size;
 			struct _region * _region;
 			json_object * p_json_current;
-			int id = p_region_element->region_element_type->pointer_type_element[i]->id;
+			int id = p_region_element->region_element_type->pointer_type_members[i]->id;
 
 			if (p_data[id].p_json == NULL)
 				continue;
@@ -632,7 +632,7 @@ json_from_packed_obj:
 
 			p_json_region = json_object_array_get_idx(p_context->p_json, json_object_get_int(p_json_region_id));
 
-			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->pointer_type_element[i]->type);
+			p_array_info = metac_array_info_create_from_type(p_region_element->region_element_type->pointer_type_members[i]->type);
 			if (p_array_info == NULL) {
 				msg_stderr("metac_array_info_create failed - exiting\n");
 				metac_array_info_delete(&array_counter);
@@ -640,7 +640,7 @@ json_from_packed_obj:
 			}
 			p_array_info->subranges[0].count = json_object_array_length(p_json_region);
 
-			if (p_region_element->region_element_type->pointer_type_element[i]->array_elements_count_funtion_ptr == NULL) {
+			if (p_region_element->region_element_type->pointer_type_members[i]->array_elements_count_funtion_ptr == NULL) {
 				msg_stddbg("skipping because don't have a cb to determine elements count\n");
 				metac_array_info_delete(&p_array_info);
 				continue; /*we don't handle pointers if we can't get fn*/
@@ -648,9 +648,9 @@ json_from_packed_obj:
 
 			/* calculate byte_size using length */
 			elements_count = metac_array_info_get_element_count(p_array_info);
-			msg_stddbg("elements_count: %d\n", (int)elements_count);
-			elements_byte_size = p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type?
-					metac_type_byte_size(p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type->type):0;
+			msg_stddbg("elements_count: %d\n", (int)members_count);
+			elements_byte_size = p_region_element->region_element_type->pointer_type_members[i]->array_elements_region_element_type?
+					metac_type_byte_size(p_region_element->region_element_type->pointer_type_members[i]->array_elements_region_element_type->type):0;
 
 			if (elements_byte_size == 0 || elements_count == 0) {
 				msg_stddbg("skipping because size is 0\n");
@@ -669,7 +669,7 @@ json_from_packed_obj:
 					p_context,
 					p_json_region,
 					elements_byte_size * elements_count,
-					p_region_element->region_element_type->pointer_type_element[i]->array_elements_region_element_type,
+					p_region_element->region_element_type->pointer_type_members[i]->array_elements_region_element_type,
 					p_array_info,
 					NULL);
 			if (_region == NULL) {
@@ -850,8 +850,8 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 		}
 		/*set pointers*/
 		for (j = 0; j < _region->p_region->elements_count; ++j) {
-			for (k = 0; k < _region->p_region->elements[j].region_element_type->pointer_type_elements_count; ++k) {
-				int id = _region->p_region->elements[j].region_element_type->pointer_type_element[k]->id;
+			for (k = 0; k < _region->p_region->elements[j].region_element_type->pointer_type_members_count; ++k) {
+				int id = _region->p_region->elements[j].region_element_type->pointer_type_members[k]->id;
 				if (_region->pp_data[j] != NULL &&
 					_region->pp_data[j][id].p_json != NULL) {
 					void * ptr_val;
@@ -875,18 +875,18 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 					}
 					/*set ptr*/
 					assert(_region->p_region->elements[j].ptr);
-					assert(_region->p_region->elements[j].region_element_type->pointer_type_element[k]->offset < _region->p_region->elements[j].byte_size);
+					assert(_region->p_region->elements[j].region_element_type->pointer_type_members[k]->offset < _region->p_region->elements[j].byte_size);
 
 					msg_stddbg("pointer at %p set to %p\n",
-							_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->pointer_type_element[k]->offset,
+							_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->pointer_type_members[k]->offset,
 							ptr_val);
 
-					*((void**)(_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->pointer_type_element[k]->offset)) = ptr_val;
+					*((void**)(_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->pointer_type_members[k]->offset)) = ptr_val;
 				}
 			}
 			/*handle base - TODO:make a warning if we're writing to non 0 and value isn't the same*/
-			for (k = 0; k < _region->p_region->elements[j].region_element_type->base_type_elements_count; ++k) {
-				int id = _region->p_region->elements[j].region_element_type->base_type_element[k]->id;
+			for (k = 0; k < _region->p_region->elements[j].region_element_type->base_type_members_count; ++k) {
+				int id = _region->p_region->elements[j].region_element_type->base_type_members[k]->id;
 				if (_region->pp_data[j] != NULL &&
 					_region->pp_data[j][id].p_json != NULL) {
 					if (json_object_get_type(_region->pp_data[j][id].p_json) != json_type_string) {
@@ -898,12 +898,12 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 					}
 					/*pack base from json*/
 					if (_metac_base_type_from_json(
-							_region->p_region->elements[j].region_element_type->base_type_element[k]->type,
+							_region->p_region->elements[j].region_element_type->base_type_members[k]->type,
 							_region->pp_data[j][id].p_json,
-							_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->base_type_element[k]->offset,
-							_region->p_region->elements[j].region_element_type->base_type_element[k]->p_bit_offset,
-							_region->p_region->elements[j].region_element_type->base_type_element[k]->p_bit_size,
-							_region->p_region->elements[j].region_element_type->base_type_element[k]->byte_size ) != 0) {
+							_region->p_region->elements[j].ptr + _region->p_region->elements[j].region_element_type->base_type_members[k]->offset,
+							_region->p_region->elements[j].region_element_type->base_type_members[k]->p_bit_offset,
+							_region->p_region->elements[j].region_element_type->base_type_members[k]->p_bit_size,
+							_region->p_region->elements[j].region_element_type->base_type_members[k]->byte_size ) != 0) {
 						msg_stderr("_metac_base_type_from_json failed for : %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);
@@ -913,8 +913,8 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 				}
 			}
 			/*handle enums - TODO:make a warning if we're writing to non 0 and value isn't the same*/
-			for (k = 0; k < _region->p_region->elements[j].region_element_type->enum_type_elements_count; ++k) {
-				int id = _region->p_region->elements[j].region_element_type->enum_type_element[k]->id;
+			for (k = 0; k < _region->p_region->elements[j].region_element_type->enum_type_members_count; ++k) {
+				int id = _region->p_region->elements[j].region_element_type->enum_type_members[k]->id;
 				if (_region->pp_data[j] != NULL &&
 					_region->pp_data[j][id].p_json != NULL) {
 					if (json_object_get_type(_region->pp_data[j][id].p_json) != json_type_string) {
@@ -928,8 +928,8 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 					if (_metac_enumeration_type_from_json(
 							_region->p_region->elements[j].region_element_type->type,
 							_region->pp_data[j][id].p_json,
-							_region->p_region->elements[j].ptr +  _region->p_region->elements[j].region_element_type->enum_type_element[k]->offset,
-							_region->p_region->elements[j].region_element_type->enum_type_element[k]->byte_size ) != 0) {
+							_region->p_region->elements[j].ptr +  _region->p_region->elements[j].region_element_type->enum_type_members[k]->offset,
+							_region->p_region->elements[j].region_element_type->enum_type_members[k]->byte_size ) != 0) {
 						msg_stderr("_metac_enumeration_type_from_json failed for : %s\n",
 								json_object_to_json_string(_region->pp_data[j][id].p_json));
 						cleanup_runtime_context(&context);

@@ -30,35 +30,35 @@ static void dump_discriminator(FILE * file, struct discriminator * p_discriminat
 			p_discriminator->discriminator_cb,
 			p_discriminator->discriminator_cb_context);
 }
-static void dump_region_element_type_element(FILE * file, struct region_element_type_element * p_region_element_type_element) {
+static void dump_region_element_type_member(FILE * file, struct region_element_type_member * p_region_element_type_member) {
 
-	fprintf(file, "\t\tregion_element_type_element {\n");
-	fprintf(file, "\t\t\tid %d\n", (int)p_region_element_type_element->id);
-	fprintf(file, "\t\t\tparent %p\n", p_region_element_type_element->parent);
-	if (p_region_element_type_element->precondition.p_discriminator) {
+	fprintf(file, "\t\tregion_element_type_member {\n");
+	fprintf(file, "\t\t\tid %d\n", (int)p_region_element_type_member->id);
+	fprintf(file, "\t\t\tparent %p\n", p_region_element_type_member->parent);
+	if (p_region_element_type_member->precondition.p_discriminator) {
 		fprintf(file, "\t\t\tprecondition discriminator: %d, \n"
 				"\t\t\texpected value: %d\n",
-				p_region_element_type_element->precondition.p_discriminator->id,
-				p_region_element_type_element->precondition.expected_discriminator_value);
+				p_region_element_type_member->precondition.p_discriminator->id,
+				p_region_element_type_member->precondition.expected_discriminator_value);
 	}
-	if (p_region_element_type_element->type->name) {
-		fprintf(file, "\t\t\ttype.name %s\n", p_region_element_type_element->type->name);
+	if (p_region_element_type_member->type->name) {
+		fprintf(file, "\t\t\ttype.name %s\n", p_region_element_type_member->type->name);
 	}
 	{
-		fprintf(file, "\t\t\tname_local %s\n", p_region_element_type_element->name_local);
-		fprintf(file, "\t\t\tpath_within_region_element %s\n", p_region_element_type_element->path_within_region_element);
-		fprintf(file, "\t\t\tpath_global %s\n", p_region_element_type_element->path_global);
-		fprintf(file, "\t\t\toffset %d\n", (int)p_region_element_type_element->offset);
-		fprintf(file, "\t\t\tbyte_size %d\n", (int)p_region_element_type_element->byte_size);
+		fprintf(file, "\t\t\tname_local %s\n", p_region_element_type_member->name_local);
+		fprintf(file, "\t\t\tpath_within_region_element %s\n", p_region_element_type_member->path_within_region_element);
+		fprintf(file, "\t\t\tpath_global %s\n", p_region_element_type_member->path_global);
+		fprintf(file, "\t\t\toffset %d\n", (int)p_region_element_type_member->offset);
+		fprintf(file, "\t\t\tbyte_size %d\n", (int)p_region_element_type_member->byte_size);
 	}
-	if (p_region_element_type_element->array_elements_count_funtion_ptr != NULL) {
-		fprintf(file, "\t\t\tarray_elements_count_funtion_ptr %p\n", p_region_element_type_element->array_elements_count_funtion_ptr);
+	if (p_region_element_type_member->array_elements_count_funtion_ptr != NULL) {
+		fprintf(file, "\t\t\tarray_elements_count_funtion_ptr %p\n", p_region_element_type_member->array_elements_count_funtion_ptr);
 	}
-	if (p_region_element_type_element->array_elements_count_cb_context != NULL) {
-		fprintf(file, "\t\t\tarray_elements_count_cb_context %p\n", p_region_element_type_element->array_elements_count_cb_context);
+	if (p_region_element_type_member->array_elements_count_cb_context != NULL) {
+		fprintf(file, "\t\t\tarray_elements_count_cb_context %p\n", p_region_element_type_member->array_elements_count_cb_context);
 	}
-	if (p_region_element_type_element->array_elements_region_element_type != NULL) {
-		fprintf(file, "\t\t\tarray_elements_region_element_type %p\n", p_region_element_type_element->array_elements_region_element_type);
+	if (p_region_element_type_member->array_elements_region_element_type != NULL) {
+		fprintf(file, "\t\t\tarray_elements_region_element_type %p\n", p_region_element_type_member->array_elements_region_element_type);
 	}
 
 	fprintf(file, "\t\t}\n");
@@ -73,13 +73,13 @@ static void dump_region_element_type(FILE * file, struct region_element_type * p
 		}
 		fprintf(file, "\t]\n");
 	}
-	fprintf(file, "\telements_count: %d\n", p_region_element_type->elements_count);
-	fprintf(file, "\tpointer_type_elements_count: %d\n", p_region_element_type->pointer_type_elements_count);
-	fprintf(file, "\tarray_type_elements_count: %d\n", p_region_element_type->array_type_elements_count);
-	if (p_region_element_type->elements_count > 0) {
-		fprintf(file, "\telements: [\n");
-		for (i = 0 ; i < p_region_element_type->elements_count; i++) {
-			dump_region_element_type_element(file, p_region_element_type->element[i]);
+	fprintf(file, "\tmembers_count: %d\n", p_region_element_type->members_count);
+	fprintf(file, "\tpointer_type_members_count: %d\n", p_region_element_type->pointer_type_members_count);
+	fprintf(file, "\tarray_type_members_count: %d\n", p_region_element_type->array_type_elements_count);
+	if (p_region_element_type->members_count > 0) {
+		fprintf(file, "\tmembers: [\n");
+		for (i = 0 ; i < p_region_element_type->members_count; i++) {
+			dump_region_element_type_member(file, p_region_element_type->members[i]);
 		}
 		fprintf(file, "\t]\n");
 	}
@@ -136,15 +136,15 @@ struct discriminator * create_discriminator(
 	return p_discriminator;
 }
 /*****************************************************************************/
-int delete_region_element_type_element(struct region_element_type_element **pp_region_element_type_element) {
-	struct region_element_type_element *p_region_element_type_element;
+int delete_region_element_type_member(struct region_element_type_member **pp_region_element_type_member) {
+	struct region_element_type_member *p_region_element_type_element;
 
-	if (pp_region_element_type_element == NULL) {
+	if (pp_region_element_type_member == NULL) {
 		msg_stderr("Can't delete region_element_type_element: invalid parameter\n");
 		return -EINVAL;
 	}
 
-	p_region_element_type_element = *pp_region_element_type_element;
+	p_region_element_type_element = *pp_region_element_type_member;
 	if (p_region_element_type_element == NULL) {
 		msg_stderr("Can't delete region_element_type_element: already deleted\n");
 		return -EALREADY;
@@ -163,28 +163,28 @@ int delete_region_element_type_element(struct region_element_type_element **pp_r
 		p_region_element_type_element->path_global = NULL;
 	}
 	free(p_region_element_type_element);
-	*pp_region_element_type_element = NULL;
+	*pp_region_element_type_member = NULL;
 
 	return 0;
 }
 
-void update_region_element_type_element_array_params(
-		struct region_element_type_element *p_region_element_type_element,
+void update_region_element_type_member_array_params(
+		struct region_element_type_member *p_region_element_type_member,
 		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr,
 		void *	array_elements_count_cb_context,
 		struct region_element_type * array_elements_region_element_type) {
-	p_region_element_type_element->array_elements_count_funtion_ptr = array_elements_count_funtion_ptr;
-	p_region_element_type_element->array_elements_count_cb_context = array_elements_count_cb_context;
-	p_region_element_type_element->array_elements_region_element_type = array_elements_region_element_type;
+	p_region_element_type_member->array_elements_count_funtion_ptr = array_elements_count_funtion_ptr;
+	p_region_element_type_member->array_elements_count_cb_context = array_elements_count_cb_context;
+	p_region_element_type_member->array_elements_region_element_type = array_elements_region_element_type;
 }
 
-struct region_element_type_element * create_region_element_type_element(
+struct region_element_type_member * create_region_element_type_member(
 		struct metac_type * type,
 		struct discriminator * p_discriminator,
 		metac_discriminator_value_t expected_discriminator_value,
 		metac_data_member_location_t offset,
 		metac_byte_size_t byte_size,
-		struct region_element_type_element * parent,
+		struct region_element_type_member * parent,
 		char *	name_local,
 		char *	path_within_region,
 		char *	path_global,
@@ -192,7 +192,7 @@ struct region_element_type_element * create_region_element_type_element(
 		void *	array_elements_count_cb_context,
 		struct region_element_type * array_elements_region_element_type) {
 
-	struct region_element_type_element *p_region_element_type_element;
+	struct region_element_type_member *p_region_element_type_member;
 
 	if (type == NULL) {
 		msg_stderr("invalid argument\n");
@@ -205,38 +205,38 @@ struct region_element_type_element * create_region_element_type_element(
 			name_local, path_within_region, path_global,
 			(int)offset, (int)byte_size);
 
-	p_region_element_type_element = calloc(1, sizeof(*(p_region_element_type_element)));
-	if (p_region_element_type_element == NULL) {
+	p_region_element_type_member = calloc(1, sizeof(*(p_region_element_type_member)));
+	if (p_region_element_type_member == NULL) {
 		msg_stderr("Can't create region_element_type_element: no memory\n");
 		return NULL;
 	}
 
-	p_region_element_type_element->type = type;
+	p_region_element_type_member->type = type;
 
 	if (p_discriminator != NULL) {	/*copy precondition*/
-		p_region_element_type_element->precondition.p_discriminator = p_discriminator;
-		p_region_element_type_element->precondition.expected_discriminator_value = expected_discriminator_value;
+		p_region_element_type_member->precondition.p_discriminator = p_discriminator;
+		p_region_element_type_member->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
-	p_region_element_type_element->offset = offset;
-	p_region_element_type_element->byte_size = byte_size;
+	p_region_element_type_member->offset = offset;
+	p_region_element_type_member->byte_size = byte_size;
 
-	p_region_element_type_element->parent = parent;
+	p_region_element_type_member->parent = parent;
 
-	p_region_element_type_element->name_local = (name_local != NULL)?strdup(name_local):NULL;
-	p_region_element_type_element->path_within_region_element = (path_within_region != NULL)?strdup(path_within_region):NULL;
-	p_region_element_type_element->path_global = (path_global != NULL)?strdup(path_global):NULL;;
-	if (	(name_local != NULL && p_region_element_type_element->name_local == NULL) ||
-			(path_within_region != NULL && p_region_element_type_element->path_within_region_element == NULL) ||
-			(path_global != NULL && p_region_element_type_element->path_global == NULL) ) {
-		delete_region_element_type_element(&p_region_element_type_element);
+	p_region_element_type_member->name_local = (name_local != NULL)?strdup(name_local):NULL;
+	p_region_element_type_member->path_within_region_element = (path_within_region != NULL)?strdup(path_within_region):NULL;
+	p_region_element_type_member->path_global = (path_global != NULL)?strdup(path_global):NULL;;
+	if (	(name_local != NULL && p_region_element_type_member->name_local == NULL) ||
+			(path_within_region != NULL && p_region_element_type_member->path_within_region_element == NULL) ||
+			(path_global != NULL && p_region_element_type_member->path_global == NULL) ) {
+		delete_region_element_type_member(&p_region_element_type_member);
 		return NULL;
 	}
 
-	update_region_element_type_element_array_params(p_region_element_type_element,
+	update_region_element_type_member_array_params(p_region_element_type_member,
 			array_elements_count_funtion_ptr, array_elements_count_cb_context, array_elements_region_element_type);
 
-	return p_region_element_type_element;
+	return p_region_element_type_member;
 }
 /*****************************************************************************/
 int delete_region_element_type(struct region_element_type ** pp_region_element_type) {
@@ -254,21 +254,21 @@ int delete_region_element_type(struct region_element_type ** pp_region_element_t
 		return -EALREADY;
 	}
 
-	for (i = 0; i < p_region_element_type->elements_count; i++) {
-		delete_region_element_type_element(&p_region_element_type->element[i]);
+	for (i = 0; i < p_region_element_type->members_count; i++) {
+		delete_region_element_type_member(&p_region_element_type->members[i]);
 	}
-	free(p_region_element_type->element);
-	p_region_element_type->element = NULL;
-	free(p_region_element_type->base_type_element);
-	p_region_element_type->base_type_element = NULL;
-	free(p_region_element_type->enum_type_element);
-	p_region_element_type->enum_type_element = NULL;
-	free(p_region_element_type->pointer_type_element);
-	p_region_element_type->pointer_type_element = NULL;
-	free(p_region_element_type->array_type_element);
-	p_region_element_type->array_type_element = NULL;
-	free(p_region_element_type->hierarchy_element);
-	p_region_element_type->hierarchy_element = NULL;
+	free(p_region_element_type->members);
+	p_region_element_type->members = NULL;
+	free(p_region_element_type->base_type_members);
+	p_region_element_type->base_type_members = NULL;
+	free(p_region_element_type->enum_type_members);
+	p_region_element_type->enum_type_members = NULL;
+	free(p_region_element_type->pointer_type_members);
+	p_region_element_type->pointer_type_members = NULL;
+	free(p_region_element_type->array_type_members);
+	p_region_element_type->array_type_members = NULL;
+	free(p_region_element_type->hierarchy_members);
+	p_region_element_type->hierarchy_members = NULL;
 
 	for (i = 0; i < p_region_element_type->discriminators_count; i++) {
 		delete_discriminator(&p_region_element_type->discriminator[i]);
@@ -306,18 +306,18 @@ struct region_element_type * create_region_element_type(
 	p_region_element_type->discriminators_count = 0;
 	p_region_element_type->discriminator = NULL;
 
-	p_region_element_type->elements_count = 0;
-	p_region_element_type->element = NULL;
+	p_region_element_type->members_count = 0;
+	p_region_element_type->members = NULL;
 
-	p_region_element_type->hierarchy_element = NULL;
-	p_region_element_type->hierarchy_elements_count = 0;
-	p_region_element_type->base_type_element = NULL;
-	p_region_element_type->base_type_elements_count = 0;
-	p_region_element_type->enum_type_element = NULL;
-	p_region_element_type->enum_type_elements_count = 0;
-	p_region_element_type->pointer_type_element = NULL;
-	p_region_element_type->pointer_type_elements_count = 0;
-	p_region_element_type->array_type_element = NULL;
+	p_region_element_type->hierarchy_members = NULL;
+	p_region_element_type->hierarchy_members_count = 0;
+	p_region_element_type->base_type_members = NULL;
+	p_region_element_type->base_type_members_count = 0;
+	p_region_element_type->enum_type_members = NULL;
+	p_region_element_type->enum_type_members_count = 0;
+	p_region_element_type->pointer_type_members = NULL;
+	p_region_element_type->pointer_type_members_count = 0;
+	p_region_element_type->array_type_members = NULL;
 	p_region_element_type->array_type_elements_count = 0;
 
 	return p_region_element_type;
@@ -517,10 +517,10 @@ int init_region_element(
 		}
 	}
 
-	if (region_element_type->pointer_type_elements_count > 0 &&
+	if (region_element_type->pointer_type_members_count > 0 &&
 		p_region_element->p_pointer == NULL) {
 		p_region_element->p_pointer =
-				calloc(region_element_type->pointer_type_elements_count, sizeof(*(p_region_element->p_pointer)));
+				calloc(region_element_type->pointer_type_members_count, sizeof(*(p_region_element->p_pointer)));
 		if (p_region_element->p_pointer == NULL) {
 			msg_stderr("Can't create region_element's pointers array: no memory\n");
 			cleanup_region_element(p_region_element);
