@@ -42,7 +42,7 @@ all: metac_type_ut_001.run metac_type_ut_001.metac.c
 %.run: % _always_
 	#./$<
 	which valgrind && CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$< || ./$< 
-	#which valgrind && valgrind --trace-children=yes --leak-check=full --show-leak-kinds=all --track-origins=yes./$< || ./$<
+	#which valgrind && valgrind --trace-children=yes --leak-check=full --show-leak-kinds=all --track-origins=yes ./$< || ./$<
 
 # documentation
 doc: _always_

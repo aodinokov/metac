@@ -183,7 +183,8 @@ static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 	return 0;
 }
 
-static struct precompile_task* create_and_add_precompile_task_to_front(
+static struct precompile_task* create_and_add_precompile_task(
+		int to_front,
 		struct traversing_engine* p_traversing_engine,
 		struct precompile_task * parent_task,
 		struct _region_element_type * _region_element_type,
@@ -227,10 +228,18 @@ static struct precompile_task* create_and_add_precompile_task_to_front(
 		p_task->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
-	if (add_traversing_task_to_front(p_traversing_engine, &p_task->task) != 0) {
-		msg_stderr("add_breadthfirst_task failed\n");
-		free(p_task);
-		return NULL;
+	if (to_front) {
+		if (add_traversing_task_to_front(p_traversing_engine, &p_task->task) != 0) {
+			msg_stderr("add_traversing_task_to_front failed\n");
+			free(p_task);
+			return NULL;
+		}
+	} else {
+		if (add_traversing_task_to_tail(p_traversing_engine, &p_task->task) != 0) {
+			msg_stderr("add_traversing_task_to_tail failed\n");
+			free(p_task);
+			return NULL;
+		}
 	}
 	return p_task;
 }
@@ -360,7 +369,8 @@ static int _parse_type_task(
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
 			}
-			if (create_and_add_precompile_task_to_front(
+			if (create_and_add_precompile_task(
+					1,
 					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
@@ -412,7 +422,8 @@ static int _parse_type_task(
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
 			}
-			if (create_and_add_precompile_task_to_front(
+			if (create_and_add_precompile_task(
+					1,
 					p_traversing_engine,
 					p_precompile_task,
 					p_precompile_task->_region_element_type,
@@ -505,7 +516,8 @@ static int _parse_type_task(
 				array_elements__region_element_type->p_region_element_type);
 
 		if (new_region_was_created != 0) {
-			if (create_and_add_precompile_task_to_front(
+			if (create_and_add_precompile_task(
+					p_precompile_task->actual_type->id == DW_TAG_array_type?1:0,
 					p_traversing_engine,
 					p_precompile_task,
 					array_elements__region_element_type,
@@ -714,7 +726,11 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 		return NULL;
 	}
 
-	if (create_and_add_precompile_task_to_front(&context.traversing_engine, NULL, find_or_create__region_element_type(&context, metac_type_actual_type(type), NULL),
+	if (create_and_add_precompile_task(
+			1,
+			&context.traversing_engine,
+			NULL,
+			simply_create__region_element_type(&context, metac_type_actual_type(type)),
 			type,
 			_parse_type_task,
 			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
