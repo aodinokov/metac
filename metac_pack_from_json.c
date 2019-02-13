@@ -515,13 +515,12 @@ json_from_packed_obj:
 				metac_array_info_delete(&array_counter);
 				return -EFAULT;
 			}
-			if (p_region_element->region_element_type->array_type_members[i]->type->array_type_info.is_flexible) {
+
+			/* handle flexible array: get array length (only 1 dimension is changeable) */
+			if (p_task->p__region->p_region->part_of_region == NULL &&
+				p_region_element->region_element_type->array_type_members[i]->is_flexible &&
+				p_task->p__region->p_region->elements_count == 1) {
 				p_array_info->subranges[0].count = json_object_array_length(p_data[id].p_json);
-				/*TBD: incorrect - insert the part that implemented for non flexible*/
-				/*inform that the size is the following*/
-				if (p_task->p__region->p_region->elements_count > 1) {
-					msg_stderr("Warning: flexible array is used within structure that is used within array\n");
-				}
 			}
 
 			/*create region and add it to the task*/
@@ -552,6 +551,14 @@ json_from_packed_obj:
 				return -EFAULT;
 			}
 
+			/* handle flex array: region size*/
+			if (p_task->p__region->p_region->part_of_region == NULL &&
+				p_region_element->region_element_type->array_type_members[i]->is_flexible &&
+				p_task->p__region->p_region->elements_count == 1) {
+				p_task->p__region->p_region->byte_size += elements_byte_size * elements_count;
+				p_task->p__region->p_region->elements[0].byte_size += elements_byte_size * elements_count;
+			}
+
 			p_region_element->p_array[i].p_region = _region->p_region;
 			if (p_task->p__region->p_region->part_of_region == NULL) {
 				_region->p_region->location.region_idx = p_task->p__region->p_region->unique_region_id;
@@ -563,6 +570,7 @@ json_from_packed_obj:
 						p_task->p__region->p_region->location.offset +
 						p_region_element->byte_size * i + p_region_element->region_element_type->array_type_members[i]->offset;
 			}
+
 			/* add task to handle this region fields properly */
 			/*create the new task for this region*/
 			if (create_and_add_runtime_task(p_breadthfirst_engine,

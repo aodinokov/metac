@@ -352,7 +352,7 @@ static int _runtime_task_fn(
 			/* set ptr to the first element */
 			new_ptr = (void*)(p_region_element->ptr + p_region_element->region_element_type->array_type_members[i]->offset);
 
-			if (p_region_element->region_element_type->array_type_members[i]->type->array_type_info.is_flexible) {
+			if (p_region_element->region_element_type->array_type_members[i]->is_flexible) {
 				if (p_region_element->region_element_type->array_type_members[i]->array_elements_count_funtion_ptr == NULL) {
 					msg_stddbg("skipping because don't have a cb to determine elements count\n");
 					metac_array_info_delete(&p_array_info);

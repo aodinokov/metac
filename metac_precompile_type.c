@@ -223,6 +223,7 @@ static struct precompile_task* create_and_add_precompile_task(
 		metac_discriminator_value_t expected_discriminator_value,
 		char * name_local,
 		char * given_name_local,
+		metac_num_t member_id,
 		metac_data_member_location_t offset,
 		metac_bit_offset_t * p_bit_offset,
 		metac_bit_size_t * p_bit_size,
@@ -297,7 +298,11 @@ static struct precompile_task* create_and_add_precompile_task(
 			p_discriminator,
 			expected_discriminator_value,
 
+			member_id,
+
 			offset,
+			p_bit_offset,
+			p_bit_size,
 			byte_size,
 
 			(p_task->parent_task != NULL && p_task->parent_task->_region_element_type == p_task->_region_element_type)?
@@ -316,6 +321,32 @@ static struct precompile_task* create_and_add_precompile_task(
 		return NULL;
 	}
 
+	/* mark member as flexible if needed */
+	if (p_task->actual_type->id == DW_TAG_array_type &&
+		p_task->actual_type->array_type_info.is_flexible != 0) {
+		struct region_element_type_member * region_element_type_member = p_task->region_element_type_member;
+		while (region_element_type_member != NULL) {
+			if (region_element_type_member->parent != NULL && region_element_type_member->parent->type->id == DW_TAG_structure_type) {
+				msg_stddbg("%s: %d out of %d\n",
+						p_task->region_element_type_member->path_global,
+						(int)(region_element_type_member->member_id + 1),
+						(int)region_element_type_member->parent->type->structure_type_info.members_count);
+
+				if (region_element_type_member->member_id != (metac_type_actual_type(region_element_type_member->parent->type)->structure_type_info.members_count - 1)) {
+					msg_stderr("WARNING: %s flexible array can't be used as flexible, because it's not on the last place (%d out of %d)\n",
+							p_task->region_element_type_member->path_global,
+							(int)(region_element_type_member->member_id + 1),
+							(int)region_element_type_member->parent->type->structure_type_info.members_count);
+					break;
+				}
+			}
+			region_element_type_member = region_element_type_member->parent;
+			if (region_element_type_member == NULL) { /*really flexible array on the right place*/
+				msg_stddbg("%s is flexible array\n", p_task->region_element_type_member->path_global);
+				p_task->region_element_type_member->is_flexible = 1;
+			}
+		}
+	}
 
 	if (to_front) {
 		if (add_traversing_task_to_front(p_traversing_engine, &p_task->traversing_engine_task) != 0) {
@@ -371,6 +402,8 @@ static int _parse_type_task(
 
 					type->structure_type_info.members[i].name,
 					is_anon?anon_name:type->structure_type_info.members[i].name,
+
+					i,
 
 					p_precompile_task->region_element_type_member->offset + type->structure_type_info.members[i].data_member_location,
 					type->structure_type_info.members[i].p_bit_offset,
@@ -428,6 +461,8 @@ static int _parse_type_task(
 
 					type->union_type_info.members[i].name,
 					is_anon?anon_name:type->union_type_info.members[i].name,
+
+					0,
 
 					p_precompile_task->region_element_type_member->offset + type->union_type_info.members[i].data_member_location,
 					type->union_type_info.members[i].p_bit_offset,
@@ -489,6 +524,7 @@ static int _parse_type_task(
 				NULL, 0,
 				"",
 				"<ptr>", //p_precompile_task->actual_type->id == DW_TAG_pointer_type?"<ptr>":"<a_elem_n>", /*may be it's better to keep ptr for all cases*/
+				0,
 				0,
 				NULL,
 				NULL,
@@ -561,6 +597,7 @@ static int _parse_type_task(
 					NULL, 0,
 					"",
 					"<ptr>",
+					0,
 					0,
 					NULL,
 					NULL,
@@ -819,7 +856,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 			simply_create__region_element_type(&context.pointers_region_element_type_list, metac_type_actual_type(type)),
 			type,
 			_parse_type_task,
-			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
+			NULL, 0, "", "<ptr>", 0, 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
 		msg_stderr("add_initial_precompile_task failed\n");
 		cleanup_precompile_context(&context);
 		return NULL;

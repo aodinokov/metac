@@ -191,7 +191,10 @@ struct region_element_type_member * create_region_element_type_member(
 		struct metac_type * type,
 		struct discriminator * p_discriminator,
 		metac_discriminator_value_t expected_discriminator_value,
+		metac_num_t member_id,
 		metac_data_member_location_t offset,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size,
 		struct region_element_type_member * parent,
 		char *	name_local,
@@ -227,7 +230,12 @@ struct region_element_type_member * create_region_element_type_member(
 		p_region_element_type_member->precondition.expected_discriminator_value = expected_discriminator_value;
 	}
 
+	p_region_element_type_member->member_id = member_id;
 	p_region_element_type_member->offset = offset;
+
+	p_region_element_type_member->offset = offset;
+	p_region_element_type_member->p_bit_offset = p_bit_offset;
+	p_region_element_type_member->p_bit_size = p_bit_size;
 	p_region_element_type_member->byte_size = byte_size;
 
 	p_region_element_type_member->parent = parent;

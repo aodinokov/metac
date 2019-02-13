@@ -44,6 +44,10 @@ struct region_element_type_member {
 	char *							path_within_region_element;	/* path in local region element*/
 	char *							path_global;				/* path starting from the initial type via pointers etc*/
 
+	metac_num_t						member_id;					/* member*/
+	metac_num_t						members_total;				/* out of total */
+	int								is_flexible;				/* flexible member flag */
+
 	/*** used only if element is pointer or array - we create separate region element for that and length will be identified in runtime ***/
 	metac_array_elements_count_cb_ptr_t
 									array_elements_count_funtion_ptr;	/*  if pointers or arrays - overrides byte_size - in case of non-flexible arrays -
@@ -158,7 +162,10 @@ struct region_element_type_member * create_region_element_type_member(
 		struct metac_type * type,
 		struct discriminator * p_discriminator,
 		metac_discriminator_value_t expected_discriminator_value,
+		metac_num_t member_id,
 		metac_data_member_location_t offset,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
 		metac_byte_size_t byte_size,
 		struct region_element_type_member * parent,
 		char *	name_local,
