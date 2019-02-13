@@ -440,7 +440,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	struct region * region;
 	struct _region * _region;
 
-	if (p_precompiled_type->region_element_type[0]->members[0]->byte_size > byte_size) {
+	if (p_precompiled_type->pointers.region_element_type[0]->members[0]->byte_size > byte_size) {
 		msg_stderr("byte_size parameter is too small for this precompiled type\n");
 		return NULL;
 	}
@@ -471,7 +471,7 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	_region = simply_create__region(&context,
 			ptr,
 			byte_size,
-			p_precompiled_type->region_element_type[0],
+			p_precompiled_type->pointers.region_element_type[0],
 			p_array_info,
 			NULL);
 	if (_region == NULL) {

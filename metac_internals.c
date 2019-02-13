@@ -88,8 +88,17 @@ static void dump_region_element_type(FILE * file, struct region_element_type * p
 
 static void dump_precompiled_type(FILE * file, metac_precompiled_type_t * p_precompiled_type) {
 	int i;
-	for (i = 0; i<p_precompiled_type->region_element_types_count; i++) {
-		dump_region_element_type(file, p_precompiled_type->region_element_type[i]);
+	if (p_precompiled_type->pointers.region_element_types_count > 0) {
+		fprintf(file, "pointers:\n");
+		for (i = 0; i<p_precompiled_type->pointers.region_element_types_count; i++) {
+			dump_region_element_type(file, p_precompiled_type->pointers.region_element_type[i]);
+		}
+	}
+	if (p_precompiled_type->arrays.region_element_types_count > 0) {
+		fprintf(file, "arrays:\n");
+		for (i = 0; i<p_precompiled_type->arrays.region_element_types_count; i++) {
+			dump_region_element_type(file, p_precompiled_type->arrays.region_element_type[i]);
+		}
 	}
 }
 void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type) {
@@ -335,13 +344,20 @@ int delete_precompiled_type(struct metac_precompiled_type ** pp_precompiled_type
 		return -EALREADY;
 	}
 
-	for (i = 0; i < p_precompiled_type->region_element_types_count; i++) {
-		delete_region_element_type(&p_precompiled_type->region_element_type[i]);
+	for (i = 0; i < p_precompiled_type->pointers.region_element_types_count; i++) {
+		delete_region_element_type(&p_precompiled_type->pointers.region_element_type[i]);
+	}
+	for (i = 0; i < p_precompiled_type->arrays.region_element_types_count; i++) {
+		delete_region_element_type(&p_precompiled_type->arrays.region_element_type[i]);
 	}
 
-	if (p_precompiled_type->region_element_type != NULL) {
-		free(p_precompiled_type->region_element_type);
-		p_precompiled_type->region_element_type = NULL;
+	if (p_precompiled_type->pointers.region_element_type != NULL) {
+		free(p_precompiled_type->pointers.region_element_type);
+		p_precompiled_type->pointers.region_element_type = NULL;
+	}
+	if (p_precompiled_type->arrays.region_element_type != NULL) {
+		free(p_precompiled_type->arrays.region_element_type);
+		p_precompiled_type->arrays.region_element_type = NULL;
 	}
 
 	free(p_precompiled_type);
@@ -368,8 +384,12 @@ struct metac_precompiled_type * create_precompiled_type(
 
 	p_precompiled_type->type = type;
 
-	p_precompiled_type->region_element_types_count = 0;
-	p_precompiled_type->region_element_type = NULL;
+	p_precompiled_type->pointers.region_element_types_count = 0;
+	p_precompiled_type->pointers.region_element_type = NULL;
+
+	p_precompiled_type->arrays.region_element_types_count = 0;
+	p_precompiled_type->arrays.region_element_type = NULL;
+
 
 	return p_precompiled_type;
 }

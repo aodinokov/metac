@@ -83,8 +83,11 @@ struct region_element_type {
 struct metac_precompiled_type {
 	struct metac_type *				type;
 
-	int								region_element_types_count;
-	struct region_element_type **	region_element_type;
+	struct _region_element_types_array{
+		int								region_element_types_count;
+		struct region_element_type **	region_element_type;
+	}	pointers,
+		arrays;
 };
 /*****************************************************************************/
 struct discriminator_value {

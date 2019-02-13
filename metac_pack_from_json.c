@@ -757,8 +757,8 @@ static struct metac_runtime_object * create_runtime_object_from_json(
 
 	_region = simply_create__region(&context,
 			p_json_unique_region,
-			metac_type_byte_size(p_precompiled_type->region_element_type[0]->type) * metac_array_info_get_element_count(p_array_info),
-			p_precompiled_type->region_element_type[0],
+			metac_type_byte_size(p_precompiled_type->pointers.region_element_type[0]->type) * metac_array_info_get_element_count(p_array_info),
+			p_precompiled_type->pointers.region_element_type[0],
 			p_array_info,
 			NULL);
 	if (_region == NULL) {

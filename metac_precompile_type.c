@@ -37,7 +37,8 @@ struct precompile_context {
 
 	struct metac_type *type;
 	struct cds_list_head executed_tasks_queue;
-	struct cds_list_head region_element_type_list;	/*current list of all created region types for precompiled type */
+	struct cds_list_head pointers_region_element_type_list;
+	struct cds_list_head arrays_region_element_type_list;
 };
 
 struct precompile_task {
@@ -73,7 +74,7 @@ static struct _region_element_type * create__region_element_type(
 }
 
 static struct _region_element_type * simply_create__region_element_type(
-		struct precompile_context * p_precompile_context,
+		struct cds_list_head * p_list_head,
 		struct metac_type * type ) {
 	struct _region_element_type * _region_element_type = NULL;
 	/*create otherwise*/
@@ -84,12 +85,12 @@ static struct _region_element_type * simply_create__region_element_type(
 		msg_stddbg("create__region_element_type failed\n");
 		return NULL;
 	}
-	cds_list_add_tail(&_region_element_type->list, &p_precompile_context->region_element_type_list);
+	cds_list_add_tail(&_region_element_type->list, p_list_head);
 	return _region_element_type;
 }
 
 static struct _region_element_type * find_or_create__region_element_type(
-		struct precompile_context * p_precompile_context,
+		struct cds_list_head * p_list_head,
 		struct metac_type * type,
 		int * p_created_flag) {
 	/*check if region_element_type for the same type already exists*/
@@ -100,7 +101,7 @@ static struct _region_element_type * find_or_create__region_element_type(
 
 	if (p_created_flag != NULL) *p_created_flag = 0;
 
-	cds_list_for_each_entry(_region_element_type_iter, &p_precompile_context->region_element_type_list, list) {
+	cds_list_for_each_entry(_region_element_type_iter, p_list_head, list) {
 		if (_region_element_type_iter->p_region_element_type->type == type){
 			_region_element_type = _region_element_type_iter;
 			msg_stddbg("found %p\n", _region_element_type);
@@ -108,7 +109,7 @@ static struct _region_element_type * find_or_create__region_element_type(
 		}
 	}
 	if (_region_element_type == NULL) {
-		_region_element_type = simply_create__region_element_type(p_precompile_context, type);
+		_region_element_type = simply_create__region_element_type(p_list_head, type);
 		if (_region_element_type != NULL) {
 			if (p_created_flag != NULL) *p_created_flag = 1;
 		}
@@ -464,7 +465,7 @@ static int _parse_type_task(
 		}
 
 		array_elements__region_element_type = simply_create__region_element_type(
-				p_precompile_context,
+				&p_precompile_context->arrays_region_element_type_list,
 				metac_type_actual_type(array_elements_type));
 		if (array_elements__region_element_type == NULL) {
 			msg_stderr("ERROR: can't create region_element_type - exiting\n");
@@ -534,7 +535,7 @@ static int _parse_type_task(
 		}
 
 		array_elements__region_element_type = find_or_create__region_element_type(
-				p_precompile_context,
+				&p_precompile_context->pointers_region_element_type_list,
 				metac_type_actual_type(array_elements_type),
 				&new_region_was_created);
 		if (array_elements__region_element_type == NULL) {
@@ -575,6 +576,34 @@ static int _parse_type_task(
 }
 
 /*****************************************************************************/
+static int _collect_region_element_types(struct cds_list_head * from, struct _region_element_types_array * to) {
+	struct _region_element_type * _region_element_type;
+	struct _discriminator * _discriminator;
+
+	int i = 0;
+	cds_list_for_each_entry(_region_element_type, from, list) {
+		int j = 0;
+
+		to->region_element_type[i] = _region_element_type->p_region_element_type;
+
+		to->region_element_type[i]->discriminator =
+				calloc(to->region_element_type[i]->discriminators_count,
+						sizeof(*to->region_element_type[i]->discriminator));
+		if (to->region_element_type[i]->discriminator == NULL) {
+			msg_stderr("Can't allocate memory for region_element_type->discriminator\n");
+			return -ENOMEM;
+		}
+		cds_list_for_each_entry(_discriminator, &_region_element_type->discriminator_list, list) {
+			_discriminator->p_discriminator->id = j;
+			to->region_element_type[i]->discriminator[j] = _discriminator->p_discriminator;
+			j++;
+		}
+		i++;
+	}
+
+	return 0;
+}
+
 static int _calc_elements_per_type(
 		struct precompile_context *p_precompile_context,
 		struct traversing_engine_task * p_traversing_engine_task) {
@@ -597,6 +626,48 @@ static int _calc_elements_per_type(
 			++p_precompile_task->_region_element_type->p_region_element_type->hierarchy_members_count;
 	}
 	++p_precompile_task->_region_element_type->p_region_element_type->members_count;
+	return 0;
+}
+
+static int _allocate_elements_per_type(struct _region_element_types_array * to) {
+	int i;
+	for (i = 0; i < to->region_element_types_count; i++) {
+		to->region_element_type[i]->members = calloc(
+				to->region_element_type[i]->members_count,
+				sizeof(*to->region_element_type[i]->members));
+		to->region_element_type[i]->base_type_members = calloc(
+				to->region_element_type[i]->base_type_members_count,
+				sizeof(*to->region_element_type[i]->base_type_members));
+		to->region_element_type[i]->enum_type_members = calloc(
+				to->region_element_type[i]->enum_type_members_count,
+				sizeof(*to->region_element_type[i]->enum_type_members));
+		to->region_element_type[i]->array_type_members = calloc(
+				to->region_element_type[i]->array_type_elements_count,
+				sizeof(*to->region_element_type[i]->array_type_members));
+		to->region_element_type[i]->pointer_type_members = calloc(
+				to->region_element_type[i]->pointer_type_members_count,
+				sizeof(*to->region_element_type[i]->pointer_type_members));
+		to->region_element_type[i]->hierarchy_members = calloc(
+				to->region_element_type[i]->hierarchy_members_count,
+				sizeof(*to->region_element_type[i]->hierarchy_members));
+		if (	(to->region_element_type[i]->members_count > 0 && to->region_element_type[i]->members == NULL)
+			||	(to->region_element_type[i]->base_type_members_count > 0 && to->region_element_type[i]->base_type_members == NULL)
+			||	(to->region_element_type[i]->enum_type_members_count > 0 && to->region_element_type[i]->enum_type_members == NULL)
+			||	(to->region_element_type[i]->array_type_elements_count > 0 && to->region_element_type[i]->array_type_members == NULL)
+			||	(to->region_element_type[i]->pointer_type_members_count > 0 && to->region_element_type[i]->pointer_type_members == NULL)
+			||	(to->region_element_type[i]->hierarchy_members_count > 0 && to->region_element_type[i]->hierarchy_members == NULL)
+			) {
+			msg_stderr("Can't allocate memory for pointers of elements\n");
+			return -ENOMEM;
+		}
+		to->region_element_type[i]->members_count = 0;
+		to->region_element_type[i]->base_type_members_count = 0;
+		to->region_element_type[i]->enum_type_members_count = 0;
+		to->region_element_type[i]->array_type_elements_count = 0;
+		to->region_element_type[i]->pointer_type_members_count = 0;
+		to->region_element_type[i]->hierarchy_members_count = 0;
+	}
+
 	return 0;
 }
 
@@ -634,7 +705,7 @@ static int _put_elements_per_type(
 
 static metac_precompiled_type_t * _context_to_precompiled_type(
 		struct precompile_context *p_precompile_context) {
-	int i = 0;
+	int i, k;
 	metac_precompiled_type_t * precompiled_type;
 	struct traversing_engine_task * task;
 	struct _region_element_type * _region_element_type;
@@ -647,81 +718,44 @@ static metac_precompiled_type_t * _context_to_precompiled_type(
 	}
 
 	/*calculate region element types*/
-	cds_list_for_each_entry(_region_element_type, &p_precompile_context->region_element_type_list, list) {
-		++precompiled_type->region_element_types_count;
+	cds_list_for_each_entry(_region_element_type, &p_precompile_context->pointers_region_element_type_list, list) {
+		++precompiled_type->pointers.region_element_types_count;
+	}
+	cds_list_for_each_entry(_region_element_type, &p_precompile_context->arrays_region_element_type_list, list) {
+		++precompiled_type->arrays.region_element_types_count;
 	}
 
 	/* allocate memory for region_element_type array*/
-	precompiled_type->region_element_type = calloc(precompiled_type->region_element_types_count, sizeof(*precompiled_type->region_element_type));
-	if (precompiled_type->region_element_type == NULL) {
+	precompiled_type->pointers.region_element_type = calloc(precompiled_type->pointers.region_element_types_count, sizeof(*precompiled_type->pointers.region_element_type));
+	precompiled_type->arrays.region_element_type = calloc(precompiled_type->arrays.region_element_types_count, sizeof(*precompiled_type->arrays.region_element_type));
+	if (precompiled_type->pointers.region_element_type == NULL ||
+		precompiled_type->arrays.region_element_type == NULL) {
 		msg_stderr("Can't allocate memory for region_element_type\n");
 		return NULL;
 	}
 
 	/* collect region_element_types and their discriminators */
-	cds_list_for_each_entry(_region_element_type, &p_precompile_context->region_element_type_list, list) {
-		int j = 0;
-
-		precompiled_type->region_element_type[i] = _region_element_type->p_region_element_type;
-
-		precompiled_type->region_element_type[i]->discriminator =
-				calloc(precompiled_type->region_element_type[i]->discriminators_count,
-						sizeof(*precompiled_type->region_element_type[i]->discriminator));
-		if (precompiled_type->region_element_type[i]->discriminator == NULL) {
-			msg_stderr("Can't allocate memory for region_element_type->discriminator\n");
-			return NULL;
-		}
-		cds_list_for_each_entry(_discriminator, &_region_element_type->discriminator_list, list) {
-			_discriminator->p_discriminator->id = j;
-			precompiled_type->region_element_type[i]->discriminator[j] = _discriminator->p_discriminator;
-			j++;
-		}
-		i++;
+	if (
+		_collect_region_element_types(&p_precompile_context->arrays_region_element_type_list, &precompiled_type->arrays) != 0 ||
+		_collect_region_element_types(&p_precompile_context->pointers_region_element_type_list, &precompiled_type->pointers) != 0) {
+		msg_stderr("_collect_region_element_types failed\n");
+		return NULL;
 	}
 
-	/*calculate elements per type*/
+	/* calculate elements per type */
 	cds_list_for_each_entry(task, &p_precompile_context->executed_tasks_queue, list) {
 		_calc_elements_per_type(p_precompile_context, task);
 	}
 
-	/*allocate element arrays based on their number */
-	for (i = 0; i < precompiled_type->region_element_types_count; i++) {
-		precompiled_type->region_element_type[i]->members = calloc(
-				precompiled_type->region_element_type[i]->members_count,
-				sizeof(*precompiled_type->region_element_type[i]->members));
-		precompiled_type->region_element_type[i]->base_type_members = calloc(
-				precompiled_type->region_element_type[i]->base_type_members_count,
-				sizeof(*precompiled_type->region_element_type[i]->base_type_members));
-		precompiled_type->region_element_type[i]->enum_type_members = calloc(
-				precompiled_type->region_element_type[i]->enum_type_members_count,
-				sizeof(*precompiled_type->region_element_type[i]->enum_type_members));
-		precompiled_type->region_element_type[i]->array_type_members = calloc(
-				precompiled_type->region_element_type[i]->array_type_elements_count,
-				sizeof(*precompiled_type->region_element_type[i]->array_type_members));
-		precompiled_type->region_element_type[i]->pointer_type_members = calloc(
-				precompiled_type->region_element_type[i]->pointer_type_members_count,
-				sizeof(*precompiled_type->region_element_type[i]->pointer_type_members));
-		precompiled_type->region_element_type[i]->hierarchy_members = calloc(
-				precompiled_type->region_element_type[i]->hierarchy_members_count,
-				sizeof(*precompiled_type->region_element_type[i]->hierarchy_members));
-		if (	(precompiled_type->region_element_type[i]->members_count > 0 && precompiled_type->region_element_type[i]->members == NULL)
-			||	(precompiled_type->region_element_type[i]->base_type_members_count > 0 && precompiled_type->region_element_type[i]->base_type_members == NULL)
-			||	(precompiled_type->region_element_type[i]->enum_type_members_count > 0 && precompiled_type->region_element_type[i]->enum_type_members == NULL)
-			||	(precompiled_type->region_element_type[i]->array_type_elements_count > 0 && precompiled_type->region_element_type[i]->array_type_members == NULL)
-			||	(precompiled_type->region_element_type[i]->pointer_type_members_count > 0 && precompiled_type->region_element_type[i]->pointer_type_members == NULL)
-			||	(precompiled_type->region_element_type[i]->hierarchy_members_count > 0 && precompiled_type->region_element_type[i]->hierarchy_members == NULL)
-			) {
-			msg_stderr("Can't allocate memory for pointers of elements\n");
-			return NULL;
-		}
-		precompiled_type->region_element_type[i]->members_count = 0;
-		precompiled_type->region_element_type[i]->base_type_members_count = 0;
-		precompiled_type->region_element_type[i]->enum_type_members_count = 0;
-		precompiled_type->region_element_type[i]->array_type_elements_count = 0;
-		precompiled_type->region_element_type[i]->pointer_type_members_count = 0;
-		precompiled_type->region_element_type[i]->hierarchy_members_count = 0;
+	/* allocate element arrays based on their number */
+	if (
+		_allocate_elements_per_type(&precompiled_type->arrays) != 0 ||
+		_allocate_elements_per_type(&precompiled_type->pointers) != 0) {
+		msg_stderr("_allocate_elements_per_type failed\n");
+		return NULL;
 	}
 
+	/* put elements per type */
 	cds_list_for_each_entry(task, &p_precompile_context->executed_tasks_queue, list) {
 		_put_elements_per_type(p_precompile_context, task);
 	}
@@ -742,7 +776,15 @@ static void cleanup_precompile_context(struct precompile_context *p_precompile_c
 		delete_precompile_task(&p_precompile_task);
 	}
 
-	cds_list_for_each_entry_safe(_region_element_type, __region_element_type, &p_precompile_context->region_element_type_list, list) {
+	cds_list_for_each_entry_safe(_region_element_type, __region_element_type, &p_precompile_context->pointers_region_element_type_list, list) {
+		cds_list_for_each_entry_safe(_discriminator, __discriminator, &_region_element_type->discriminator_list, list) {
+			cds_list_del(&_discriminator->list);
+			free(_discriminator);
+		}
+		cds_list_del(&_region_element_type->list);
+		free(_region_element_type);
+	}
+	cds_list_for_each_entry_safe(_region_element_type, __region_element_type, &p_precompile_context->arrays_region_element_type_list, list) {
 		cds_list_for_each_entry_safe(_discriminator, __discriminator, &_region_element_type->discriminator_list, list) {
 			cds_list_del(&_discriminator->list);
 			free(_discriminator);
@@ -763,7 +805,8 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 
 	context.type = type;
 	CDS_INIT_LIST_HEAD(&context.executed_tasks_queue);
-	CDS_INIT_LIST_HEAD(&context.region_element_type_list);
+	CDS_INIT_LIST_HEAD(&context.pointers_region_element_type_list);
+	CDS_INIT_LIST_HEAD(&context.arrays_region_element_type_list);
 	if (init_traversing_engine(&context.traversing_engine) != 0){
 		msg_stderr("init_traversing_engine failed\n");
 		return NULL;
@@ -773,7 +816,7 @@ metac_precompiled_type_t * metac_precompile_type(struct metac_type *type) {
 			1,
 			&context.traversing_engine,
 			NULL,
-			simply_create__region_element_type(&context, metac_type_actual_type(type)),
+			simply_create__region_element_type(&context.pointers_region_element_type_list, metac_type_actual_type(type)),
 			type,
 			_parse_type_task,
 			NULL, 0, "", "<ptr>", 0, NULL, NULL, metac_type_byte_size(type)) == NULL) {
