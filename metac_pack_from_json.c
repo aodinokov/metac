@@ -517,10 +517,18 @@ json_from_packed_obj:
 			}
 
 			/* handle flexible array: get array length (only 1 dimension is changeable) */
-			if (p_task->p__region->p_region->part_of_region == NULL &&
-				p_region_element->region_element_type->array_type_members[i]->is_flexible &&
-				p_task->p__region->p_region->elements_count == 1) {
-				p_array_info->subranges[0].count = json_object_array_length(p_data[id].p_json);
+			if (p_region_element->region_element_type->array_type_members[i]->is_flexible) {
+				if (p_task->p__region->p_region->part_of_region == NULL &&
+					p_task->p__region->p_region->elements_count == 1) {
+					p_array_info->subranges[0].count = json_object_array_length(p_data[id].p_json);
+				} else {
+					if (json_object_array_length(p_data[id].p_json) != 0) {
+						msg_stderr("flexible array has to be ignored, but it's not empty: %s\n",
+							json_object_to_json_string(p_data[id].p_json));
+						metac_array_info_delete(&p_array_info);
+						continue;
+					}
+				}
 			}
 
 			/*create region and add it to the task*/
@@ -551,7 +559,7 @@ json_from_packed_obj:
 				return -EFAULT;
 			}
 
-			/* handle flex array: region size*/
+			/* handle flexible array: region size*/
 			if (p_task->p__region->p_region->part_of_region == NULL &&
 				p_region_element->region_element_type->array_type_members[i]->is_flexible &&
 				p_task->p__region->p_region->elements_count == 1) {
