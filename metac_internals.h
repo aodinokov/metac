@@ -45,7 +45,6 @@ struct region_element_type_member {
 	char *							path_global;				/* path starting from the initial type via pointers etc*/
 
 	metac_num_t						member_id;					/* member*/
-	metac_num_t						members_total;				/* out of total */
 	int								is_flexible;				/* flexible member flag */
 
 	/*** used only if element is pointer or array - we create separate region element for that and length will be identified in runtime ***/

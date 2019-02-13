@@ -462,7 +462,7 @@ static int _parse_type_task(
 					type->union_type_info.members[i].name,
 					is_anon?anon_name:type->union_type_info.members[i].name,
 
-					0,
+					i,
 
 					p_precompile_task->region_element_type_member->offset + type->union_type_info.members[i].data_member_location,
 					type->union_type_info.members[i].p_bit_offset,
