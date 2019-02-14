@@ -192,6 +192,37 @@ static char * build_path(char * parent_path, char * name_local){
 	return result;
 }
 /*****************************************************************************/
+enum _flexible_options {
+	foNotFlexible = 0,
+	foFlexible,
+	foFlexibleInvalid,
+};
+enum _flexible_options _is_invalid_flexible_array(
+		struct region_element_type_member * p_parent_member,
+		metac_num_t member_id,
+		struct metac_type * type) {
+	struct metac_type * actual_type = metac_type_actual_type(type);
+
+	if (actual_type->id != DW_TAG_array_type ||
+		actual_type->array_type_info.is_flexible == 0) {
+		msg_stddbg("foNotFlexible\n");
+		return foNotFlexible;
+	}
+
+	while (p_parent_member != NULL) {
+		if (p_parent_member->type->id == DW_TAG_structure_type &&
+			member_id != (p_parent_member->type->structure_type_info.members_count - 1)) {
+			msg_stddbg("foFlexibleInvalid\n");
+			return foFlexibleInvalid;
+		}
+		member_id = p_parent_member->member_id;
+		p_parent_member = p_parent_member->parent;
+	}
+
+	msg_stddbg("foFlexible\n");
+	return foFlexible;
+}
+/*****************************************************************************/
 static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 	struct precompile_task * p_ptask;
 
@@ -211,7 +242,7 @@ static int delete_precompile_task(struct precompile_task ** pp_ptask) {
 
 	return 0;
 }
-
+/*****************************************************************************/
 static struct precompile_task* create_and_add_precompile_task(
 		int to_front,
 		struct traversing_engine* p_traversing_engine,
@@ -321,31 +352,16 @@ static struct precompile_task* create_and_add_precompile_task(
 		return NULL;
 	}
 
-	/* mark member as flexible if needed */
-	if (p_task->actual_type->id == DW_TAG_array_type &&
-		p_task->actual_type->array_type_info.is_flexible != 0) {
-		struct region_element_type_member * region_element_type_member = p_task->region_element_type_member;
-		while (region_element_type_member != NULL) {
-			if (region_element_type_member->parent != NULL && region_element_type_member->parent->type->id == DW_TAG_structure_type) {
-				msg_stddbg("%s: %d out of %d\n",
-						p_task->region_element_type_member->path_global,
-						(int)(region_element_type_member->member_id + 1),
-						(int)region_element_type_member->parent->type->structure_type_info.members_count);
+	assert(p_task->parent_task == NULL ||
+			_is_invalid_flexible_array(
+				p_task->parent_task->region_element_type_member,
+				member_id,
+				type) != foFlexibleInvalid);
 
-				if (region_element_type_member->member_id != (metac_type_actual_type(region_element_type_member->parent->type)->structure_type_info.members_count - 1)) {
-					msg_stderr("WARNING: %s flexible array can't be used as flexible, because it's not on the last place (%d out of %d)\n",
-							p_task->region_element_type_member->path_global,
-							(int)(region_element_type_member->member_id + 1),
-							(int)region_element_type_member->parent->type->structure_type_info.members_count);
-					break;
-				}
-			}
-			region_element_type_member = region_element_type_member->parent;
-			if (region_element_type_member == NULL) { /*really flexible array on the right place*/
-				msg_stddbg("%s is flexible array\n", p_task->region_element_type_member->path_global);
-				p_task->region_element_type_member->is_flexible = 1;
-			}
-		}
+	if (p_task->actual_type->id == DW_TAG_array_type &&
+		p_task->actual_type->array_type_info.is_flexible) {
+		msg_stddbg("%s is flexible array\n", p_task->region_element_type_member->path_global);
+		p_task->region_element_type_member->is_flexible = 1;
 	}
 
 	if (to_front) {
@@ -384,10 +400,22 @@ static int _parse_type_task(
 			i = type->structure_type_info.members_count - _i -1;
 			char anon_name[15];
 			int is_anon = 0;
+
 			if (strcmp(type->structure_type_info.members[i].name, "") == 0) {
 				is_anon = 1;
 				snprintf(anon_name, sizeof(anon_name), "<anon%d>", --anon_members_count);
 			}
+
+			if (_is_invalid_flexible_array(
+						p_precompile_task->region_element_type_member,
+						i,
+						type->structure_type_info.members[i].type) == foFlexibleInvalid) {
+				msg_stderr("Warning: %s has invalid flexible member %s. Skipping it\n",
+						p_precompile_task->region_element_type_member->path_global,
+						is_anon?anon_name:type->structure_type_info.members[i].name);
+				continue;
+			}
+
 			if (create_and_add_precompile_task(
 					1,
 					p_traversing_engine,
