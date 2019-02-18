@@ -222,6 +222,106 @@ static struct metac_visitor _basic_visitor = {
 		.region_element_element_per_subtype = _visitor_region_element_element_per_subtype,
 };
 /*****************************************************************************/
+static struct metac_visitor2 _basic_visitor2;
+
+int _visitor2_start(
+		struct metac_visitor2 *p_visitor,
+
+		metac_count_t regions_count,
+		metac_count_t allocated_regions_count
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+int _visitor2_region(
+		struct metac_visitor2 *p_visitor,
+		metac_count_t r_id,
+
+		metac_count_t *p_parent_r_id,
+		metac_count_t *p_parent_e_id,
+		metac_count_t *p_parent_m_id,
+		/*or*/
+		metac_count_t *p_allocated_r_id,
+
+		metac_count_t elements_count,
+		metac_array_info_t * p_array_info,
+
+		void *ptr,
+		metac_byte_size_t size,
+		metac_type_t * type
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+int _visitor2_region_element(
+		struct metac_visitor2 *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+
+		metac_array_info_t * p_current_array_info,
+
+		void *ptr,
+		metac_byte_size_t size,
+		metac_count_t member_count	/*only members with true condition */
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+int _visitor2_region_element_member(
+		struct metac_visitor2 *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_count_t m_id,
+
+		metac_count_t *p_parent_m_id,
+
+		metac_type_t * type,
+		char * name_local,
+		char * path_within_region_element,
+
+		void *ptr,
+		metac_bit_offset_t * p_bit_offset,
+		metac_bit_size_t * p_bit_size,
+		metac_byte_size_t byte_size
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+int _visitor2_region_element_member_array(
+		struct metac_visitor2 *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_count_t m_id,
+
+		metac_count_t linked_r_id
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+int _visitor2_region_element_member_pointer(
+		struct metac_visitor2 *p_visitor,
+		metac_count_t r_id,
+		metac_count_t e_id,
+		metac_count_t m_id,
+
+		/*the next parameters can be NULL*/
+		metac_count_t *p_linked_r_id,
+		metac_count_t *p_linked_e_id,
+		metac_count_t *p_linked_m_id,
+		metac_data_member_location_t *p_linked_offset
+		) {
+	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
+	return 0;
+}
+static struct metac_visitor2 _basic_visitor2 = {
+		.start = _visitor2_start,
+		.region = _visitor2_region,
+		.region_element = _visitor2_region_element,
+		.region_element_member = _visitor2_region_element_member,
+		.region_element_member_array = _visitor2_region_element_member_array,
+		.region_element_member_pointer = _visitor2_region_element_member_pointer,
+};
+/*****************************************************************************/
 
 #define GENERAL_TYPE_CHECK_INIT(_type_) do { \
 		/*need to use the type, in the opposite case we'll not get type definintion in DWARF*/ \
@@ -276,6 +376,7 @@ do {\
 			_type_ *copy; \
 			memset(&x, 0, sizeof(x)); \
 			fail_unless(metac_visit(&x, sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed"); \
+			fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed"); \
 			fail_unless(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
 			fail_unless(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
 			metac_free_precompiled_type(&precompiled_type); \

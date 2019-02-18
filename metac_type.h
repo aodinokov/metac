@@ -344,6 +344,85 @@ int metac_visit(
 	int subtypes_sequence_lenth,
 	struct metac_visitor * p_visitor);
 /*****************************************************************************/
+struct metac_visitor2 {
+	int (*start)(
+			struct metac_visitor2 *p_visitor,
+
+			metac_count_t regions_count,
+			metac_count_t allocated_regions_count
+			);
+	int (*region)(
+			struct metac_visitor2 *p_visitor,
+			metac_count_t r_id,
+
+			metac_count_t *p_parent_r_id,
+			metac_count_t *p_parent_e_id,
+			metac_count_t *p_parent_m_id,
+			/*or*/
+			metac_count_t *p_allocated_r_id,
+
+			metac_count_t elements_count,
+			metac_array_info_t * p_array_info,
+
+			void *ptr,
+			metac_byte_size_t size,
+			metac_type_t * type
+			);
+	int (*region_element)(
+			struct metac_visitor2 *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+
+			metac_array_info_t * p_current_array_info,
+
+			void *ptr,
+			metac_byte_size_t size,
+			metac_count_t member_count	/*only members with true condition */
+			);
+	int (*region_element_member)(
+			struct metac_visitor2 *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			metac_count_t m_id,
+
+			metac_count_t *p_parent_m_id,
+
+			metac_type_t * type,
+			char * name_local,
+			char * path_within_region_element,
+
+			void *ptr,
+			metac_bit_offset_t * p_bit_offset,
+			metac_bit_size_t * p_bit_size,
+			metac_byte_size_t byte_size
+			);
+	int (*region_element_member_array)(
+			struct metac_visitor2 *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			metac_count_t m_id,
+
+			metac_count_t linked_r_id
+			);
+	int (*region_element_member_pointer)(
+			struct metac_visitor2 *p_visitor,
+			metac_count_t r_id,
+			metac_count_t e_id,
+			metac_count_t m_id,
+
+			/*the next parameters can be NULL*/
+			metac_count_t *p_linked_r_id,
+			metac_count_t *p_linked_e_id,
+			metac_count_t *p_linked_m_id,
+			metac_data_member_location_t *p_linked_offset
+			);
+};
+int metac_visit2(
+	void *ptr,
+	metac_precompiled_type_t * precompiled_type,
+	metac_count_t elements_count,
+	struct metac_visitor2 * p_visitor);
+/*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;
 	struct {

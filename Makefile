@@ -30,6 +30,7 @@ metac_objs = \
 	metac_internals.o \
 	metac_precompile_type.o \
 	metac_runtime.o \
+	metac_runtime2.o \
 	metac_pack_from_json.o \
 	metac_unpack_to_json.o
 

@@ -568,14 +568,14 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 			}
 			context.runtime_object->region[i]->part_of_region = region;
 		} else {
-			region = context.runtime_object->region[0];
+			region = context.runtime_object->region[0/*i???*/];
 			++context.runtime_object->unique_regions_count;
 		}
 	}
 
 	msg_stddbg("unique_regions_count: %d\n", (int)context.runtime_object->unique_regions_count);
-	context.runtime_object->unique_region = calloc(context.runtime_object->unique_regions_count, sizeof(*(context.runtime_object->region)));
-	if (context.runtime_object->region == NULL) {
+	context.runtime_object->unique_region = calloc(context.runtime_object->unique_regions_count, sizeof(*(context.runtime_object->unique_region)));
+	if (context.runtime_object->unique_region == NULL) {
 		msg_stderr("Can't allocate memory for unique_region array in runtime_object\n");
 
 		cds_list_for_each_entry(_region, &context.region_list, list) {

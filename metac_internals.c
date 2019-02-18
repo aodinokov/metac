@@ -694,6 +694,190 @@ int update_region_ptr(
 
 	return 0;
 }
+/*****************************************************************************/
+int
+delete_region2(
+		struct region2 **pp_region) {
+	struct region2 *p_region;
+	int i;
+
+	if (pp_region == NULL) {
+		msg_stderr("Can't delete region: invalid parameter\n");
+		return -EINVAL;
+	}
+
+	p_region = *pp_region;
+	if (p_region == NULL) {
+		return -EALREADY;
+	}
+
+	if (p_region->links != NULL) {
+		free(p_region->links);
+		p_region->links = NULL;
+	}
+
+	if (p_region->elements != NULL) {
+		for (i = 0; i < p_region->elements_count; i++){
+			cleanup_region_element(&p_region->elements[i]);
+		}
+		free(p_region->elements);
+		p_region->elements = NULL;
+	}
+
+	if (p_region->p_array_info != NULL) {
+		metac_array_info_delete(&p_region->p_array_info);
+	}
+
+	free(p_region);
+	*pp_region = NULL;
+
+	return 0;
+
+}
+int
+create_region2(
+		struct region_element_type * p_region_element_type,
+		metac_array_info_t * p_array_info,
+		void * ptr,
+		struct region2 ** pp_region) {
+	int res = 0;
+	struct region2 *p_region;
+	metac_byte_size_t elements_bytesize;
+	metac_count_t elements_count;
+
+	if (p_region_element_type == NULL ||
+		p_array_info == NULL ||
+		pp_region == NULL) {
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
+	}
+
+	assert(p_region_element_type->type);
+
+	elements_bytesize = metac_type_byte_size(p_region_element_type->type);
+	elements_count = metac_array_info_get_element_count(p_array_info);
+	msg_stddbg("elements_type: %s, elements_byte_size: %d, elements_count: %d\n",
+			region_element_type->type->name,
+			(int)elements_bytesize,
+			(int)elements_count);
+	if (elements_count <= 0) {
+		msg_stderr("Skipping region with 0 elements\n");
+		return 1;
+	}
+
+	p_region = calloc(1, sizeof(*(p_region)));
+	if (p_region == NULL) {
+		msg_stderr("Can't create region: no memory\n");
+		return -ENOMEM;
+	}
+
+	p_region->p_array_info = p_array_info;
+	p_region->p_region_element_type = p_region_element_type;
+
+	p_region->elements_count = elements_count;
+	p_region->byte_size = elements_count * elements_bytesize;
+	p_region->byte_size_flexible = 0;
+	p_region->is_allocated_region = 1;	/*default*/
+	p_region->ptr = ptr;
+
+	if (p_region->elements_count > 0) {
+		int i;
+
+		p_region->elements =
+				calloc(p_region->elements_count, sizeof(*(p_region->elements)));
+		if (p_region->elements == NULL) {
+			msg_stderr("Can't create region's elements array: no memory\n");
+			delete_region2(&p_region);
+			return -ENOMEM;
+		}
+
+		for (i = 0; i < p_region->elements_count; i++) {
+			if (init_region_element(
+					&p_region->elements[i],
+					ptr + i*elements_bytesize,
+					elements_bytesize,
+					p_region_element_type)!=0) {
+				msg_stderr("init_region_element for element %d\n", i);
+				delete_region2(&p_region);
+				return -EFAULT;
+			}
+		}
+	}
+
+	*pp_region = p_region;
+	return 0;
+}
+
+int
+update_region2_non_allocated(
+		struct region2 * p_region,
+		struct region2 * p_region_parent,
+		struct region_element * p_region_element_parent,
+		struct region_element_type_member * p_member_parent,
+		metac_data_member_location_t offset_parent
+		) {
+	assert(p_region);
+	p_region->is_allocated_region = 0;
+	p_region->parent_info.member.p_region = p_region_parent;
+	p_region->parent_info.member.p_region_element = p_region_element_parent;
+	p_region->parent_info.member.p_member = p_member_parent;
+	p_region->parent_info.offset = offset_parent;
+
+	return 0;
+}
+
+int
+update_region2_ptr(
+		struct region2 * p_region,
+		void * ptr) {
+	int i;
+	metac_byte_size_t elements_bytesize;
+
+	if (p_region == NULL) {
+		msg_stderr("invalid argument\n");
+		return -EINVAL;
+	}
+
+	p_region->ptr = ptr;
+
+	elements_bytesize = metac_type_byte_size(p_region->p_region_element_type->type);
+	for (i = 0; i < p_region->elements_count; i++) {
+		if (init_region_element(
+				&p_region->elements[i],
+				ptr + i*elements_bytesize,
+				elements_bytesize,
+				p_region->p_region_element_type)!=0) {
+			msg_stderr("init_region_element for element %d\n", i);
+			return -EFAULT;
+		}
+	}
+	return 0;
+}
+
+metac_byte_size_t
+get_region2_static_bytesize(
+		struct region2 * p_region) {
+	return p_region->byte_size - p_region->byte_size_flexible;
+}
+
+int
+update_region2_flexible_bytesize(
+		struct region2 * p_region,
+		metac_byte_size_t byte_size_flexible) {
+	if (p_region->is_allocated_region == 0 ||
+		p_region->elements_count != 1) {
+		msg_stderr("region can't be flexible\n");
+		return -EFAULT;
+	}
+
+	p_region->byte_size -= p_region->byte_size_flexible;
+	p_region->elements[0].byte_size -= p_region->byte_size_flexible;
+	p_region->byte_size_flexible = byte_size_flexible;
+	p_region->byte_size += p_region->byte_size_flexible;
+	p_region->elements[0].byte_size += p_region->byte_size_flexible;
+
+	return 0;
+}
 
 /*****************************************************************************/
 int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
@@ -718,7 +902,10 @@ int free_runtime_object(struct metac_runtime_object ** pp_runtime_object) {
 
 	if (p_runtime_object->region != NULL){
 		for (i = 0; i < p_runtime_object->regions_count; i++) {
-			delete_region(&p_runtime_object->region[i]);
+			if (p_runtime_object->use_region2 == 0)
+				delete_region(&p_runtime_object->region[i]);
+			else
+				delete_region2(&p_runtime_object->region2[i]);
 		}
 		free(p_runtime_object->region);
 		p_runtime_object->region = NULL;

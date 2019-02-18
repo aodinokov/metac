@@ -93,17 +93,25 @@ struct metac_precompiled_type {
 		arrays;
 };
 /*****************************************************************************/
+struct region2;
+
 struct discriminator_value {
 	int								is_initialized;
 	metac_discriminator_value_t		value;
 };
 
 struct pointer {
-	struct region *					p_region;
+	union {
+		struct region *					p_region;
+		struct region2 *				p_region2;
+	};
 };
 
 struct array {
-	struct region *					p_region;
+	union {
+		struct region *					p_region;
+		struct region2 *				p_region2;
+	};
 };
 
 struct region_element {
@@ -141,12 +149,20 @@ struct region { /*can contain several elements of region_element_type*/
 struct metac_runtime_object {
 	struct metac_precompiled_type *	precompiled_type;
 
+	int use_region2;
+
 	metac_count_t					regions_count;
-	struct region **				region;
+	union {
+		struct region **				region;
+		struct region2 **				region2;
+	};
 
 	/* really allocated memory regions (subset of all regions) */
 	metac_count_t					unique_regions_count;
-	struct region **				unique_region;
+	union {
+		struct region **				unique_region;
+		struct region2 **				unique_region2;
+	};
 };
 
 /*****************************************************************************/
@@ -226,5 +242,96 @@ int set_region_element_precondition(
 		struct condition * p_precondition);
 int write_region_element_discriminators(
 		struct region_element * p_region_element);
+
+
+struct region2_link {
+	struct region2 *						p_region;
+	struct region_element *					p_region_element;
+	struct region_element_type_member *		p_member;
+};
+
+/* new API */
+struct region2 {
+	metac_count_t							region_id;
+
+	struct region_element_type *			p_region_element_type;	/* region is array of elements of the same type. p_region_element_type is a type of one element*/
+	metac_array_info_t *					p_array_info;			/* region is array of elements. p_array_info represents n-dimensions array */
+
+	metac_byte_size_t						byte_size;				/* total byte_size of the region*/
+	metac_byte_size_t						byte_size_flexible;		/* flexible part (if region is flexible:
+																	 * this is possible only if element_number == 1),
+																	 * and p_region_element_type has an array as a member marked as 'is_flexible'
+															 */
+	metac_count_t 							elements_count;			/* elements_count - cached value of metac_array_info_get_element_count(p_array_info)*/
+	struct region_element *					elements;
+
+	metac_count_t 							links_count;
+	struct region2_link *					links;					/* who linked this region? (p_member->type can be pointer or array)
+																	 * in case of array there is always only 1 parent - upper structure
+																	 * in case of pointers - there can be several pointers
+																	 */
+	int 									is_allocated_region;	/* the region isn't a part of other region. it owns the pointer (unique region)*/
+	union {
+		metac_count_t						allocated_region_id;	/* valid only if is_allocated_region is true */
+		struct {
+			struct region2_link			member;					/* member of the parent structure that has the closest address
+																	 * (ideally the same) to the beginning of this region.
+																	 * */
+			metac_data_member_location_t	offset;					/* if there is no member in parent structure with this address - we use offset
+																	 * (keep in mind, this is not cross-platform compatible)
+																	 */
+		}									parent_info;			/* valid only if is_allocated_region is false */
+	};
+	void *									ptr;					/* ptr where the region is located (can be NULL initially), e.g. when we build
+																	 * memory object from json and etc.
+																	 */
+};
+
+/* create region_v2
+ * result - 0 - ok, 1- skip(??? in what cases? - in cases element count is 0), -1-error
+ */
+int
+create_region2(
+		struct region_element_type * p_region_element_type,
+		metac_array_info_t * p_array_info,
+		void * ptr,
+		struct region2 ** pp_region);
+/* delete region_v2
+ */
+int
+delete_region2(
+		struct region2 **pp_region);
+/*
+ * update region_v2 ptr
+ */
+int
+update_region2_ptr(
+		struct region2 * p_region,
+		void * ptr);
+/*
+ * update region_v2 params if it's not allocated_region
+ */
+int
+update_region2_non_allocated(
+		struct region2 * p_region,
+		struct region2 * p_region_parent,
+		struct region_element * p_region_element_parent,
+		struct region_element_type_member * p_member_parent,
+		metac_data_member_location_t offset_parent
+		);
+/*
+ * update region_v2 with new byte_size_flexible and re-calculate byte_size
+ */
+int
+update_region2_flexible_bytesize(
+		struct region2 * p_region,
+		metac_byte_size_t byte_size_flexible);
+/*
+ * get region_v2 non-flexible part byte_size
+ */
+metac_byte_size_t
+get_region2_static_bytesize(
+		struct region2 * p_region);
+
 
 #endif /* METAC_INTERNALS_H_ */
