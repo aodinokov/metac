@@ -510,7 +510,7 @@ static struct metac_runtime_object * _context_to_runtime_object(
 		struct runtime_context *p_runtime_context) {
 	int i, j, k, l;
 	struct metac_runtime_object * p_runtime_object;
-	struct region * region;
+	struct region2 * region;
 	struct _region * _region;
 	metac_count_t pointers_regions_count = 0;
 	metac_count_t arrays_regions_count = 0;
@@ -570,37 +570,41 @@ static struct metac_runtime_object * _context_to_runtime_object(
 			sizeof(*(p_runtime_object->region)),
 			_compare_regions); /*TODO: change to hsort? - low prio so far*/
 
-	region = p_runtime_object->region[0];
-
-	assert(region->part_of_region == NULL);
+	region = p_runtime_object->region2[0];
+	assert(region->is_allocated_region!=0);
 	p_runtime_object->unique_regions_count = 1;
 
 	msg_stddbg("starting checking addresses of regions: %p\n", region->ptr);
 	for (i = 1; i < pointers_regions_count; i++) {
 		msg_stddbg("%p\n", p_runtime_object->region[i]->ptr);
 
-		if (	p_runtime_object->region[i]->ptr >= region->ptr &&
-				p_runtime_object->region[i]->ptr < region->ptr + region->byte_size) { /*within the previous*/
+		if (	p_runtime_object->region2[i]->ptr >= region->ptr &&
+				p_runtime_object->region2[i]->ptr < region->ptr + region->byte_size) { /*within the previous*/
 
-			if (p_runtime_object->region[i]->ptr == region->ptr &&
-				p_runtime_object->region[i]->byte_size == region->byte_size) {
+			if (p_runtime_object->region2[i]->ptr == region->ptr &&
+				p_runtime_object->region2[i]->byte_size == region->byte_size) {
 				/*TBD: this has to be handled using types of regions_element for both cases???*/
 				msg_stderr("Warning: ambiguity between 2 regions\n");
 			}
 
-			if (p_runtime_object->region[i]->ptr + p_runtime_object->region[i]->byte_size > region->ptr + region->byte_size) {
+			if (p_runtime_object->region2[i]->ptr + p_runtime_object->region2[i]->byte_size > region->ptr + region->byte_size) {
 				msg_stderr("Error: region(%d) %p %d is partially within previous %p %d. exiting\n",
 						i,
-						p_runtime_object->region[i]->ptr,
-						p_runtime_object->region[i]->byte_size,
+						p_runtime_object->region2[i]->ptr,
+						p_runtime_object->region2[i]->byte_size,
 						region->ptr,
 						region->byte_size);
 				free_runtime_object(&p_runtime_object);
 				return NULL;
 			}
-			p_runtime_object->region[i]->part_of_region = region;
+			//p_runtime_object->region2[i]->part_of_region = region;
+			update_region2_non_allocated(p_runtime_object->region2[i],
+					region,
+					NULL,
+					NULL,
+					0);
 		} else {
-			region = p_runtime_object->region[i];
+			region = p_runtime_object->region2[i];
 			++p_runtime_object->unique_regions_count;
 		}
 	}
@@ -621,32 +625,30 @@ static struct metac_runtime_object * _context_to_runtime_object(
 	}
 	assert(pointers_regions_count == i);
 
-//	/* initialize not-unique's location and add unique regions*/
-//	j = 0; k = 0;
-//	for (i = 0; i < p_runtime_object->regions_count; ++i) {
-//		if (p_runtime_object->region[i]->part_of_region != NULL) { /*init not-unique region location */
-//			/*if we go in direction of region creation will appear in certain sequence so we won't need to do while in this algorithm*/
-//			assert( p_runtime_object->region[i]->part_of_region->part_of_region == NULL ||
-//					p_runtime_object->region[i]->part_of_region->unique_region_id != -1);
-//
-//			/*TBD: calculate member exact member in case of the pointer! */
-//
-//			p_runtime_object->region[i]->location.offset =
-//					p_runtime_object->region[i]->ptr - p_runtime_object->region[i]->part_of_region->ptr;
-//			if (p_runtime_object->region[i]->part_of_region->part_of_region == NULL) {
-//				p_runtime_object->region[i]->location.region_idx = p_runtime_object->region[i]->part_of_region->unique_region_id;
+	/* initialize not-unique's location and add unique regions*/
+	j = 0; k = 0;
+	for (i = 0; i < p_runtime_object->regions_count; ++i) {
+		if (p_runtime_object->region2[i]->is_allocated_region == 0 ) { /*init not-unique region location */
+			/*if we go in direction of region creation will appear in certain sequence so we won't need to do while in this algorithm*/
+			assert(p_runtime_object->region2[i]->parent_info.member.p_region != NULL);
+
+			/*TBD: calculate member exact member in case of the pointer! */
+//			p_runtime_object->region2[i]->location.offset =
+//					p_runtime_object->region2[i]->ptr - p_runtime_object->region2[i]->part_of_region->ptr;
+//			if (p_runtime_object->region2[i]->part_of_region->part_of_region == NULL) {
+//				p_runtime_object->region2[i]->location.region_idx = p_runtime_object->region2[i]->part_of_region->unique_region_id;
 //			}else {
-//				p_runtime_object->region[i]->location.region_idx = p_runtime_object->region[i]->part_of_region->location.region_idx;
-//				p_runtime_object->region[i]->location.offset += p_runtime_object->region[i]->part_of_region->location.offset;
+//				p_runtime_object->region2[i]->location.region_idx = p_runtime_object->region2[i]->part_of_region->location.region_idx;
+//				p_runtime_object->region2[i]->location.offset += p_runtime_object->region2[i]->part_of_region->location.offset;
 //			}
-//		} else {
-//			assert(j < p_runtime_object->unique_regions_count);
-//			p_runtime_object->unique_region[j] = p_runtime_object->region[i];
-//			/*init unique_region_id*/
-//			p_runtime_object->region[i]->unique_region_id = j;
-//			++j;
-//		}
-//	}
+		} else {
+			assert(j < p_runtime_object->unique_regions_count);
+			p_runtime_object->unique_region[j] = p_runtime_object->region2[i];
+			/*init unique_region_id*/
+			p_runtime_object->region2[i]->allocated_region_id = j;
+			++j;
+		}
+	}
 
 	return p_runtime_object;
 }
