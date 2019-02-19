@@ -817,15 +817,15 @@ update_region2_non_allocated(
 		metac_data_member_location_t offset_parent
 		) {
 	assert(p_region);
-	if (p_region_parent == 0) {
+	if (p_region_parent == NULL) {
 		p_region->is_allocated_region = 1;
 	}else {
 		p_region->is_allocated_region = 0;
-		p_region->parent_info.member.p_region = p_region_parent;
-		p_region->parent_info.member.p_region_element = p_region_element_parent;
-		p_region->parent_info.member.p_member = p_member_parent;
-		p_region->parent_info.offset = offset_parent;
 	}
+	p_region->parent_info.member.p_region = p_region_parent;
+	p_region->parent_info.member.p_region_element = p_region_element_parent;
+	p_region->parent_info.member.p_member = p_member_parent;
+	p_region->parent_info.offset = offset_parent;
 
 	return 0;
 }
