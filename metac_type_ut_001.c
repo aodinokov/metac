@@ -1286,6 +1286,7 @@ START_TEST(metac_type_t_ut) {
 		//metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
 
 		fail_unless(metac_visit(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+		fail_unless(metac_visit2(type, precompiled_type_4_metac_type_t, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
 		fail_unless(metac_unpack_to_json(precompiled_type_4_metac_type_t, type, sizeof(*type), 1, &p_json) == 0, "metac_pack2json failed"); \
 		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
 		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
@@ -1351,6 +1352,7 @@ START_TEST(basic_tree_t_ut) {
 		};
 
 		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+		fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
 		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
 		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object");
 		printf("json:\n %s\n", json_object_to_json_string(p_json));

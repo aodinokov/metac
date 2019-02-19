@@ -5,7 +5,7 @@
  *      Author: mralex
  */
 
-#define METAC_DEBUG_ENABLE
+//#define METAC_DEBUG_ENABLE
 
 #include <stdlib.h>			/* calloc, qsort... */
 #include <string.h>			/* strlen, strcpy */
@@ -46,7 +46,7 @@ static int create__region(
 		struct _region ** pp__region) {
 	int res;
 	struct _region * p__region;
-
+	msg_stddbg("called\n");
 	assert(pp__region);
 
 	p__region = calloc(1, sizeof(*p__region));
@@ -116,17 +116,17 @@ static int create__region_for_pointer(
 	int res;
 	struct _region * _region = NULL;
 	struct _region * _region_iter;
-	metac_byte_size_t bytesize = metac_type_byte_size(region_element_type->type);
+	metac_byte_size_t bytesize = metac_type_byte_size(region_element_type->type) * metac_array_info_get_element_count(p_array_info);
 
 	cds_list_for_each_entry(_region_iter, p_region_list, list) {
 		/*compare ptr and it's type. bytesize for a new region isn't known at this point in case of flexible field*/
 		if (ptr == _region_iter->p_region->ptr &&
-			_region_iter->p_region->elements_count > 0 &&
-			region_element_type->type == _region_iter->p_region->p_region_element_type->type &&
+			/*_region_iter->p_region->elements_count > 0 &&*/
+			/*region_element_type->type == _region_iter->p_region->p_region_element_type->type &&*/
 			bytesize == get_region2_static_bytesize(_region_iter->p_region)) {
 			/* case when ptr is inside will be covered later */
 			_region = _region_iter;
-			msg_stddbg("found region %p\n", _region);
+			msg_stddbg("found region for %p\n", _region->p_region->ptr);
 			if (pp__region)
 				*pp__region = _region;
 			return 2;
@@ -147,63 +147,6 @@ static int create__region_for_pointer(
 	return 0;
 }
 
-/*****************************************************************************/
-///*****************************************************************************/
-//static struct _region * simply_create__region(
-//		struct cds_list_head * p_region_list,
-//		void *ptr,
-//		metac_byte_size_t byte_size,
-//		struct region_element_type * region_element_type,
-//		metac_array_info_t * p_array_info,
-//		struct region * part_of_region) {
-//	/*check if region with the same addr already exists*/
-//	struct _region * _region = NULL;
-//	/*create otherwise*/
-//	msg_stddbg("create region_element_type for : ptr %p byte_size %d\n", ptr, (int)byte_size);
-//	_region = create__region(ptr, byte_size, region_element_type, p_array_info, part_of_region);
-//	msg_stddbg("create region_element_type result %p\n", _region);
-//	if (_region == NULL) {
-//		msg_stddbg("create__region failed\n");
-//		return NULL;
-//	}
-//	cds_list_add_tail(&_region->list, p_region_list);
-//	return _region;
-//}
-///*****************************************************************************/
-//static struct _region * find_or_create__region(
-//		struct cds_list_head * p_region_list,
-//		void *ptr,
-//		metac_byte_size_t byte_size,
-//		struct region_element_type * region_element_type,
-//		metac_array_info_t * p_array_info,
-//		int * p_created_flag) {
-//	/*check if region with the same addr already exists*/
-//	struct _region * _region = NULL;
-//	struct _region * _region_iter;
-//
-//	if (p_created_flag != NULL) *p_created_flag = 0;
-//
-//	cds_list_for_each_entry(_region_iter, p_region_list, list) {
-//		/*compare ptr and it's type. bytesize for a new region isn't known at this point in case of flexible field*/
-//		if (ptr == _region_iter->p_region->ptr &&
-//			_region_iter->p_region->elements_count > 0 &&
-//			region_element_type->type == _region_iter->p_region->elements[0].region_element_type->type) {
-//			/* case when ptr is inside will be covered later */
-//			_region = _region_iter;
-//			msg_stddbg("found region %p\n", _region);
-//			break;
-//		}
-//	}
-//
-//	if (_region == NULL) {
-//		_region = simply_create__region(p_region_list, ptr, byte_size, region_element_type, p_array_info, NULL);
-//		if (_region != NULL) {
-//			if (p_created_flag != NULL) *p_created_flag = 1;
-//		}
-//	}
-//
-//	return _region;
-//}
 /*****************************************************************************/
 static int delete_runtime_task(struct runtime_task ** pp_task) {
 	struct runtime_task * p_task;
@@ -279,10 +222,10 @@ static int _runtime_task_fn(
 
 	assert(p_region);
 	assert(p_region->elements_count > 0);
-	assert(p_region->elements[0].region_element_type->type);
+	assert(p_region->p_region_element_type->type);
 	msg_stddbg("started task %p (%s) for %d elements\n",
 			p_region->ptr,
-			p_region->elements[0].region_element_type->type->name,
+			p_region->p_region_element_type->type->name,
 			p_region->elements_count);
 
 	for (e = 0; e < p_region->elements_count; e++) {
@@ -294,6 +237,7 @@ static int _runtime_task_fn(
 		int m;
 
 		struct region_element * p_region_element = &p_region->elements[e];
+		assert(p_region->p_region_element_type == p_region_element->region_element_type);
 		if (p_region_element->region_element_type->array_type_elements_count > 0) {
 			msg_stddbg("element %d arrays: %d items\n", e, p_region_element->region_element_type->array_type_elements_count);
 			for (m = 0; m < p_region_element->region_element_type->array_type_elements_count; m++) {
@@ -398,12 +342,11 @@ static int _runtime_task_fn(
 				}
 			}
 		}
-		if (p_region_element->region_element_type->array_type_elements_count > 0) {
+		if (p_region_element->region_element_type->pointer_type_members_count > 0) {
 			msg_stddbg("element %d pointers: %d items\n", e, p_region_element->region_element_type->pointer_type_members_count);
 			for (m = 0; m < p_region_element->region_element_type->pointer_type_members_count; m++) {
 				void * new_ptr;
 				assert(p_region_element->region_element_type->pointer_type_members[m]->type->id == DW_TAG_pointer_type);
-				assert(p_region_element->region_element_type->pointer_type_members[m]->array_elements_region_element_type); /* TBD: what about void * case ???*/
 				msg_stddbg("pointer %s\n", p_region_element->region_element_type->pointer_type_members[m]->path_within_region_element);
 				/* check preconditions */
 				res = is_region_element_precondition_true(p_region_element, &p_region_element->region_element_type->pointer_type_members[m]->precondition);
@@ -412,6 +355,10 @@ static int _runtime_task_fn(
 				}
 				if (res == 0) {
 					msg_stddbg("skipping by precondition\n");
+					continue;
+				}
+				if (p_region_element->region_element_type->pointer_type_members[m]->array_elements_region_element_type == NULL) {
+					msg_stddbg("skipping because it's void* - don't know the size of the block it points\n");
 					continue;
 				}
 				/* now read the pointer */
@@ -454,11 +401,11 @@ static int _runtime_task_fn(
 				res = create__region_for_pointer(
 						&p_context->pointers_region_list,
 						new_ptr,
-						p_region_element->region_element_type->array_type_members[m]->array_elements_region_element_type,
+						p_region_element->region_element_type->pointer_type_members[m]->array_elements_region_element_type,
 						p_array_info,
 						p_region,
 						p_region_element,
-						p_region_element->region_element_type->array_type_members[m],
+						p_region_element->region_element_type->pointer_type_members[m],
 						0,
 						&_region);
 				if (res < 0) {
@@ -488,19 +435,22 @@ static int _runtime_task_fn(
 			}
 		}
 	}
-
 	msg_stddbg("finished task\n");
 	return 0;
 }
 /*****************************************************************************/
 static int _compare_regions(const void *_a, const void *_b) {
-	struct region *a = *((struct region **)_a);
-	struct region *b = *((struct region **)_b);
+	struct region2 *a = *((struct region2 **)_a);
+	struct region2 *b = *((struct region2 **)_b);
 	if (a->ptr < b->ptr)
 		return -1;
 	if (a->ptr == b->ptr) {
 		if (a->byte_size > b->byte_size)return -1;
-		if (a->byte_size == b->byte_size)return 0;
+		if (a->byte_size == b->byte_size) {
+			if (a->region_id < a->region_id)return -1;
+			if (a->region_id > a->region_id)return 1;
+			return 0;
+		}
 		return 1;
 	}
 	return 1;
@@ -510,7 +460,7 @@ static struct metac_runtime_object * _context_to_runtime_object(
 		struct runtime_context *p_runtime_context) {
 	int i, j, k, l;
 	struct metac_runtime_object * p_runtime_object;
-	struct region2 * region;
+	struct region2 * region2;
 	struct _region * _region;
 	metac_count_t pointers_regions_count = 0;
 	metac_count_t arrays_regions_count = 0;
@@ -566,46 +516,89 @@ static struct metac_runtime_object * _context_to_runtime_object(
 
 	/*find unique regions*/
 	qsort(p_runtime_object->region,
-			pointers_regions_count,
+			/*pointers_regions_count*/p_runtime_object->regions_count,
 			sizeof(*(p_runtime_object->region)),
 			_compare_regions); /*TODO: change to hsort? - low prio so far*/
 
-	region = p_runtime_object->region2[0];
-	assert(region->is_allocated_region!=0);
+	i = 0;
+	region2 = p_runtime_object->region2[i];
+	assert(region2->is_allocated_region != 0);
 	p_runtime_object->unique_regions_count = 1;
+	msg_stddbg("i=%d, region_id=%d, ptr=%p, size=%x\n",
+			i,
+			p_runtime_object->region2[i]->region_id,
+			p_runtime_object->region2[i]->ptr,
+			p_runtime_object->region2[i]->byte_size);
 
-	msg_stddbg("starting checking addresses of regions: %p\n", region->ptr);
-	for (i = 1; i < pointers_regions_count; i++) {
-		msg_stddbg("%p\n", p_runtime_object->region[i]->ptr);
+	msg_stddbg("it's allocated. starting checking addresses of regions: %p\n", region2->ptr);
+	for (i = 1; i < /*pointers_regions_count*/p_runtime_object->regions_count; i++) {
+		msg_stddbg("i=%d, region_id=%d, ptr=%p, size=0x%x\n",
+				i,
+				p_runtime_object->region2[i]->region_id,
+				p_runtime_object->region2[i]->ptr,
+				p_runtime_object->region2[i]->byte_size);
 
-		if (	p_runtime_object->region2[i]->ptr >= region->ptr &&
-				p_runtime_object->region2[i]->ptr < region->ptr + region->byte_size) { /*within the previous*/
+		if (p_runtime_object->region2[i]->parent_info.member.p_region != NULL) {
+			/*arrays are already pre-filled*/
+			assert(metac_type_actual_type(p_runtime_object->region2[i]->parent_info.member.p_member->type)->id == DW_TAG_array_type);
+			region2 = p_runtime_object->region2[i];
+			continue;
+		}
 
-			if (p_runtime_object->region2[i]->ptr == region->ptr &&
-				p_runtime_object->region2[i]->byte_size == region->byte_size) {
-				/*TBD: this has to be handled using types of regions_element for both cases???*/
-				msg_stderr("Warning: ambiguity between 2 regions\n");
+		while(1) {
+			if (	p_runtime_object->region2[i]->ptr >= region2->ptr &&
+					p_runtime_object->region2[i]->ptr < region2->ptr + region2->byte_size) { /*ptr within the previous*/
+
+				if (p_runtime_object->region2[i] != region2 &&
+					p_runtime_object->region2[i]->ptr == region2->ptr &&
+					p_runtime_object->region2[i]->byte_size == region2->byte_size) {
+					msg_stderr("Warning: ambiguity between 2 regions: %d and %d\n",
+							region2->region_id,
+							p_runtime_object->region2[i]->region_id);
+					assert(0);
+					msg_stddbg("repeating\n");
+					if (region2->parent_info.member.p_region != NULL) {
+						update_region2_non_allocated(p_runtime_object->region2[i],
+							region2->parent_info.member.p_region,
+							NULL,
+							NULL,
+							0);
+					} else {
+						++p_runtime_object->unique_regions_count;
+					}
+					region2 = p_runtime_object->region2[i];
+					break;
+				}
+
+				if (p_runtime_object->region2[i]->ptr + p_runtime_object->region2[i]->byte_size > region2->ptr + region2->byte_size) {
+					msg_stderr("Error: region %d %p %d is partially within previous %p %d. exiting\n",
+							i,
+							p_runtime_object->region2[i]->ptr,
+							p_runtime_object->region2[i]->byte_size,
+							region2->ptr,
+							region2->byte_size);
+					free_runtime_object(&p_runtime_object);
+					return NULL;
+				}
+				update_region2_non_allocated(p_runtime_object->region2[i],
+						region2,
+						NULL,
+						NULL,
+						0);
+				msg_stddbg("adjusting down\n");
+				region2 = p_runtime_object->region2[i];
+				break;
+			} else {
+				if (region2->parent_info.member.p_region != NULL) {
+					msg_stddbg("adjusting up\n");
+					region2 = region2->parent_info.member.p_region;
+				} else {
+					msg_stddbg("reached top level - it's allocated\n");
+					region2 = p_runtime_object->region2[i];
+					++p_runtime_object->unique_regions_count;
+					break;
+				}
 			}
-
-			if (p_runtime_object->region2[i]->ptr + p_runtime_object->region2[i]->byte_size > region->ptr + region->byte_size) {
-				msg_stderr("Error: region(%d) %p %d is partially within previous %p %d. exiting\n",
-						i,
-						p_runtime_object->region2[i]->ptr,
-						p_runtime_object->region2[i]->byte_size,
-						region->ptr,
-						region->byte_size);
-				free_runtime_object(&p_runtime_object);
-				return NULL;
-			}
-			//p_runtime_object->region2[i]->part_of_region = region;
-			update_region2_non_allocated(p_runtime_object->region2[i],
-					region,
-					NULL,
-					NULL,
-					0);
-		} else {
-			region = p_runtime_object->region2[i];
-			++p_runtime_object->unique_regions_count;
 		}
 	}
 
@@ -618,12 +611,23 @@ static struct metac_runtime_object * _context_to_runtime_object(
 	}
 
 	/* get pointer regions back to the original sequence*/
+//	i = 0;
+//	cds_list_for_each_entry(_region, &p_runtime_context->pointers_region_list, list) {
+//		p_runtime_object->region2[i] = _region->p_region;
+//		++i;
+//	}
+//	assert(pointers_regions_count == i);
 	i = 0;
 	cds_list_for_each_entry(_region, &p_runtime_context->pointers_region_list, list) {
 		p_runtime_object->region2[i] = _region->p_region;
 		++i;
 	}
-	assert(pointers_regions_count == i);
+	cds_list_for_each_entry(_region, &p_runtime_context->arrays_region_list, list) {
+		p_runtime_object->region2[i] = _region->p_region;
+		++i;
+	}
+	assert(p_runtime_object->regions_count == i);
+
 
 	/* initialize not-unique's location and add unique regions*/
 	j = 0; k = 0;
@@ -631,6 +635,9 @@ static struct metac_runtime_object * _context_to_runtime_object(
 		if (p_runtime_object->region2[i]->is_allocated_region == 0 ) { /*init not-unique region location */
 			/*if we go in direction of region creation will appear in certain sequence so we won't need to do while in this algorithm*/
 			assert(p_runtime_object->region2[i]->parent_info.member.p_region != NULL);
+			assert(p_runtime_object->region2[i]->ptr >= p_runtime_object->region2[i]->parent_info.member.p_region->ptr);
+			assert(p_runtime_object->region2[i]->ptr + p_runtime_object->region2[i]->byte_size  <=
+					p_runtime_object->region2[i]->parent_info.member.p_region->ptr + p_runtime_object->region2[i]->parent_info.member.p_region->byte_size);
 
 			/*TBD: calculate member exact member in case of the pointer! */
 //			p_runtime_object->region2[i]->location.offset =
@@ -643,7 +650,7 @@ static struct metac_runtime_object * _context_to_runtime_object(
 //			}
 		} else {
 			assert(j < p_runtime_object->unique_regions_count);
-			p_runtime_object->unique_region[j] = p_runtime_object->region2[i];
+			p_runtime_object->unique_region2[j] = p_runtime_object->region2[i];
 			/*init unique_region_id*/
 			p_runtime_object->region2[i]->allocated_region_id = j;
 			++j;
@@ -692,7 +699,6 @@ static struct metac_runtime_object * create_runtime_object_from_ptr(
 	struct runtime_context context;
 	metac_array_info_t * p_array_info;
 	struct _region * _region;
-//	metac_byte_size_t elements_byte_size;
 
 	context.p_precompiled_type = p_precompiled_type;
 	CDS_INIT_LIST_HEAD(&context.pointers_region_list);
