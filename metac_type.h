@@ -72,6 +72,7 @@ struct metac_type {
 		}pointer_type_info;
 		/* .id == DW_TAG_enumeration_type */
 		struct {
+			metac_type_t *				type;						/* universal field (can be NULL in some compliers) */
 			metac_byte_size_t			byte_size;					/* mandatory field */
 			metac_num_t					enumerators_count;			/* mandatory field */
 			struct metac_type_enumerator_info {
