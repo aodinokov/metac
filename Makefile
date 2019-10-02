@@ -30,7 +30,7 @@ metac_objs = \
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 metac_type_ut_001: $(metac_objs) metac_type_ut_001.o metac_type_ut_001.metac.o
-metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson
+metac_type_ut_001: -ldl -lcheck -lsubunit -lm -lrt -ljson
 all: metac_type_ut_001.run metac_type_ut_001.metac.c 
 
 %.run: % _always_
