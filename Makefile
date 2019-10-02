@@ -25,14 +25,7 @@ _always_:
 	@echo "-----------------------------------------------------------------------"
 
 metac_objs = \
-	breadthfirst_engine.o \
 	metac_type.o \
-	metac_internals.o \
-	metac_precompile_type.o \
-	metac_runtime.o \
-	metac_runtime2.o \
-	metac_pack_from_json.o \
-	metac_unpack_to_json.o
 
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic

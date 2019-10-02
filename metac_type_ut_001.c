@@ -14,7 +14,7 @@
 #include "metac_debug.h"	/* msg_stderr, ...*/
 #include "metac_type.h"
 
-#include "metac_json.h"
+//#include "metac_json.h"
 
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
@@ -88,241 +88,6 @@ bug_with_unspecified_parameters 1
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
 METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 /*****************************************************************************/
-static struct metac_visitor _basic_visitor;
-static int _visitor_start(
-		struct metac_visitor *p_visitor,
-		metac_count_t regions_count,
-		metac_count_t unique_regions_count
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_start: regions_count %d, unique_regions_count %d\n",
-			(int)regions_count,
-			(int)unique_regions_count);
-	return 0;
-}
-static int _visitor_region(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		void *ptr,
-		metac_byte_size_t byte_size,
-		metac_count_t elements_count
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_region: r_id %d, ptr %p, byte_size %d, elements_count %d\n",
-			(int)r_id,
-			ptr,
-			(int)byte_size,
-			(int)elements_count);
-	return 0;
-}
-static int _visitor_unique_region(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		metac_count_t u_idx
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_unique_region: r_id %d, u_idx %d\n",
-			(int)r_id,
-			(int)u_idx);
-	return 0;
-}
-static int _visitor_non_unique_region(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		metac_count_t u_idx,
-		metac_data_member_location_t offset
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_non_unique_region: r_id %d, u_idx %d, offset %d\n",
-			(int)r_id,
-			(int)u_idx,
-			(int)offset);
-	return 0;
-}
-static int _visitor_region_element(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_type_t * type,
-		void *ptr,
-		metac_byte_size_t byte_size,
-		int real_region_element_element_count,
-		metac_region_ee_subtype_t *subtypes_sequence,
-		int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
-		int subtypes_sequence_lenth
-		) {
-	int i;
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_region_element: r_id %d, e_id %d, ptr %p, byte_size %d, real_region_element_element_count %d, subtypes_sequence_lenth %d real_count_array_per_type",
-			(int)r_id,
-			(int)e_id,
-			ptr,
-			(int)byte_size,
-			(int)real_region_element_element_count,
-			(int)subtypes_sequence_lenth);
-	for (i = 0; i < subtypes_sequence_lenth; ++i)
-		msg_stddbg(" %d", real_count_array_per_type[i]);
-	msg_stddbg("\n");
-	return 0;
-}
-static int _visitor_region_element_element(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_count_t ee_id,
-		metac_count_t parent_ee_id,
-		metac_type_t * type,
-		void *ptr,
-		metac_bit_offset_t * p_bit_offset,
-		metac_bit_size_t * p_bit_size,
-		metac_byte_size_t byte_size,
-		char * name_local,
-		char * path_within_region_element
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_region_element_element: r_id %d, e_id %d, ee_id %d, parent_ee_id %d, ptr %p, byte_size %d, name_local %s, path_within_region_element %s\n",
-			(int)r_id,
-			(int)e_id,
-			(int)ee_id,
-			(int)parent_ee_id,
-			ptr,
-			(int)byte_size,
-			name_local,
-			path_within_region_element);
-	return 0;
-}
-int _visitor_region_element_element_per_subtype(
-		struct metac_visitor *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_count_t ee_id,
-		metac_region_ee_subtype_t subtype,
-		metac_count_t see_id,
-		metac_array_info_t * p_array_info,
-		metac_count_t * p_linked_r_id
-		) {
-	fail_unless(p_visitor == &_basic_visitor, "incorrect p_visitor");
-	msg_stddbg("_visitor_region_element_element_per_subtype: r_id %d, e_id %d, ee_id %d, subtype %d, see_id %d, linked_r_id %d\n",
-			(int)r_id,
-			(int)e_id,
-			(int)ee_id,
-			(int)subtype,
-			(int)see_id,
-			(int)(p_linked_r_id!=NULL)?(*p_linked_r_id):(-1)
-	);
-	return 0;
-}
-static struct metac_visitor _basic_visitor = {
-		.start = _visitor_start,
-		.region = _visitor_region,
-		.non_unique_region = _visitor_non_unique_region,
-		.unique_region = _visitor_unique_region,
-		.region_element = _visitor_region_element,
-		.region_element_element = _visitor_region_element_element,
-		.region_element_element_per_subtype = _visitor_region_element_element_per_subtype,
-};
-/*****************************************************************************/
-static struct metac_visitor2 _basic_visitor2;
-
-int _visitor2_start(
-		struct metac_visitor2 *p_visitor,
-
-		metac_count_t regions_count,
-		metac_count_t allocated_regions_count
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-int _visitor2_region(
-		struct metac_visitor2 *p_visitor,
-		metac_count_t r_id,
-
-		metac_count_t *p_parent_r_id,
-		metac_count_t *p_parent_e_id,
-		metac_count_t *p_parent_m_id,
-		/*or*/
-		metac_count_t *p_allocated_r_id,
-
-		metac_count_t elements_count,
-		metac_array_info_t * p_array_info,
-
-		void *ptr,
-		metac_byte_size_t size,
-		metac_type_t * type
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-int _visitor2_region_element(
-		struct metac_visitor2 *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-
-		metac_array_info_t * p_current_array_info,
-
-		void *ptr,
-		metac_byte_size_t size,
-		metac_count_t member_count	/*only members with true condition */
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-int _visitor2_region_element_member(
-		struct metac_visitor2 *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_count_t m_id,
-
-		metac_count_t *p_parent_m_id,
-
-		metac_type_t * type,
-		char * name_local,
-		char * path_within_region_element,
-
-		void *ptr,
-		metac_bit_offset_t * p_bit_offset,
-		metac_bit_size_t * p_bit_size,
-		metac_byte_size_t byte_size
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-int _visitor2_region_element_member_array(
-		struct metac_visitor2 *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_count_t m_id,
-
-		metac_count_t linked_r_id
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-int _visitor2_region_element_member_pointer(
-		struct metac_visitor2 *p_visitor,
-		metac_count_t r_id,
-		metac_count_t e_id,
-		metac_count_t m_id,
-
-		/*the next parameters can be NULL*/
-		metac_count_t *p_linked_r_id,
-		metac_count_t *p_linked_e_id,
-		metac_count_t *p_linked_m_id,
-		metac_data_member_location_t *p_linked_offset
-		) {
-	fail_unless(p_visitor == &_basic_visitor2, "incorrect p_visitor");
-	return 0;
-}
-static struct metac_visitor2 _basic_visitor2 = {
-		.start = _visitor2_start,
-		.region = _visitor2_region,
-		.region_element = _visitor2_region_element,
-		.region_element_member = _visitor2_region_element_member,
-		.region_element_member_array = _visitor2_region_element_member_array,
-		.region_element_member_pointer = _visitor2_region_element_member_pointer,
-};
-/*****************************************************************************/
-
 #define GENERAL_TYPE_CHECK_INIT(_type_) do { \
 		/*need to use the type, in the opposite case we'll not get type definintion in DWARF*/ \
 		_type_*ptr = NULL; \
@@ -425,8 +190,9 @@ do {\
 	GENERAL_TYPE_CHECK_ID(_type_, _id_); \
 	GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_type_, _n_td_id_);\
 	GENERAL_TYPE_CHECK_SPEC(_type_, _spec_key_, _spec_val_); \
-	GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
-	GENERAL_TYPE_CHECK_JSON_UNPACK_PACK(_type_);
+
+//	GENERAL_TYPE_CHECK_PRECOMILED(_type_); \
+//	GENERAL_TYPE_CHECK_JSON_UNPACK_PACK(_type_);
 
 /*****************************************************************************/
 #define BASE_TYPE_CHECK GENERAL_TYPE_CHECK
@@ -1260,147 +1026,147 @@ METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child", _metac_type_t_arra
 METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.dwarf_info.child.<ptr>", metac_array_elements_single)
 METAC_TYPE_SPECIFICATION_END
 
-START_TEST(metac_type_t_ut) {
-//	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
-//	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
-
-	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) { /* this is under construction right now */
-		_STRUCT_TYPE_CHECK_BYTESIZE;
-		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
-		__STRUCT_TYPE_CHECK_MEMBER(id),
-		__STRUCT_TYPE_CHECK_MEMBER(name),
-		__STRUCT_TYPE_CHECK_MEMBER(declaration),
-		__STRUCT_TYPE_CHECK_ANON_MEMBER(base_type_info),
-		__STRUCT_TYPE_CHECK_MEMBER(specifications),
-		__STRUCT_TYPE_CHECK_MEMBER(dwarf_info),
-		});
-	}STRUCT_TYPE_CHECK_END;
-	/* pre-compilation & runtime test */
-	do {
-		json_object * p_json = NULL;
-		metac_type_t * copy;
-		metac_byte_size_t copy_size;
-		metac_type_t *type = &METAC_TYPE_NAME(metac_type_t);
-		metac_precompiled_type_t * precompiled_type_4_metac_type_t = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
-		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
-		//metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
-
-		fail_unless(metac_visit(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
-		fail_unless(metac_visit2(type, precompiled_type_4_metac_type_t, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
-		fail_unless(metac_unpack_to_json(precompiled_type_4_metac_type_t, type, sizeof(*type), 1, &p_json) == 0, "metac_pack2json failed"); \
-		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
-		json_object_put(p_json);
-		p_json = NULL;
-		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
-		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just copied");
-		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
-
-		fail_unless(metac_equal(type, copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 1");
-		fail_unless(metac_equal(copy, type, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 2");
-
-
-		fail_unless(metac_delete(copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 0, "metac_delete failed");
-
-		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
-		fail_unless(precompiled_type_4_metac_type_t == NULL, "metac_free_precompiled_type failed");
-	}while(0);
-
-}END_TEST
-
-/*****************************************************************************/
-typedef struct _basic_tree {
-	int * data;
-	struct _basic_tree *desc[2];
-}basic_tree_t;
-METAC_TYPE_GENERATE(basic_tree_t);
-METAC_TYPE_SPECIFICATION_BEGIN(basic_tree_t)
-METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
-METAC_TYPE_SPECIFICATION_END
-
-START_TEST(basic_tree_t_ut) {
-	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
-		_STRUCT_TYPE_CHECK_BYTESIZE;
-		_STRUCT_TYPE_CHECK_MEMBERS(2, {
-		__STRUCT_TYPE_CHECK_MEMBER(data),
-		__STRUCT_TYPE_CHECK_MEMBER(desc),
-		});
-	}STRUCT_TYPE_CHECK_END;
-	do {
-		basic_tree_t * p_x = NULL;
-		metac_byte_size_t size = 0;
-		metac_count_t elements_count = 0;
-
-		json_object * p_json = NULL;
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
-		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
-		metac_dump_precompiled_type(precompiled_type);
-
-		/*build hierarchy*/
-		basic_tree_t * y;
-		basic_tree_t l = {
-			.data = (int[]){1, },
-			.desc = {NULL, NULL, },
-		},
-		r  = {
-			.data = (int[]){3, },
-			.desc = {NULL, NULL, },
-		},
-		x = {
-			.data = (int[]){2, },
-			.desc = {&l, &r, },
-		};
-
-		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
-		fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
-		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
-		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object");
-		printf("json:\n %s\n", json_object_to_json_string(p_json));
-
-		fail_unless(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed");
-		json_object_put(p_json);
-		p_json = NULL;
-		fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size");
-		fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size");
-		fail_unless(metac_unpack_to_json(precompiled_type, p_x, sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
-		fail_unless(p_json != NULL, "metac_unpack_to_json hasn't failed, but didn't return the object");
-		printf("json_from_packed_obj:\n %s\n", json_object_to_json_string(p_json));
-		json_object_put(p_json);
-		p_json = NULL;
-		fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 1, "object created by metac_pack_from_json isn't equal with the original");
-		fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed");
-
-
-		fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
-
-		fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
-		fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
-		fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
-		fail_unless(y->desc[0]->desc[0] == NULL, "basic_tree check4 failed");
-		fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
-		fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
-		fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
-
-		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 1");
-		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 2");
-
-		/*modify original*/
-		*(x.data) = 0;
-		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
-		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
-		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
-		json_object_put(p_json);
-		p_json = NULL;
-
-		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 3");
-		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 4");
-
-
-		fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
-
-		metac_free_precompiled_type(&precompiled_type);
-	}while(0);
-}END_TEST
+//START_TEST(metac_type_t_ut) {
+////	GENERAL_TYPE_CHECK_INIT(metac_type_specification_t);
+////	GENERAL_TYPE_CHECK_BYTE_SIZE(metac_type_specification_t);
+//
+//	STRUCT_TYPE_CHECK_BEGIN(metac_type_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) { /* this is under construction right now */
+//		_STRUCT_TYPE_CHECK_BYTESIZE;
+//		_STRUCT_TYPE_CHECK_MEMBERS(5 + 1, {
+//		__STRUCT_TYPE_CHECK_MEMBER(id),
+//		__STRUCT_TYPE_CHECK_MEMBER(name),
+//		__STRUCT_TYPE_CHECK_MEMBER(declaration),
+//		__STRUCT_TYPE_CHECK_ANON_MEMBER(base_type_info),
+//		__STRUCT_TYPE_CHECK_MEMBER(specifications),
+//		__STRUCT_TYPE_CHECK_MEMBER(dwarf_info),
+//		});
+//	}STRUCT_TYPE_CHECK_END;
+//	/* pre-compilation & runtime test */
+//	do {
+//		json_object * p_json = NULL;
+//		metac_type_t * copy;
+//		metac_byte_size_t copy_size;
+//		metac_type_t *type = &METAC_TYPE_NAME(metac_type_t);
+//		metac_precompiled_type_t * precompiled_type_4_metac_type_t = metac_precompile_type(&METAC_TYPE_NAME(metac_type_t));
+//		fail_unless(precompiled_type_4_metac_type_t != NULL, "metac_precompile_type failed");
+//		//metac_dump_precompiled_type(precompiled_type_4_metac_type_t);
+//
+//		fail_unless(metac_visit(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+//		fail_unless(metac_visit2(type, precompiled_type_4_metac_type_t, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
+//		fail_unless(metac_unpack_to_json(precompiled_type_4_metac_type_t, type, sizeof(*type), 1, &p_json) == 0, "metac_pack2json failed"); \
+//		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+//		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
+//		json_object_put(p_json);
+//		p_json = NULL;
+//		fail_unless(metac_copy(type, sizeof(*type), precompiled_type_4_metac_type_t, 1, (void**)&copy) == 0, "metac_copy failed");
+//		fail_unless(type->dwarf_info.at != copy->dwarf_info.at, "Pointer was just copied");
+//		fail_unless(type->dwarf_info.at[0].id == copy->dwarf_info.at[0].id, "Data wasn't copied");
+//
+//		fail_unless(metac_equal(type, copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 1");
+//		fail_unless(metac_equal(copy, type, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 1, "metac_equal result isn't correct 2");
+//
+//
+//		fail_unless(metac_delete(copy, sizeof(*type), precompiled_type_4_metac_type_t, 1) == 0, "metac_delete failed");
+//
+//		metac_free_precompiled_type(&precompiled_type_4_metac_type_t);
+//		fail_unless(precompiled_type_4_metac_type_t == NULL, "metac_free_precompiled_type failed");
+//	}while(0);
+//
+//}END_TEST
+//
+///*****************************************************************************/
+//typedef struct _basic_tree {
+//	int * data;
+//	struct _basic_tree *desc[2];
+//}basic_tree_t;
+//METAC_TYPE_GENERATE(basic_tree_t);
+//METAC_TYPE_SPECIFICATION_BEGIN(basic_tree_t)
+//METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
+//METAC_TYPE_SPECIFICATION_END
+//
+//START_TEST(basic_tree_t_ut) {
+//	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
+//		_STRUCT_TYPE_CHECK_BYTESIZE;
+//		_STRUCT_TYPE_CHECK_MEMBERS(2, {
+//		__STRUCT_TYPE_CHECK_MEMBER(data),
+//		__STRUCT_TYPE_CHECK_MEMBER(desc),
+//		});
+//	}STRUCT_TYPE_CHECK_END;
+//	do {
+//		basic_tree_t * p_x = NULL;
+//		metac_byte_size_t size = 0;
+//		metac_count_t elements_count = 0;
+//
+//		json_object * p_json = NULL;
+//		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
+//		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
+//		metac_dump_precompiled_type(precompiled_type);
+//
+//		/*build hierarchy*/
+//		basic_tree_t * y;
+//		basic_tree_t l = {
+//			.data = (int[]){1, },
+//			.desc = {NULL, NULL, },
+//		},
+//		r  = {
+//			.data = (int[]){3, },
+//			.desc = {NULL, NULL, },
+//		},
+//		x = {
+//			.data = (int[]){2, },
+//			.desc = {&l, &r, },
+//		};
+//
+//		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
+//		fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
+//		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
+//		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object");
+//		printf("json:\n %s\n", json_object_to_json_string(p_json));
+//
+//		fail_unless(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed");
+//		json_object_put(p_json);
+//		p_json = NULL;
+//		fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size");
+//		fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size");
+//		fail_unless(metac_unpack_to_json(precompiled_type, p_x, sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
+//		fail_unless(p_json != NULL, "metac_unpack_to_json hasn't failed, but didn't return the object");
+//		printf("json_from_packed_obj:\n %s\n", json_object_to_json_string(p_json));
+//		json_object_put(p_json);
+//		p_json = NULL;
+//		fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 1, "object created by metac_pack_from_json isn't equal with the original");
+//		fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed");
+//
+//
+//		fail_unless(metac_copy((void*)(&x), sizeof(x), precompiled_type, 1, (void**)&y) == 0, "copy function returned error");
+//
+//		fail_unless(y->data && *y->data == 2, "basic_tree check1 failed");
+//		fail_unless(y->desc[0] && y->desc[0]->data && *y->desc[0]->data == 1, "basic_tree check2 failed");
+//		fail_unless(y->desc[1] && y->desc[1]->data && *y->desc[1]->data == 3, "basic_tree check3 failed");
+//		fail_unless(y->desc[0]->desc[0] == NULL, "basic_tree check4 failed");
+//		fail_unless(y->desc[0]->desc[1] == NULL, "basic_tree check5 failed");
+//		fail_unless(y->desc[1]->desc[0] == NULL, "basic_tree check6 failed");
+//		fail_unless(y->desc[1]->desc[1] == NULL, "basic_tree check7 failed");
+//
+//		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 1");
+//		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 1, "metac_equal result isn't correct 2");
+//
+//		/*modify original*/
+//		*(x.data) = 0;
+//		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
+//		fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+//		printf("json:\n %s\n", json_object_to_json_string(p_json)); \
+//		json_object_put(p_json);
+//		p_json = NULL;
+//
+//		fail_unless(metac_equal((void*)(&x), y, sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 3");
+//		fail_unless(metac_equal(y, (void*)(&x), sizeof(x), precompiled_type, 1) == 0, "metac_equal result isn't correct 4");
+//
+//
+//		fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
+//
+//		metac_free_precompiled_type(&precompiled_type);
+//	}while(0);
+//}END_TEST
 
 /*****************************************************************************/
 int main(void){
@@ -1418,8 +1184,8 @@ int main(void){
 					ADD_TEST(unions_ut);
 					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
-					ADD_TEST(metac_type_t_ut);
-					ADD_TEST(basic_tree_t_ut);
+//					ADD_TEST(metac_type_t_ut);
+//					ADD_TEST(basic_tree_t_ut);
 				}END_CASE
 			);
 		}END_SUITE
