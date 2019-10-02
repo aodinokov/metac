@@ -17,20 +17,20 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-const metac_type_specification_value_t *
-	metac_type_specification(struct metac_type *type, const char *key) {
+const metac_type_annotation_value_t *
+	metac_type_annotation(struct metac_type *type, const char *key) {
 	int i = 0;
 	if (type == NULL){
 		msg_stderr("invalid argument value: return NULL\n");
 		return NULL;
 	}
-	if (type->specifications == NULL) {
+	if (type->annotations == NULL) {
 		msg_stddbg("type %s doesn't have specifications\n", type->name != NULL?type->name:"(nil)");
 		return NULL;
 	}
-	while (type->specifications[i].key) {
-		if (strcmp(type->specifications[i].key, key) == 0)
-			return type->specifications[i].value;
+	while (type->annotations[i].key) {
+		if (strcmp(type->annotations[i].key, key) == 0)
+			return type->annotations[i].value;
 		++i;
 	}
 	return NULL;
@@ -414,6 +414,7 @@ int metac_array_info_counter_increment(metac_array_info_t *p_array_info_orig, me
 
 /*****************************************************************************/
 int metac_array_elements_single(
+	char * annotation_key,
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,
@@ -431,6 +432,7 @@ int metac_array_elements_single(
 }
 
 int metac_array_elements_1d_with_null(
+	char * annotation_key,
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,

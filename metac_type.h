@@ -10,8 +10,7 @@ extern "C" {
 /* declaration of C type in C */
 struct metac_type;
 struct metac_type_at;
-struct metac_type_specification;
-struct metac_type_specification_value;
+struct metac_type_annotation_value;
 
 /* definition of types used for attributes */
 typedef char *							metac_name_t;
@@ -31,13 +30,13 @@ typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
 typedef unsigned int					metac_num_t;
 
-typedef struct metac_type_specification_value
-										metac_type_specification_value_t;
+typedef struct metac_type_annotation_value
+										metac_type_annotation_value_t;
 
-typedef struct metac_type_specification {
+typedef struct metac_type_annotation {
 	/*const*/ char *key;
-	/*const*/ metac_type_specification_value_t	*value;
-}metac_type_specification_t;										/* pointer to explicit specifications array for this type*/
+	/*const*/ metac_type_annotation_value_t	*value;
+}metac_type_annotation_t;										/* pointer to explicit specifications array for this type*/
 
 typedef struct metac_array_info {
 	metac_num_t subranges_count;
@@ -132,8 +131,8 @@ struct metac_type {
 		}array_type_info;
 	};
 
-	/* METAC allows to set additional type specifications that help to make a decision e.g. during serialization */
-	metac_type_specification_t *specifications;						/* pointer to explicit specifications array for this type*/
+	/* METAC allows to set additional type annotations that help to make a decision e.g. during serialization */
+	metac_type_annotation_t *annotations;							/* pointer to explicit annotations array for this type*/
 
 	/**
 	 * RAW DWARF data
@@ -172,8 +171,8 @@ int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_na
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
-const metac_type_specification_value_t *
-						metac_type_specification(struct metac_type *type, const char *key);		/* return spec value by key (NULL if not found)*/
+const metac_type_annotation_value_t *
+						metac_type_annotation(struct metac_type *type, const char *key);		/* return annotation value by key (NULL if not found)*/
 
 metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
 metac_array_info_t * 	metac_array_info_create_from_elements_count(metac_count_t elements_count);
@@ -191,31 +190,66 @@ int 					metac_array_info_counter_increment(metac_array_info_t *p_array_info_ori
 #define METAC_TYPE_NAME(name) METAC(type, name)
 #define METAC_TYPE_GENERATE(name) extern struct metac_type METAC_TYPE_NAME(name)
 
-#define METAC_TYPE_SPECIFICATION_DECLARE(name) extern struct metac_type_specification METAC(typespec, name)[];
-#define METAC_TYPE_SPECIFICATION_BEGIN(name) struct metac_type_specification METAC(typespec, name)[] = {
-#define _METAC_TYPE_SPECIFICATION(_key_, _value_...) {.key = _key_, .value = _value_},
-#define METAC_TYPE_SPECIFICATION_END {NULL, NULL}};
+#define METAC_TYPE_ANNOTATION_NAME(name) METAC(typeannotations, name)
+#define METAC_TYPE_ANNOTATION_DECLARE(name) extern struct metac_type_annotation METAC_TYPE_ANNOTATION_NAME(name)[];
+#define METAC_TYPE_ANNOTATION_BEGIN(name) struct metac_type_annotation METAC_TYPE_ANNOTATION_NAME(name)[] = {
+#define METAC_TYPE_ANNOTATION(_key_, _value_...) {\
+		.key = _key_,\
+		.value = (metac_type_annotation_value_t[]){\
+			{\
+				_value_\
+			},\
+		}\
+	}
+#define METAC_TYPE_ANNOTATION_END {NULL, NULL}};
 
-/* precompiled type specification values: */
 typedef int metac_discriminator_value_t;
-typedef int (*metac_discriminator_cb_ptr_t)(
-	int write_operation,	/* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
-	void * ptr, metac_type_t * type, /*pointer to memory region and its type */
-	metac_discriminator_value_t  * p_discriminator_val,
-	void * discriminator_cb_context);
 
-typedef int (*metac_array_elements_count_cb_ptr_t)(
-	int write_operation,
+typedef int (*metac_cb_discriminator_t)(
+	char * annotation_key,
+	int write_operation, /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	void * ptr,
+	metac_type_t * type, /*pointer to memory region and its type */
+	metac_discriminator_value_t  * p_discriminator_val,
+	void * data);
+
+typedef int (*metac_cb_array_elements_count_t)(
+	char * annotation_key,
+	int write_operation,  /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
 	void * region_ptr,
 	metac_type_t * region_element_type, /*pointer to memory region element and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
 	metac_array_info_t * p_array_info,
-	void * array_elements_count_cb_context);
+	void * data);
+
+struct metac_type_annotation_value {
+	struct {
+		metac_cb_discriminator_t 			cb;
+		void *								data;
+	}discriminator;
+	struct {
+		metac_cb_array_elements_count_t 	cb;
+		void *								data;
+	}array_elements_count;
+	struct {
+		char **								types;
+	}static_cast;
+};
+
+#define METAC_CALLBACK_DISCRIMINATOR(_cb_, _data_) \
+				.discriminator = {.cb = _cb_, .data = _data_, }
+#define METAC_CALLBACK_ARRAY_ELEMENTS_COUNT(_cb_, _data_) \
+				.array_elements_count = {.cb = _cb_, .data = _data_, }
+#define METAC_STATIC_CAST(_types_...) \
+				.static_cast = {.types = (char*[]){\
+					_types_, NULL\
+				}}
 
 /*some helpful generic functions */
 #define metac_array_elements_stop NULL /* ignore this array/pointer */
 int metac_array_elements_single( /*this array has only 1 elements/pointer points to 1 element*/
+	char * annotation_key,
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,
@@ -224,6 +258,7 @@ int metac_array_elements_single( /*this array has only 1 elements/pointer points
 	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*/
+	char * annotation_key,
 	int write_operation,
 	void * ptr,
 	metac_type_t * type,
@@ -232,24 +267,6 @@ int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*
 	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 
-struct metac_type_specification_value {
-	void * specification_context;
-
-	struct {
-		metac_discriminator_cb_ptr_t discriminator_funtion_ptr;
-	};
-
-	struct {
-		metac_array_elements_count_cb_ptr_t array_elements_count_funtion_ptr;
-	};
-};
-
-#define METAC_DISCRIMINATOR_FUNCTION(_key_, _fn_) \
-	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
-			{{.discriminator_funtion_ptr = _fn_, .specification_context=_key_},})
-#define METAC_ARRAY_ELEMENTS_COUNT_FUNCTION(_key_, _fn_) \
-	_METAC_TYPE_SPECIFICATION(_key_, (metac_type_specification_value_t[]) \
-			{{.array_elements_count_funtion_ptr = _fn_, .specification_context=_key_},})
 
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;
@@ -264,164 +281,164 @@ int metac_equal(void *ptr0, void *ptr1, metac_byte_size_t size, metac_precompile
 /* destruction */
 int metac_delete(void *ptr, metac_byte_size_t size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count);
 
-/* C-type->some format - generic serialization*/
-typedef enum _metac_region_element_element_subtype {
-	reesHierarchy = 0,
-	reesEnum,
-	reesBase,
-	reesPointer,
-	reesArray,
-	reesAll,
-}metac_region_ee_subtype_t;
-struct metac_visitor {
-	int (*start)(
-			struct metac_visitor *p_visitor,
-			metac_count_t regions_count,
-			metac_count_t unique_regions_count
-			);
-	int (*region)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			void *ptr,
-			metac_byte_size_t byte_size,
-			metac_count_t elements_count
-			);
-	int (*unique_region)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			metac_count_t u_idx
-			);
-	int (*non_unique_region)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			metac_count_t u_idx,
-			metac_data_member_location_t offset
-			);
-	int (*region_element)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_type_t * type,
-			void *ptr,
-			metac_byte_size_t byte_size,
-			int real_region_element_element_count,
-			metac_region_ee_subtype_t *subtypes_sequence,
-			int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
-			int subtypes_sequence_lenth
-			);
-	int (*region_element_element)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_count_t ee_id,
-			metac_count_t parent_ee_id,
-			metac_type_t * type,
-			void *ptr,
-			metac_bit_offset_t * p_bit_offset,
-			metac_bit_size_t * p_bit_size,
-			metac_byte_size_t byte_size,
-			char * name_local,
-			char * path_within_region_element
-			);
-	int (*region_element_element_per_subtype)(
-			struct metac_visitor *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_count_t ee_id,
-			metac_region_ee_subtype_t subtype,
-			metac_count_t see_id,
-			/* for pointers and arrays only */
-			metac_array_info_t * p_array_info,
-			metac_count_t * p_linked_r_id /*can be NULL*/
-			);
-};
-int metac_visit(
-	void *ptr,
-	metac_byte_size_t size,
-	metac_precompiled_type_t * precompiled_type,
-	metac_count_t elements_count,
-	metac_region_ee_subtype_t *subtypes_sequence,
-	int subtypes_sequence_lenth,
-	struct metac_visitor * p_visitor);
-/*****************************************************************************/
-struct metac_visitor2 {
-	int (*start)(
-			struct metac_visitor2 *p_visitor,
-
-			metac_count_t regions_count,
-			metac_count_t allocated_regions_count
-			);
-	int (*region)(
-			struct metac_visitor2 *p_visitor,
-			metac_count_t r_id,
-
-			metac_count_t *p_parent_r_id,
-			metac_count_t *p_parent_e_id,
-			metac_count_t *p_parent_m_id,
-			/*or*/
-			metac_count_t *p_allocated_r_id,
-
-			metac_count_t elements_count,
-			metac_array_info_t * p_array_info,
-
-			void *ptr,
-			metac_byte_size_t size,
-			metac_type_t * type
-			);
-	int (*region_element)(
-			struct metac_visitor2 *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-
-			metac_array_info_t * p_current_array_info,
-
-			void *ptr,
-			metac_byte_size_t size,
-			metac_count_t member_count	/*only members with true condition */
-			);
-	int (*region_element_member)(
-			struct metac_visitor2 *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_count_t m_id,
-
-			metac_count_t *p_parent_m_id,
-
-			metac_type_t * type,
-			char * name_local,
-			char * path_within_region_element,
-
-			void *ptr,
-			metac_bit_offset_t * p_bit_offset,
-			metac_bit_size_t * p_bit_size,
-			metac_byte_size_t byte_size
-			);
-	int (*region_element_member_array)(
-			struct metac_visitor2 *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_count_t m_id,
-
-			metac_count_t linked_r_id
-			);
-	int (*region_element_member_pointer)(
-			struct metac_visitor2 *p_visitor,
-			metac_count_t r_id,
-			metac_count_t e_id,
-			metac_count_t m_id,
-
-			/*the next parameters can be NULL*/
-			metac_count_t *p_linked_r_id,
-			metac_count_t *p_linked_e_id,
-			metac_count_t *p_linked_m_id,
-			metac_data_member_location_t *p_linked_offset
-			);
-};
-int metac_visit2(
-	void *ptr,
-	metac_precompiled_type_t * precompiled_type,
-	metac_count_t elements_count,
-	struct metac_visitor2 * p_visitor);
+///* C-type->some format - generic serialization*/
+//typedef enum _metac_region_element_element_subtype {
+//	reesHierarchy = 0,
+//	reesEnum,
+//	reesBase,
+//	reesPointer,
+//	reesArray,
+//	reesAll,
+//}metac_region_ee_subtype_t;
+//struct metac_visitor {
+//	int (*start)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t regions_count,
+//			metac_count_t unique_regions_count
+//			);
+//	int (*region)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			void *ptr,
+//			metac_byte_size_t byte_size,
+//			metac_count_t elements_count
+//			);
+//	int (*unique_region)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t u_idx
+//			);
+//	int (*non_unique_region)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t u_idx,
+//			metac_data_member_location_t offset
+//			);
+//	int (*region_element)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_type_t * type,
+//			void *ptr,
+//			metac_byte_size_t byte_size,
+//			int real_region_element_element_count,
+//			metac_region_ee_subtype_t *subtypes_sequence,
+//			int * real_count_array_per_type, /*array with real number of elements_elements for each item in subtypes_sequence*/
+//			int subtypes_sequence_lenth
+//			);
+//	int (*region_element_element)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_count_t ee_id,
+//			metac_count_t parent_ee_id,
+//			metac_type_t * type,
+//			void *ptr,
+//			metac_bit_offset_t * p_bit_offset,
+//			metac_bit_size_t * p_bit_size,
+//			metac_byte_size_t byte_size,
+//			char * name_local,
+//			char * path_within_region_element
+//			);
+//	int (*region_element_element_per_subtype)(
+//			struct metac_visitor *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_count_t ee_id,
+//			metac_region_ee_subtype_t subtype,
+//			metac_count_t see_id,
+//			/* for pointers and arrays only */
+//			metac_array_info_t * p_array_info,
+//			metac_count_t * p_linked_r_id /*can be NULL*/
+//			);
+//};
+//int metac_visit(
+//	void *ptr,
+//	metac_byte_size_t size,
+//	metac_precompiled_type_t * precompiled_type,
+//	metac_count_t elements_count,
+//	metac_region_ee_subtype_t *subtypes_sequence,
+//	int subtypes_sequence_lenth,
+//	struct metac_visitor * p_visitor);
+///*****************************************************************************/
+//struct metac_visitor2 {
+//	int (*start)(
+//			struct metac_visitor2 *p_visitor,
+//
+//			metac_count_t regions_count,
+//			metac_count_t allocated_regions_count
+//			);
+//	int (*region)(
+//			struct metac_visitor2 *p_visitor,
+//			metac_count_t r_id,
+//
+//			metac_count_t *p_parent_r_id,
+//			metac_count_t *p_parent_e_id,
+//			metac_count_t *p_parent_m_id,
+//			/*or*/
+//			metac_count_t *p_allocated_r_id,
+//
+//			metac_count_t elements_count,
+//			metac_array_info_t * p_array_info,
+//
+//			void *ptr,
+//			metac_byte_size_t size,
+//			metac_type_t * type
+//			);
+//	int (*region_element)(
+//			struct metac_visitor2 *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//
+//			metac_array_info_t * p_current_array_info,
+//
+//			void *ptr,
+//			metac_byte_size_t size,
+//			metac_count_t member_count	/*only members with true condition */
+//			);
+//	int (*region_element_member)(
+//			struct metac_visitor2 *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_count_t m_id,
+//
+//			metac_count_t *p_parent_m_id,
+//
+//			metac_type_t * type,
+//			char * name_local,
+//			char * path_within_region_element,
+//
+//			void *ptr,
+//			metac_bit_offset_t * p_bit_offset,
+//			metac_bit_size_t * p_bit_size,
+//			metac_byte_size_t byte_size
+//			);
+//	int (*region_element_member_array)(
+//			struct metac_visitor2 *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_count_t m_id,
+//
+//			metac_count_t linked_r_id
+//			);
+//	int (*region_element_member_pointer)(
+//			struct metac_visitor2 *p_visitor,
+//			metac_count_t r_id,
+//			metac_count_t e_id,
+//			metac_count_t m_id,
+//
+//			/*the next parameters can be NULL*/
+//			metac_count_t *p_linked_r_id,
+//			metac_count_t *p_linked_e_id,
+//			metac_count_t *p_linked_m_id,
+//			metac_data_member_location_t *p_linked_offset
+//			);
+//};
+//int metac_visit2(
+//	void *ptr,
+//	metac_precompiled_type_t * precompiled_type,
+//	metac_count_t elements_count,
+//	struct metac_visitor2 * p_visitor);
 /*****************************************************************************/
 struct metac_type_sorted_array {
 	metac_num_t number;

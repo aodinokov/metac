@@ -314,7 +314,7 @@ BEGIN {
             case "type":
                 task4types[x[2]] = x[1];
                 break;
-            case "typespec":
+            case "typeannotations":
                 task4specs[x[2]] = x[1];
                 break;
             case "object":
@@ -365,7 +365,7 @@ END {
     print "\n/* explicit type parameters declarations */"
     
     for (i in task4specs) {
-        print "METAC_TYPE_SPECIFICATION_DECLARE(" i ");";
+        print "METAC_TYPE_ANNOTATION_DECLARE(" i ");";
     }
     
     print "\n\n/* early declaration */"
@@ -399,7 +399,7 @@ END {
             }
             #specifications
             if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
-                print "\t.specifications = METAC(typespec, " type_name(data[i]["DW_AT_name"]) "),"
+                print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
             }
             #dwarf data 
             at_text = dump_dwarf_at_data(arr0[1], i) 
