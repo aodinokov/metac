@@ -224,27 +224,37 @@ typedef int (*metac_cb_array_elements_count_t)(
 	metac_array_info_t * p_array_info,
 	void * data);
 
+typedef int (*metac_cb_generic_cast_t)(
+	char * annotation_key,
+	int write_operation,  /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	void ** ptr,
+	void ** casted_ptr,
+	void * data);
+
 struct metac_type_annotation_value {
 	struct {
-		metac_cb_discriminator_t 			cb;
+		metac_cb_discriminator_t			cb;
 		void *								data;
 	}discriminator;
 	struct {
-		metac_cb_array_elements_count_t 	cb;
+		metac_cb_array_elements_count_t		cb;
 		void *								data;
 	}array_elements_count;
 	struct {
-		char **								types;
-	}static_cast;
+		metac_cb_generic_cast_t				cb;
+		void *								data;
+		struct metac_type **				types;
+	}generic_cast;
 };
 
 #define METAC_CALLBACK_DISCRIMINATOR(_cb_, _data_) \
 				.discriminator = {.cb = _cb_, .data = _data_, }
 #define METAC_CALLBACK_ARRAY_ELEMENTS_COUNT(_cb_, _data_) \
 				.array_elements_count = {.cb = _cb_, .data = _data_, }
-#define METAC_STATIC_CAST(_types_...) \
-				.static_cast = {.types = (char*[]){\
-					_types_, NULL\
+#define METAC_CALLBACK_GENERIC_CAST(_cb_, _data_, _types_...) \
+				.generic_cast = {.cb = _cb_, .data = _data_, \
+					.types = (struct metac_type *[]){\
+						_types_, NULL\
 				}}
 
 /*some helpful generic functions */

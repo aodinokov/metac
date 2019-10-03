@@ -123,7 +123,7 @@ METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 			while (pp_annotation_keys[i] != NULL) { \
 				const metac_type_annotation_t * p_annotation = metac_type_annotation(type, pp_annotation_keys[i]); \
 				fail_unless(p_annotation != NULL, "metac_type_annotation returned NULL unexpectidly"); \
-				fail_unless(strcmp(p_annotation->key, pp_annotation_keys[i]) == 0, "got incorrect specification"); \
+				fail_unless(strcmp(p_annotation->key, pp_annotation_keys[i]) == 0, "got incorrect annotation"); \
 				++i; \
 			} \
 		}while(0)
@@ -1026,9 +1026,9 @@ METAC_TYPE_ANNOTATION_BEGIN(metac_type_t)
 METAC_TYPE_ANNOTATION("<ptr>.<anon0>.typedef_info.type",
 		METAC_CALLBACK_DISCRIMINATOR(_metac_type_t_discriminator_funtion, NULL),
 		METAC_CALLBACK_ARRAY_ELEMENTS_COUNT(_metac_type_t_array_elements_count_funtion, NULL),
-		METAC_STATIC_CAST(
-				"char_t",
-				"int_t"
+		METAC_CALLBACK_GENERIC_CAST(NULL, NULL,
+				&METAC_TYPE_NAME(char_t),
+				&METAC_TYPE_NAME(int_t)
 			),
 		),
 //_METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.name", metac_array_elements_1d_with_null)
