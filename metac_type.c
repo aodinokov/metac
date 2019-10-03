@@ -17,7 +17,7 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-const metac_type_annotation_value_t *
+const metac_type_annotation_t *
 	metac_type_annotation(struct metac_type *type, const char *key) {
 	int i = 0;
 	if (type == NULL){
@@ -30,7 +30,7 @@ const metac_type_annotation_value_t *
 	}
 	while (type->annotations[i].key) {
 		if (strcmp(type->annotations[i].key, key) == 0)
-			return type->annotations[i].value;
+			return &type->annotations[i];
 		++i;
 	}
 	return NULL;

@@ -172,7 +172,7 @@ int						metac_type_enumeration_type_get_value(struct metac_type *type, metac_na
 metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, metac_const_value_t const_value);
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
-const metac_type_annotation_value_t *
+const metac_type_annotation_t *
 						metac_type_annotation(struct metac_type *type, const char *key);		/* return annotation value by key (NULL if not found)*/
 
 metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
