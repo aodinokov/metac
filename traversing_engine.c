@@ -1,11 +1,11 @@
 /*
- * breadthfirst_engine.c
+ * traversing_engine.c
  *
  *  Created on: Mar 25, 2018
  *      Author: mralex
  */
 
-#include "breadthfirst_engine.h"
+#include "traversing_engine.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
 
 #include <stdlib.h>			/* calloc, ... */

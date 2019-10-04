@@ -1,5 +1,5 @@
 /*
- * breadthfirst_engine.h
+ * traversing_engine.h
  *
  *  Created on: Mar 25, 2018
  *      Author: mralex
