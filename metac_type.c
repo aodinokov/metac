@@ -17,23 +17,36 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
-const metac_type_annotation_t *
-	metac_type_annotation(struct metac_type *type, const char *key) {
+static const metac_type_annotation_t *
+	_annotation_by_key(metac_type_annotation_t *annotations, const char *key) {
 	int i = 0;
+	if (annotations == NULL) {
+		msg_stddbg("type %s doesn't have specifications\n", type->name != NULL?type->name:"(nil)");
+		return NULL;
+	}
+	while (annotations[i].key) {
+		if (strcmp(annotations[i].key, key) == 0)
+			return &annotations[i];
+		++i;
+	}
+	return NULL;
+}
+
+const metac_type_annotation_t *
+	metac_type_annotation(struct metac_type *type, const char *key, metac_type_annotation_t *override_annotations) {
+	const metac_type_annotation_t * result;
+
 	if (type == NULL){
 		msg_stderr("invalid argument value: return NULL\n");
 		return NULL;
 	}
-	if (type->annotations == NULL) {
-		msg_stddbg("type %s doesn't have specifications\n", type->name != NULL?type->name:"(nil)");
-		return NULL;
+
+	if (override_annotations) {
+		result = _annotation_by_key(override_annotations, key);
+		if (result != NULL)
+			return result;
 	}
-	while (type->annotations[i].key) {
-		if (strcmp(type->annotations[i].key, key) == 0)
-			return &type->annotations[i];
-		++i;
-	}
-	return NULL;
+	return _annotation_by_key(type->annotations, key);
 }
 
 struct metac_type *metac_type_actual_type(struct metac_type *type) {

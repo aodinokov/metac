@@ -173,7 +173,7 @@ metac_name_t			metac_type_enumeration_type_get_name(struct metac_type *type, met
 int 					metac_type_array_subrange_count(struct metac_type *type, metac_num_t subrange_id, metac_count_t *p_count);
 int 					metac_type_array_member_location(struct metac_type *type, metac_num_t subranges_count, metac_num_t * subranges, metac_data_member_location_t *p_data_member_location);
 const metac_type_annotation_t *
-						metac_type_annotation(struct metac_type *type, const char *key);		/* return annotation value by key (NULL if not found)*/
+						metac_type_annotation(struct metac_type *type, const char *key, metac_type_annotation_t *override_annotations);	/* return annotation value by key (NULL if not found)*/
 
 metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
 metac_array_info_t * 	metac_array_info_create_from_elements_count(metac_count_t elements_count);
@@ -194,6 +194,7 @@ int 					metac_array_info_counter_increment(metac_array_info_t *p_array_info_ori
 #define METAC_TYPE_ANNOTATION_NAME(name) METAC(typeannotations, name)
 #define METAC_TYPE_ANNOTATION_DECLARE(name) extern struct metac_type_annotation METAC_TYPE_ANNOTATION_NAME(name)[];
 #define METAC_TYPE_ANNOTATION_BEGIN(name) struct metac_type_annotation METAC_TYPE_ANNOTATION_NAME(name)[] = {
+#define METAC_TYPE_ANNOTATION_OVERRIDE_BEGIN(override_name) static struct metac_type_annotation override_name[] = {
 #define METAC_TYPE_ANNOTATION(_key_, _value_...) {\
 		.key = _key_,\
 		.value = (metac_type_annotation_value_t[]){\
