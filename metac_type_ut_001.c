@@ -15,6 +15,7 @@
 #include "metac_type.h"
 
 //#include "metac_json.h"
+#include "metac_internals.h"
 
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
@@ -1050,7 +1051,7 @@ static int _metac_type_t_array_elements_count_funtion(
 
 METAC_TYPE_GENERATE(metac_type_t);
 METAC_TYPE_ANNOTATION_BEGIN(metac_type_t)
-METAC_TYPE_ANNOTATION("<ptr>.<anon0>.typedef_info.type",
+METAC_TYPE_ANNOTATION("ptr[].typedef_info.type",
 		METAC_CALLBACK_DISCRIMINATOR(_metac_type_t_discriminator_funtion, NULL),
 		METAC_CALLBACK_ARRAY_ELEMENTS_COUNT(_metac_type_t_array_elements_count_funtion, NULL),
 		METAC_CALLBACK_GENERIC_CAST(NULL, NULL,

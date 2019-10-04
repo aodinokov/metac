@@ -201,8 +201,7 @@ int 					metac_array_info_counter_increment(metac_array_info_t *p_array_info_ori
 			{\
 				_value_\
 			},\
-		}\
-	}
+	}}
 #define METAC_TYPE_ANNOTATION_END {NULL, NULL}};
 
 typedef int metac_discriminator_value_t;
