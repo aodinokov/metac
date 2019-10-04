@@ -112,6 +112,14 @@ struct element_type {				/*array element type*/
 	};
 };
 
+struct metac_precompiled_type {
+	struct _element_types_array{
+		int									element_types_count;
+		struct element_type **				element_type;
+	}	pointers,
+		arrays;
+};
+
 
 #if 0
 struct region_element_type_member {
