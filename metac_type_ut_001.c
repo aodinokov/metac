@@ -8,6 +8,7 @@
 //#define METAC_DEBUG_ENABLE
 
 #include <dlfcn.h>
+#include <stdarg.h>
 #include <complex.h>		/*complex*/
 
 #include "check_ext.h"
@@ -332,7 +333,8 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 				fail_unless(actual_type->subprogram_info.parameters[i].unspecified_parameters == expected_parameters[i].unspecified_parameters, \
 					"unspecified_parameters parameter mismatch"); \
 				if (expected_parameters[i].unspecified_parameters == 0) { \
-					fail_unless(strcmp(actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name) == 0, "name mismatch");\
+					fail_unless(strcmp(actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name) == 0, "name mismatch %s vs %s", \
+						actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name);\
 				} \
 			} \
 		}while(0)
@@ -377,14 +379,14 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 #define ARRAY_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
 #define STRUCT_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _init_...) \
-		GENERAL_TYPE_CHECK_BEGIN(_type_) { \
-			mark_point(); \
-			static _type_ obj = _init_; \
-			GENERAL_TYPE_CHECK_BYTE_SIZE(); \
-			GENERAL_TYPE_CHECK_NAME(); \
-			GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-			GENERAL_TYPE_CHECK_ID(_id_); \
-			GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+	GENERAL_TYPE_CHECK_BEGIN(_type_) { \
+		mark_point(); \
+		static _type_ obj = _init_; \
+		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
+		GENERAL_TYPE_CHECK_NAME(); \
+		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
+		GENERAL_TYPE_CHECK_ID(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
 #define STRUCT_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(structure_type_info)
 #define STRUCT_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
@@ -396,14 +398,14 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 #define STRUCT_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
 #define UNION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_, _init_...) \
-		GENERAL_TYPE_CHECK_BEGIN(_type_) { \
-			mark_point(); \
-			static _type_ obj = _init_; \
-			GENERAL_TYPE_CHECK_BYTE_SIZE(); \
-			GENERAL_TYPE_CHECK_NAME(); \
-			GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-			GENERAL_TYPE_CHECK_ID(_id_); \
-			GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+	GENERAL_TYPE_CHECK_BEGIN(_type_) { \
+		mark_point(); \
+		static _type_ obj = _init_; \
+		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
+		GENERAL_TYPE_CHECK_NAME(); \
+		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
+		GENERAL_TYPE_CHECK_ID(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
 #define UNION_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(union_type_info)
 #define UNION_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
@@ -415,17 +417,17 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 #define UNION_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
 #define FUNCTION_TYPE_CHECK_BEGIN(_type_, _id_, _n_td_id_)  do { \
-		char * _type_name = #_type_; \
-		struct metac_type *type = &METAC_TYPE_NAME(_type_); \
-		struct metac_type *actual_type = metac_type_actual_type(type); \
-		{ \
-			mark_point(); \
-			GENERAL_TYPE_CHECK_NAME(); \
-			GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-			GENERAL_TYPE_CHECK_ID(_id_); \
-			GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+	char * _type_name = #_type_; \
+	struct metac_type *type = &METAC_TYPE_NAME(_type_); \
+	struct metac_type *actual_type = metac_type_actual_type(type); \
+	{ \
+		mark_point(); \
+		GENERAL_TYPE_CHECK_NAME(); \
+		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
+		GENERAL_TYPE_CHECK_ID(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
 #define FUNCTION_TYPE_CHECK_END \
-		}GENERAL_TYPE_CHECK_END
+	}GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
 /*****************************************************************************/
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
@@ -892,6 +894,8 @@ int_t func_t(p_bit_fields_t arg) {if (arg)return 1; return 0;}
 METAC_FUNCTION(func_t);
 void func_printf(cchar_t format, ...){return;}
 METAC_FUNCTION(func_printf);
+void func_vprintf(const char *format, va_list ap){return;}
+METAC_FUNCTION(func_vprintf);
 
 START_TEST(funtions_ut){
 	FUNCTION_TYPE_CHECK_BEGIN(func_t, DW_TAG_subprogram, DW_TAG_subprogram) {
@@ -907,6 +911,14 @@ START_TEST(funtions_ut){
 		FUNCTION_CHECK_PARAMS(_BUG_NO_USPECIFIED_PARAMETER_, 2, {
 			{.name = "format", },
 			{.unspecified_parameters = 1, },
+		});
+	}FUNCTION_TYPE_CHECK_END;
+	FUNCTION_TYPE_CHECK_BEGIN(func_vprintf, DW_TAG_subprogram, DW_TAG_subprogram) {
+		FUNCTION_CHECK_GLOBALLY_ACCESSIBLE;
+		FUNCTION_CHECK_RETURN_TYPE(NULL);
+		FUNCTION_CHECK_PARAMS(_BUG_NO_USPECIFIED_PARAMETER_, 2, {
+			{.name = "format", },
+			{.name = "ap", },
 		});
 	}FUNCTION_TYPE_CHECK_END;
 }END_TEST
