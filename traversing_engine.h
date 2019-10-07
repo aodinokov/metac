@@ -26,10 +26,10 @@ struct traversing_engine_task {
 	traversing_engine_task_fn_t fn;
 };
 
-int init_traversing_engine(struct traversing_engine* p_engine);
+int traversing_engine_init(struct traversing_engine* p_engine);
 int add_traversing_task_to_tail(struct traversing_engine* p_engine, struct traversing_engine_task * p_task);
 int add_traversing_task_to_front(struct traversing_engine* p_engine, struct traversing_engine_task * p_task);
-int run_traversing_engine(struct traversing_engine* p_engine);
-int cleanup_traversing_engine(struct traversing_engine *p_engine);
+int traversing_engine_run(struct traversing_engine* p_engine);
+int traversing_engine_clean(struct traversing_engine *p_engine);
 
 #endif /* TRAVERSING_ENGINE_H_ */

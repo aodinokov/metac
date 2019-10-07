@@ -84,11 +84,11 @@ struct element_type_hierarchy_member {
 
 struct element_type {						/*array element type*/
 	struct metac_type *						type;
-	struct metac_type *						actual_type;
+	struct metac_type *						actual_type;				/*cached: actual type without typedefs and etc */
 
-	metac_byte_size_t 						byte_size;					/*bite size*/
+	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
-	union {
+	union {	/*depending on actual_type->id*/
 		struct element_type_pointer			pointer;
 		struct element_type_array			array;
 		struct element_type_hierarhy_top {
@@ -209,9 +209,11 @@ struct metac_runtime_object {
 	struct metac_precompiled_type *	precompiled_type;
 
 	metac_count_t					arrays_count;
+	struct array **					arrays;
 
 	/* really allocated memory regions (subset of all regions) */
 	metac_count_t					root_arrays_count;
+	struct array **					root_arrays;
 };
 
 

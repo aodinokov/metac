@@ -11,7 +11,7 @@
 #include <stdlib.h>			/* calloc, ... */
 #include <errno.h>			/* ENOMEM etc */
 
-int init_traversing_engine(struct traversing_engine* p_engine) {
+int traversing_engine_init(struct traversing_engine* p_engine) {
 	if (p_engine == NULL) {
 		msg_stderr("invalid argument\n");
 		return -EINVAL;
@@ -46,7 +46,7 @@ int add_traversing_task_to_front(struct traversing_engine* p_engine, struct trav
 	return 0;
 }
 
-int run_traversing_engine(struct traversing_engine* p_engine) {
+int traversing_engine_run(struct traversing_engine* p_engine) {
 	int error_flag = 0;
 
 	if (p_engine == NULL) {
@@ -68,7 +68,7 @@ int run_traversing_engine(struct traversing_engine* p_engine) {
 	return error_flag==0?0:-EFAULT;
 }
 
-int cleanup_traversing_engine(struct traversing_engine *p_engine) {
+int traversing_engine_clean(struct traversing_engine *p_engine) {
 	if (p_engine == NULL) {
 		msg_stderr("Invalid argument: p_engine\n");
 		return -EINVAL;

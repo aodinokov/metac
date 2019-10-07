@@ -26,13 +26,24 @@ _always_:
 
 metac_objs = \
 	metac_type.o \
+	metac_internals.o \
+	traversing_engine.o
+
+metac_ut_libs = -ldl -lcheck -lm -lrt -ljson
+#metac_ut_libs += -lsubunit
 
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 metac_type_ut_001: $(metac_objs) metac_type_ut_001.o metac_type_ut_001.metac.o
-#metac_type_ut_001: -ldl -lcheck -lm -lrt -ljson
-metac_type_ut_001: -ldl -lcheck -lsubunit -lm -lrt -ljson
+metac_type_ut_001: $(metac_ut_libs)
+
+metac_internals_ut_001: LDFLAGS=-pthread
+metac_internals_ut_001: $(metac_objs) metac_internals_ut_001.o
+metac_internals_ut_001: $(metac_ut_libs)
+
+
 all: metac_type_ut_001.run metac_type_ut_001.metac.c 
+#all: metac_internals_ut_001.run
 
 %.run: % _always_
 	#./$<

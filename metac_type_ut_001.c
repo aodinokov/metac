@@ -16,7 +16,6 @@
 #include "metac_type.h"
 
 //#include "metac_json.h"
-#include "metac_internals.h"
 
 #define DUMP_MEM(_text_, _start_, _size_) \
 	do { \
@@ -1145,16 +1144,16 @@ METAC_TYPE_ANNOTATION_END
 //}END_TEST
 //
 ///*****************************************************************************/
-//typedef struct _basic_tree {
-//	int * data;
-//	struct _basic_tree *desc[2];
-//}basic_tree_t;
-//METAC_TYPE_GENERATE(basic_tree_t);
-//METAC_TYPE_SPECIFICATION_BEGIN(basic_tree_t)
+typedef struct _basic_tree {
+	int * data;
+	struct _basic_tree *desc[2];
+}basic_tree_t;
+METAC_TYPE_GENERATE(basic_tree_t);
+METAC_TYPE_ANNOTATION_BEGIN(basic_tree_t)
 //METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
-//METAC_TYPE_SPECIFICATION_END
-//
-//START_TEST(basic_tree_t_ut) {
+METAC_TYPE_ANNOTATION_END
+
+START_TEST(basic_tree_t_ut) {
 //	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
 //		_STRUCT_TYPE_CHECK_BYTESIZE;
 //		_STRUCT_TYPE_CHECK_MEMBERS(2, {
@@ -1162,14 +1161,14 @@ METAC_TYPE_ANNOTATION_END
 //		__STRUCT_TYPE_CHECK_MEMBER(desc),
 //		});
 //	}STRUCT_TYPE_CHECK_END;
-//	do {
-//		basic_tree_t * p_x = NULL;
-//		metac_byte_size_t size = 0;
-//		metac_count_t elements_count = 0;
-//
+	do {
+		basic_tree_t * p_x = NULL;
+		metac_byte_size_t size = 0;
+		metac_count_t elements_count = 0;
+
 //		json_object * p_json = NULL;
-//		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
-//		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
+		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
 //		metac_dump_precompiled_type(precompiled_type);
 //
 //		/*build hierarchy*/
@@ -1235,8 +1234,8 @@ METAC_TYPE_ANNOTATION_END
 //		fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
 //
 //		metac_free_precompiled_type(&precompiled_type);
-//	}while(0);
-//}END_TEST
+	}while(0);
+}END_TEST
 
 /*****************************************************************************/
 int main(void){
