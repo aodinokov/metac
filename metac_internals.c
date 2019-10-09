@@ -37,6 +37,19 @@
 	free(*pp_##_type_); \
 	*pp_##_type_ = NULL;
 /*****************************************************************************/
+struct precompiled_type_builder_element_type {
+	struct cds_list_head							list;
+
+	struct element_type *							p_element_type;
+	struct element_type_hierarchy_member *			p_from_member;		/* info about member that contained this type*/
+};
+
+struct precompiled_type_builder {
+	struct cds_list_head							pointers_element_type_list;
+	struct cds_list_head							arrays_element_type_list;
+};
+/*****************************************************************************/
+
 int delete_discriminator(struct discriminator **	pp_discriminator) {
 	_delete_(discriminator);
 	return 0;
@@ -102,66 +115,6 @@ struct element_type * create_element_type(
 	}
 	return p_element_type;
 }
-/*****************************************************************************/
-/*****************************************************************************/
-struct precompiled_type_builder_discriminator {
-	struct cds_list_head				list;
-
-	struct discriminator *				p_discriminator;
-};
-
-struct precompiled_type_builder_member {
-	struct cds_list_head				list;
-
-	struct element_type_hierarchy_member *
-										p_member;
-};
-
-struct precompiled_type_builder_element_type {
-	struct cds_list_head				list;
-
-	struct element_type *				p_element_type;
-
-	struct element_type_hierarchy_member *
-										p_from_member;		/* info about member that contained this type*/
-
-//	struct cds_list_head 				discriminator_list;
-//	struct cds_list_head 				members_list;
-};
-
-struct precompiled_type_builder;
-typedef int (*onElementTypeAdd_cb_t) (
-		struct precompiled_type_builder *
-										p_precompiled_type_builder,
-		struct element_type *			p_element_type,
-		void *							p_cb_data);
-
-struct precompiled_type_builder {
-	struct cds_list_head				pointers_element_type_list;
-	struct cds_list_head				arrays_element_type_list;
-	onElementTypeAdd_cb_t				on_element_type_add_cb;
-	void *								p_cb_data;
-};
-/*****************************************************************************/
-int precompiled_type_builder_discriminator_init(
-		struct precompiled_type_builder_discriminator *p_precompiled_type_builder_discriminator) {
-	return 0;
-}
-int precompiled_type_builder_discriminator_clean(
-		struct precompiled_type_builder_discriminator *p_precompiled_type_builder_discriminator,
-		metac_flag									keep_data) {
-	return 0;
-}
-int precompiled_type_builder_member_init(
-		struct precompiled_type_builder_member *	p_precompiled_type_builder_member) {
-	return 0;
-}
-
-int precompiled_type_builder_member_clean(
-		struct precompiled_type_builder_member *	p_precompiled_type_builder_member,
-		metac_flag									keep_data) {
-	return 0;
-}
 
 int precompiled_type_builder_element_type_init(
 		struct precompiled_type_builder_element_type *
@@ -171,8 +124,7 @@ int precompiled_type_builder_element_type_init(
 		char * 										global_path,
 		struct metac_type *							p_type,
 		struct element_type_hierarchy_member *		p_from_member) {
-//	CDS_INIT_LIST_HEAD(&p_precompiled_type_builder_element_type->discriminator_list);
-//	CDS_INIT_LIST_HEAD(&p_precompiled_type_builder_element_type->members_list);
+
 	p_precompiled_type_builder_element_type->p_from_member = p_from_member;
 	p_precompiled_type_builder_element_type->p_element_type = create_element_type(p_root_type, override_annotations, global_path, p_type);
 	if (p_precompiled_type_builder_element_type->p_element_type == NULL) {
@@ -180,7 +132,6 @@ int precompiled_type_builder_element_type_init(
 	}
 	return 0;
 }
-
 void precompiled_type_builder_element_type_clean(
 		struct precompiled_type_builder_element_type *
 													p_precompiled_type_builder_element_type,
@@ -196,19 +147,7 @@ void precompiled_type_builder_element_type_clean(
 	}
 
 	p_precompiled_type_builder_element_type->p_from_member = NULL;
-
-//	cds_list_for_each_entry_safe(_member, __member, &p_precompiled_type_builder_element_type->members_list, list) {
-//		cds_list_del(&_discriminator->list);
-//		precompiled_type_builder_member_clean(_member, keep_data);
-//		free(_discriminator);
-//	}
-//	cds_list_for_each_entry_safe(_discriminator, __discriminator, &p_precompiled_type_builder_element_type->discriminator_list, list) {
-//		cds_list_del(&_discriminator->list);
-//		precompiled_type_builder_discriminator_clean(_discriminator, keep_data);
-//		free(_discriminator);
-//	}
 }
-
 int precompiled_type_builder_init(
 		struct precompiled_type_builder *			p_precompiled_type_builder,
 		onElementTypeAdd_cb_t						on_element_type_add_cb,
@@ -219,7 +158,6 @@ int precompiled_type_builder_init(
 	p_precompiled_type_builder->p_cb_data = p_cb_data;
 	return 0;
 }
-
 void precompiled_type_builder_clean(
 		struct precompiled_type_builder *			p_precompiled_type_builder,
 		metac_flag									keep_data) {
@@ -235,7 +173,6 @@ void precompiled_type_builder_clean(
 		free(_element_type);
 	}
 }
-
 static struct precompiled_type_builder_element_type * precompiled_type_builder_element_type_create(
 		struct precompiled_type_builder *			p_precompiled_type_builder,
 		struct metac_type *							p_root_type,
