@@ -283,7 +283,7 @@ int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*
 typedef struct metac_precompiled_type metac_precompiled_type_t;
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type, metac_type_annotation_t *	override_annotations);
 void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type);
-void metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
+int metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
 
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(void *ptr, metac_byte_size_t byte_size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);
