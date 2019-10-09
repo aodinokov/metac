@@ -1167,7 +1167,7 @@ START_TEST(basic_tree_t_ut) {
 		metac_count_t elements_count = 0;
 
 //		json_object * p_json = NULL;
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t));
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t), NULL);
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
 //		metac_dump_precompiled_type(precompiled_type);
 //
