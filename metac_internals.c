@@ -150,7 +150,7 @@ static int init_element_type_pointer(
 	}
 	return 0;
 }
-static int element_type_hierarhy_top(
+static int init_element_type_hierarhy_top(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct element_type *						p_element_type) {
@@ -169,7 +169,7 @@ static int element_type_hierarhy_top(
 }
 /*TODO: make create without args. move the content to a special func */
 struct element_type * create_element_type(
-		struct precompile_type_builder *			p_precompile_type_builder,
+		struct precompile_type_builder *			p_precompile_type_builder,	/*TODO: revert to p_root_type and p_override_annotations, because we don't use builder.. or use p_annotations here.... can't use annotations, because we'll need to find annotations for member*/
 		char * 										global_path,
 		struct metac_type *							p_type) {
 	int res;
@@ -187,7 +187,7 @@ struct element_type * create_element_type(
 		break;
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		res = element_type_hierarhy_top(p_precompile_type_builder, global_path, p_element_type);
+		res = init_element_type_hierarhy_top(p_precompile_type_builder, global_path, p_element_type);
 		break;
 	}
 	if (res != 0) {
