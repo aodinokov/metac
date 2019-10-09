@@ -33,14 +33,14 @@ struct element_type_base_type_hierarchy_member {
 struct element_type_pointer {
 	/* from annotations:*/
 	struct {
-		metac_cb_array_elements_count_t		cb;
-		void *								data;
-	}array_elements_count;
-	struct {
 		metac_cb_generic_cast_t				cb;
 		void *								data;
 		struct metac_type **				types;
 	}generic_cast;
+	struct {
+		metac_cb_array_elements_count_t		cb;
+		void *								data;
+	}array_elements_count;
 };
 
 struct element_type_array {
