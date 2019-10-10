@@ -42,6 +42,39 @@
 	_delete_finish(_type_)
 
 /*****************************************************************************/
+struct element_type_hierarchy_top_container_discriminator {
+	struct cds_list_head							list;
+
+	struct discriminator *							p_discriminator;
+};
+struct element_type_hierarchy_top_container_member {
+	struct cds_list_head							list;
+
+	struct element_type_hierarchy_member *			p_member;
+};
+struct element_type_hierarchy_top_container {
+	struct cds_list_head							discriminator_type_list;
+	struct cds_list_head							member_type_list;
+};
+struct element_type_hierarchy_top_builder {
+	struct metac_type *								p_root_type;
+	metac_type_annotation_t *						p_override_annotations;
+
+	struct element_type_hierarchy_top_container		container;
+	
+	struct traversing_engine						hierarchy_traversing_engine;
+	struct cds_list_head							hierarchy_executed_tasks;
+};
+struct element_type_hierarchy_top_builder_hierarchy_task {
+	struct traversing_engine_task					task;
+	char * 											global_path;		/*local copy - keep track of it*/
+	struct discriminator *							p_discriminator;
+	metac_discriminator_value_t						expected_discriminator_value;
+	struct metac_type *								p_type;
+	struct element_type_hierarchy *					p_hierarchy;
+	struct element_type_hierarchy *					p_parent_hierarchy;
+};
+/*****************************************************************************/
 struct precompile_type_container_element_type {
 	struct cds_list_head							list;
 
@@ -80,6 +113,11 @@ int precompile_type_builder_schedule_element_type_from_pointer(
 		struct metac_type *							p_type,
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/);
 /*****************************************************************************/
+int delete_discriminator(
+		struct discriminator **						pp_discriminator) {
+	_delete_(discriminator);
+	return 0;
+}
 struct discriminator * create_discriminator(
 		struct discriminator *						p_previous_discriminator,
 		metac_discriminator_value_t					previous_expected_discriminator_value,
@@ -97,21 +135,78 @@ struct discriminator * create_discriminator(
 
 	return p_discriminator;
 }
-int delete_element_type(
-		struct element_type **						pp_element_type) {
-	_delete_(element_type);
+int element_type_hierarchy_top_builder_hierarchy_task_delete(
+		struct element_type_hierarchy_top_builder_hierarchy_task **
+													pp_element_type_hierarchy_top_builder_hierarchy_task) {
+	_delete_start_(element_type_hierarchy_top_builder_hierarchy_task);
+	if ((*pp_element_type_hierarchy_top_builder_hierarchy_task)->global_path) {
+		free((*pp_element_type_hierarchy_top_builder_hierarchy_task)->global_path);
+		(*pp_element_type_hierarchy_top_builder_hierarchy_task)->global_path = NULL;
+	}
+	_delete_finish(element_type_hierarchy_top_builder_hierarchy_task);
 	return 0;
 }
-static int init_element_type_array(
-		struct precompile_type_builder *			p_precompile_type_builder,
+int element_type_hierarchy_top_builder_init(
+		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+		struct metac_type *							p_root_type,
+		metac_type_annotation_t *					p_override_annotations) {
+	p_element_type_hierarchy_top_builder->p_root_type = p_root_type;
+//	element_type_hierarchy_top_container_init(&p_element_type_hierarchy_top_builder->container);
+	CDS_INIT_LIST_HEAD(&p_element_type_hierarchy_top_builder->hierarchy_executed_tasks);
+	traversing_engine_init(&p_element_type_hierarchy_top_builder->hierarchy_traversing_engine);
+	return 0;
+}
+void element_type_hierarchy_top_builder_clean(
+		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+		metac_flag									keep_data) {
+	struct traversing_engine_task * p_task, *_p_task;
+
+	traversing_engine_clean(&p_element_type_hierarchy_top_builder->hierarchy_traversing_engine);
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_element_type_hierarchy_top_builder->hierarchy_executed_tasks, list) {
+		struct element_type_hierarchy_top_builder_hierarchy_task * p_element_type_hierarchy_top_builder_hierarchy_task = cds_list_entry(
+			p_task, 
+			struct element_type_hierarchy_top_builder_hierarchy_task, task);
+		cds_list_del(&p_task->list);
+		element_type_hierarchy_top_builder_hierarchy_task_delete(&p_element_type_hierarchy_top_builder_hierarchy_task);
+	}
+//	element_type_hierarchy_top_container_clean(&element_type_hierarchy_top_builder->container, keep_data);
+	p_element_type_hierarchy_top_builder->p_root_type = NULL;
+}
+
+int init_element_type_hierarhy_top(
+		struct metac_type *							p_root_type,
 		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct element_type *						p_element_type) {
+	struct element_type_hierarchy_top_builder element_type_hierarchy_top_builder;
+	msg_stddbg("init_element_type_hierarhy_top\n");
+	element_type_hierarchy_top_builder_init(&element_type_hierarchy_top_builder, p_root_type, p_override_annotations);
+//	if (element_type_hierarchy_top_builder_schedule_member(&precompile_type_builder, "ptr", p_root_type, NULL) != 0) {
+//		msg_stddbg("wasn't able to schedule the first task\n");
+//		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
+//		return (-EFAULT);
+//	}
+	if (traversing_engine_run(&element_type_hierarchy_top_builder.hierarchy_traversing_engine) != 0) {
+		msg_stddbg("tasks execution finished with fail\n");
+		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
+		return (-EFAULT);
+	}
+	element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 1);
+	msg_stddbg("init_element_type_hierarhy_top exit\n");
+	return (-EFAULT);
+}
+/*****************************************************************************/
+static int init_element_type_array(
+		struct metac_type *							p_root_type,
+		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
 		struct element_type *						p_element_type) {
 	const metac_type_annotation_t * p_annotation;
 	assert(	p_element_type && 
 			p_element_type->actual_type &&
 			p_element_type->actual_type->id == DW_TAG_array_type);
 	/* todo: check if it's flexible */
-	p_annotation = metac_type_annotation(p_precompile_type_builder->p_root_type, global_path, p_precompile_type_builder->p_override_annotations);
+	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	if (p_element_type->array.array_elements_count.cb != NULL) {
 		p_element_type->array.array_elements_count.cb = p_annotation->value->array_elements_count.cb;
@@ -126,15 +221,16 @@ static int init_element_type_array(
 	return 0;
 }
 static int init_element_type_pointer(
-		struct precompile_type_builder *			p_precompile_type_builder,
+		struct metac_type *							p_root_type,
 		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
 		struct element_type *						p_element_type) {
 	const metac_type_annotation_t * p_annotation;
 	assert(	p_element_type && 
 			p_element_type->actual_type &&
 			p_element_type->actual_type->id == DW_TAG_pointer_type);
 	/* todo: based on the actual_type of the ptr different defaults can be selected */
-	p_annotation = metac_type_annotation(p_precompile_type_builder->p_root_type, global_path, p_precompile_type_builder->p_override_annotations);
+	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	if (p_element_type->pointer.generic_cast.cb != NULL) {
 		p_element_type->pointer.generic_cast.cb = p_annotation->value->generic_cast.cb;
@@ -150,27 +246,16 @@ static int init_element_type_pointer(
 	}
 	return 0;
 }
-static int init_element_type_hierarhy_top(
-		struct precompile_type_builder *			p_precompile_type_builder,
-		char * 										global_path,
-		struct element_type *						p_element_type) {
-	const metac_type_annotation_t * p_annotation;
-	assert(	p_element_type && 
-			p_element_type->actual_type && (
-				p_element_type->actual_type->id == DW_TAG_structure_type ||
-				p_element_type->actual_type->id == DW_TAG_union_type
-			));
-	/*
-		todo: create hierarhy_top builder (like element_type builder)
-		finalize element_type with needed number of members and discriminators
-		clear the builder
-	*/
+int delete_element_type(
+		struct element_type **						pp_element_type) {
+	_delete_(element_type);
 	return 0;
 }
 /*TODO: make create without args. move the content to a special func */
 struct element_type * create_element_type(
-		struct precompile_type_builder *			p_precompile_type_builder,	/*TODO: revert to p_root_type and p_override_annotations, because we don't use builder.. or use p_annotations here.... can't use annotations, because we'll need to find annotations for member*/
+		struct metac_type *							p_root_type,
 		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_type) {
 	int res;
 	_create_(element_type);
@@ -179,15 +264,15 @@ struct element_type * create_element_type(
 	p_element_type->byte_size = metac_type_byte_size(p_type);
 	
 	switch(p_element_type->actual_type->id) {
-	case DW_TAG_array_type:
-		res = init_element_type_array(p_precompile_type_builder, global_path, p_element_type);
-		break;
-	case DW_TAG_pointer_type:
-		res = init_element_type_pointer(p_precompile_type_builder, global_path, p_element_type);
-		break;
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		res = init_element_type_hierarhy_top(p_precompile_type_builder, global_path, p_element_type);
+		res = init_element_type_hierarhy_top(p_root_type, global_path, p_override_annotations, p_element_type);
+		break;
+	case DW_TAG_array_type:
+		res = init_element_type_array(p_root_type, global_path, p_override_annotations, p_element_type);
+		break;
+	case DW_TAG_pointer_type:
+		res = init_element_type_pointer(p_root_type, global_path, p_override_annotations, p_element_type);
 		break;
 	}
 	if (res != 0) {
@@ -253,8 +338,9 @@ static struct precompile_type_container_element_type * precompile_type_builder_e
 	res = precompile_type_container_element_type_init(
 		p_precompile_type_container_element_type,
 		create_element_type(
-			p_precompile_type_builder,
+			p_precompile_type_builder->p_root_type,
 			global_path,
+			p_precompile_type_builder->p_override_annotations,
 			p_type),
 		p_from_member);
 	if (res != 0) {
