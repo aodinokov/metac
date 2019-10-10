@@ -50,7 +50,7 @@ struct element_type_hierarchy_top_container_discriminator {
 struct element_type_hierarchy_top_container_member {
 	struct cds_list_head							list;
 
-	struct element_type_hierarchy_member *			p_member;
+	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
 };
 struct element_type_hierarchy_top_container {
 	struct cds_list_head							discriminator_type_list;
@@ -98,6 +98,7 @@ struct precompile_type_builder_element_type_task {
 	struct traversing_engine_task					task;
 	char * 											global_path;	/*local copy - keep track of it*/
 	struct metac_type *								p_type;
+//	struct element_type *							p_from_element_type;
 	struct element_type_hierarchy_member *			p_from_member;
 };
 /*****************************************************************************/
@@ -135,6 +136,82 @@ struct discriminator * create_discriminator(
 
 	return p_discriminator;
 }
+int delete_element_type_hierarchy_member(
+		struct element_type_hierarchy_member **		pp_element_type_hierarchy_member) {
+	_delete_start_(element_type_hierarchy_member);
+	if ((*pp_element_type_hierarchy_member)->path_within_hierarchy) {
+		free((*pp_element_type_hierarchy_member)->path_within_hierarchy);
+		(*pp_element_type_hierarchy_member)->path_within_hierarchy = NULL;
+	}	
+	_delete_finish(element_type_hierarchy_member);
+	return 0;
+}
+int element_type_hierarchy_top_container_discriminator_init(
+	struct element_type_hierarchy_top_container_discriminator *
+													p_element_type_hierarchy_top_container_discriminator,
+	struct discriminator *							p_discriminator) {
+	if (p_discriminator == NULL) {
+		msg_stderr("Can't init p_element_type_hierarchy_top_container_discriminator with NULL p_discriminator \n");
+		return (-EINVAL);
+	}
+	p_element_type_hierarchy_top_container_discriminator->p_discriminator = p_discriminator;
+	return 0;
+}
+void element_type_hierarchy_top_container_discriminator_clean(
+		struct element_type_hierarchy_top_container_discriminator *
+													p_element_type_hierarchy_top_container_discriminator,
+		metac_flag									keep_data
+		) {
+	if (keep_data == 0) {
+		delete_discriminator(&p_element_type_hierarchy_top_container_discriminator->p_discriminator);
+	}
+	p_element_type_hierarchy_top_container_discriminator->p_discriminator = NULL;
+}
+int element_type_hierarchy_top_container_member_init(
+	struct element_type_hierarchy_top_container_member *
+													p_element_type_hierarchy_top_container_member,
+	struct element_type_hierarchy_member *			p_element_type_hierarchy_member) {
+	if (p_element_type_hierarchy_member == NULL) {
+		msg_stderr("Can't init p_element_type_hierarchy_top_container_member with NULL p_element_type_hierarchy_member \n");
+		return (-EINVAL);
+	}
+	p_element_type_hierarchy_top_container_member->p_element_type_hierarchy_member = p_element_type_hierarchy_member;
+	return 0;
+}
+void element_type_hierarchy_top_container_member_clean(
+		struct element_type_hierarchy_top_container_member *
+													p_element_type_hierarchy_top_container_member,
+		metac_flag									keep_data
+		) {
+	if (keep_data == 0) {
+		delete_element_type_hierarchy_member(&p_element_type_hierarchy_top_container_member->p_element_type_hierarchy_member);
+	}
+	p_element_type_hierarchy_top_container_member->p_element_type_hierarchy_member = NULL;
+}
+int element_type_hierarchy_top_container_init(
+		struct element_type_hierarchy_top_container *
+													p_element_type_hierarchy_top_container) {
+	CDS_INIT_LIST_HEAD(&p_element_type_hierarchy_top_container->discriminator_type_list);
+	CDS_INIT_LIST_HEAD(&p_element_type_hierarchy_top_container->member_type_list);
+	return 0;
+}
+void element_type_hierarchy_top_container_clean(
+		struct element_type_hierarchy_top_container *
+													p_element_type_hierarchy_top_container,
+		metac_flag									keep_data) {
+	struct element_type_hierarchy_top_container_discriminator * _discriminator, * __discriminator;
+	struct element_type_hierarchy_top_container_member * _member, * __member;
+	cds_list_for_each_entry_safe(_discriminator, __discriminator, &p_element_type_hierarchy_top_container->discriminator_type_list, list) {
+		cds_list_del(&_discriminator->list);
+		element_type_hierarchy_top_container_discriminator_clean(_discriminator, keep_data);
+		free(_discriminator);
+	}
+	cds_list_for_each_entry_safe(_member, __member, &p_element_type_hierarchy_top_container->member_type_list, list) {
+		cds_list_del(&_member->list);
+		element_type_hierarchy_top_container_member_clean(_member, keep_data);
+		free(_member);
+	}
+}
 int element_type_hierarchy_top_builder_hierarchy_task_delete(
 		struct element_type_hierarchy_top_builder_hierarchy_task **
 													pp_element_type_hierarchy_top_builder_hierarchy_task) {
@@ -151,7 +228,7 @@ int element_type_hierarchy_top_builder_init(
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
 	p_element_type_hierarchy_top_builder->p_root_type = p_root_type;
-//	element_type_hierarchy_top_container_init(&p_element_type_hierarchy_top_builder->container);
+	element_type_hierarchy_top_container_init(&p_element_type_hierarchy_top_builder->container);
 	CDS_INIT_LIST_HEAD(&p_element_type_hierarchy_top_builder->hierarchy_executed_tasks);
 	traversing_engine_init(&p_element_type_hierarchy_top_builder->hierarchy_traversing_engine);
 	return 0;
@@ -169,10 +246,9 @@ void element_type_hierarchy_top_builder_clean(
 		cds_list_del(&p_task->list);
 		element_type_hierarchy_top_builder_hierarchy_task_delete(&p_element_type_hierarchy_top_builder_hierarchy_task);
 	}
-//	element_type_hierarchy_top_container_clean(&element_type_hierarchy_top_builder->container, keep_data);
+	element_type_hierarchy_top_container_clean(&p_element_type_hierarchy_top_builder->container, keep_data);
 	p_element_type_hierarchy_top_builder->p_root_type = NULL;
 }
-
 int init_element_type_hierarhy_top(
 		struct metac_type *							p_root_type,
 		char * 										global_path,
@@ -377,6 +453,7 @@ int precompile_type_builder_add_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+//		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	struct precompile_type_container_element_type * p_precompile_type_container_element_type;
 	/* create */
@@ -399,6 +476,7 @@ int precompile_type_builder_add_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+//		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	struct precompile_type_container_element_type * p_precompile_type_container_element_type;
 	/* try to find this type */
@@ -501,6 +579,7 @@ int precompile_type_builder_schedule_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+//		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	return (precompile_type_builder_schedule_element_type(
 		p_precompile_type_builder,
@@ -513,6 +592,7 @@ int precompile_type_builder_schedule_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+//		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	return (precompile_type_builder_schedule_element_type(
 		p_precompile_type_builder,
