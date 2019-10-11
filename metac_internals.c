@@ -258,11 +258,11 @@ int init_element_type_hierarhy_top(
 	struct element_type_hierarchy_top_builder element_type_hierarchy_top_builder;
 	msg_stddbg("init_element_type_hierarhy_top\n");
 	element_type_hierarchy_top_builder_init(&element_type_hierarchy_top_builder, p_root_type, p_override_annotations);
-//	if (element_type_hierarchy_top_builder_schedule_member(&precompile_type_builder, "ptr", p_root_type, NULL) != 0) {
-//		msg_stddbg("wasn't able to schedule the first task\n");
-//		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
-//		return (-EFAULT);
-//	}
+	if (element_type_hierarchy_top_builder_schedule_hierarchy(&element_type_hierarchy_top_builder, global_path, p_element_type) != 0) {
+		msg_stddbg("wasn't able to schedule the first task\n");
+		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
+		return (-EFAULT);
+	}
 	if (traversing_engine_run(&element_type_hierarchy_top_builder.hierarchy_traversing_engine) != 0) {
 		msg_stddbg("tasks execution finished with fail\n");
 		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
