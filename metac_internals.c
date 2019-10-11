@@ -79,7 +79,6 @@ struct precompile_type_container_element_type {
 	struct cds_list_head							list;
 
 	struct element_type *							p_element_type;
-	struct element_type_hierarchy_member *			p_from_member;		/* info about member that contained this type*/
 };
 struct precompile_type_container {
 	struct cds_list_head							pointers_element_type_list;
@@ -98,7 +97,7 @@ struct precompile_type_builder_element_type_task {
 	struct traversing_engine_task					task;
 	char * 											global_path;	/*local copy - keep track of it*/
 	struct metac_type *								p_type;
-//	struct element_type *							p_from_element_type;
+	struct element_type *							p_from_element_type;
 	struct element_type_hierarchy_member *			p_from_member;
 };
 /*****************************************************************************/
@@ -107,11 +106,13 @@ int precompile_type_builder_schedule_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+		struct element_type *						p_from_element_type,
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/);
 int precompile_type_builder_schedule_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+		struct element_type *						p_from_element_type,
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/);
 /*****************************************************************************/
 int delete_discriminator(
@@ -332,10 +333,14 @@ struct element_type * create_element_type(
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
-		struct metac_type *							p_type) {
+		struct metac_type *							p_type,
+		struct element_type *						p_from_element_type,
+		struct element_type_hierarchy_member *		p_from_member) {
 	int res;
 	_create_(element_type);
 	p_element_type->type = p_type;
+	p_element_type->p_from_element_type = p_from_element_type;
+	p_element_type->p_from_member = p_from_member;
 	p_element_type->actual_type = metac_type_actual_type(p_type);
 	p_element_type->byte_size = metac_type_byte_size(p_type);
 	
@@ -361,13 +366,11 @@ struct element_type * create_element_type(
 int precompile_type_container_element_type_init(
 		struct precompile_type_container_element_type *
 													p_precompile_type_container_element_type,
-	struct element_type *							p_element_type,
-	struct element_type_hierarchy_member *			p_from_member) {
+	struct element_type *							p_element_type) {
 	if (p_element_type == NULL) {
 		msg_stderr("Can't init precomple_type_container_element_type with NULL p_element_type \n");
 		return (-EINVAL);
 	}
-	p_precompile_type_container_element_type->p_from_member = p_from_member;
 	p_precompile_type_container_element_type->p_element_type = p_element_type;
 	return 0;
 }
@@ -380,7 +383,6 @@ void precompile_type_container_element_type_clean(
 		delete_element_type(&p_precompile_type_container_element_type->p_element_type);
 	}
 	p_precompile_type_container_element_type->p_element_type = NULL;
-	p_precompile_type_container_element_type->p_from_member = NULL;
 }
 int precompile_type_container_init(
 		struct precompile_type_container *			p_precompile_type_container) {
@@ -407,6 +409,7 @@ static struct precompile_type_container_element_type * precompile_type_builder_e
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
+		struct element_type *						p_from_element_type,
 		struct element_type_hierarchy_member *		p_from_member) {
 	int res;
 	_create_(precompile_type_container_element_type);
@@ -417,8 +420,9 @@ static struct precompile_type_container_element_type * precompile_type_builder_e
 			p_precompile_type_builder->p_root_type,
 			global_path,
 			p_precompile_type_builder->p_override_annotations,
-			p_type),
-		p_from_member);
+			p_type,
+			p_from_element_type,
+			p_from_member));
 	if (res != 0) {
 			msg_stddbg("precompile_type_container_element_type_init returned error - deleting\n");
 			free(p_precompile_type_container_element_type);
@@ -453,7 +457,7 @@ int precompile_type_builder_add_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-//		struct element_type *						p_from_element_type,/*can be NULL*/
+		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	struct precompile_type_container_element_type * p_precompile_type_container_element_type;
 	/* create */
@@ -461,6 +465,7 @@ int precompile_type_builder_add_element_type_from_array(
 			p_precompile_type_builder,
 			global_path,
 			p_type,
+			p_from_element_type,
 			p_from_member);
 	if (p_precompile_type_container_element_type == NULL) {
 		msg_stddbg("wasn't able to create p_precompile_type_container_element_type\n");
@@ -476,7 +481,7 @@ int precompile_type_builder_add_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-//		struct element_type *						p_from_element_type,/*can be NULL*/
+		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	struct precompile_type_container_element_type * p_precompile_type_container_element_type;
 	/* try to find this type */
@@ -485,7 +490,8 @@ int precompile_type_builder_add_element_type_from_pointer(
 		&p_precompile_type_builder->container.pointers_element_type_list,
 		list) {
 		if (p_precompile_type_container_element_type->p_element_type->type == p_type &&
-			p_precompile_type_container_element_type->p_from_member == p_from_member) {
+			p_precompile_type_container_element_type->p_element_type->p_from_element_type == p_from_element_type,
+			p_precompile_type_container_element_type->p_element_type->p_from_member == p_from_member) {
 			msg_stddbg("found %p\n", p_precompile_type_container_element_type);
 			return 0;
 		}
@@ -495,6 +501,7 @@ int precompile_type_builder_add_element_type_from_pointer(
 			p_precompile_type_builder,
 			global_path,
 			p_type,
+			p_from_element_type,
 			p_from_member);
 	if (p_precompile_type_container_element_type == NULL) {
 		msg_stderr("wasn't able to create p_precompile_type_container_element_type\n");
@@ -520,6 +527,7 @@ static int precompile_type_builder_element_type_from_array_task_fn(
 		p_precompile_type_builder,
 		p_precompile_type_builder_element_type_task->global_path,
 		p_precompile_type_builder_element_type_task->p_type,
+		p_precompile_type_builder_element_type_task->p_from_element_type,
 		p_precompile_type_builder_element_type_task->p_from_member);
 }
 static int precompile_type_builder_element_type_from_pointer_task_fn(
@@ -536,6 +544,7 @@ static int precompile_type_builder_element_type_from_pointer_task_fn(
 		p_precompile_type_builder,
 		p_precompile_type_builder_element_type_task->global_path,
 		p_precompile_type_builder_element_type_task->p_type,
+		p_precompile_type_builder_element_type_task->p_from_element_type,
 		p_precompile_type_builder_element_type_task->p_from_member);
 }
 int precompile_type_builder_element_type_task_delete(
@@ -550,11 +559,12 @@ int precompile_type_builder_element_type_task_delete(
 	return 0;
 }
 static struct precompile_type_builder_element_type_task * precompile_type_builder_schedule_element_type(
-	struct precompile_type_builder *				p_precompile_type_builder,
-	traversing_engine_task_fn_t 					fn,
-	char * 											global_path,
-	struct metac_type *								p_type,
-	struct element_type_hierarchy_member *			p_from_member) {
+		struct precompile_type_builder *			p_precompile_type_builder,
+		traversing_engine_task_fn_t 				fn,
+		char * 										global_path,
+		struct metac_type *							p_type,
+		struct element_type *						p_from_element_type,
+		struct element_type_hierarchy_member *		p_from_member) {
 	_create_(precompile_type_builder_element_type_task);
 	
 	p_precompile_type_builder_element_type_task->task.fn = fn;
@@ -579,26 +589,28 @@ int precompile_type_builder_schedule_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-//		struct element_type *						p_from_element_type,/*can be NULL*/
+		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	return (precompile_type_builder_schedule_element_type(
 		p_precompile_type_builder,
 		precompile_type_builder_element_type_from_array_task_fn,
 		global_path,
 		p_type,
+		p_from_element_type,
 		p_from_member)!=NULL)?0:(-EFAULT);
 }
 int precompile_type_builder_schedule_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-//		struct element_type *						p_from_element_type,/*can be NULL*/
+		struct element_type *						p_from_element_type,/*can be NULL*/
 		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
 	return (precompile_type_builder_schedule_element_type(
 		p_precompile_type_builder,
 		precompile_type_builder_element_type_from_pointer_task_fn,
 		global_path,
 		p_type,
+		p_from_element_type,
 		p_from_member)!=NULL)?0:(-EFAULT);
 }
 int precompile_type_builder_init(
@@ -633,7 +645,7 @@ metac_precompiled_type_t * metac_precompile_type(
 	struct precompile_type_builder precompile_type_builder;
 	msg_stddbg("metac_precompile_type\n");
 	precompile_type_builder_init(&precompile_type_builder, p_root_type, p_override_annotations);
-	if (precompile_type_builder_schedule_element_type_from_pointer(&precompile_type_builder, "ptr", p_root_type, NULL) != 0) {
+	if (precompile_type_builder_schedule_element_type_from_pointer(&precompile_type_builder, "ptr", p_root_type, NULL, NULL) != 0) {
 		msg_stddbg("wasn't able to schedule the first task\n");
 		precompile_type_builder_clean(&precompile_type_builder, 0);
 		return NULL;

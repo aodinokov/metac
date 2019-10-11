@@ -88,6 +88,9 @@ struct element_type {						/*array element type*/
 
 	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
+	struct element_type *					p_from_element_type;
+	struct element_type_hierarchy_member *	p_from_member;
+
 	union {	/*depending on actual_type->id*/
 		struct element_type_pointer			pointer;
 		struct element_type_array			array;
