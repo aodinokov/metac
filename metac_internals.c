@@ -102,6 +102,14 @@ struct precompile_type_builder_element_type_task {
 };
 /*****************************************************************************/
 /*scheduling prototypes*/
+int element_type_hierarchy_top_builder_schedule_hierarchy(
+		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy);
 int precompile_type_builder_schedule_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
@@ -213,12 +221,117 @@ void element_type_hierarchy_top_container_clean(
 		free(_member);
 	}
 }
+int create_element_type_hierarchy_member(
+		metac_count_t								member_id,
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct metac_type_member_info *				p_member_info) {
+	_create_(element_type_hierarchy_member);
+
+	p_element_type_hierarchy_member->member_id = member_id;
+	p_element_type_hierarchy_member->precondition.p_discriminator = p_discriminator;
+	p_element_type_hierarchy_member->precondition.expected_discriminator_value = expected_discriminator_value;
+	p_element_type_hierarchy_member->member_in = p_hierarchy;
+
+	p_element_type_hierarchy_member->type = p_member_info->type;
+	p_element_type_hierarchy_member->actual_type = metac_type_actual_type(p_member_info->type);
+
+	if (p_element_type_hierarchy_member->actual_type->id == DW_TAG_base_type) {
+		p_element_type_hierarchy_member->base_type.p_bit_offset = p_member_info->p_bit_offset;
+		p_element_type_hierarchy_member->base_type.p_bit_size = p_member_info->p_bit_size;
+	}else{
+		if (p_member_info->p_bit_offset != NULL || p_member_info->p_bit_size != NULL) {
+			msg_stderr("incorrect type %d for p_bit_offset and p_bit_size\n", p_element_type_hierarchy_member->actual_type->id);
+			assert(0);
+		}
+//		if (p_element_type_hierarchy_member->actual_type->id == DW_TAG_pointer_type) {
+//			/*TODO*/
+//		} else if (p_element_type_hierarchy_member->actual_type->id == DW_TAG_array_type) {
+//			/*TODO*/
+//		} else if (	p_element_type_hierarchy_member->actual_type->id == DW_TAG_structure_type ||
+//					p_element_type_hierarchy_member->actual_type->id == DW_TAG_union_type) {
+//			int element_type_hierarchy_top_builder_schedule_hierarchy(
+//					struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+//					char *										global_path,
+//					struct discriminator *						p_discriminator,
+//					metac_discriminator_value_t					expected_discriminator_value,
+//					struct metac_type *							p_type,
+//					struct element_type_hierarchy *				p_hierarchy,
+//					struct element_type_hierarchy *				p_parent_hierarchy)
+//		}
+	}
+
+
+	return p_element_type_hierarchy_member;
+
+}
+int element_type_hierarchy_top_builder_process_structure(
+		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy) {
+	metac_num_t i;
+	assert(p_type->id == DW_TAG_structure_type);
+
+	p_hierarchy->members_count = p_type->structure_type_info.members_count;
+	p_hierarchy->members = (struct element_type_hierarchy_member *)calloc(p_hierarchy->members_count, sizeof(*p_hierarchy->members));
+
+	for (i = p_type->structure_type_info.members_count; i > 0; i--) {
+		struct metac_type_member_info * p_member_info = &p_type->structure_type_info.members[i-1];
+
+		//p_member_info->name;
+	}
+	return 0;
+}
+int element_type_hierarchy_top_builder_process_union(
+		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy) {
+	assert(p_type->id == DW_TAG_structure_type);
+	return 0;
+}
 int element_type_hierarchy_top_builder_process_hierarchy(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
-		char * 										global_path,
-		struct metac_type *							p_type) {
-	/*TODO:*/
-	return 0;
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy) {
+	msg_stddbg("process global_path: %s\n", global_path);
+	switch (p_type->id) {
+	case DW_TAG_structure_type:
+		return element_type_hierarchy_top_builder_process_structure(
+				p_element_type_hierarchy_top_builder,
+				global_path,
+				p_discriminator,
+				expected_discriminator_value,
+				p_type,
+				p_hierarchy,
+				p_parent_hierarchy);
+	case DW_TAG_union_type:
+		return element_type_hierarchy_top_builder_process_union(
+				p_element_type_hierarchy_top_builder,
+				global_path,
+				p_discriminator,
+				expected_discriminator_value,
+				p_type,
+				p_hierarchy,
+				p_parent_hierarchy);
+	}
+	msg_stderr("incorrect type %d element_type_hierarchy_top_builder_process_hierarchy\n",
+			p_type->id);
+	assert(0);
+	return (-EFAULT);
 }
 int element_type_hierarchy_top_builder_hierarchy_task_delete(
 		struct element_type_hierarchy_top_builder_hierarchy_task **
@@ -244,18 +357,30 @@ static int element_type_hierarchy_top_builder_schedule_hierarchy_fn(
 	return element_type_hierarchy_top_builder_process_hierarchy(
 		p_element_type_hierarchy_top_builder,
 		p_element_type_hierarchy_top_builder_hierarchy_task->global_path,
-		p_element_type_hierarchy_top_builder_hierarchy_task->p_type);
+		p_element_type_hierarchy_top_builder_hierarchy_task->p_discriminator,
+		p_element_type_hierarchy_top_builder_hierarchy_task->expected_discriminator_value,
+		p_element_type_hierarchy_top_builder_hierarchy_task->p_type,
+		p_element_type_hierarchy_top_builder_hierarchy_task->p_hierarchy,
+		p_element_type_hierarchy_top_builder_hierarchy_task->p_parent_hierarchy);
 }
 static struct element_type_hierarchy_top_builder_hierarchy_task * element_type_hierarchy_top_builder_schedule_hierarchy_create(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
 		traversing_engine_task_fn_t 				fn,
 		char * 										global_path,
-		struct metac_type *							p_type) {
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy) {
 	_create_(element_type_hierarchy_top_builder_hierarchy_task);
 	
 	p_element_type_hierarchy_top_builder_hierarchy_task->task.fn = fn;
 	p_element_type_hierarchy_top_builder_hierarchy_task->global_path = strdup(global_path);
+	p_element_type_hierarchy_top_builder_hierarchy_task->p_discriminator = p_discriminator;
+	p_element_type_hierarchy_top_builder_hierarchy_task->expected_discriminator_value = expected_discriminator_value;
 	p_element_type_hierarchy_top_builder_hierarchy_task->p_type = p_type;
+	p_element_type_hierarchy_top_builder_hierarchy_task->p_hierarchy = p_hierarchy;
+	p_element_type_hierarchy_top_builder_hierarchy_task->p_parent_hierarchy = p_parent_hierarchy;
 	if (p_element_type_hierarchy_top_builder_hierarchy_task->global_path == NULL) {
 		msg_stderr("wasn't able to duplicate global_path\n");
 		element_type_hierarchy_top_builder_hierarchy_task_delete(&p_element_type_hierarchy_top_builder_hierarchy_task);
@@ -272,13 +397,21 @@ static struct element_type_hierarchy_top_builder_hierarchy_task * element_type_h
 }
 int element_type_hierarchy_top_builder_schedule_hierarchy(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
-		char * 										global_path,
-		struct metac_type *							p_type) {
+		char *										global_path,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct metac_type *							p_type,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy) {
 	return (element_type_hierarchy_top_builder_schedule_hierarchy_create(
 		p_element_type_hierarchy_top_builder,
 		element_type_hierarchy_top_builder_schedule_hierarchy_fn,
 		global_path,
-		p_type)!=NULL)?0:(-EFAULT);
+		p_discriminator,
+		expected_discriminator_value,
+		p_type,
+		p_hierarchy,
+		p_parent_hierarchy)!=NULL)?0:(-EFAULT);
 
 }
 int element_type_hierarchy_top_builder_init(
@@ -315,7 +448,14 @@ int init_element_type_hierarhy_top(
 	struct element_type_hierarchy_top_builder element_type_hierarchy_top_builder;
 	msg_stddbg("init_element_type_hierarhy_top\n");
 	element_type_hierarchy_top_builder_init(&element_type_hierarchy_top_builder, p_root_type, p_override_annotations);
-	if (element_type_hierarchy_top_builder_schedule_hierarchy(&element_type_hierarchy_top_builder, global_path, p_element_type->actual_type) != 0) {
+	if (element_type_hierarchy_top_builder_schedule_hierarchy(
+			&element_type_hierarchy_top_builder,
+			global_path,
+			NULL,
+			0,
+			p_element_type->actual_type,
+			&p_element_type->hierarhy_top.hierarchy,
+			NULL) != 0) {
 		msg_stddbg("wasn't able to schedule the first task\n");
 		element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 0);
 		return (-EFAULT);
@@ -327,7 +467,7 @@ int init_element_type_hierarhy_top(
 	}
 	element_type_hierarchy_top_builder_clean(&element_type_hierarchy_top_builder, 1);
 	msg_stddbg("init_element_type_hierarhy_top exit\n");
-	return (-EFAULT);
+	return 0;
 }
 /*****************************************************************************/
 static int init_element_type_array(
