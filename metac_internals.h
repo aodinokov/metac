@@ -62,7 +62,7 @@ struct element_type_hierarchy_member {
 	metac_count_t							id;							/*index in the element_type_hierarhy_top. needed to find parents quickier */
 	struct condition 						precondition;				/*precondition for this region element*/
 
-	struct element_type_hierarchy *			member_in;
+	struct element_type_hierarchy *			p_hierarchy;
 	metac_count_t							member_id;					/* member id within parent hierarchy*/
 	char *									path_within_hierarchy;
 
@@ -94,16 +94,16 @@ struct element_type {						/*array element type*/
 	union {	/*depending on actual_type->id*/
 		struct element_type_pointer			pointer;
 		struct element_type_array			array;
-		struct element_type_hierarhy_top {
+		struct element_type_hierarchy_top {
 			metac_count_t 					discriminators_count;
-			struct discriminator **			discriminator;
+			struct discriminator **			discriminators;
 
 			metac_count_t 					members_count;
 			struct element_type_hierarchy_member **
 											members;					/* full list of members*/
 
 			struct element_type_hierarchy	hierarchy;
-		}hierarhy_top;
+		}hierarchy_top;
 	};
 };
 

@@ -135,6 +135,10 @@ void _check_annotations(struct metac_type *type, metac_type_annotation_t *overri
 			_check_annotations(type, _params_); \
 		}while(0)
 #define _GENERAL_TYPE_SKIP_ANNOTATIONS NULL, (char*[]){NULL}, (metac_type_annotation_t*[]){NULL}
+#define GENERAL_TYPE_CHECK_PRECOMILED() \
+do {\
+		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type, NULL); \
+	}while(0)
 //#define GENERAL_TYPE_CHECK_PRECOMILED() \
 //do {\
 //		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
@@ -349,6 +353,7 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 		GENERAL_TYPE_CHECK_ID(_id_); \
 		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
 		GENERAL_TYPE_CHECK_ANNOTATIONS(_annotation_params_); \
+		GENERAL_TYPE_CHECK_PRECOMILED(); \
 	}GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
 #define POINTER_TYPE_CHECK BASE_TYPE_CHECK
@@ -361,6 +366,7 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
 		GENERAL_TYPE_CHECK_ID(_id_); \
 		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_PRECOMILED(); \
 		ENUM_TYPE_CHECK_NAME(_expected_name_, _expected_name_skip_typedef_);
 #define ENUM_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
 #define ENUM_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
@@ -373,7 +379,8 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
 		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_PRECOMILED();
 #define ARRAY_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
 #define ARRAY_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
@@ -385,7 +392,8 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
 		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_PRECOMILED();
 #define STRUCT_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(structure_type_info)
 #define STRUCT_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
@@ -404,7 +412,8 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
 		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_PRECOMILED();
 #define UNION_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(union_type_info)
 #define UNION_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS

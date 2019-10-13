@@ -24,7 +24,7 @@ static const metac_type_annotation_t *
 		msg_stddbg("type %s doesn't have specifications\n", type->name != NULL?type->name:"(nil)");
 		return NULL;
 	}
-	while (annotations[i].key) {
+	while (annotations[i].key != NULL) {
 		if (strcmp(annotations[i].key, key) == 0)
 			return &annotations[i];
 		++i;
@@ -41,7 +41,7 @@ const metac_type_annotation_t *
 		return NULL;
 	}
 
-	if (override_annotations) {
+	if (override_annotations != NULL) {
 		result = _annotation_by_key(override_annotations, key);
 		if (result != NULL)
 			return result;
