@@ -210,29 +210,40 @@ static int init_element_type_array(
 		struct metac_type *							p_actual_type,
 		struct element_type_array *					p_element_type_array) {
 	const metac_type_annotation_t * p_annotation;
-	/* todo: check if it's flexible */
+	struct metac_type * p_target_actual_type;
+	assert(p_actual_type->id == DW_TAG_array_type);
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
-//	if (p_annotation == NULL) {
-//		msg_stderr("Wasn't able to find annotation for %s\n", global_path);
-//		return (-EFAULT);
-//	}
-//	if (p_annotation->value->discriminator.cb == NULL) {
-//		msg_stderr("Pointer callback is NULL in annotation for %s\n", global_path);
-//		return (-EFAULT);
-//	}
+	/* defaults for char[] */
+	if (p_actual_type->array_type_info.is_flexible != 0) {
+		p_target_actual_type = metac_type_actual_type(p_actual_type->array_type_info.type);
+		if (p_target_actual_type != NULL &&
+			p_target_actual_type->id == DW_TAG_base_type && (
+				p_target_actual_type->base_type_info.encoding == DW_ATE_signed_char ||
+				p_target_actual_type->base_type_info.encoding == DW_ATE_unsigned_char) &&
+				p_target_actual_type->name != NULL && (
+				strcmp(p_target_actual_type->name, "char") == 0 ||
+				strcmp(p_target_actual_type->name, "unsigned char") == 0)){
+			p_element_type_array->array_elements_count.cb = metac_array_elements_1d_with_null;
+		}
+	}
 
-	if (p_element_type_array->array_elements_count.cb != NULL) {
-		p_element_type_array->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
-		p_element_type_array->array_elements_count.data = p_annotation->value->array_elements_count.data;
-	}
-	if (p_annotation != NULL &&
-		p_annotation->value->generic_cast.cb != NULL) {
-		msg_stderr("Annotations for array with global path %s defines generic_cast\n", global_path);
-	}
-	if (p_annotation != NULL &&
-		p_annotation->value->discriminator.cb != NULL) {
-		msg_stderr("Annotations for array with global path %s defines discriminator\n", global_path);
+	if (p_annotation != NULL) {
+		if (p_actual_type->array_type_info.is_flexible != 0) {
+			p_element_type_array->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
+			p_element_type_array->array_elements_count.data = p_annotation->value->array_elements_count.data;
+		} else {
+			if (p_annotation->value->array_elements_count.cb != NULL) {
+				msg_stderr("Annotations for non-flexible array with global path %s defines array_elements_count that won't be used\n", global_path);
+			}
+		}
+
+		if (p_annotation->value->generic_cast.cb != NULL) {
+			msg_stderr("Annotations for array with global path %s defines generic_cast that won't be used\n", global_path);
+		}
+		if (p_annotation->value->discriminator.cb != NULL) {
+			msg_stderr("Annotations for array with global path %s defines discriminator that won't be used\n", global_path);
+		}
 	}
 	return 0;
 }
@@ -243,30 +254,36 @@ static int init_element_type_pointer(
 		struct metac_type *							p_actual_type,
 		struct element_type_pointer *				p_element_type_pointer) {
 	const metac_type_annotation_t * p_annotation;
-	/* todo: based on the actual_type of the ptr different defaults can be selected */
+	struct metac_type * p_target_actual_type;
+	assert(p_actual_type->id == DW_TAG_pointer_type);
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
-//	if (p_annotation == NULL) {
-//		msg_stderr("Wasn't able to find annotation for %s\n", global_path);
-//		return (-EFAULT);
-//	}
-//	if (p_annotation->value->discriminator.cb == NULL) {
-//		msg_stderr("Pointer callback is NULL in annotation for %s\n", global_path);
-//		return (-EFAULT);
-//	}
+	/*defaults is metac_array_elements_single */
+	p_element_type_pointer->array_elements_count.cb = metac_array_elements_single;
 
-	if (p_element_type_pointer->generic_cast.cb != NULL) {
+	/*default for char* is metac_array_elements_1d_with_null */
+	p_target_actual_type = metac_type_actual_type(p_actual_type->pointer_type_info.type);
+	if (p_target_actual_type != NULL &&
+		p_target_actual_type->id == DW_TAG_base_type && (
+			p_target_actual_type->base_type_info.encoding == DW_ATE_signed_char ||
+			p_target_actual_type->base_type_info.encoding == DW_ATE_unsigned_char) &&
+			p_target_actual_type->name != NULL && (
+			strcmp(p_target_actual_type->name, "char") == 0 ||
+			strcmp(p_target_actual_type->name, "unsigned char") == 0)){
+		p_element_type_pointer->array_elements_count.cb = metac_array_elements_1d_with_null;
+	}
+
+	if (p_annotation != NULL) {
 		p_element_type_pointer->generic_cast.cb = p_annotation->value->generic_cast.cb;
 		p_element_type_pointer->generic_cast.data = p_annotation->value->generic_cast.data;
 		p_element_type_pointer->generic_cast.types = p_annotation->value->generic_cast.types;
-	}
-	if (p_element_type_pointer->array_elements_count.cb != NULL) {
+
 		p_element_type_pointer->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
 		p_element_type_pointer->array_elements_count.data = p_annotation->value->array_elements_count.data;
-	}
-	if (p_annotation != NULL &&
-		p_annotation->value->discriminator.cb != NULL) {
-		msg_stderr("Annotations for pointer with global path %s defines discriminator\n", global_path);
+
+		if (p_annotation->value->discriminator.cb != NULL) {
+			msg_stderr("Annotations for pointer with global path %s defines discriminator that won't be used\n", global_path);
+		}
 	}
 	return 0;
 }
@@ -278,6 +295,7 @@ static int init_element_type_hierarchy(
 		struct element_type_hierarchy *				p_element_type_hierarchy,
 		struct element_type_hierarchy *				p_parent_hierarchy) {
 	const metac_type_annotation_t * p_annotation;
+	assert(p_actual_type->id == DW_TAG_structure_type || p_actual_type->id == DW_TAG_union_type);
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	p_element_type_hierarchy->parent = p_parent_hierarchy;
@@ -450,7 +468,6 @@ int element_type_hierarchy_top_builder_process_structure(
 	assert(p_actual_type->id == DW_TAG_structure_type);
 
 	for (i = p_actual_type->structure_type_info.members_count; i > 0; i--) {
-//	for (i = 0; i< p_actual_type->structure_type_info.members_count; i++) {
 		int indx = i-1;
 		struct metac_type_member_info * p_member_info = &p_actual_type->structure_type_info.members[indx];
 		int res;
@@ -532,7 +549,6 @@ int element_type_hierarchy_top_builder_process_union(
 	}
 
 	for (i = p_actual_type->union_type_info.members_count; i > 0; i--) {
-	//for (i = p_actual_type->union_type_info.members_count; i > 0; i--) {
 		int indx = i-1;
 		struct metac_type_member_info * p_member_info = &p_actual_type->union_type_info.members[indx];
 		int res;
