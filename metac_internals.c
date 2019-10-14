@@ -203,7 +203,7 @@ int element_type_hierarchy_top_container_add_discriminator (
 		&p_element_type_hierarchy_top_builder->container.discriminator_type_list);
 	return 0;
 }
-static int init_element_type_array(
+int init_element_type_array(
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
@@ -247,7 +247,11 @@ static int init_element_type_array(
 	}
 	return 0;
 }
-static int init_element_type_pointer(
+int clean_element_type_array(
+		struct element_type_array *					p_element_type_array) {
+	return 0;
+}
+int init_element_type_pointer(
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
@@ -287,7 +291,11 @@ static int init_element_type_pointer(
 	}
 	return 0;
 }
-static int init_element_type_hierarchy(
+int clean_element_type_pointer(
+		struct element_type_pointer *				p_element_type_pointer) {
+	return 0;
+}
+int init_element_type_hierarchy(
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
@@ -313,7 +321,7 @@ static int init_element_type_hierarchy(
 	}
 	return 0;
 }
-static int clean_element_type_hierarchy(
+int clean_element_type_hierarchy(
 		struct element_type_hierarchy *				p_element_type_hierarchy) {
 	if (p_element_type_hierarchy->members != NULL) {
 		free(p_element_type_hierarchy->members);
@@ -324,10 +332,18 @@ static int clean_element_type_hierarchy(
 int delete_element_type_hierarchy_member(
 		struct element_type_hierarchy_member **		pp_element_type_hierarchy_member) {
 	_delete_start_(element_type_hierarchy_member);
-	if ((*pp_element_type_hierarchy_member)->actual_type && (
-				(*pp_element_type_hierarchy_member)->actual_type->id == DW_TAG_structure_type ||
-				(*pp_element_type_hierarchy_member)->actual_type->id == DW_TAG_union_type)) {
-		clean_element_type_hierarchy(&(*pp_element_type_hierarchy_member)->hierarchy);
+	if ((*pp_element_type_hierarchy_member)->actual_type)
+		switch((*pp_element_type_hierarchy_member)->actual_type->id){
+		case DW_TAG_structure_type:
+		case DW_TAG_union_type:
+			clean_element_type_hierarchy(&(*pp_element_type_hierarchy_member)->hierarchy);
+			break;
+		case DW_TAG_array_type:
+			clean_element_type_array(&(*pp_element_type_hierarchy_member)->array);
+			break;
+		case DW_TAG_pointer_type:
+			clean_element_type_pointer(&(*pp_element_type_hierarchy_member)->pointer);
+			break;
 	}
 	if ((*pp_element_type_hierarchy_member)->path_within_hierarchy) {
 		free((*pp_element_type_hierarchy_member)->path_within_hierarchy);
@@ -726,7 +742,7 @@ static int element_type_hierarchy_top_builder_schedule_element_type_hierarchy_me
 		p_element_type_hierarchy_top_builder_hierarchy_member_task->p_element_type_hierarchy_member,
 		p_element_type_hierarchy_top_builder_hierarchy_member_task->p_parent_hierarchy);
 }
-static struct element_type_hierarchy_top_builder_hierarchy_member_task * element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member_create(
+static struct element_type_hierarchy_top_builder_hierarchy_member_task * element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member_with_fn(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
 		traversing_engine_task_fn_t 				fn,
 		char *										global_path,
@@ -757,7 +773,7 @@ int element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member(
 		char *										global_path,
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member,
 		struct element_type_hierarchy *				p_parent_hierarchy) {
-	return (element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member_create(
+	return (element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member_with_fn(
 		p_element_type_hierarchy_top_builder,
 		element_type_hierarchy_top_builder_schedule_element_type_hierarchy_member_fn,
 		global_path,
@@ -816,7 +832,7 @@ void element_type_hierarchy_top_builder_clean(
 	element_type_hierarchy_top_container_clean(&p_element_type_hierarchy_top_builder->container, keep_data);
 	p_element_type_hierarchy_top_builder->p_root_type = NULL;
 }
-int finalize_element_type_hierarchy_top(
+static int finalize_element_type_hierarchy_top(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
 		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
 	metac_count_t i;
@@ -868,7 +884,7 @@ int finalize_element_type_hierarchy_top(
 	}
 	return 0;
 }
-static int clean_element_type_hierarchy_top(
+int clean_element_type_hierarchy_top(
 		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
 	metac_count_t i;
 	if (p_element_type_hierarchy_top->members != NULL) {
@@ -961,7 +977,22 @@ int init_element_type_hierarchy_top(
 /*****************************************************************************/
 int delete_element_type(
 		struct element_type **						pp_element_type) {
-	_delete_(element_type);
+	_delete_start_(element_type);
+	if ((*pp_element_type)->actual_type != NULL) {
+		switch((*pp_element_type)->actual_type->id) {
+		case DW_TAG_structure_type:
+		case DW_TAG_union_type:
+			clean_element_type_hierarchy_top(&(*pp_element_type)->hierarchy_top);
+			break;
+		case DW_TAG_array_type:
+			clean_element_type_array(&(*pp_element_type)->array);
+			break;
+		case DW_TAG_pointer_type:
+			clean_element_type_pointer(&(*pp_element_type)->pointer);
+			break;
+		}
+	}
+	_delete_finish(element_type);
 	return 0;
 }
 struct element_type * create_element_type(
@@ -1200,7 +1231,7 @@ int precompile_type_builder_element_type_task_delete(
 	_delete_finish(precompile_type_builder_element_type_task);
 	return 0;
 }
-static struct precompile_type_builder_element_type_task * precompile_type_builder_schedule_element_type_create(
+static struct precompile_type_builder_element_type_task * precompile_type_builder_schedule_element_type_with_fn(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		traversing_engine_task_fn_t 				fn,
 		char * 										global_path,
@@ -1231,9 +1262,9 @@ int precompile_type_builder_schedule_element_type_from_array(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-		struct element_type *						p_from_element_type,/*can be NULL*/
-		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
-	return (precompile_type_builder_schedule_element_type_create(
+		struct element_type *						p_from_element_type,
+		struct element_type_hierarchy_member *		p_from_member) {
+	return (precompile_type_builder_schedule_element_type_with_fn(
 		p_precompile_type_builder,
 		precompile_type_builder_element_type_from_array_task_fn,
 		global_path,
@@ -1245,9 +1276,9 @@ int precompile_type_builder_schedule_element_type_from_pointer(
 		struct precompile_type_builder *			p_precompile_type_builder,
 		char * 										global_path,
 		struct metac_type *							p_type,
-		struct element_type *						p_from_element_type,/*can be NULL*/
-		struct element_type_hierarchy_member *		p_from_member/*can be NULL*/) {
-	return (precompile_type_builder_schedule_element_type_create(
+		struct element_type *						p_from_element_type,
+		struct element_type_hierarchy_member *		p_from_member) {
+	return (precompile_type_builder_schedule_element_type_with_fn(
 		p_precompile_type_builder,
 		precompile_type_builder_element_type_from_pointer_task_fn,
 		global_path,
