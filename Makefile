@@ -42,7 +42,7 @@ metac_internals_ut_001: $(metac_objs) metac_internals_ut_001.o
 metac_internals_ut_001: $(metac_ut_libs)
 
 
-all: metac_type_ut_001.run metac_type_ut_001.metac.c 
+all: metac_type_ut_001.run metac_type_ut_001.metac.c
 #all: metac_internals_ut_001.run
 
 %.run: % _always_

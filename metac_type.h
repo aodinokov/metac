@@ -113,13 +113,13 @@ struct metac_type {
 		/* .id == DW_TAG_array_type */
 		struct {
 			metac_type_t *				type;						/* type of elements */
-			int 						is_flexible;				/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
+			metac_flag					is_flexible;				/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
 			metac_count_t				elements_count;				/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
 			metac_num_t					subranges_count;			/* number of subranges ( >1 if array is multi-dimensional) */
 			struct metac_type_subrange_info {
 				metac_type_t *			type;						/* type of index */
 				/*pre-calculated data*/
-				int						is_flexible;				/* if nothing was specified in DWARF*/
+				metac_flag				is_flexible;				/* if nothing was specified in DWARF*/
 				metac_bound_t 			lower_bound;				/* min index in subrange */
 				metac_count_t 			count;						/* number of elements in subrange */
 				/*raw data*/

@@ -31,11 +31,16 @@ struct element_type_base_type_hierarchy_member {
 };
 
 struct element_type_pointer {
+	struct element_type *					p_element_type;
 	/* from annotations:*/
 	struct {
 		metac_cb_generic_cast_t				cb;
 		void *								data;
-		struct metac_type **				types;
+		metac_count_t						types_count;
+		struct generic_cast_type{
+			struct metac_type *				p_type;
+			struct element_type *			p_element_type;
+		}*types;
 	}generic_cast;
 	struct {
 		metac_cb_array_elements_count_t		cb;
@@ -44,6 +49,7 @@ struct element_type_pointer {
 };
 
 struct element_type_array {
+	struct element_type *					p_element_type;
 	/* from annotations:*/
 	struct {
 		metac_cb_array_elements_count_t		cb;
@@ -88,8 +94,12 @@ struct element_type {						/*array element type*/
 
 	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
+	/*TODO: TO REMOVE*/
 	struct element_type *					p_from_element_type;
 	struct element_type_hierarchy_member *	p_from_element_type_hierarchy_member;
+	struct metac_type *						p_from_type;
+
+	metac_flag								is_potentially_flexible;
 
 	union {	/*depending on actual_type->id*/
 		struct element_type_pointer			pointer;
