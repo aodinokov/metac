@@ -1263,7 +1263,7 @@ int main(void){
 					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
 //					ADD_TEST(metac_type_t_ut);
-					ADD_TEST(basic_tree_t_ut);
+//					ADD_TEST(basic_tree_t_ut);
 				}END_CASE
 			);
 		}END_SUITE
