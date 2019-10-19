@@ -30,7 +30,7 @@ metac_objs = \
 	traversing_engine.o
 
 metac_ut_libs = -ldl -lcheck -lm -lrt -ljson
-metac_ut_libs += -lsubunit
+#metac_ut_libs += -lsubunit
 
 # tests
 metac_type_ut_001: LDFLAGS=-pthread -rdynamic

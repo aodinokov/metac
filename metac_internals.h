@@ -71,6 +71,7 @@ struct element_type_hierarchy_member {
 	struct element_type_hierarchy *			p_hierarchy;
 	metac_count_t							member_id;					/* member id within parent hierarchy*/
 	char *									path_within_hierarchy;
+	struct metac_type_member_info *			p_member_info;
 
 	metac_data_member_location_t			offset;
 
@@ -94,10 +95,10 @@ struct element_type {						/*array element type*/
 
 	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
-	/*TODO: TO REMOVE*/
-	struct element_type *					p_from_element_type;
-	struct element_type_hierarchy_member *	p_from_element_type_hierarchy_member;
-	struct metac_type *						p_from_type;
+//	/*TODO: TO REMOVE*/
+//	struct element_type *					p_from_element_type;
+//	struct element_type_hierarchy_member *	p_from_element_type_hierarchy_member;
+//	struct metac_type *						p_from_type;
 
 	metac_flag								is_potentially_flexible;
 
