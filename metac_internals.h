@@ -95,11 +95,6 @@ struct element_type {						/*array element type*/
 
 	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
-//	/*TODO: TO REMOVE*/
-//	struct element_type *					p_from_element_type;
-//	struct element_type_hierarchy_member *	p_from_element_type_hierarchy_member;
-//	struct metac_type *						p_from_type;
-
 	metac_flag								is_potentially_flexible;
 
 	union {	/*depending on actual_type->id*/
