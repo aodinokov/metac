@@ -1580,7 +1580,7 @@ void precompile_type_builder_clean(
 	precompile_type_container_clean(&p_precompile_type_builder->container, keep_data);
 	p_precompile_type_builder->p_root_type = NULL;
 }
-void p_element_type_dump(FILE * stream, char* prefix, char * field, struct element_type * p_element_type);
+void element_type_ptr_dump(FILE * stream, char* prefix, char * field, struct element_type * p_element_type);
 metac_precompiled_type_t * metac_precompile_type(
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
@@ -1598,7 +1598,7 @@ metac_precompiled_type_t * metac_precompile_type(
 		return NULL;
 	}
 //	precompile_type_builder_clean(&precompile_type_builder, 1);
-	p_element_type_dump(stdout, "", NULL, p_element_type_to_store);
+	element_type_ptr_dump(stdout, "", NULL, p_element_type_to_store);
 	precompile_type_builder_clean(&precompile_type_builder, 0);
 	return NULL;
 }
@@ -1606,122 +1606,123 @@ int  metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type) {
 
 }
 /*****************************************************************************/
+#define DUMPPREFIX "    "
+#define NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix) \
+		char *next_prefix = alloc_sptrinf("%s%s", prefix, DUMPPREFIX); \
+		if (next_prefix == NULL) return
+#define NEXT_DUMPPREFIX_FREE(next_prefix) \
+		free(next_prefix);
+/*****************************************************************************/
 void metac_type_dump(FILE * stream, char* prefix, struct metac_type * p_metac_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%smetac_type: {\n", prefix);
-	fprintf(stream, "%s id: 0x%x\n", prefix, p_metac_type->id);
-	fprintf(stream, "%s name: %s\n", prefix, p_metac_type->name);
+	fprintf(stream, "%sid: 0x%x\n", next_prefix, p_metac_type->id);
+	fprintf(stream, "%sname: %s\n", next_prefix, p_metac_type->name);
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
-void p_metac_type_dump(FILE * stream, char* prefix, char * field, struct metac_type * p_metac_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+void metac_type_ptr_dump(FILE * stream, char* prefix, char * field, struct metac_type * p_metac_type) {
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
-	fprintf(stream, "%s%spointer to metac_type: %p {\n", prefix, field?field:"", p_metac_type);
+	fprintf(stream, "%s%s%p {\n", prefix, field?field:"", p_metac_type);
 	metac_type_dump(stream, next_prefix, p_metac_type);
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void discriminator_dump(FILE * stream, char* prefix, struct discriminator * p_discriminator) {
 	metac_count_t i;
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%sdiscriminator: {\n", prefix);
 
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_hierarchy_top_discriminators_dump(FILE * stream, char* prefix, metac_count_t discriminators_count, struct discriminator ** discriminators) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
 	metac_count_t i;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%sdiscriminators: [\n", prefix);
 	for (i = 0; i < discriminators_count; ++i){
 		discriminator_dump(stream, next_prefix, discriminators[i]);
 	}
 	fprintf(stream, "%s]\n", prefix);
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_array_dump(FILE * stream, char* prefix, struct element_type_array * p_element_type_array) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%sarray: {\n", prefix);
-	fprintf(stream, "%s p_element_type: %p\n", prefix, p_element_type_array->p_element_type);
-	fprintf(stream, "%s array_elements_count.cb: %p\n", prefix, p_element_type_array->array_elements_count.cb);
-	fprintf(stream, "%s array_elements_count.data: %p\n", prefix, p_element_type_array->array_elements_count.data);
+	fprintf(stream, "%sp_element_type: %p\n", next_prefix, p_element_type_array->p_element_type);
+	fprintf(stream, "%sarray_elements_count.cb: %p\n", next_prefix, p_element_type_array->array_elements_count.cb);
+	fprintf(stream, "%sarray_elements_count.data: %p\n", next_prefix, p_element_type_array->array_elements_count.data);
 
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void generic_cast_type_dump(FILE * stream, char* prefix, struct generic_cast_type * generic_cast_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%sgeneric_cast_type: {\n", prefix);
 	fprintf(stream, "%s p_element_type: %p\n", prefix, generic_cast_type->p_element_type);
-	p_metac_type_dump(stream, next_prefix, "p_type: ", generic_cast_type->p_type);
+	metac_type_ptr_dump(stream, next_prefix, "p_type: ", generic_cast_type->p_type);
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void generic_cast_types_dump(FILE * stream, char* prefix, metac_count_t types_count, struct generic_cast_type * generic_cast_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
 	metac_count_t i;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%stypes: [\n", prefix);
 	for (i = 0; i < types_count; ++i){
 		generic_cast_type_dump(stream, next_prefix, &generic_cast_type[i]);
 	}
 	fprintf(stream, "%s]\n", prefix);
-	free(next_prefix);
+
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_pointer_dump(FILE * stream, char* prefix, struct element_type_pointer * p_element_type_pointer) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
-	fprintf(stream, "%spointer: {\n", prefix);
+	fprintf(stream, "%selement_type_pointer: {\n", prefix);
 
-	fprintf(stream, "%s p_element_type: %p\n", prefix, p_element_type_pointer->p_element_type);
-	fprintf(stream, "%s generic_cast.cb: %p\n", prefix, p_element_type_pointer->generic_cast.cb);
-	fprintf(stream, "%s generic_cast.data: %p\n", prefix, p_element_type_pointer->generic_cast.data);
-	fprintf(stream, "%s generic_cast.types_count: %d\n", prefix, p_element_type_pointer->generic_cast.types_count);
+	fprintf(stream, "%sp_element_type: %p\n", next_prefix, p_element_type_pointer->p_element_type);
+	fprintf(stream, "%sgeneric_cast.cb: %p\n", next_prefix, p_element_type_pointer->generic_cast.cb);
+	fprintf(stream, "%sgeneric_cast.data: %p\n", next_prefix, p_element_type_pointer->generic_cast.data);
+	fprintf(stream, "%sgeneric_cast.types_count: %d\n", next_prefix, p_element_type_pointer->generic_cast.types_count);
 	if (p_element_type_pointer->generic_cast.types) {
 		generic_cast_types_dump(stream, next_prefix, p_element_type_pointer->generic_cast.types_count, p_element_type_pointer->generic_cast.types);
 	}
 
-	fprintf(stream, "%s array_elements_count.cb: %p\n", prefix, p_element_type_pointer->array_elements_count.cb);
-	fprintf(stream, "%s array_elements_count.data: %p\n", prefix, p_element_type_pointer->array_elements_count.data);
+	fprintf(stream, "%sarray_elements_count.cb: %p\n", next_prefix, p_element_type_pointer->array_elements_count.cb);
+	fprintf(stream, "%sarray_elements_count.data: %p\n", next_prefix, p_element_type_pointer->array_elements_count.data);
 
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_hierarchy_member_dump(FILE * stream, char* prefix, struct element_type_hierarchy_member * p_member) {
 	metac_count_t i;
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%selement_type_hierarchy_member: {\n", prefix);
-	fprintf(stream, "%s id: %d\n", prefix, p_member->id);
+	fprintf(stream, "%sid: %d\n", next_prefix, p_member->id);
 	if (p_member->precondition.p_discriminator != NULL) {
-		fprintf(stream, "%s precondition.p_discriminator: %p\n", prefix, p_member->precondition.p_discriminator);
-		fprintf(stream, "%s precondition.expected_discriminator_value: %d\n", prefix, p_member->precondition.expected_discriminator_value);
+		fprintf(stream, "%sprecondition.p_discriminator: %p\n", next_prefix, p_member->precondition.p_discriminator);
+		fprintf(stream, "%sprecondition.expected_discriminator_value: %d\n", next_prefix, p_member->precondition.expected_discriminator_value);
 	}
-	fprintf(stream, "%s path_within_hierarchy: %s\n", prefix, p_member->path_within_hierarchy);
-	fprintf(stream, "%s member_id: %d\n", prefix, p_member->member_id);
-	fprintf(stream, "%s byte_size: %d\n", prefix, p_member->byte_size);
-	fprintf(stream, "%s offset: %d\n", prefix, p_member->offset);
-	if (p_member->type) p_metac_type_dump(stream, next_prefix, "type: ", p_member->type);
-	if (p_member->actual_type) p_metac_type_dump(stream, next_prefix, "actual_type: ", p_member->actual_type);
+	fprintf(stream, "%spath_within_hierarchy: %s\n", next_prefix, p_member->path_within_hierarchy);
+	fprintf(stream, "%smember_id: %d\n", next_prefix, p_member->member_id);
+	fprintf(stream, "%sbyte_size: %d\n", next_prefix, p_member->byte_size);
+	fprintf(stream, "%soffset: %d\n", next_prefix, p_member->offset);
+	if (p_member->type) metac_type_ptr_dump(stream, next_prefix, "type: ", p_member->type);
+	if (p_member->actual_type) metac_type_ptr_dump(stream, next_prefix, "actual_type: ", p_member->actual_type);
 
 	if (p_member->actual_type) {
 		switch(p_member->actual_type->id){
@@ -1733,49 +1734,47 @@ void element_type_hierarchy_member_dump(FILE * stream, char* prefix, struct elem
 			break;
 		case DW_TAG_structure_type:
 		case DW_TAG_union_type:
-			fprintf(stream, "%s hierarchy: <skipped>\n", prefix);
+			fprintf(stream, "%shierarchy: <skipped>\n", next_prefix);
 			break;
 		}
 	}
 
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_hierarchy_top_members_dump(FILE * stream, char* prefix, metac_count_t members_count, struct element_type_hierarchy_member ** members) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
-
 	metac_count_t i;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%smembers: [\n", prefix);
 	for (i = 0; i < members_count; ++i){
 		element_type_hierarchy_member_dump(stream, next_prefix, members[i]);
 	}
 	fprintf(stream, "%s]\n", prefix);
-	free(next_prefix);
+
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_hierarchy_top_dump(FILE * stream, char* prefix, struct element_type_hierarchy_top * p_element_type_hierarchy_top) {
 	metac_count_t i;
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%shierarchy_top: {\n", prefix);
-	fprintf(stream, "%s discriminators_count: %d\n", prefix, p_element_type_hierarchy_top->discriminators_count);
+	fprintf(stream, "%sdiscriminators_count: %d\n", next_prefix, p_element_type_hierarchy_top->discriminators_count);
 	element_type_hierarchy_top_discriminators_dump(stream, next_prefix, p_element_type_hierarchy_top->discriminators_count, p_element_type_hierarchy_top->discriminators);
 
-	fprintf(stream, "%s members_count: %d\n", prefix, p_element_type_hierarchy_top->members_count);
+	fprintf(stream, "%smembers_count: %d\n", next_prefix, p_element_type_hierarchy_top->members_count);
 	element_type_hierarchy_top_members_dump(stream, next_prefix, p_element_type_hierarchy_top->members_count, p_element_type_hierarchy_top->members);
 	fprintf(stream, "%s}\n", prefix);
-	free(next_prefix);
+
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void element_type_dump(FILE * stream, char* prefix, struct element_type * p_element_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
 	fprintf(stream, "%selement_type: {\n", prefix);
-	if (p_element_type->type) p_metac_type_dump(stream, next_prefix, "type: ", p_element_type->type);
-	if (p_element_type->actual_type) p_metac_type_dump(stream, next_prefix, "actual_type: ", p_element_type->actual_type);
+	if (p_element_type->type) metac_type_ptr_dump(stream, next_prefix, "type: ", p_element_type->type);
+	if (p_element_type->actual_type) metac_type_ptr_dump(stream, next_prefix, "actual_type: ", p_element_type->actual_type);
 	fprintf(stream, "%s byte_size: %d\n", prefix, p_element_type->byte_size);
 	fprintf(stream, "%s is_potentially_flexible: %d\n", prefix, p_element_type->is_potentially_flexible);
 	if (p_element_type->actual_type) {
@@ -1794,16 +1793,15 @@ void element_type_dump(FILE * stream, char* prefix, struct element_type * p_elem
 	}
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 
-void p_element_type_dump(FILE * stream, char* prefix, char * field, struct element_type * p_element_type) {
-	char *next_prefix = alloc_sptrinf("%s ", prefix);
-	if (next_prefix == NULL) return;
+void element_type_ptr_dump(FILE * stream, char* prefix, char * field, struct element_type * p_element_type) {
+	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 
-	fprintf(stream, "%s%spointer to element_type: %p {\n", prefix, field?field:"", p_element_type);
+	fprintf(stream, "%s%spointer: %p {\n", prefix, field?field:"", p_element_type);
 	element_type_dump(stream, next_prefix, p_element_type);
 	fprintf(stream, "%s}\n", prefix);
 
-	free(next_prefix);
+	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
