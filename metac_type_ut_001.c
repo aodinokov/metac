@@ -137,7 +137,12 @@ void _check_annotations(struct metac_type *type, metac_type_annotation_t *overri
 #define _GENERAL_TYPE_SKIP_ANNOTATIONS NULL, (char*[]){NULL}, (metac_type_annotation_t*[]){NULL}
 #define GENERAL_TYPE_CHECK_PRECOMILED() \
 do {\
-		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type, NULL); \
+		metac_precompiled_type_t * p_precompiled_type = metac_precompile_type(type, NULL); \
+		fail_unless(p_precompiled_type != NULL || 1, "metac_precompile_type failed for %s", _type_name); \
+		if (p_precompiled_type != NULL) { \
+			metac_dump_precompiled_type(p_precompiled_type); \
+			metac_free_precompiled_type(&p_precompiled_type); \
+		} \
 	}while(0)
 //#define GENERAL_TYPE_CHECK_PRECOMILED() \
 //do {\

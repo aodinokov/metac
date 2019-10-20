@@ -175,6 +175,10 @@ int 					metac_type_array_member_location(struct metac_type *type, metac_num_t s
 const metac_type_annotation_t *
 						metac_type_annotation(struct metac_type *type, const char *key, metac_type_annotation_t *override_annotations);	/* return annotation value by key (NULL if not found)*/
 
+/* dynamic functions - for future */
+struct metac_type * 	metac_type_create_pointer_for(struct metac_type * p_type);
+int 					metac_type_free(struct metac_type ** pp_metac_type);
+
 metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
 metac_array_info_t * 	metac_array_info_create_from_elements_count(metac_count_t elements_count);
 metac_array_info_t * 	metac_array_info_copy(metac_array_info_t *p_array_info_orig);

@@ -17,6 +17,31 @@
 #include "metac_type.h"
 #include "metac_debug.h"
 
+/*****************************************************************************/
+#define _create_(_type_) \
+	struct _type_ * p_##_type_; \
+	p_##_type_ = calloc(1, sizeof(*(p_##_type_))); \
+	if (p_##_type_ == NULL) { \
+		msg_stderr("Can't create " #_type_ ": no memory\n"); \
+		return NULL; \
+	}
+#define _delete_start_(_type_) \
+	if (pp_##_type_ == NULL) { \
+		msg_stderr("Can't delete " #_type_ ": invalid parameter\n"); \
+		return -EINVAL; \
+	} \
+	if (*pp_##_type_ == NULL) { \
+		msg_stderr("Can't delete " #_type_ ": already deleted\n"); \
+		return -EALREADY; \
+	}
+#define _delete_finish(_type_) \
+	free(*pp_##_type_); \
+	*pp_##_type_ = NULL;
+#define _delete_(_type_) \
+	_delete_start_(_type_) \
+	_delete_finish(_type_)
+/*****************************************************************************/
+
 static const metac_type_annotation_t *
 	_annotation_by_key(metac_type_annotation_t *annotations, const char *key) {
 	int i = 0;
@@ -220,6 +245,19 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 	if (p_data_member_location)
 		*p_data_member_location = offset*metac_type_byte_size(type->array_type_info.type);
 	return res;
+}
+
+struct metac_type * metac_type_create_pointer_for(
+		struct metac_type *							p_type) {
+	_create_(metac_type);
+	p_metac_type->id = DW_TAG_pointer_type;
+	p_metac_type->pointer_type_info.type = p_type;
+	return p_metac_type;
+}
+int metac_type_free(
+		struct metac_type **						pp_metac_type) {
+	_delete_(metac_type);
+	return 0;
 }
 
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {

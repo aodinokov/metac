@@ -14,46 +14,42 @@ struct element_type_hierarchy_member;
 struct array;
 
 struct condition {
-	struct discriminator *			p_discriminator;
-	metac_discriminator_value_t		expected_discriminator_value;
+	struct discriminator *					p_discriminator;
+	metac_discriminator_value_t				expected_discriminator_value;
 };
-
 struct discriminator {
-	metac_count_t 					id;							/*index in the region_element_type. needed to correlate with discriminator_values */
-	struct condition				precondition;				/*pre-condition for this discriminator*/
-	metac_cb_discriminator_t		discriminator_cb;
-	void *							discriminator_cb_context;
+	metac_count_t							id;							/*index in the region_element_type. needed to correlate with discriminator_values */
+	struct condition						precondition;				/*pre-condition for this discriminator*/
+	metac_cb_discriminator_t				cb;
+	void *									p_data;
 };
-
 struct element_type_base_type_hierarchy_member {
-	metac_bit_offset_t *			p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-	metac_bit_size_t *				p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
+	metac_bit_offset_t *					p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
+	metac_bit_size_t *						p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
 };
-
 struct element_type_pointer {
 	struct element_type *					p_element_type;
 	/* from annotations:*/
 	struct {
 		metac_cb_generic_cast_t				cb;
-		void *								data;
+		void *								p_data;
 		metac_count_t						types_count;
 		struct generic_cast_type{
 			struct metac_type *				p_type;
 			struct element_type *			p_element_type;
-		}*types;
+		}*									p_types;
 	}generic_cast;
 	struct {
 		metac_cb_array_elements_count_t		cb;
-		void *								data;
+		void *								p_data;
 	}array_elements_count;
 };
-
 struct element_type_array {
 	struct element_type *					p_element_type;
 	/* from annotations:*/
 	struct {
 		metac_cb_array_elements_count_t		cb;
-		void *								data;
+		void *								p_data;
 	}array_elements_count;
 };
 
@@ -75,8 +71,8 @@ struct element_type_hierarchy_member {
 
 	metac_data_member_location_t			offset;
 
-	struct metac_type *						type;
-	struct metac_type *						actual_type;
+	struct metac_type *						p_type;
+	struct metac_type *						p_actual_type;
 
 	metac_byte_size_t 						byte_size;					/*bite size*/
 
@@ -90,8 +86,8 @@ struct element_type_hierarchy_member {
 };
 
 struct element_type {						/*array element type*/
-	struct metac_type *						type;
-	struct metac_type *						actual_type;				/*cached: actual type without typedefs and etc */
+	struct metac_type *						p_type;
+	struct metac_type *						p_actual_type;				/*cached: actual type without typedefs and etc */
 
 	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
 
@@ -102,23 +98,30 @@ struct element_type {						/*array element type*/
 		struct element_type_array			array;
 		struct element_type_hierarchy_top {
 			metac_count_t 					discriminators_count;
-			struct discriminator **			discriminators;
+			struct discriminator **			pp_discriminators;
 
 			metac_count_t 					members_count;
 			struct element_type_hierarchy_member **
-											members;					/* full list of members*/
+											pp_members;					/* full list of members*/
 
 			struct element_type_hierarchy	hierarchy;
 		}hierarchy_top;
 	};
 };
 
-struct metac_precompiled_type {
+struct element_type_top {
+	struct metac_type *						p_pointer_type;
+	struct element_type *					p_element_type_for_pointer;
+
 	struct _element_types_array{
 		metac_count_t						element_types_count;
-		struct element_type **				element_type;
-	}	pointers,
-		arrays;
+		struct element_type **				pp_element_types;
+	}	from_pointers,
+		from_arrays;
+};
+
+struct metac_precompiled_type {
+	struct element_type_top					element_type_top;
 };
 
 /*instances*/
@@ -131,7 +134,7 @@ struct discriminator_value {
 struct element_pointer {
 	metac_count_t							generic_cast_type_id;
 
-	void *									value;
+	void *									p_value;
 	void *									ptr_after_cast;
 
 	struct array *							p_array;				/* pointer to a potentially root array of ptr_after_cast type. there will be a logic to check that -see field that will be recaclulated */
@@ -172,9 +175,9 @@ struct element {
 		struct element_pointer				pointer;
 		struct element_array				array;
 		struct {
-			struct discriminator_value **	discriminator_values;
+			struct discriminator_value **	pp_discriminator_values;
 			struct element_hierarchy_member **
-											hierarchy_members;
+											pp_hierarchy_members;
 		}hierarchy_top;
 	};
 };
@@ -193,10 +196,10 @@ struct array {
 
 	metac_byte_size_t						element_byte_size;		/* cached: byte_size of the array element */
 	metac_count_t 							elements_count;			/* elements_count */
-	struct element *						elements;
+	struct element *						p_elements;
 
 	metac_count_t 							links_count;
-	struct array_link *						links;					/* who linked this array? (element->type can be pointer, array or struct/union)
+	struct array_link *						p_links;					/* who linked this array? (element->type can be pointer, array or struct/union)
 																	 * needed to optimize arrays generated by pointers: no non_root arrays must stay for ptr-generated arrays
 																	 */
 
