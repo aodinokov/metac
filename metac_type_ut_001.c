@@ -85,6 +85,20 @@ bug_with_unspecified_parameters 1
  *
  * */
 /*****************************************************************************/
+static int _dummy_discriminator(
+	char * annotation_key,
+	int write_operation, /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	void * ptr,
+	metac_type_t * type, /*pointer to memory region and its type */
+	metac_discriminator_value_t  * p_discriminator_val,
+	void * data) {
+
+	if (write_operation == 0) {
+		*p_discriminator_val = 0;
+	}
+	return 0;
+}
+/*****************************************************************************/
 #define GENERAL_TYPE_CHECK_BEGIN(_type_) do { \
 		/*need to use the type, in the opposite case we'll not get type definintion in DWARF*/ \
 		_type_ * _ptr = NULL; \
@@ -138,7 +152,7 @@ void _check_annotations(struct metac_type *type, metac_type_annotation_t *overri
 #define GENERAL_TYPE_CHECK_PRECOMILED() \
 do {\
 		metac_precompiled_type_t * p_precompiled_type = metac_precompile_type(type, NULL); \
-		fail_unless(p_precompiled_type != NULL || 1, "metac_precompile_type failed for %s", _type_name); \
+		fail_unless(p_precompiled_type != NULL, "metac_precompile_type failed for %s", _type_name); \
 		if (p_precompiled_type != NULL) { \
 			metac_dump_precompiled_type(p_precompiled_type); \
 			metac_free_precompiled_type(&p_precompiled_type); \
@@ -785,7 +799,9 @@ typedef struct {
 	int e;
 }anon_struct_with_anon_elements;
 METAC_TYPE_GENERATE(anon_struct_with_anon_elements);
-
+METAC_TYPE_ANNOTATION_BEGIN(anon_struct_with_anon_elements)
+METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
+METAC_TYPE_ANNOTATION_END
 
 struct ___test___{
 	int n;
@@ -869,6 +885,10 @@ typedef union _union_{
 	char f;
 }union_t;
 METAC_TYPE_GENERATE(union_t);
+METAC_TYPE_ANNOTATION_BEGIN(union_t)
+METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
+METAC_TYPE_ANNOTATION_END
+
 typedef union _union_anon_{
 	struct {
 		char a;
@@ -881,6 +901,10 @@ typedef union _union_anon_{
 	};
 }union_anon_t;
 METAC_TYPE_GENERATE(union_anon_t);
+METAC_TYPE_ANNOTATION_BEGIN(union_anon_t)
+METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
+METAC_TYPE_ANNOTATION_END
+
 
 START_TEST(unions_ut) {
 	UNION_TYPE_CHECK_BEGIN(union_t, DW_TAG_typedef, DW_TAG_union_type, {}) {
@@ -1247,7 +1271,7 @@ START_TEST(basic_tree_t_ut) {
 //
 //		fail_unless(metac_delete((void*)y, sizeof(x), precompiled_type, 1) == 0, "delete function returned error");
 //
-//		metac_free_precompiled_type(&precompiled_type);
+		metac_free_precompiled_type(&precompiled_type);
 	}while(0);
 }END_TEST
 
@@ -1268,7 +1292,7 @@ int main(void){
 					ADD_TEST(funtions_ut);
 					ADD_TEST(metac_array_symbols);
 //					ADD_TEST(metac_type_t_ut);
-//					ADD_TEST(basic_tree_t_ut);
+					ADD_TEST(basic_tree_t_ut);
 				}END_CASE
 			);
 		}END_SUITE

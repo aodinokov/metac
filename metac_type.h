@@ -282,7 +282,6 @@ int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*
 	metac_array_info_t * p_array_info,
 	void * array_elements_count_cb_context);
 
-
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */
 typedef struct metac_precompiled_type metac_precompiled_type_t;
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type, metac_type_annotation_t *	override_annotations);

@@ -161,7 +161,7 @@ struct discriminator * discriminator_create(
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	if (p_annotation == NULL) {
-		msg_stderr("Wasn't able to find annotation for %s\n", global_path);
+		msg_stderr("Wasn't able to find annotation for type %s, path %s\n", p_root_type->name, global_path);
 		return NULL;
 	}
 	if (p_annotation->value->discriminator.cb == NULL) {
@@ -1805,8 +1805,12 @@ void discriminator_dump(
 		struct discriminator *						p_discriminator) {
 	metac_count_t i;
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
-	fprintf(stream, "%sdiscriminator: {\n", prefix);
-
+	fprintf(stream, "%s%p: {\n", prefix, p_discriminator);
+	fprintf(stream, "%sid: %d\n", next_prefix, p_discriminator->id);
+	fprintf(stream, "%sprecondition.expected_discriminator_value: %d\n", next_prefix, p_discriminator->precondition.expected_discriminator_value);
+	fprintf(stream, "%sprecondition.p_discriminator: %p\n", next_prefix, p_discriminator->precondition.p_discriminator);
+	fprintf(stream, "%sprecondition.cb: %p(%s)\n", next_prefix, p_discriminator->cb, std_cb_ptr_to_char(p_discriminator->cb));
+	fprintf(stream, "%sprecondition.p_data: %p\n", next_prefix, p_discriminator->p_data);
 	fprintf(stream, "%s}\n", prefix);
 	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
