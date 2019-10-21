@@ -1572,19 +1572,12 @@ void element_type_top_clean(
 		struct element_type_top *					p_element_type_top) {
 	metac_count_t i;
 
-	if (p_element_type_top->from_arrays.pp_element_types != NULL) {
-		for (i = 0 ; i < p_element_type_top->from_arrays.element_types_count; ++i) {
-			element_type_delete(&p_element_type_top->from_arrays.pp_element_types[i]);
+	if (p_element_type_top->pp_element_types != NULL) {
+		for (i = 0 ; i < p_element_type_top->element_types_count; ++i) {
+			element_type_delete(&p_element_type_top->pp_element_types[i]);
 		}
-		free(p_element_type_top->from_arrays.pp_element_types);
-		p_element_type_top->from_arrays.pp_element_types = NULL;
-	}
-	if (p_element_type_top->from_pointers.pp_element_types != NULL) {
-		for (i = 0 ; i < p_element_type_top->from_pointers.element_types_count; ++i) {
-			element_type_delete(&p_element_type_top->from_pointers.pp_element_types[i]);
-		}
-		free(p_element_type_top->from_pointers.pp_element_types);
-		p_element_type_top->from_pointers.pp_element_types = NULL;
+		free(p_element_type_top->pp_element_types);
+		p_element_type_top->pp_element_types = NULL;
 	}
 
 	if (p_element_type_top->p_element_type_for_pointer)
@@ -1599,43 +1592,32 @@ static int element_type_top_builder_finalize(
 	metac_count_t i;
 	struct element_type_top_container_element_type * _element_type;
 
-	p_element_type_top->from_pointers.element_types_count = 0;
-	p_element_type_top->from_pointers.pp_element_types = NULL;
-	p_element_type_top->from_arrays.element_types_count = 0;
-	p_element_type_top->from_arrays.pp_element_types = NULL;
+	p_element_type_top->element_types_count = 0;
+	p_element_type_top->pp_element_types = NULL;
 
 	/*get arrays lengths */
 	cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.pointers_element_type_list, list) {
-		++p_element_type_top->from_pointers.element_types_count;
+		++p_element_type_top->element_types_count;
 	}
 	cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.arrays_element_type_list, list) {
-		++p_element_type_top->from_arrays.element_types_count;
+		++p_element_type_top->element_types_count;
 	}
 
 	/*fill all the data*/
-	if (p_element_type_top->from_pointers.element_types_count > 0) {
-		p_element_type_top->from_pointers.pp_element_types = (struct element_type **)calloc(
-				p_element_type_top->from_pointers.element_types_count, sizeof(*p_element_type_top->from_pointers.pp_element_types));
-		if (p_element_type_top->from_pointers.pp_element_types == NULL) {
+	if (p_element_type_top->element_types_count > 0) {
+		p_element_type_top->pp_element_types = (struct element_type **)calloc(
+				p_element_type_top->element_types_count, sizeof(*p_element_type_top->pp_element_types));
+		if (p_element_type_top->pp_element_types == NULL) {
 			msg_stderr("can't allocate memory for element_types from pointers\n");
 			return (-ENOMEM);
 		}
 		i = 0;
 		cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.pointers_element_type_list, list) {
-			p_element_type_top->from_pointers.pp_element_types[i] = _element_type->p_element_type;
+			p_element_type_top->pp_element_types[i] = _element_type->p_element_type;
 			++i;
 		}
-	}
-	if (p_element_type_top->from_arrays.element_types_count > 0) {
-		p_element_type_top->from_arrays.pp_element_types = (struct element_type **)calloc(
-				p_element_type_top->from_arrays.element_types_count, sizeof(*p_element_type_top->from_arrays.pp_element_types));
-		if (p_element_type_top->from_arrays.pp_element_types == NULL) {
-			msg_stderr("can't allocate memory for element_types from arrays\n");
-			return (-ENOMEM);
-		}
-		i = 0;
 		cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.arrays_element_type_list, list) {
-			p_element_type_top->from_arrays.pp_element_types[i] = _element_type->p_element_type;
+			p_element_type_top->pp_element_types[i] = _element_type->p_element_type;
 			++i;
 		}
 	}
@@ -1805,7 +1787,7 @@ void discriminator_dump(
 		struct discriminator *						p_discriminator) {
 	metac_count_t i;
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
-	fprintf(stream, "%s%p: {\n", prefix, p_discriminator);
+	fprintf(stream, "%spointer: %p: {\n", prefix, p_discriminator);
 	fprintf(stream, "%sid: %d\n", next_prefix, p_discriminator->id);
 	fprintf(stream, "%sprecondition.expected_discriminator_value: %d\n", next_prefix, p_discriminator->precondition.expected_discriminator_value);
 	fprintf(stream, "%sprecondition.p_discriminator: %p\n", next_prefix, p_discriminator->precondition.p_discriminator);
@@ -1998,19 +1980,6 @@ void _element_types_array_members_dump(
 	fprintf(stream, "%s]\n", prefix);
 	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
-
-void _element_types_array_dump(
-		FILE *										stream,
-		char*										prefix,
-		char *										field,
-		struct _element_types_array*				p_element_types_array) {
-	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
-	fprintf(stream, "%s%s: {\n", prefix, field);
-	fprintf(stream, "%selement_types_count: %d\n", next_prefix, p_element_types_array->element_types_count);
-	_element_types_array_members_dump(stream, next_prefix, p_element_types_array->element_types_count, p_element_types_array->pp_element_types);
-	fprintf(stream, "%s}\n", prefix);
-	NEXT_DUMPPREFIX_FREE(next_prefix);
-}
 void element_type_top_dump(
 		FILE *										stream,
 		char*										prefix,
@@ -2019,8 +1988,8 @@ void element_type_top_dump(
 	fprintf(stream, "%selement_type_top: {\n", prefix);
 	if (p_element_type_top->p_pointer_type)metac_type_ptr_dump(stream, next_prefix, "p_pointer_type: ", p_element_type_top->p_pointer_type);
 	if (p_element_type_top->p_element_type_for_pointer)element_type_ptr_dump(stream, next_prefix, "p_element_type_for_pointer: ", p_element_type_top->p_element_type_for_pointer);
-	_element_types_array_dump(stream, next_prefix, "from_pointers", &p_element_type_top->from_pointers);
-	_element_types_array_dump(stream, next_prefix, "from_arrays", &p_element_type_top->from_arrays);
+	fprintf(stream, "%selement_types_count: %d\n", next_prefix, p_element_type_top->element_types_count);
+	_element_types_array_members_dump(stream, next_prefix,  p_element_type_top->element_types_count, p_element_type_top->pp_element_types);
 	fprintf(stream, "%s}\n", prefix);
 	NEXT_DUMPPREFIX_FREE(next_prefix);
 }

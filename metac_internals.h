@@ -113,11 +113,8 @@ struct element_type_top {
 	struct metac_type *						p_pointer_type;
 	struct element_type *					p_element_type_for_pointer;
 
-	struct _element_types_array{
-		metac_count_t						element_types_count;
-		struct element_type **				pp_element_types;
-	}	from_pointers,
-		from_arrays;
+	metac_count_t							element_types_count;
+	struct element_type **					pp_element_types;
 };
 
 struct metac_precompiled_type {
