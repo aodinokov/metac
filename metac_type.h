@@ -231,8 +231,10 @@ typedef int (*metac_cb_array_elements_count_t)(
 typedef int (*metac_cb_generic_cast_t)(
 	char * annotation_key,
 	int write_operation,  /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
+	metac_flag *p_use_cast,
+	metac_count_t generic_cast_type_id,
 	void ** ptr,
-	void ** casted_ptr,
+	void ** ptr_after_generic_cast,
 	void * data);
 
 struct metac_type_annotation_value {

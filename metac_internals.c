@@ -1705,6 +1705,8 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+
+/*****************************************************************************/
 #define DUMPPREFIX "    "
 #define NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix) \
 		char *next_prefix = alloc_sptrinf("%s%s", prefix, DUMPPREFIX); \

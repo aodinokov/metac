@@ -10,221 +10,253 @@
 
 #include "metac_type.h"
 
+/*****************************************************************************/
 struct element_type_hierarchy_member;
 struct array;
-
+/*****************************************************************************/
 struct condition {
-	struct discriminator *					p_discriminator;
-	metac_discriminator_value_t				expected_discriminator_value;
+	struct discriminator *							p_discriminator;
+	metac_discriminator_value_t						expected_discriminator_value;
 };
 struct discriminator {
-	metac_count_t							id;							/*index in the region_element_type. needed to correlate with discriminator_values */
-	struct condition						precondition;				/*pre-condition for this discriminator*/
-	metac_cb_discriminator_t				cb;
-	void *									p_data;
+	metac_count_t									id;									/*index in the region_element_type. needed to correlate with discriminator_values */
+	struct condition								precondition;						/*pre-condition for this discriminator*/
+	metac_cb_discriminator_t						cb;
+	void *											p_data;
 };
 struct element_type_base_type_hierarchy_member {
-	metac_bit_offset_t *					p_bit_offset;				/* bit offset - used only when bits were specified. Can be NULL */
-	metac_bit_size_t *						p_bit_size;					/* bit size - used only when bits were specified. Can be NULL */
+	metac_bit_offset_t *							p_bit_offset;						/* bit offset - used only when bits were specified. Can be NULL */
+	metac_bit_size_t *								p_bit_size;							/* bit size - used only when bits were specified. Can be NULL */
 };
 struct element_type_pointer {
-	struct element_type *					p_element_type;
+	struct element_type *							p_element_type;
 	/* from annotations:*/
 	struct {
-		metac_cb_generic_cast_t				cb;
-		void *								p_data;
-		metac_count_t						types_count;
+		metac_cb_generic_cast_t						cb;
+		void *										p_data;
+		metac_count_t								types_count;
 		struct generic_cast_type{
-			struct metac_type *				p_type;
-			struct element_type *			p_element_type;
-		}*									p_types;
+			struct metac_type *						p_type;
+			struct element_type *					p_element_type;
+		}*											p_types;
 	}generic_cast;
 	struct {
-		metac_cb_array_elements_count_t		cb;
-		void *								p_data;
+		metac_cb_array_elements_count_t				cb;
+		void *										p_data;
 	}array_elements_count;
 };
 struct element_type_array {
-	struct element_type *					p_element_type;
+	struct element_type *							p_element_type;
 	/* from annotations:*/
 	struct {
-		metac_cb_array_elements_count_t		cb;
-		void *								p_data;
+		metac_cb_array_elements_count_t				cb;
+		void *										p_data;
 	}array_elements_count;
 };
-
-struct element_type_hierarchy {	/* struct or union*/
-	struct element_type_hierarchy *			parent;
-	metac_count_t 							members_count;
+struct element_type_hierarchy {															/* struct or union*/
+	struct element_type_hierarchy *					parent;
+	metac_count_t 									members_count;
 	struct element_type_hierarchy_member **
-											members;
+													members;
 };
-
 struct element_type_hierarchy_member {
-	metac_count_t							id;							/*index in the element_type_hierarhy_top. needed to find parents quickier */
-	struct condition 						precondition;				/*precondition for this region element*/
+	metac_count_t									id;									/*index in the element_type_hierarhy_top. needed to find parents quickier */
+	struct condition 								precondition;						/*precondition for this region element*/
 
-	struct element_type_hierarchy *			p_hierarchy;
-	metac_count_t							member_id;					/* member id within parent hierarchy*/
-	char *									path_within_hierarchy;
-	struct metac_type_member_info *			p_member_info;
+	struct element_type_hierarchy *					p_hierarchy;
+	metac_count_t									member_id;							/* member id within parent hierarchy*/
+	char *											path_within_hierarchy;
+	struct metac_type_member_info *					p_member_info;
 
-	metac_data_member_location_t			offset;
+	metac_data_member_location_t					offset;
 
-	struct metac_type *						p_type;
-	struct metac_type *						p_actual_type;
+	struct metac_type *								p_type;
+	struct metac_type *								p_actual_type;
 
-	metac_byte_size_t 						byte_size;					/*bite size*/
+	metac_byte_size_t 								byte_size;							/*bite size*/
 
 	union {
 		struct element_type_base_type_hierarchy_member
-											base_type;
-		struct element_type_pointer			pointer;
-		struct element_type_array			array;
-		struct element_type_hierarchy		hierarchy;
+													base_type;
+		struct element_type_pointer					pointer;
+		struct element_type_array					array;
+		struct element_type_hierarchy				hierarchy;
 	};
 };
+struct element_type {																	/*array element type*/
+	struct metac_type *								p_type;
+	struct metac_type *								p_actual_type;						/*cached: actual type without typedefs and etc */
 
-struct element_type {						/*array element type*/
-	struct metac_type *						p_type;
-	struct metac_type *						p_actual_type;				/*cached: actual type without typedefs and etc */
+	metac_byte_size_t 								byte_size;							/*cached: element bite size*/
 
-	metac_byte_size_t 						byte_size;					/*cached: element bite size*/
-
-	metac_flag								is_potentially_flexible;
+	metac_flag										is_potentially_flexible;
 
 	union {	/*depending on actual_type->id*/
-		struct element_type_pointer			pointer;
-		struct element_type_array			array;
+		struct element_type_pointer					pointer;
+		struct element_type_array					array;
 		struct element_type_hierarchy_top {
-			metac_count_t 					discriminators_count;
-			struct discriminator **			pp_discriminators;
+			metac_count_t 							discriminators_count;
+			struct discriminator **					pp_discriminators;
 
-			metac_count_t 					members_count;
-			struct element_type_hierarchy_member **
-											pp_members;					/* full list of members*/
+			metac_count_t 							members_count;
+			struct element_type_hierarchy_member **	pp_members;							/* full list of members*/
 
-			struct element_type_hierarchy	hierarchy;
+			struct element_type_hierarchy			hierarchy;
 		}hierarchy_top;
 	};
 };
-
 struct element_type_top {
-	struct metac_type *						p_pointer_type;
-	struct element_type *					p_element_type_for_pointer;
+	struct metac_type *								p_pointer_type;
+	struct element_type *							p_element_type_for_pointer;
 
-	metac_count_t							element_types_count;
-	struct element_type **					pp_element_types;
+	metac_count_t									element_types_count;
+	struct element_type **							pp_element_types;
 };
-
 struct metac_precompiled_type {
-	struct element_type_top					element_type_top;
+	struct element_type_top							element_type_top;
 };
 
-/*instances*/
-
+/*****************************************************************************/
 struct discriminator_value {
-	metac_flag								is_initialized;
-	metac_discriminator_value_t				value;
+	metac_discriminator_value_t						value;
 };
-
-struct element_pointer {
-	metac_count_t							generic_cast_type_id;
-
-	void *									p_value;
-	void *									ptr_after_cast;
-
-	struct array *							p_array;				/* pointer to a potentially root array of ptr_after_cast type. there will be a logic to check that -see field that will be recaclulated */
-
-	/*these fields will be recalculated*/
-	struct element *						p_element;
-																	/* only if element is hierarchy(struct/union) */
-	struct element_hierarchy_member *		p_element_hierarchy_member;
-	metac_data_member_location_t			offset;
-
-};
-
-struct element_array {
-	struct array *							p_array;				/* pointer to non_root array */
-};
-
-struct element_hierarchy_member {
-	metac_count_t							id;						/* id in the hierarchy_top */
-	metac_flag								is_initialized;
-
-	void *									ptr;
-
-	union {
-		struct element_pointer				pointer;
-		struct element_array				array;
-	}hierachy;
-};
-
-struct element {
-	metac_count_t							id;						/* id in the array*/
-	struct array *							p_array;				/* array which this element is part of */
-	metac_data_member_location_t			offset;					/* cached: byte_size of the array element * id */
-	struct element_type *					p_element_type;			/* cached: taken from p_array*/
-
-	void *									ptr;
-
-	union {
-		struct element_pointer				pointer;
-		struct element_array				array;
-		struct {
-			struct discriminator_value **	pp_discriminator_values;
-			struct element_hierarchy_member **
-											pp_hierarchy_members;
-		}hierarchy_top;
-	};
-};
-
 struct array_link {
-	struct array *							p_array;
-	struct element *						p_element;
-																	/* only if element is hierarchy(struct/union) */
-	struct element_hierarchy_member *		p_element_hierarchy_member;
+	struct array *									p_array;
+	struct element *								p_element;
+	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
+	metac_data_member_location_t					offset;
 };
+struct element_pointer {
+	metac_flag										use_cast;
+	metac_count_t									generic_cast_type_id;
 
-struct array {
-	struct element_type *					p_element_type;			/* region is array of elements of the same type. p_region_element_type is a type of one element*/
+	void *											ptr;
+	void *											ptr_after_generic_cast;
 
-	metac_byte_size_t						byte_size;				/* total byte_size of the array*/
+	struct array_link								from;
+	struct array_link								to;
+};
+struct element_array {
+	struct array_link								to;
+};
+struct element_hierarchy_member {
+	metac_count_t									id;									/* id in the hierarchy_top */
+	struct element *								p_element;							/* element which this member is part of */
+	metac_data_member_location_t					offset;
+	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
 
-	metac_byte_size_t						element_byte_size;		/* cached: byte_size of the array element */
-	metac_count_t 							elements_count;			/* elements_count */
-	struct element *						p_elements;
+	void *											ptr;
 
-	metac_count_t 							links_count;
-	struct array_link *						p_links;					/* who linked this array? (element->type can be pointer, array or struct/union)
-																	 * needed to optimize arrays generated by pointers: no non_root arrays must stay for ptr-generated arrays
-																	 */
-
-	metac_flag 								is_root;				/* the array isn't a part of other region. it owns the pointer*/
 	union {
-		metac_count_t						root_id;				/* valid only if is_root = true (calculated only when the whole structure is built)*/
-		struct array_link					parent_info;			/* member of the parent structure that has the closest address
-																	 * (ideally the same) to the beginning of this region.
-																	 */
+		struct element_pointer						pointer;
+		struct element_array						array;
 	};
-	metac_count_t							id;						/* Unique id of array including non-root arrays(calculated only when the whole structure is built) */
-	void *									ptr;					/* ptr where the array is located (can be NULL initially), e.g. when we build
-																	 * memory object from json and etc.
-																	 */
-	metac_array_info_t *					p_array_info;			/* region is array of elements. p_array_info represents n-dimensions array */
 };
+struct element {
+	metac_count_t									id;									/* id in the array*/
+	struct array *									p_array;							/* array which this element is part of */
+	metac_data_member_location_t					offset;								/* cached: byte_size of the array element * id */
+	struct element_type *							p_element_type;						/* cached: taken from p_array*/
 
+	void *											ptr;
+
+	union {
+		struct element_pointer						pointer;
+		struct element_array						array;
+		struct element_hierarchy_top {
+			struct discriminator_value *			pp_discriminator_values;
+			struct element_hierarchy_member **		pp_hierarchy_members;
+		}											hierarchy_top;
+	};
+};
+struct array {
+	metac_count_t									id;									/* id */
+	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
+
+	struct array_link								parent_info;						/* info about the parent array */
+
+	metac_byte_size_t								element_byte_size;					/* cached: byte_size of the array element */
+	metac_count_t 									elements_count;						/* elements_count */
+	struct element *								p_elements;
+
+	void *											ptr;								/* ptr where the array is located (can be NULL initially), e.g. when we build
+																						 * memory object from json and etc.
+																						 */
+	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
+};
+struct array_top {
+	metac_count_t									arrays_count;
+	struct array **									pp_arrays;							/* array with id=0 is root array */
+
+	metac_count_t									pointers_count;
+	struct element_pointer **						pp_pointers;
+};
 struct metac_runtime_object {
-	struct metac_precompiled_type *	precompiled_type;
+	struct metac_precompiled_type *					precompiled_type;
 
-	metac_count_t					arrays_count;
-	struct array **					arrays;
-
-	/* really allocated memory regions (subset of all regions) */
-	metac_count_t					root_arrays_count;
-	struct array **					root_arrays;
+	metac_count_t									array_tops_count;
+	struct array_top **								array_tops;
 };
-
+/*****************************************************************************/
+struct discriminator * discriminator_create(
+		struct metac_type *							p_root_type,
+		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct discriminator *						p_previous_discriminator,
+		metac_discriminator_value_t					previous_expected_discriminator_value);
+int discriminator_delete(
+		struct discriminator **						pp_discriminator);
+int element_type_array_init(
+		struct metac_type *							p_root_type,
+		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct metac_type *							p_actual_type,
+		struct element_type_array *					p_element_type_array);
+void element_type_array_clean(
+		struct element_type_array *					p_element_type_array);
+int element_type_pointer_init(
+		struct metac_type *							p_root_type,
+		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct metac_type *							p_actual_type,
+		struct element_type_pointer *				p_element_type_pointer);
+void element_type_pointer_clean(
+		struct element_type_pointer *				p_element_type_pointer);
+int element_type_hierarchy_init(
+		struct metac_type *							p_root_type,
+		char * 										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct metac_type *							p_actual_type,
+		struct element_type_hierarchy *				p_element_type_hierarchy,
+		struct element_type_hierarchy *				p_parent_hierarchy);
+void element_type_hierarchy_clean(
+		struct element_type_hierarchy *				p_element_type_hierarchy);
+struct element_type_hierarchy_member * element_type_hierarchy_member_create(
+		struct metac_type *							p_root_type,
+		char *										global_path,
+		char *										hirarchy_path,
+		metac_type_annotation_t *					p_override_annotations,
+		metac_count_t								member_id,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		struct element_type_hierarchy *				p_hierarchy,
+		struct metac_type_member_info *				p_member_info);
+int element_type_hierarchy_member_delete(
+		struct element_type_hierarchy_member **		pp_element_type_hierarchy_member);
+struct element_type * element_type_create(
+		struct metac_type *							p_root_type,
+		char *										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct metac_type *							p_type);
+int element_type_delete(
+		struct element_type **						pp_element_type);
+int element_type_top_init(
+		struct metac_type *							p_root_type,
+		char *										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct element_type_top *					p_element_type_top);
+void element_type_top_clean(
+		struct element_type_top *					p_element_type_top);
 
 #if 0
 struct region_element_type_member {
