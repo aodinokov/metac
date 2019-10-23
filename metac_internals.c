@@ -1818,13 +1818,13 @@ void metac_type_dump(
 	fprintf(stream, "%sname: %s\n", next_prefix, p_metac_type->name);
 	switch(p_metac_type->id) {
 	case DW_TAG_pointer_type:
-		metac_type_ptr_dump(stream, next_prefix, "pointer_type_info.type", p_metac_type->pointer_type_info.type);
+		metac_type_ptr_dump(stream, next_prefix, "pointer_type_info.type: ", p_metac_type->pointer_type_info.type);
 		break;
 	case DW_TAG_const_type:
-		metac_type_ptr_dump(stream, next_prefix, "const_type_info.type", p_metac_type->const_type_info.type);
+		metac_type_ptr_dump(stream, next_prefix, "const_type_info.type: ", p_metac_type->const_type_info.type);
 		break;
 	case DW_TAG_array_type:
-		metac_type_ptr_dump(stream, next_prefix, "array_type_info.type", p_metac_type->array_type_info.type);
+		metac_type_ptr_dump(stream, next_prefix, "array_type_info.type: ", p_metac_type->array_type_info.type);
 		break;
 	}
 	fprintf(stream, "%s}\n", prefix);

@@ -53,25 +53,25 @@ struct metac_type {
 	/* METAC specific data */
 	union {
 		/* .id == DW_TAG_typedef */
-		struct {
+		struct typedef_info {
 			metac_type_t *				type;						/* universal field */
 		}typedef_info;
 		/* .id == DW_TAG_const_type */
-		struct {
+		struct const_type_info {
 			metac_type_t *				type;						/* universal field */
 		}const_type_info;
 		/* .id == DW_TAG_base_type */
-		struct {
+		struct base_type_info {
 			metac_byte_size_t			byte_size;					/* mandatory field */
 			metac_encoding_t			encoding;					/* type encoding (DW_ATE_signed etc) */
 		}base_type_info;
 		/* .id == DW_TAG_pointer_type */
-		struct {
+		struct pointer_type_info {
 			metac_byte_size_t			byte_size;					/* can be optional */
 			metac_type_t *				type;						/* universal field */
 		}pointer_type_info;
 		/* .id == DW_TAG_enumeration_type */
-		struct {
+		struct enumeration_type_info {
 			metac_type_t *				type;						/* universal field (can be NULL in some compliers) */
 			metac_byte_size_t			byte_size;					/* mandatory field */
 			metac_num_t					enumerators_count;			/* mandatory field */
@@ -81,7 +81,7 @@ struct metac_type {
 			}*							enumerators;
 		}enumeration_type_info;
 		/* .id == DW_TAG_subprogram */
-		struct {
+		struct subprogram_info {
 			metac_type_t *				type;						/* function return type (NULL if void) */
 			metac_num_t					parameters_count;			/* number of parameters */
 			struct metac_type_subprogram_parameter {
@@ -91,7 +91,7 @@ struct metac_type {
 			}*							parameters;
 		}subprogram_info;
 		/* .id = DW_TAG_structure_type */
-		struct {
+		struct structure_type_info {
 			metac_byte_size_t			byte_size;					/* size of the structure in bytes */
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info {
@@ -104,14 +104,14 @@ struct metac_type {
 			}*							members;
 		}structure_type_info;
 		/* .id == DW_TAG_union_type */
-		struct {
+		struct union_type_info {
 			metac_byte_size_t			byte_size;					/* size of the union in bytes */
 			metac_num_t					members_count;				/* number of members */
 			struct metac_type_member_info *
 										members;
 		}union_type_info;
 		/* .id == DW_TAG_array_type */
-		struct {
+		struct array_type_info {
 			metac_type_t *				type;						/* type of elements */
 			metac_flag					is_flexible;				/* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
 			metac_count_t				elements_count;				/* based on min and max or count - length of the array ---- TBD: to rework it for multi-dimensional case */
