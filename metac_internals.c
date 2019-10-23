@@ -1705,7 +1705,65 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+static struct metac_type * array_get_actual_type(
+		struct array *								p_array) {
+	struct metac_type * p_actual_type;
+	if (p_array->parent_info.p_element_hierarchy_member != NULL) {
+		p_actual_type = p_array->parent_info.p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
+	} else {
+		p_actual_type = p_array->parent_info.p_element->p_element_type->p_actual_type;
+	}
+	assert(p_actual_type->id == DW_TAG_array_type);
+	return p_actual_type;
+}
+static struct element_type * array_get_element_type(
+		struct array *								p_array) {
+	if (p_array->p_element_type != NULL)
+		return p_array->p_element_type;
+	if (p_array->parent_info.p_element_hierarchy_member != NULL) {
+		p_array->p_element_type = p_array->parent_info.p_element_hierarchy_member->p_element_type_hierarchy_member->array.p_element_type;
+	} else {
+		p_array->p_element_type = p_array->parent_info.p_element->p_element_type->array.p_element_type;
+	}
+	return p_array->p_element_type;
+}
+struct array * array_create_from_parent(
+		struct array *								p_parent_array,
+		struct element *							p_parent_element,
+		struct element_hierarchy_member *			p_parent_element_hierarchy_member,
+		struct array_link *							p_parent_array_link) {
+	_create_(array);
 
+	p_parent_array_link->p_array = p_array;
+
+	p_array->parent_info.p_array = p_parent_array;
+	p_array->parent_info.p_element = p_parent_element;
+	p_array->parent_info.p_element_hierarchy_member = p_parent_element_hierarchy_member;
+
+	p_array->p_element_type = array_get_element_type(p_array);
+	p_array->element_byte_size = p_array->p_element_type->byte_size;
+
+	p_array->p_array_info = metac_array_info_create_from_type(array_get_actual_type(p_array));
+
+	return p_array;
+}
+int array_create_from_ptr(
+		struct array *								p_array,
+		void *										ptr) {
+	return 0;
+}
+int array_pack_from_element_count(
+		struct array *								p_array,
+		metac_count_t 								elements_count) {
+	return 0;
+}
+
+int array_top_init(
+		struct element_type *						p_element_type,
+		struct array_top *							p_array_top) {
+
+	return 0;
+}
 /*****************************************************************************/
 #define DUMPPREFIX "    "
 #define NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix) \

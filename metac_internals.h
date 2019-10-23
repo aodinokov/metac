@@ -178,7 +178,6 @@ struct array {
 	metac_byte_size_t								element_byte_size;					/* cached: byte_size of the array element */
 	metac_count_t 									elements_count;						/* elements_count */
 	struct element *								p_elements;
-
 	void *											ptr;								/* ptr where the array is located (can be NULL initially), e.g. when we build
 																						 * memory object from json and etc.
 																						 */
