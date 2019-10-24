@@ -131,7 +131,7 @@ struct element_pointer {
 	metac_count_t									generic_cast_type_id;
 
 	void *											ptr;
-	void *											ptr_after_generic_cast;
+	void *											actual_ptr;							/* after generic_cast if it's a case */
 
 	struct array_link								from;
 	struct array_link								to;
@@ -145,53 +145,51 @@ struct element_hierarchy_member {
 	metac_data_member_location_t					offset;
 	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
 
-	void *											ptr;
-
 	union {
 		struct element_pointer						pointer;
 		struct element_array						array;
 	};
 };
 struct element {
-	metac_count_t									id;									/* id in the array*/
+	metac_count_t									id;									/* linear id in the array*/
 	struct array *									p_array;							/* array which this element is part of */
 	metac_data_member_location_t					offset;								/* cached: byte_size of the array element * id */
 	struct element_type *							p_element_type;						/* cached: taken from p_array*/
-
-	void *											ptr;
 
 	union {
 		struct element_pointer						pointer;
 		struct element_array						array;
 		struct element_hierarchy_top {
-			struct discriminator_value *			pp_discriminator_values;
+			struct discriminator_value **			pp_discriminator_values;
 			struct element_hierarchy_member **		pp_hierarchy_members;
 		}											hierarchy_top;
 	};
 };
 struct array {
-	metac_count_t									id;									/* id */
-	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
-
 	struct array_link								parent_info;						/* info about the parent array */
-
-	metac_byte_size_t								element_byte_size;					/* cached: byte_size of the array element */
-	metac_count_t 									elements_count;						/* elements_count */
-	struct element *								p_elements;
-	void *											ptr;								/* ptr where the array is located (can be NULL initially), e.g. when we build
-																						 * memory object from json and etc.
-																						 */
+	char *											instance_path;
+	metac_data_member_location_t					offset;								/* offset from the parent array */
+	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
 	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
+	struct element *								p_elements;
 };
 struct array_top {
+	struct element_pointer *						p_pointer;
+
+	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
+	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
+	struct element *								p_elements;
+
 	metac_count_t									arrays_count;
-	struct array **									pp_arrays;							/* array with id=0 is root array */
+	struct array **									pp_arrays;
 
 	metac_count_t									pointers_count;
 	struct element_pointer **						pp_pointers;
 };
 struct metac_runtime_object {
-	struct metac_precompiled_type *					precompiled_type;
+	struct metac_precompiled_type *					p_metac_precompiled_type;
+
+	struct element_pointer							pointer;
 
 	metac_count_t									array_tops_count;
 	struct array_top **								array_tops;

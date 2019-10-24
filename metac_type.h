@@ -179,15 +179,17 @@ const metac_type_annotation_t *
 struct metac_type * 	metac_type_create_pointer_for(struct metac_type * p_type);
 int 					metac_type_free(struct metac_type ** pp_metac_type);
 
-metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type);
+metac_array_info_t * 	metac_array_info_create_from_type(struct metac_type *type, metac_num_t default_subrange0_count);
 metac_array_info_t * 	metac_array_info_create_from_elements_count(metac_count_t elements_count);
 metac_array_info_t * 	metac_array_info_copy(metac_array_info_t *p_array_info_orig);
 metac_count_t 			metac_array_info_get_element_count(metac_array_info_t * p_array_info);
-int 					metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1);
+int						metac_array_info_get_subrange_count(metac_array_info_t *p_array_info, metac_num_t subrange, metac_num_t *p_count);
+int						metac_array_info_set_subrange_count(metac_array_info_t *p_array_info, metac_num_t subrange, metac_num_t count);
+int 					metac_array_info_is_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1);
 int 					metac_array_info_delete(metac_array_info_t ** pp_array_info);
 
-metac_array_info_t * 	metac_array_info_counter_init(metac_array_info_t *p_array_info_orig);
-int 					metac_array_info_counter_increment(metac_array_info_t *p_array_info_orig, metac_array_info_t *p_array_info_current);
+metac_array_info_t * 	metac_array_info_create_counter(metac_array_info_t *p_array_info);
+int 					metac_array_info_increment_counter(metac_array_info_t *p_array_info, metac_array_info_t *p_array_info_counter);
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)

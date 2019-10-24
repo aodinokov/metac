@@ -1094,6 +1094,16 @@ struct element_type * element_type_create(
 	p_element_type->is_potentially_flexible = element_type_is_potentially_flexible(p_element_type);
 	return p_element_type;
 }
+metac_flag element_type_is_hierachy(
+		struct element_type *						p_element_type) {
+	if (p_element_type != NULL &&
+		p_element_type->p_actual_type != NULL && (
+			p_element_type->p_actual_type->id == DW_TAG_structure_type ||
+			p_element_type->p_actual_type->id == DW_TAG_union_type
+		))
+		return 1;
+	return 0;
+}
 static int element_type_top_container_init_element_type(
 		struct element_type_top_container_element_type *
 													p_element_type_top_container_element_type,
@@ -1651,7 +1661,7 @@ int element_type_top_init(
 			global_path,
 			p_element_type_top->p_element_type_for_pointer,
 			NULL) != 0) {
-		msg_stddbg("wasn't able to schedule the first task\n");
+		msg_stderr("wasn't able to schedule the first task\n");
 		element_type_top_clean(p_element_type_top);
 		element_type_top_builder_clean(&element_type_top_builder, 0);
 		return (-EFAULT);
@@ -1666,7 +1676,7 @@ int element_type_top_init(
 	if (element_type_top_builder_finalize(
 			&element_type_top_builder,
 			p_element_type_top) != 0) {
-		msg_stddbg("object finalization failed\n");
+		msg_stderr("object finalization failed\n");
 		element_type_top_clean(p_element_type_top);
 		element_type_top_builder_clean(&element_type_top_builder, 0);
 		return (-EFAULT);
@@ -1705,6 +1715,91 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+int discriminator_value_free(
+		struct discriminator_value **				pp_discriminator_value) {
+	_delete_(discriminator_value);
+}
+struct discriminator_value * discriminator_value_create(
+		metac_discriminator_value_t					value) {
+	_create_(discriminator_value);
+	p_discriminator_value->value = value;
+	return p_discriminator_value;
+}
+void element_hierarchy_top_clean(
+		struct element_hierarchy_top *				p_element_hierarchy_top,
+		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
+	metac_count_t i;
+	if (p_element_hierarchy_top->pp_hierarchy_members) {
+		for (i = 0; i < p_element_type_hierarchy_top->members_count; ++i) {
+			if (p_element_hierarchy_top->pp_hierarchy_members[i] != NULL) {
+				//element_hierarchy_member_free(&p_element_hierarchy_top->pp_hierarchy_members[i]);
+			}
+		}
+		free(p_element_hierarchy_top->pp_hierarchy_members);
+		p_element_hierarchy_top->pp_hierarchy_members = NULL;
+	}
+	if (p_element_hierarchy_top->pp_discriminator_values) {
+		for (i = 0; i < p_element_type_hierarchy_top->discriminators_count; ++i) {
+			if (p_element_hierarchy_top->pp_discriminator_values[i] != NULL) {
+				discriminator_value_free(&p_element_hierarchy_top->pp_discriminator_values[i]);
+			}
+		}
+		free(p_element_hierarchy_top->pp_discriminator_values);
+		p_element_hierarchy_top->pp_discriminator_values = NULL;
+	}
+}
+int element_hierarchy_top_init(
+		struct element_hierarchy_top *				p_element_hierarchy_top,
+		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
+	if (p_element_type_hierarchy_top->discriminators_count > 0) {
+		p_element_hierarchy_top->pp_discriminator_values =
+				(struct discriminator_value **)calloc(p_element_type_hierarchy_top->discriminators_count, sizeof(*p_element_hierarchy_top->pp_discriminator_values));
+		if (p_element_hierarchy_top->pp_discriminator_values != NULL) {
+			msg_stderr("wasn't able to get memory for pp_discriminator_values\n");
+			element_hierarchy_top_clean(p_element_hierarchy_top, p_element_type_hierarchy_top);
+			return (-EFAULT);
+		}
+	}
+	if (p_element_type_hierarchy_top->members_count > 0) {
+		p_element_hierarchy_top->pp_hierarchy_members =
+				(struct element_hierarchy_member **)calloc(p_element_type_hierarchy_top->members_count, sizeof(*p_element_hierarchy_top->pp_hierarchy_members));
+		if (p_element_hierarchy_top->pp_hierarchy_members != NULL) {
+			msg_stderr("wasn't able to get memory for pp_hierarchy_members\n");
+			element_hierarchy_top_clean(p_element_hierarchy_top, p_element_type_hierarchy_top);
+			return (-EFAULT);
+		}
+	}
+	return 0;
+}
+void element_clean(
+		struct element *							p_element) {
+	if (p_element->p_element_type != NULL &&
+		element_type_is_hierachy(p_element->p_element_type)) {
+		element_hierarchy_top_clean(&p_element->hierarchy_top, &p_element->p_element_type->hierarchy_top);
+	}
+}
+int element_init(
+		struct element *							p_element,
+		metac_count_t								id,
+		struct array *								p_array,
+		struct element_type *						p_element_type) {
+
+	p_element->id = id;
+	p_element->p_array = p_array;
+	p_element->p_element_type = p_element_type;
+	p_element->offset = id * p_element->p_element_type->byte_size;
+
+	if (element_type_is_hierachy(p_element_type)) {
+		if (element_hierarchy_top_init(
+				&p_element->hierarchy_top,
+				&p_element_type->hierarchy_top) != 0) {
+			msg_stderr("wasn't able to init hierarchy_top\n");
+			return (-EFAULT);
+		}
+	}
+
+	return 0;
+}
 static struct metac_type * array_get_actual_type(
 		struct array *								p_array) {
 	struct metac_type * p_actual_type;
@@ -1727,11 +1822,34 @@ static struct element_type * array_get_element_type(
 	}
 	return p_array->p_element_type;
 }
-struct array * array_create_from_parent(
+int array_delete(
+		struct array **								pp_array) {
+	_delete_start_(array);
+	if ((*pp_array)->p_array_info != NULL) {
+		if ((*pp_array)->p_elements != NULL) {
+			metac_count_t id, element_count;
+			element_count = metac_array_info_get_element_count((*pp_array)->p_array_info);
+			for (id = 0; id < element_count; ++id) {
+				element_clean(&((*pp_array)->p_elements[id]));
+			}
+			free((*pp_array)->p_elements);
+			(*pp_array)->p_elements = NULL;
+		}
+		metac_array_info_delete(&((*pp_array)->p_array_info));
+	}
+	_delete_finish(array);
+	return 0;
+}
+struct array * array_create(
+		char *										instance_path,
+		metac_num_t									subrange0_count,
+		metac_data_member_location_t				offset,
 		struct array *								p_parent_array,
 		struct element *							p_parent_element,
 		struct element_hierarchy_member *			p_parent_element_hierarchy_member,
 		struct array_link *							p_parent_array_link) {
+	metac_count_t id, element_count;
+	msg_stddbg("creating array %s, default_subrange0 is %d", path, default_subrange0_count);
 	_create_(array);
 
 	p_parent_array_link->p_array = p_array;
@@ -1741,28 +1859,46 @@ struct array * array_create_from_parent(
 	p_array->parent_info.p_element_hierarchy_member = p_parent_element_hierarchy_member;
 
 	p_array->p_element_type = array_get_element_type(p_array);
-	p_array->element_byte_size = p_array->p_element_type->byte_size;
 
-	p_array->p_array_info = metac_array_info_create_from_type(array_get_actual_type(p_array));
+	p_array->p_array_info = metac_array_info_create_from_type(array_get_actual_type(p_array), subrange0_count);
+	element_count = metac_array_info_get_element_count(p_array->p_array_info);
 
+	p_array->p_elements = (struct element *)calloc(element_count, sizeof(*p_array->p_elements));
+	if (p_array->p_elements == NULL) {
+		msg_stderr("wasn't able to create elements for %s\n", instance_path);
+		array_delete(&p_array);
+		return NULL;
+	}
+
+	for (id = 0; id < element_count; ++id) {
+		if (element_init(
+				&p_array->p_elements[id],
+				id,
+				p_array,
+				p_array->p_element_type) != 0) {
+			msg_stderr("wasn't able to init element %d for %s\n", id, instance_path);
+			array_delete(&p_array);
+			return NULL;
+		}
+	}
 	return p_array;
 }
-int array_create_from_ptr(
-		struct array *								p_array,
-		void *										ptr) {
-	return 0;
-}
-int array_pack_from_element_count(
-		struct array *								p_array,
-		metac_count_t 								elements_count) {
-	return 0;
-}
-
 int array_top_init(
 		struct element_type *						p_element_type,
 		struct array_top *							p_array_top) {
 
 	return 0;
+}
+struct metac_runtime_object* metac_runtime_object_create(
+		void *										ptr,
+		struct metac_precompiled_type *				p_metac_precompiled_type
+		) {
+	_create_(metac_runtime_object);
+	p_metac_runtime_object->p_metac_precompiled_type = p_metac_precompiled_type;
+
+	p_metac_runtime_object->pointer.ptr = ptr;
+
+	return NULL;
 }
 /*****************************************************************************/
 #define DUMPPREFIX "    "

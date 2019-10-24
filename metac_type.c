@@ -294,7 +294,7 @@ struct metac_object * metac_object_by_name(struct metac_object_sorted_array * ar
 	return NULL;
 }
 /*****************************************************************************/
-metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type) {
+metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type, metac_num_t default_subrange0_count) {
 	metac_num_t i;
 	metac_num_t subranges_count;
 	metac_array_info_t * p_array_info;
@@ -324,7 +324,7 @@ metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type) 
 		return NULL;
 	}
 	p_array_info->subranges_count = subranges_count;
-	p_array_info->subranges[0].count = 1;
+	p_array_info->subranges[0].count = default_subrange0_count;
 
 	if (id == DW_TAG_array_type) {
 		for (i = 0; i < subranges_count; ++i) {
@@ -347,6 +347,32 @@ metac_array_info_t * metac_array_info_create_from_elements_count(metac_count_t e
 	p_array_info->subranges[0].count = elements_count;
 
 	return p_array_info;
+}
+int metac_array_info_get_subrange_count(metac_array_info_t *p_array_info, metac_num_t subrange, metac_num_t *p_count) {
+	if (p_array_info == NULL) {
+		msg_stderr("invalid argument value: p_array_info\n");
+		return (-EINVAL);
+	}
+	if (subrange >= p_array_info->subranges_count) {
+		msg_stderr("invalid argument value: subrange\n");
+		return (-EINVAL);
+	}
+	if (p_count != NULL) {
+		*p_count = p_array_info->subranges[subrange].count;
+	}
+	return 0;
+}
+int metac_array_info_set_subrange_count(metac_array_info_t *p_array_info, metac_num_t subrange, metac_num_t count) {
+	if (p_array_info == NULL) {
+		msg_stderr("invalid argument value: p_array_info\n");
+		return (-EINVAL);
+	}
+	if (subrange >= p_array_info->subranges_count) {
+		msg_stderr("invalid argument value: subrange\n");
+		return (-EINVAL);
+	}
+	p_array_info->subranges[subrange].count = count;
+	return 0;
 }
 metac_array_info_t * metac_array_info_copy(metac_array_info_t *p_array_info_orig) {
 	metac_num_t i;
@@ -397,7 +423,7 @@ metac_count_t metac_array_info_get_element_count(metac_array_info_t * p_array_in
 	}
 	return element_count;
 }
-int metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1) {
+int metac_array_info_is_equal(metac_array_info_t * p_array_info0, metac_array_info_t * p_array_info1) {
 	metac_num_t i;
 
 	if (p_array_info0 == NULL ||
@@ -415,47 +441,47 @@ int metac_array_info_equal(metac_array_info_t * p_array_info0, metac_array_info_
 
 	return 1;
 }
-metac_array_info_t * metac_array_info_counter_init(metac_array_info_t *p_array_info_orig) {
+metac_array_info_t * metac_array_info_create_counter(metac_array_info_t *p_array_info) {
 	metac_num_t i;
 	metac_num_t subranges_count;
-	metac_array_info_t * p_array_info;
+	metac_array_info_t * p_array_info_counter;
 	metac_type_id_t id;
 
-	if (p_array_info_orig == NULL) {
+	if (p_array_info == NULL) {
 		msg_stderr("invalid argument value: p_array_info\n");
 		return NULL;
 	}
 
-	subranges_count = p_array_info_orig->subranges_count;
+	subranges_count = p_array_info->subranges_count;
 
-	p_array_info = calloc(1, sizeof(*p_array_info) + subranges_count * sizeof(struct _metac_array_subrange_info));
-	if (p_array_info == NULL) {
+	p_array_info_counter = calloc(1, sizeof(*p_array_info_counter) + subranges_count * sizeof(struct _metac_array_subrange_info));
+	if (p_array_info_counter == NULL) {
 		msg_stderr("no memory\n");
 		return NULL;
 	}
-	p_array_info->subranges_count = subranges_count;
+	p_array_info_counter->subranges_count = subranges_count;
 
-	for (i = 0; i < p_array_info->subranges_count; ++i) {
-		p_array_info->subranges[i].count = 0;
+	for (i = 0; i < p_array_info_counter->subranges_count; ++i) {
+		p_array_info_counter->subranges[i].count = 0;
 	}
 
-	return p_array_info;
+	return p_array_info_counter;
 }
 
-int metac_array_info_counter_increment(metac_array_info_t *p_array_info_orig, metac_array_info_t *p_array_info_current) {
+int metac_array_info_increment_counter(metac_array_info_t *p_array_info, metac_array_info_t *p_array_info_counter) {
 	metac_num_t i;
-	if (p_array_info_orig == NULL ||
-		p_array_info_current == NULL ||
-		p_array_info_orig->subranges_count != p_array_info_current->subranges_count) {
+	if (p_array_info == NULL ||
+			p_array_info_counter == NULL ||
+			p_array_info->subranges_count != p_array_info_counter->subranges_count) {
 		msg_stderr("invalid argument value\n");
 		return -EINVAL;
 	}
 
-	i = p_array_info_current->subranges_count - 1;
+	i = p_array_info_counter->subranges_count - 1;
 	while(1) {
-		++p_array_info_current->subranges[i].count;
-		if (p_array_info_current->subranges[i].count == p_array_info_orig->subranges[i].count) {
-			p_array_info_current->subranges[i].count = 0;
+		++p_array_info_counter->subranges[i].count;
+		if (p_array_info_counter->subranges[i].count == p_array_info->subranges[i].count) {
+			p_array_info_counter->subranges[i].count = 0;
 			if (i == 0)return 1;	/*overflow*/
 			--i;
 		} else break;
