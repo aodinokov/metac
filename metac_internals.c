@@ -1715,9 +1715,37 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+struct array_top_container_array {
+	struct cds_list_head							list;
+
+	struct array *									p_array;
+};
+struct array_top_container {
+	struct cds_list_head							pointers_list;
+	struct cds_list_head							arrays_list;
+};
+struct array_top_builder {
+//	struct metac_type *								p_root_type;
+//	metac_type_annotation_t *						p_override_annotations;
+
+	struct array_top_container						container;
+
+	struct traversing_engine						array_top_traversing_engine;
+	struct cds_list_head							array_top_executed_tasks;
+};
+struct array_top_builder_array_task {
+	struct traversing_engine_task					task;
+//	char * 											global_path;	/*local copy - keep track of it*/
+//	struct metac_type *								p_type;
+//	struct metac_type_member_info *					p_from_member_info;
+//	struct element_type **							pp_element_type_to_store;
+};
+
+/*****************************************************************************/
 int discriminator_value_free(
 		struct discriminator_value **				pp_discriminator_value) {
 	_delete_(discriminator_value);
+	return 0;
 }
 struct discriminator_value * discriminator_value_create(
 		metac_discriminator_value_t					value) {
@@ -1883,13 +1911,108 @@ struct array * array_create(
 	}
 	return p_array;
 }
+static int array_top_builder_delete_array_task(
+		struct array_top_builder_array_task **		pp_array_top_builder_array_task) {
+	_delete_start_(array_top_builder_array_task);
+//	if ((*pp_element_type_top_builder_element_type_task)->global_path) {
+//		free((*pp_element_type_top_builder_element_type_task)->global_path);
+//		(*pp_element_type_top_builder_element_type_task)->global_path = NULL;
+//	}
+	_delete_finish(array_top_builder_array_task);
+	return 0;
+}
+static int array_top_container_init(
+		struct array_top_container *				p_array_top_container) {
+	CDS_INIT_LIST_HEAD(&p_array_top_container->pointers_list);
+	CDS_INIT_LIST_HEAD(&p_array_top_container->arrays_list);
+	return 0;
+}
+static void array_top_container_clean(
+		struct array_top_container *				p_array_top_container,
+		metac_flag									keep_data) {
+	struct element_type_top_container_element_type * _element_type, * __element_type;
+	cds_list_for_each_entry_safe(_element_type, __element_type, &p_array_top_container->pointers_list, list) {
+		cds_list_del(&_element_type->list);
+		//array_top_container_clean_pointer(_element_type, keep_data);
+		free(_element_type);
+	}
+	cds_list_for_each_entry_safe(_element_type, __element_type, &p_array_top_container->arrays_list, list) {
+		cds_list_del(&_element_type->list);
+		//array_top_container_clean_array(_element_type, keep_data);
+		free(_element_type);
+	}
+}
+static int array_top_builder_init(
+		struct array_top_builder *					p_array_top_builder) {
+	array_top_container_init(&p_array_top_builder->container);
+	CDS_INIT_LIST_HEAD(&p_array_top_builder->array_top_executed_tasks);
+	traversing_engine_init(&p_array_top_builder->array_top_traversing_engine);
+	return 0;
+}
+static void array_top_builder_clean(
+		struct array_top_builder *					p_array_top_builder,
+		metac_flag									keep_data) {
+	struct traversing_engine_task * p_task, *_p_task;
+
+	traversing_engine_clean(&p_array_top_builder->array_top_traversing_engine);
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_array_top_builder->array_top_executed_tasks, list) {
+		struct array_top_builder_array_task * p_array_top_builder_array_task = cds_list_entry(
+			p_task,
+			struct array_top_builder_array_task, task);
+		cds_list_del(&p_task->list);
+		array_top_builder_delete_array_task(&p_array_top_builder_array_task);
+	}
+	array_top_container_clean(&p_array_top_builder->container, keep_data);
+}
+
 int array_top_init(
+		struct element_pointer *					p_element_pointer,
+		char *										global_path,
 		struct element_type *						p_element_type,
 		struct array_top *							p_array_top) {
+	struct array_top_builder array_top_builder;
+
+	array_top_builder_init(&array_top_builder);
+
+
+
+	p_array_top->p_element_pointer = p_element_pointer;
+
 
 	return 0;
 }
-struct metac_runtime_object* metac_runtime_object_create(
+int _process_pointer(
+		struct element_pointer *					p_element_pointer,
+		char *										global_path,
+		struct element_type *						p_element_type) {
+	struct array_top array_top;
+
+	p_element_pointer->actual_ptr = p_element_pointer->ptr;
+
+	if (p_element_type->pointer.generic_cast.cb != NULL) {
+		int res = p_element_type->pointer.generic_cast.cb(
+				global_path,
+				0,
+				&p_element_pointer->use_cast,
+				&p_element_pointer->generic_cast_type_id,
+				&p_element_pointer->ptr,
+				&p_element_pointer->actual_ptr,
+				p_element_type->pointer.generic_cast.p_data);
+		if (res != 0) {
+			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
+			return res;
+		}
+	}
+
+	/*TODO: consider changing to schedule*/
+	if (array_top_init(p_element_pointer, global_path, p_element_type, &array_top) != 0){
+		msg_stderr("array_top_init returned error for %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	return 0;
+}
+struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		) {
@@ -1897,7 +2020,10 @@ struct metac_runtime_object* metac_runtime_object_create(
 	p_metac_runtime_object->p_metac_precompiled_type = p_metac_precompiled_type;
 
 	p_metac_runtime_object->pointer.ptr = ptr;
-
+//	p_metac_runtime_object->pointer->
+//
+//	array_top_init(p_metac_runtime_object->pointer, );
+	_process_pointer(&p_metac_runtime_object->pointer, "ptr", p_metac_precompiled_type->element_type_top.p_element_type_for_pointer);
 	return NULL;
 }
 /*****************************************************************************/

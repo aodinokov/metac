@@ -233,8 +233,8 @@ typedef int (*metac_cb_array_elements_count_t)(
 typedef int (*metac_cb_generic_cast_t)(
 	char * annotation_key,
 	int write_operation,  /* 0 - if need to store date to p_discriminator_val, 1 - vice-versa*/
-	metac_flag *p_use_cast,
-	metac_count_t generic_cast_type_id,
+	metac_flag * p_use_cast,
+	metac_count_t * p_generic_cast_type_id,
 	void ** ptr,
 	void ** ptr_after_generic_cast,
 	void * data);
@@ -291,6 +291,12 @@ typedef struct metac_precompiled_type metac_precompiled_type_t;
 metac_precompiled_type_t * metac_precompile_type(struct metac_type *type, metac_type_annotation_t *	override_annotations);
 void metac_dump_precompiled_type(metac_precompiled_type_t * precompiled_type);
 int metac_free_precompiled_type(metac_precompiled_type_t ** precompiled_type);
+
+struct metac_runtime_object;
+struct metac_runtime_object * metac_runtime_object_create(
+		void *										ptr,
+		struct metac_precompiled_type *				p_metac_precompiled_type
+		);
 
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(void *ptr, metac_byte_size_t byte_size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);

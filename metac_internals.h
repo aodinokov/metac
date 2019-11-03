@@ -174,7 +174,7 @@ struct array {
 	struct element *								p_elements;
 };
 struct array_top {
-	struct element_pointer *						p_pointer;
+	struct element_pointer *						p_element_pointer;
 
 	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
 	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */

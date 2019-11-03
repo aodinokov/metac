@@ -1191,6 +1191,7 @@ METAC_TYPE_ANNOTATION_BEGIN(basic_tree_t)
 //METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
 METAC_TYPE_ANNOTATION_END
 
+
 START_TEST(basic_tree_t_ut) {
 //	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
 //		_STRUCT_TYPE_CHECK_BYTESIZE;
@@ -1208,22 +1209,25 @@ START_TEST(basic_tree_t_ut) {
 		metac_precompiled_type_t * precompiled_type = metac_precompile_type(&METAC_TYPE_NAME(basic_tree_t), NULL);
 		fail_unless(precompiled_type != NULL, "metac_precompile_type failed for %s", "basic_tree_t");
 		metac_dump_precompiled_type(precompiled_type);
-//
-//		/*build hierarchy*/
-//		basic_tree_t * y;
-//		basic_tree_t l = {
-//			.data = (int[]){1, },
-//			.desc = {NULL, NULL, },
-//		},
-//		r  = {
-//			.data = (int[]){3, },
-//			.desc = {NULL, NULL, },
-//		},
-//		x = {
-//			.data = (int[]){2, },
-//			.desc = {&l, &r, },
-//		};
-//
+
+		/*build hierarchy*/
+		basic_tree_t * y;
+		basic_tree_t l = {
+			.data = (int[]){1, },
+			.desc = {NULL, NULL, },
+		},
+		r  = {
+			.data = (int[]){3, },
+			.desc = {NULL, NULL, },
+		},
+		x = {
+			.data = (int[]){2, },
+			.desc = {&l, &r, },
+		};
+
+		struct metac_runtime_object* p_runtime_object;
+		p_runtime_object = metac_runtime_object_create((void*)(&x), precompiled_type);
+
 //		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
 //		fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
 //		fail_unless(metac_unpack_to_json(precompiled_type, (void*)(&x), sizeof(x), 1, &p_json) == 0, "metac_pack2json failed");
