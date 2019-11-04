@@ -12,6 +12,7 @@
 
 /*****************************************************************************/
 struct element_type_hierarchy_member;
+struct element_hierarchy_member;
 struct array;
 /*****************************************************************************/
 struct condition {
@@ -121,7 +122,7 @@ struct discriminator_value {
 	metac_discriminator_value_t						value;
 };
 struct array_link {
-	struct array *									p_array;
+	//struct array *									p_array;						/*because element container p_array*/
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
 	metac_data_member_location_t					offset;
@@ -133,10 +134,14 @@ struct element_pointer {
 	void *											ptr;
 	void *											actual_ptr;							/* after generic_cast if it's a case */
 
+	metac_num_t										subrange0_count;
+
 	struct array_link								from;
 	struct array_link								to;
 };
 struct element_array {
+	metac_num_t										subrange0_count;
+
 	struct array_link								to;
 };
 struct element_hierarchy_member {
@@ -166,19 +171,19 @@ struct element {
 	};
 };
 struct array {
-	struct array_link								parent_info;						/* info about the parent array */
 	char *											instance_path;
-	metac_data_member_location_t					offset;								/* offset from the parent array */
 	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
 	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
 	struct element *								p_elements;
 };
-struct array_top {
-	struct element_pointer *						p_element_pointer;
+struct array_desc {
+	struct array									array;
 
-	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
-	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
-	struct element *								p_elements;
+	struct array_link								parent_info;						/* info about the parent array */
+	metac_data_member_location_t					offset;								/* offset from the parent array */
+};
+struct array_top {
+	struct array									array;
 
 	metac_count_t									arrays_count;
 	struct array **									pp_arrays;

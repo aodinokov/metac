@@ -227,7 +227,7 @@ typedef int (*metac_cb_array_elements_count_t)(
 	metac_type_t * region_element_type, /*pointer to memory region element and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * data);
 
 typedef int (*metac_cb_generic_cast_t)(
@@ -274,7 +274,7 @@ int metac_array_elements_single( /*this array has only 1 elements/pointer points
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * array_elements_count_cb_context);
 int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*/
 	char * annotation_key,
@@ -283,7 +283,7 @@ int metac_array_elements_1d_with_null( /*1-dimension array with Null at the end*
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * array_elements_count_cb_context);
 
 /* pre-compile type to make serialization/deletion and de-serialization/creation faster */

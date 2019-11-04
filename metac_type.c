@@ -497,12 +497,12 @@ int metac_array_elements_single(
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * array_elements_count_cb_context) {
 	metac_count_t i;
 	if (write_operation == 0) {
-		for (i = 0; i < p_array_info->subranges_count; i++)
-			p_array_info->subranges[i].count = 1;
+		if (p_subrange0_count)
+			*p_subrange0_count = 1;
 		return 0;
 	}
 	return 0;
@@ -515,13 +515,8 @@ int metac_array_elements_1d_with_null(
 	metac_type_t * type,
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * array_elements_count_cb_context) {
-
-	if (p_array_info->subranges_count != 1) {
-		msg_stderr("metac_array_elements_1d_with_null can work only with 1 dimension arrays\n");
-		return -EFAULT;
-	}
 
 	if (write_operation == 0) {
 		metac_byte_size_t j;
@@ -541,7 +536,8 @@ int metac_array_elements_1d_with_null(
 		}while(1);
 		/*found all zeroes*/
 		++i;
-		p_array_info->subranges[0].count = i;
+		if (p_subrange0_count)
+			*p_subrange0_count = i;
 		msg_stddbg("p_elements_count %d\n", (int)i);
 		return 0;
 	}

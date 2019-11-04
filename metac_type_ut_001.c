@@ -1061,7 +1061,7 @@ static int _metac_type_t_array_elements_count_funtion(
 	metac_type_t * type, /*pointer to memory region and its type */
 	void * first_element_ptr,
 	metac_type_t * first_element_type,
-	metac_array_info_t * p_array_info,
+	metac_num_t * p_subrange0_count,
 	void * array_elements_count_cb_context) {
 
 	int res = -1;
@@ -1070,26 +1070,26 @@ static int _metac_type_t_array_elements_count_funtion(
 	msg_stddbg("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s\n", write_operation, key);
 
 	if (strcmp(key, "<ptr>.<anon0>.enumeration_type_info.enumerators") == 0) {
-		p_array_info->subranges[0].count = metac_type_obj->enumeration_type_info.enumerators_count;
+		*p_subrange0_count = metac_type_obj->enumeration_type_info.enumerators_count;
 		res = 0;
 	}else  if (strcmp(key, "<ptr>.dwarf_info.at") == 0) {
-		p_array_info->subranges[0].count= metac_type_obj->dwarf_info.at_num;
+		*p_subrange0_count= metac_type_obj->dwarf_info.at_num;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.dwarf_info.child") == 0) {
-		p_array_info->subranges[0].count = metac_type_obj->dwarf_info.child_num;
+		*p_subrange0_count = metac_type_obj->dwarf_info.child_num;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.<anon0>.structure_type_info.members") == 0) {
-		p_array_info->subranges[0].count = metac_type_obj->structure_type_info.members_count;
+		*p_subrange0_count = metac_type_obj->structure_type_info.members_count;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.<anon0>.union_type_info.members") == 0) {
-		p_array_info->subranges[0].count = metac_type_obj->union_type_info.members_count;
+		*p_subrange0_count = metac_type_obj->union_type_info.members_count;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.<anon0>.array_type_info.subranges") == 0) {
-		p_array_info->subranges[0].count = metac_type_obj->array_type_info.subranges_count;
+		*p_subrange0_count = metac_type_obj->array_type_info.subranges_count;
 		res = 0;
 	} else if (strcmp(key, "<ptr>.name") == 0) {
 		msg_stddbg("%p ? %p : %s\n", first_element_ptr, metac_type_obj->name, metac_type_obj->name);
-		return metac_array_elements_1d_with_null(annotation_key, write_operation, ptr,type,first_element_ptr,first_element_type, p_array_info,array_elements_count_cb_context);
+		return metac_array_elements_1d_with_null(annotation_key, write_operation, ptr,type,first_element_ptr,first_element_type, p_subrange0_count,array_elements_count_cb_context);
 	}
 
 	msg_stddbg("callback: _metac_type_t_array_elements_count_funtion write_operation %d, key %s, output to subranges[0].count %d returns %d\n",

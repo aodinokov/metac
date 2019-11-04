@@ -1829,7 +1829,7 @@ int element_init(
 	return 0;
 }
 static struct metac_type * array_get_actual_type(
-		struct array *								p_array) {
+		struct array_desc *							p_array) {
 	struct metac_type * p_actual_type;
 	if (p_array->parent_info.p_element_hierarchy_member != NULL) {
 		p_actual_type = p_array->parent_info.p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
@@ -1840,35 +1840,35 @@ static struct metac_type * array_get_actual_type(
 	return p_actual_type;
 }
 static struct element_type * array_get_element_type(
-		struct array *								p_array) {
-	if (p_array->p_element_type != NULL)
-		return p_array->p_element_type;
+		struct array_desc *							p_array) {
+	if (p_array->array.p_element_type != NULL)
+		return p_array->array.p_element_type;
 	if (p_array->parent_info.p_element_hierarchy_member != NULL) {
-		p_array->p_element_type = p_array->parent_info.p_element_hierarchy_member->p_element_type_hierarchy_member->array.p_element_type;
+		p_array->array.p_element_type = p_array->parent_info.p_element_hierarchy_member->p_element_type_hierarchy_member->array.p_element_type;
 	} else {
-		p_array->p_element_type = p_array->parent_info.p_element->p_element_type->array.p_element_type;
+		p_array->array.p_element_type = p_array->parent_info.p_element->p_element_type->array.p_element_type;
 	}
-	return p_array->p_element_type;
+	return p_array->array.p_element_type;
 }
-int array_delete(
-		struct array **								pp_array) {
-	_delete_start_(array);
-	if ((*pp_array)->p_array_info != NULL) {
-		if ((*pp_array)->p_elements != NULL) {
+int array_desc_delete(
+		struct array_desc **						pp_array_desc) {
+	_delete_start_(array_desc);
+	if ((*pp_array_desc)->array.p_array_info != NULL) {
+		if ((*pp_array_desc)->array.p_elements != NULL) {
 			metac_count_t id, element_count;
-			element_count = metac_array_info_get_element_count((*pp_array)->p_array_info);
+			element_count = metac_array_info_get_element_count((*pp_array_desc)->array.p_array_info);
 			for (id = 0; id < element_count; ++id) {
-				element_clean(&((*pp_array)->p_elements[id]));
+				element_clean(&((*pp_array_desc)->array.p_elements[id]));
 			}
-			free((*pp_array)->p_elements);
-			(*pp_array)->p_elements = NULL;
+			free((*pp_array_desc)->array.p_elements);
+			(*pp_array_desc)->array.p_elements = NULL;
 		}
-		metac_array_info_delete(&((*pp_array)->p_array_info));
+		metac_array_info_delete(&((*pp_array_desc)->array.p_array_info));
 	}
-	_delete_finish(array);
+	_delete_finish(array_desc);
 	return 0;
 }
-struct array * array_create(
+struct array_desc * array_desc_create(
 		char *										instance_path,
 		metac_num_t									subrange0_count,
 		metac_data_member_location_t				offset,
@@ -1878,38 +1878,38 @@ struct array * array_create(
 		struct array_link *							p_parent_array_link) {
 	metac_count_t id, element_count;
 	msg_stddbg("creating array %s, default_subrange0 is %d", path, default_subrange0_count);
-	_create_(array);
+	_create_(array_desc);
 
-	p_parent_array_link->p_array = p_array;
+	//p_parent_array_link->p_array = &p_array_desc->array;
 
-	p_array->parent_info.p_array = p_parent_array;
-	p_array->parent_info.p_element = p_parent_element;
-	p_array->parent_info.p_element_hierarchy_member = p_parent_element_hierarchy_member;
+	//p_array_desc->parent_info.p_array = p_parent_array;
+	p_array_desc->parent_info.p_element = p_parent_element;
+	p_array_desc->parent_info.p_element_hierarchy_member = p_parent_element_hierarchy_member;
 
-	p_array->p_element_type = array_get_element_type(p_array);
+	p_array_desc->array.p_element_type = array_get_element_type(p_array_desc);
 
-	p_array->p_array_info = metac_array_info_create_from_type(array_get_actual_type(p_array), subrange0_count);
-	element_count = metac_array_info_get_element_count(p_array->p_array_info);
+	p_array_desc->array.p_array_info = metac_array_info_create_from_type(array_get_actual_type(p_array_desc), subrange0_count);
+	element_count = metac_array_info_get_element_count(p_array_desc->array.p_array_info);
 
-	p_array->p_elements = (struct element *)calloc(element_count, sizeof(*p_array->p_elements));
-	if (p_array->p_elements == NULL) {
+	p_array_desc->array.p_elements = (struct element *)calloc(element_count, sizeof(*p_array_desc->array.p_elements));
+	if (p_array_desc->array.p_elements == NULL) {
 		msg_stderr("wasn't able to create elements for %s\n", instance_path);
-		array_delete(&p_array);
+		array_desc_delete(&p_array_desc);
 		return NULL;
 	}
 
 	for (id = 0; id < element_count; ++id) {
 		if (element_init(
-				&p_array->p_elements[id],
+				&p_array_desc->array.p_elements[id],
 				id,
-				p_array,
-				p_array->p_element_type) != 0) {
+				&p_array_desc->array,
+				p_array_desc->array.p_element_type) != 0) {
 			msg_stderr("wasn't able to init element %d for %s\n", id, instance_path);
-			array_delete(&p_array);
+			array_desc_delete(&p_array_desc);
 			return NULL;
 		}
 	}
-	return p_array;
+	return p_array_desc;
 }
 static int array_top_builder_delete_array_task(
 		struct array_top_builder_array_task **		pp_array_top_builder_array_task) {
@@ -1964,21 +1964,95 @@ static void array_top_builder_clean(
 	}
 	array_top_container_clean(&p_array_top_builder->container, keep_data);
 }
+static int array_top_builder_process_element_array(
+		struct element_array *						p_element_array,
+		struct element_type *						p_element_type,
+		char *										global_path,
+		struct array_top_builder *					p_array_top_builder) {
+	/* need to get array length*/
+	if (p_element_type->array.array_elements_count.cb == NULL) {
+		msg_stderr("Array length callback isn't defined for %s\n", global_path);
+		return (-EFAULT);
+	}
+	if (p_element_type->pointer.array_elements_count.cb(
+			global_path,
+			0,
+			NULL/*p_element_array->actual_ptr*/,
+			p_element_type->pointer.p_element_type->p_type,
+			/*TODO: take the next params from the global context*/
+			NULL/*p_element_array->actual_ptr*/,
+			p_element_type->pointer.p_element_type->p_type,
+			&p_element_array->subrange0_count,
+			p_element_type->pointer.array_elements_count.p_data) != 0) {
+		msg_stderr("Array length failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	return 0;
+}
+static int array_init_from_element_pointer(
+		struct element_pointer *					p_element_pointer,
+		struct element_type *						p_element_type,
+		char *										instance_path,
+		struct array *								p_array) {
+	metac_count_t linear_count;
+
+	p_array->p_array_info = metac_array_info_create_from_elements_count(p_element_pointer->subrange0_count);
+	if (p_array->p_array_info == NULL) {
+		msg_stderr("metac_array_info_create_from_elements_count failed for %s\n", instance_path);
+		return (-EFAULT);
+	}
+
+	p_array->instance_path = strdup(instance_path);
+	if (p_array->instance_path == NULL) {
+		msg_stderr("strdup failed for %s\n", instance_path);
+		metac_array_info_delete(&p_array->p_array_info);
+		return (-EFAULT);
+	}
+
+	p_array->p_element_type = p_element_type->pointer.p_element_type;
+	/*TBD: init p_elements*/
+	linear_count = metac_array_info_get_element_count(p_array->p_array_info);
+	if (linear_count > 0) {
+		p_array->p_elements = (struct element *)calloc(linear_count, sizeof(*p_array->p_elements));
+		if (p_array->p_elements == NULL) {
+			msg_stderr("allocation failed for %s\n", instance_path);
+			free(p_array->instance_path);
+			metac_array_info_delete(&p_array->p_array_info);
+			return (-EFAULT);
+		}
+	}
+	return 0;
+}
 
 int array_top_init(
 		struct element_pointer *					p_element_pointer,
-		char *										global_path,
 		struct element_type *						p_element_type,
+		char *										global_path,
 		struct array_top *							p_array_top) {
 	struct array_top_builder array_top_builder;
-
 	array_top_builder_init(&array_top_builder);
 
+	if (array_init_from_element_pointer(p_element_pointer, p_element_type, global_path, &p_array_top->array) != 0) {
+		msg_stderr("array_top_builder_process_pointer failed for %s\n", global_path);
+		array_top_builder_clean(&array_top_builder, 0);
+		return (-EFAULT);
+	}
+	/*schedule array per-element processing*/
 
 
-	p_array_top->p_element_pointer = p_element_pointer;
-
-
+	if (traversing_engine_run(&array_top_builder.array_top_traversing_engine) != 0) {
+		msg_stddbg("tasks execution finished with fail for %s\n", global_path);
+		array_top_builder_clean(&array_top_builder, 0);
+		return (-EFAULT);
+	}
+	/*fill in */
+	if (/*TODO:*/1 != 0) {
+		msg_stddbg("finalization finished with fail for %s\n", global_path);
+		array_top_builder_clean(&array_top_builder, 0);
+		return (-EFAULT);
+	}
+	array_top_builder_clean(&array_top_builder, 1);
 	return 0;
 }
 int _process_pointer(
@@ -2004,8 +2078,27 @@ int _process_pointer(
 		}
 	}
 
+	/* need to get array length*/
+	if (p_element_type->pointer.array_elements_count.cb == NULL) {
+		msg_stderr("Pointer length callback isn't defined for %s\n", global_path);
+		return (-EFAULT);
+	}
+	if (p_element_type->pointer.array_elements_count.cb(
+			global_path,
+			0,
+			p_element_pointer->actual_ptr,
+			p_element_type->pointer.p_element_type->p_type,
+			/*TODO: take the next params from the global context*/
+			p_element_pointer->actual_ptr,
+			p_element_type->pointer.p_element_type->p_type,
+			&p_element_pointer->subrange0_count,
+			p_element_type->pointer.array_elements_count.p_data) != 0) {
+		msg_stderr("Pointer length callback failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+
 	/*TODO: consider changing to schedule*/
-	if (array_top_init(p_element_pointer, global_path, p_element_type, &array_top) != 0){
+	if (array_top_init(p_element_pointer, p_element_type, global_path, &array_top) != 0){
 		msg_stderr("array_top_init returned error for %s\n", global_path);
 		return (-EFAULT);
 	}
