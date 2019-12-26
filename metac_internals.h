@@ -121,34 +121,68 @@ struct metac_precompiled_type {
 struct discriminator_value {
 	metac_discriminator_value_t						value;
 };
-struct array_link {
-	//struct array *									p_array;						/*because element container p_array*/
+struct reference_location {
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
+};
+struct memory_block_reference {
+	struct reference_location						reference_location;
+
+	struct memory_block	*							p_memory_block;						/* original memory_block */
+
+	/*????depends on how we recalculate it */
+	/*reference destination and offset are initialized only if pointer was pointing to the place other than beginning of the p_memory_block*/
+	struct reference_location						reference_destination;
 	metac_data_member_location_t					offset;
+};
+struct memory_block {
+	metac_count_t									id;
+
+	struct memory_block_top * 						p_memory_block_top;
+	metac_data_member_location_t					memory_block_top_offset;
+
+	struct memory_block *							p_parent_memory_block;
+	metac_data_member_location_t					parent_memory_block_offset;
+
+	void * 											ptr;								/*real mem - not always initialized*/
+	metac_count_t									byte_size;							/* 0 - unknown?*/
+
+	metac_count_t									elements_count;
+	struct element *								p_elements;
+
+	/* answers who is pointing to this memory_block*/
+	metac_count_t									memory_block_references_count;
+	struct memory_block_reference ** 				pp_memory_block_references;
+};
+struct memory_block_top {
+	metac_count_t									id;
+	struct memory_block	*							p_memory_block;						/* block without parents */
+
+	metac_count_t									memory_blocks_count;
+	struct memory_block	**							pp_memory_blocks;
 };
 struct element_pointer {
 	metac_flag										use_cast;
-	metac_count_t									generic_cast_type_id;
+	metac_count_t									generic_cast_type_id;				/*we use callback to get this*/
 
-	void *											ptr;
+	void *											ptr;								// TODO: maybe offset is enough? another option - additional range
 	void *											actual_ptr;							/* after generic_cast if it's a case */
 
-	metac_num_t										subrange0_count;
+	metac_num_t										subrange0_count;					/*we use callback to get this*/
+	metac_array_info_t *							p_array_info;
 
-	struct array_link								from;
-	struct array_link								to;
+	struct memory_block_reference					memory_block_reference;
 };
 struct element_array {
-	metac_num_t										subrange0_count;
+	metac_num_t										subrange0_count;					/*we use callback to get this*/
+	metac_array_info_t *							p_array_info;
 
-	struct array_link								to;
+	struct memory_block	*							p_memory_block;
 };
 struct element_hierarchy_member {
-	metac_count_t									id;									/* id in the hierarchy_top */
-	struct element *								p_element;							/* element which this member is part of */
-	metac_data_member_location_t					offset;
+	metac_count_t									id;
 	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
+	struct memory_block								memory_block;						/* memory which this element is part of */
 
 	union {
 		struct element_pointer						pointer;
@@ -156,48 +190,32 @@ struct element_hierarchy_member {
 	};
 };
 struct element {
-	metac_count_t									id;									/* linear id in the array*/
-	struct array *									p_array;							/* array which this element is part of */
-	metac_data_member_location_t					offset;								/* cached: byte_size of the array element * id */
-	struct element_type *							p_element_type;						/* cached: taken from p_array*/
+	metac_count_t									id;
+	struct reference_location						local_parent;						/* parent withing one memory_block_top */
+
+	struct element_type *							p_element_type;
+	struct memory_block *							p_memory_block;						/* memory which this element is part of */
 
 	union {
 		struct element_pointer						pointer;
 		struct element_array						array;
 		struct element_hierarchy_top {
-			struct discriminator_value **			pp_discriminator_values;
+			struct discriminator_value **			pp_discriminator_values;			/*we use callback to get this*/
 			struct element_hierarchy_member **		pp_hierarchy_members;
 		}											hierarchy_top;
 	};
 };
-struct array {
-	char *											instance_path;
-	struct element_type *							p_element_type;						/* region is array of elements of the same type. p_region_element_type is a type of one element*/
-	metac_array_info_t *							p_array_info;						/* region is array of elements. p_array_info represents n-dimensions array */
-	struct element *								p_elements;
-};
-struct array_desc {
-	struct array									array;
+struct object_root {
+	void * 											ptr;
+	struct memory_block								memory_block_for_pointer;
 
-	struct array_link								parent_info;						/* info about the parent array */
-	metac_data_member_location_t					offset;								/* offset from the parent array */
-};
-struct array_top {
-	struct array									array;
+	metac_count_t									memory_block_tops_count;			/*only memory_blocks without parents*/
+	struct memory_block_top	**						pp_memory_block_tops;
 
-	metac_count_t									arrays_count;
-	struct array **									pp_arrays;
-
-	metac_count_t									pointers_count;
-	struct element_pointer **						pp_pointers;
+	/*pointers to ranges can be calculated via mem_blocks if we count all originating info*/
 };
 struct metac_runtime_object {
-	struct metac_precompiled_type *					p_metac_precompiled_type;
-
-	struct element_pointer							pointer;
-
-	metac_count_t									array_tops_count;
-	struct array_top **								array_tops;
+	struct object_root								object_root;
 };
 /*****************************************************************************/
 struct discriminator * discriminator_create(

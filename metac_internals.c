@@ -1715,6 +1715,7 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+#if 0
 struct array_top_container_array {
 	struct cds_list_head							list;
 
@@ -2105,19 +2106,104 @@ int _process_pointer(
 
 	return 0;
 }
+#endif /*0*/
+int _process_pointer(
+		/*TODO: add context to schedule everything needed
+		struct object_root_builder *				p_object_root_builder,*/
+		struct element *							p_element,
+		/*TODO: add support of
+		struct element_hierarchy_member *			p_element_hierarchy_member,*/
+		char *										global_path
+) {
+	/*TODO: support several cases pointer and pointer as a member of hierarchy */
+	assert(p_element->p_element_type->p_type->id == DW_TAG_pointer_type);
+
+	/*read pointer*/
+	p_element->pointer.ptr = ((void**)p_element->p_memory_block->ptr)[p_element->id]; /*TODO: emm... it's ok, but... add some checks */
+	/*type cast if needed*/
+	p_element->pointer.actual_ptr = p_element->pointer.ptr;
+	if (p_element->p_element_type->pointer.generic_cast.cb != NULL) {
+		int res = p_element->p_element_type->pointer.generic_cast.cb(
+				global_path,
+				0,
+				&p_element->pointer.use_cast,
+				&p_element->pointer.generic_cast_type_id,
+				&p_element->pointer.ptr,
+				&p_element->pointer.actual_ptr,
+				p_element->p_element_type->pointer.generic_cast.p_data);
+		if (res != 0) {
+			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
+			return res;
+		}
+	}
+	/* need to get array length*/
+	if (p_element->p_element_type->pointer.array_elements_count.cb == NULL) {
+		msg_stderr("Pointer length callback isn't defined for %s\n", global_path);
+		return (-EFAULT);
+	}
+	if (p_element->p_element_type->pointer.array_elements_count.cb(
+			global_path,
+			0,
+			p_element->pointer.actual_ptr,
+			p_element->p_element_type->p_type,
+			/*TODO: take the next params from the global context*/
+			/*FIXME:*/p_element->pointer.actual_ptr,
+			/*FIXME:*/p_element->p_element_type->p_type,
+			&p_element->pointer.subrange0_count,
+			p_element->p_element_type->pointer.array_elements_count.p_data) != 0) {
+		msg_stderr("Pointer length callback failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	/*init p_array_info*/
+
+	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
+
+	return 0;
+}
+int object_root_init(
+		void *										ptr,
+		struct element_type_top *					p_element_type_top,
+		struct object_root *						p_object_root) {
+	//struct object_root_builder object_root_builder;
+	//object_root_builder_init(&object_root_builder, p_object_root/*, TODO:*/);
+
+	p_object_root->ptr = ptr;
+
+	/*init memory_block_for_pointer and ptr element */
+	p_object_root->memory_block_for_pointer.ptr = &p_object_root->ptr;
+	p_object_root->memory_block_for_pointer.byte_size = sizeof(p_object_root->ptr);
+
+	p_object_root->memory_block_for_pointer.elements_count = 1;
+	p_object_root->memory_block_for_pointer.p_elements = calloc(p_object_root->memory_block_for_pointer.elements_count, sizeof(*p_object_root->memory_block_for_pointer.p_elements));
+	if (p_object_root->memory_block_for_pointer.p_elements == NULL) {
+		msg_stderr("can't allocate memory for elements\n");
+		return -ENOMEM;
+	}
+	//TODO: p_element_top->memory_block_for_pointer.p_elements[0].path = strcpy("ptr");
+	p_object_root->memory_block_for_pointer.p_elements[0].id = 0;
+	p_object_root->memory_block_for_pointer.p_elements[0].p_element_type = p_element_type_top->p_element_type_for_pointer;
+	p_object_root->memory_block_for_pointer.p_elements[0].p_memory_block = &p_object_root->memory_block_for_pointer;
+	/*TODO: ^ try to use some existing method, e.g. memory_block_init etc*/
+
+	_process_pointer(/*&object_root_builder,*/&p_object_root->memory_block_for_pointer.p_elements[0], "ptr");
+
+	return 0;
+}
 struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		) {
 	_create_(metac_runtime_object);
-	p_metac_runtime_object->p_metac_precompiled_type = p_metac_precompiled_type;
-
-	p_metac_runtime_object->pointer.ptr = ptr;
-//	p_metac_runtime_object->pointer->
-//
-//	array_top_init(p_metac_runtime_object->pointer, );
-	_process_pointer(&p_metac_runtime_object->pointer, "ptr", p_metac_precompiled_type->element_type_top.p_element_type_for_pointer);
-	return NULL;
+	if (object_root_init(
+			ptr,
+			&p_metac_precompiled_type->element_type_top,
+			&p_metac_runtime_object->object_root) != 0) {
+		msg_stderr("object_root_init failed\n");
+		/*TODO: call metac_runtime_object_free*/
+		return NULL;
+	}
+	return p_metac_runtime_object;
 }
 /*****************************************************************************/
 #define DUMPPREFIX "    "
