@@ -1734,12 +1734,14 @@ struct object_root_builder {
 };
 struct object_root_builder_memory_block_task {
 	struct traversing_engine_task					task;
-	char * 											global_path;	/*local copy - keep track of it*/
-//	struct metac_type *								p_type;
-//	struct metac_type_member_info *					p_from_member_info;
-//	struct element_type **							pp_element_type_to_store;
+	char * 											global_path;					/*local copy - keep track of it*/
+	struct object_root_container_memory_block *		p_object_root_container_memory_block;
 };
-
+/*****************************************************************************/
+static int object_root_builder_schedule_object_root_container_memory_block(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block);
 /*****************************************************************************/
 int discriminator_value_free(
 		struct discriminator_value **				pp_discriminator_value) {
@@ -1900,20 +1902,16 @@ static int object_root_builder_delete_memory_block_task(
 	_delete_finish(object_root_builder_memory_block_task);
 	return 0;
 }
-static struct element_type_top_builder_element_type_task * object_root_builder_schedule_memory_block_with_fn(
+static struct object_root_builder_memory_block_task * object_root_builder_schedule_memory_block_with_fn(
 		struct object_root_builder *				p_object_root_builder,
 		traversing_engine_task_fn_t 				fn,
-		char *										global_path/*,
-		struct metac_type *							p_type,
-		struct metac_type_member_info *				p_from_member_info,
-		struct element_type **						pp_element_type_to_store*/) {
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
 	_create_(object_root_builder_memory_block_task);
 
 	p_object_root_builder_memory_block_task->task.fn = fn;
 	p_object_root_builder_memory_block_task->global_path = strdup(global_path);
-//	p_element_type_top_builder_element_type_task->p_type = p_type;
-//	p_element_type_top_builder_element_type_task->p_from_member_info = p_from_member_info;
-//	p_element_type_top_builder_element_type_task->pp_element_type_to_store = pp_element_type_to_store;
+	p_object_root_builder_memory_block_task->p_object_root_container_memory_block = p_object_root_container_memory_block;
 	if (p_object_root_builder_memory_block_task->global_path == NULL) {
 		msg_stderr("wasn't able to duplicate global_path\n");
 		object_root_builder_delete_memory_block_task(&p_object_root_builder_memory_block_task);
@@ -1929,17 +1927,17 @@ static struct element_type_top_builder_element_type_task * object_root_builder_s
 	return p_object_root_builder_memory_block_task;
 }
 
-static int _process_pointer(
+static int object_root_builder_process_pointer(
 		struct object_root_builder *				p_object_root_builder,
-		struct element *							p_element,
+		char *										global_path,
+		struct element *							p_element
 		/*TODO: add support of
 		struct element_hierarchy_member *			p_element_hierarchy_member,*/
-		char *										global_path
 ) {
 	/*TODO: support several cases pointer and pointer as a member of hierarchy */
 	assert(p_element->p_element_type->p_type->id == DW_TAG_pointer_type);
 
-	/*read pointer*/
+	/*read pointer from memory_block*/
 	p_element->pointer.ptr = ((void**)p_element->p_memory_block->ptr)[p_element->id]; /*TODO: emm... it's ok, but... add some checks */
 	/*type cast if needed*/
 	p_element->pointer.actual_ptr = p_element->pointer.ptr;
@@ -1982,9 +1980,73 @@ static int _process_pointer(
 		return (-EFAULT);
 	}
 	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
-
-
+	/*
+	 * use
+	 * static int object_root_builder_schedule_object_root_container_memory_block(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block)
+	 *
+	 * */
 	return 0;
+}
+static int object_root_builder_process_memory_block(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct memory_block *						p_memory_block) {
+	metac_count_t i;
+	for (i = 0; i < p_memory_block->elements_count; ++i) {
+		struct metac_type * p_actual_type = metac_type_actual_type(p_memory_block->p_elements[i].p_element_type->p_type);
+		if (p_actual_type != NULL) {
+			switch (p_actual_type->id) {
+			case DW_TAG_pointer_type:
+				/*TODO: update global path with [<i>]... or do it inside the function, so we can add there generic_cast info as well*/
+				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);
+				break;
+			case DW_TAG_array_type:
+				/*TODO: _process_array(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
+				break;
+			case DW_TAG_structure_type:
+			case DW_TAG_union_type:
+				/*TODO: _process_hierarchy_top(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
+				break;
+			}
+		}
+	}
+	return 0;
+}
+static int object_root_builder_process_object_root_container_memory_block(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	assert(p_object_root_container_memory_block->p_memory_block != NULL);
+	return object_root_builder_process_memory_block(p_object_root_builder, global_path, p_object_root_container_memory_block->p_memory_block);
+}
+static int object_root_builder_process_object_root_container_memory_block_task_fn(
+	struct traversing_engine * 						p_engine,
+	struct traversing_engine_task * 				p_task,
+	int 											error_flag) {
+	struct object_root_builder * p_object_root_builder =
+		cds_list_entry(p_engine, struct object_root_builder, object_root_traversing_engine);
+	struct object_root_builder_memory_block_task * p_object_root_builder_memory_block_task =
+		cds_list_entry(p_task, struct object_root_builder_memory_block_task, task);
+	cds_list_add_tail(&p_task->list, &p_object_root_builder->object_root_executed_tasks);
+	if (error_flag != 0)return (-EALREADY);
+
+	return object_root_builder_process_object_root_container_memory_block(
+			p_object_root_builder,
+			p_object_root_builder_memory_block_task->global_path,
+			p_object_root_builder_memory_block_task->p_object_root_container_memory_block);
+}
+static int object_root_builder_schedule_object_root_container_memory_block(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	return (object_root_builder_schedule_memory_block_with_fn(
+			p_object_root_builder,
+			object_root_builder_process_object_root_container_memory_block_task_fn,
+			global_path,
+			p_object_root_container_memory_block) != NULL)?0:(-EFAULT);
 }
 static int object_root_container_init(
 		struct object_root_container *				p_object_root_container) {
@@ -2038,23 +2100,28 @@ int object_root_init(
 	p_object_root->ptr = ptr;
 
 	/*init memory_block_for_pointer and ptr element */
-	p_object_root->memory_block_for_pointer.ptr = &p_object_root->ptr;
-	p_object_root->memory_block_for_pointer.byte_size = sizeof(p_object_root->ptr);
-
-	p_object_root->memory_block_for_pointer.elements_count = 1;
-	p_object_root->memory_block_for_pointer.p_elements = calloc(p_object_root->memory_block_for_pointer.elements_count, sizeof(*p_object_root->memory_block_for_pointer.p_elements));
-	if (p_object_root->memory_block_for_pointer.p_elements == NULL) {
-		msg_stderr("can't allocate memory for elements\n");
-		return -ENOMEM;
+	if (memory_block_init(
+			&p_object_root->memory_block_for_pointer,
+			NULL,
+			NULL,
+			&p_object_root->ptr,
+			sizeof(p_object_root->ptr),
+			p_element_type_top->p_element_type_for_pointer,
+			1) != 0) {
+		msg_stderr("memory_block_init failed\n");
+		object_root_builder_clean(&object_root_builder, 0);
+		return -EFAULT;
 	}
-	//TODO: p_element_top->memory_block_for_pointer.p_elements[0].path = strcpy("ptr");
-	p_object_root->memory_block_for_pointer.p_elements[0].id = 0;
-	p_object_root->memory_block_for_pointer.p_elements[0].p_element_type = p_element_type_top->p_element_type_for_pointer;
-	p_object_root->memory_block_for_pointer.p_elements[0].p_memory_block = &p_object_root->memory_block_for_pointer;
-	/*TODO: ^ try to use some existing method, e.g. memory_block_init etc*/
-
-	_process_pointer(&object_root_builder, &p_object_root->memory_block_for_pointer.p_elements[0], "ptr");
-
+	/*process memory_block to schedule all necessary memory blocks etc*/
+	if (object_root_builder_process_memory_block(
+			&object_root_builder,
+			"ptr",
+			&p_object_root->memory_block_for_pointer) != 0) {
+		msg_stderr("object_root_builder_process_object_root_container_memory_block failed\n");
+		object_root_builder_clean(&object_root_builder, 0);
+		return -EFAULT;
+	}
+	/*process all scheduled memory blocks*/
 	if (traversing_engine_run(&object_root_builder.object_root_traversing_engine) != 0) {
 		msg_stderr("tasks execution finished with fail\n");
 		object_root_builder_clean(&object_root_builder, 0);
@@ -2065,7 +2132,6 @@ int object_root_init(
 
 	/*clean builder objects*/
 	object_root_builder_clean(&object_root_builder, 1);
-
 	return 0;
 }
 struct metac_runtime_object * metac_runtime_object_create(
@@ -2121,15 +2187,17 @@ static char* metac_type_id_to_char(metac_type_id_t id) {
 	return "check dwarf.h";
 }
 static char * std_cb_ptr_to_char(void * ptr) {
-	if (ptr == metac_array_elements_single)
+	if (ptr == metac_array_elements_single) {
 		return "metac_array_elements_single";
-	if (ptr == metac_array_elements_1d_with_null)
+	}
+	if (ptr == metac_array_elements_1d_with_null) {
 		return "metac_array_elements_1d_with_null";
+	}
 	return "";
 }
 void metac_type_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct metac_type *							p_metac_type) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%smetac_type: {\n", prefix);
@@ -2151,18 +2219,20 @@ void metac_type_dump(
 }
 void metac_type_ptr_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		char *										field,
 		struct metac_type *							p_metac_type) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%s%s%p {\n", prefix, field?field:"", p_metac_type);
-	if (p_metac_type != NULL)metac_type_dump(stream, next_prefix, p_metac_type);
+	if (p_metac_type != NULL) {
+		metac_type_dump(stream, next_prefix, p_metac_type);
+	}
 	fprintf(stream, "%s}\n", prefix);
 	NEXT_DUMPPREFIX_FREE(next_prefix);
 }
 void discriminator_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct discriminator *						p_discriminator) {
 	metac_count_t i;
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
@@ -2177,7 +2247,7 @@ void discriminator_dump(
 }
 void element_type_hierarchy_top_discriminators_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		metac_count_t								discriminators_count,
 		struct discriminator **						pp_discriminators) {
 	metac_count_t i;
@@ -2191,7 +2261,7 @@ void element_type_hierarchy_top_discriminators_dump(
 }
 void element_type_array_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type_array *					p_element_type_array) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%sarray: {\n", prefix);
@@ -2203,7 +2273,7 @@ void element_type_array_dump(
 }
 void generic_cast_type_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct generic_cast_type *					generic_cast_type) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%sgeneric_cast_type: {\n", prefix);
@@ -2214,7 +2284,7 @@ void generic_cast_type_dump(
 }
 void generic_cast_types_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		metac_count_t								types_count,
 		struct generic_cast_type *					p_generic_cast_type) {
 	metac_count_t i;
@@ -2228,7 +2298,7 @@ void generic_cast_types_dump(
 }
 void element_type_pointer_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type_pointer *				p_element_type_pointer) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%selement_type_pointer: {\n", prefix);
@@ -2246,7 +2316,7 @@ void element_type_pointer_dump(
 }
 void element_type_hierarchy_member_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type_hierarchy_member *		p_member) {
 	metac_count_t i;
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
@@ -2281,7 +2351,7 @@ void element_type_hierarchy_member_dump(
 }
 void element_type_hierarchy_top_members_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		metac_count_t								members_count,
 		struct element_type_hierarchy_member **		pp_members) {
 	metac_count_t i;
@@ -2295,7 +2365,7 @@ void element_type_hierarchy_top_members_dump(
 }
 void element_type_hierarchy_top_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
 	metac_count_t i;
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
@@ -2309,12 +2379,16 @@ void element_type_hierarchy_top_dump(
 }
 void element_type_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type *						p_element_type) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%selement_type: {\n", prefix);
-	if (p_element_type->p_type) metac_type_ptr_dump(stream, next_prefix, "p_type: ", p_element_type->p_type);
-	if (p_element_type->p_actual_type) metac_type_ptr_dump(stream, next_prefix, "p_actual_type: ", p_element_type->p_actual_type);
+	if (p_element_type->p_type) {
+		metac_type_ptr_dump(stream, next_prefix, "p_type: ", p_element_type->p_type);
+	}
+	if (p_element_type->p_actual_type) {
+		metac_type_ptr_dump(stream, next_prefix, "p_actual_type: ", p_element_type->p_actual_type);
+	}
 	fprintf(stream, "%sbyte_size: %d\n", next_prefix, p_element_type->byte_size);
 	fprintf(stream, "%sis_potentially_flexible: %d\n", next_prefix, p_element_type->is_potentially_flexible);
 	if (p_element_type->p_actual_type) {
@@ -2336,7 +2410,7 @@ void element_type_dump(
 }
 void element_type_ptr_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		char *										field,
 		struct element_type *						p_element_type) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
@@ -2347,7 +2421,7 @@ void element_type_ptr_dump(
 }
 void _element_types_array_members_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		metac_count_t								element_types_count,
 		struct element_type **						pp_element_types) {
 	metac_count_t i;
@@ -2361,12 +2435,16 @@ void _element_types_array_members_dump(
 }
 void element_type_top_dump(
 		FILE *										stream,
-		char*										prefix,
+		char *										prefix,
 		struct element_type_top*					p_element_type_top) {
 	NEXT_DUMPPREFIX_ALLOC(next_prefix, prefix);
 	fprintf(stream, "%selement_type_top: {\n", prefix);
-	if (p_element_type_top->p_pointer_type)metac_type_ptr_dump(stream, next_prefix, "p_pointer_type: ", p_element_type_top->p_pointer_type);
-	if (p_element_type_top->p_element_type_for_pointer)element_type_ptr_dump(stream, next_prefix, "p_element_type_for_pointer: ", p_element_type_top->p_element_type_for_pointer);
+	if (p_element_type_top->p_pointer_type) {
+		metac_type_ptr_dump(stream, next_prefix, "p_pointer_type: ", p_element_type_top->p_pointer_type);
+	}
+	if (p_element_type_top->p_element_type_for_pointer) {
+		element_type_ptr_dump(stream, next_prefix, "p_element_type_for_pointer: ", p_element_type_top->p_element_type_for_pointer);
+	}
 	fprintf(stream, "%selement_types_count: %d\n", next_prefix, p_element_type_top->element_types_count);
 	_element_types_array_members_dump(stream, next_prefix,  p_element_type_top->element_types_count, p_element_type_top->pp_element_types);
 	fprintf(stream, "%s}\n", prefix);
