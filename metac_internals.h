@@ -182,7 +182,7 @@ struct element_array {
 struct element_hierarchy_member {
 	metac_count_t									id;
 	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
-	struct memory_block								memory_block;						/* memory which this element is part of */
+	//struct memory_block *							p_memory_block;						/* memory which this element is part of ??? do we need it? */
 
 	union {
 		struct element_pointer						pointer;
@@ -191,7 +191,7 @@ struct element_hierarchy_member {
 };
 struct element {
 	metac_count_t									id;
-	struct reference_location						local_parent;						/* parent withing one memory_block_top */
+	struct reference_location						local_parent;						/* parent within one memory_block_top */
 
 	struct element_type *							p_element_type;
 	struct memory_block *							p_memory_block;						/* memory which this element is part of */
