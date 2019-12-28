@@ -1715,16 +1715,28 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
+struct object_root_container_pointer {
+	struct cds_list_head							list;
+
+	char *											global_path;
+	struct element *								p_element;
+	struct element_hierarchy_member *				p_element_hierarchy_member;
+};
 struct object_root_container_memory_block {
 	struct cds_list_head							list;
 
 	struct memory_block *							p_memory_block;
+
+//	/* V this data is for struct memory_block_top only (will be used only if memory_block doesn't have parents) V*/
+//	struct cds_list_head							object_root_container_pointer_list;
+//	struct cds_list_head							object_root_container_memory_block_list;
 };
 struct object_root_container {
 	struct cds_list_head							memory_block_list;
 };
 struct object_root_builder {
-	/*TODO: add params*/
+	/*TODO: add params??? eventually */
+
 	struct object_root *							p_object_root;
 
 	struct object_root_container					container;
@@ -1734,8 +1746,29 @@ struct object_root_builder {
 };
 struct object_root_builder_memory_block_task {
 	struct traversing_engine_task					task;
-	char * 											global_path;					/*local copy - keep track of it*/
+	char *											global_path;
 	struct object_root_container_memory_block *		p_object_root_container_memory_block;
+};
+/*****************************************************************************/
+struct object_root_container_memory_block_container {
+	struct cds_list_head							object_root_container_memory_block_list;
+	struct cds_list_head							object_root_container_pointer_list;
+};
+struct object_root_container_memory_block_builder {
+	//???struct object_root_builder *					p_object_root_builder;
+
+	struct object_root_container_memory_block *		p_object_root_container_memory_block;
+
+	struct object_root_container_memory_block_container
+													container;
+
+	struct traversing_engine						object_root_container_memory_block_traversing_engine;
+	struct cds_list_head							object_root_container_memory_block_executed_tasks;
+};
+struct object_root_container_memory_block_builder_memory_block_task {
+	struct traversing_engine_task					task;
+	char *											global_path;
+	//TODO: struct object_root_container_memory_block *	p_object_root_container_memory_block;
 };
 /*****************************************************************************/
 static int object_root_builder_schedule_object_root_container_memory_block(
@@ -1922,7 +1955,8 @@ struct memory_block * memory_block_create(
 }
 /*****************************************************************************/
 static void object_root_container_memory_block_clean(
-		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+		struct object_root_container_memory_block *	p_object_root_container_memory_block,
+		metac_flag									keep_data) {
 	if (p_object_root_container_memory_block->p_memory_block != NULL) {
 		memory_block_delete(&p_object_root_container_memory_block->p_memory_block);
 	}
@@ -1944,7 +1978,7 @@ static int object_root_container_memory_block_delete(
 		struct object_root_container_memory_block **pp_object_root_container_memory_block) {
 	_delete_start_(object_root_container_memory_block);
 	cds_list_del(&(*pp_object_root_container_memory_block)->list);
-	object_root_container_memory_block_clean(*pp_object_root_container_memory_block);
+	object_root_container_memory_block_clean(*pp_object_root_container_memory_block, 0);
 	_delete_finish(object_root_container_memory_block);
 	return 0;
 }
@@ -1977,6 +2011,98 @@ static struct object_root_container_memory_block * object_root_container_memory_
 		&p_object_root_container_memory_block->list,
 		&p_object_root_builder->container.memory_block_list);
 	return p_object_root_container_memory_block;
+}
+/*****************************************************************************/
+static int object_root_container_memory_block_container_init(
+		struct object_root_container_memory_block_container *
+													p_object_root_container_memory_block_container) {
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_container->object_root_container_memory_block_list);
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_container->object_root_container_pointer_list);
+	return 0;
+}
+static void object_root_container_memory_block_container_clean(
+		struct object_root_container_memory_block_container *
+													p_object_root_container_memory_block_container,
+		metac_flag									keep_data) {
+	struct object_root_container_memory_block * _memory_block, * __memory_block;
+	struct object_root_container_pointer * _pointer, * __pointer;
+	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_object_root_container_memory_block_container->object_root_container_memory_block_list, list) {
+		cds_list_del(&_memory_block->list);
+		object_root_container_memory_block_clean(_memory_block, keep_data);
+		free(_memory_block);
+	}
+	cds_list_for_each_entry_safe(_pointer, __pointer, &p_object_root_container_memory_block_container->object_root_container_memory_block_list, list) {
+		cds_list_del(&_pointer->list);
+		//TODO: array_top_container_clean_pointer(_element_type, keep_data);
+		free(_pointer);
+	}
+}
+static int object_root_container_memory_block_builder_init(
+		struct object_root_container_memory_block_builder *
+													p_object_root_container_memory_block_builder,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block
+		) {
+	p_object_root_container_memory_block_builder->p_object_root_container_memory_block = p_object_root_container_memory_block;
+
+	object_root_container_memory_block_container_init(&p_object_root_container_memory_block_builder->container);
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_builder->object_root_container_memory_block_executed_tasks);
+	traversing_engine_init(&p_object_root_container_memory_block_builder->object_root_container_memory_block_traversing_engine);
+	return 0;
+}
+static void object_root_container_memory_block_builder_clean(
+		struct object_root_container_memory_block_builder *
+													p_object_root_container_memory_block_builder,
+		metac_flag									keep_data) {
+	struct traversing_engine_task * p_task, *_p_task;
+
+	traversing_engine_clean(&p_object_root_container_memory_block_builder->object_root_container_memory_block_traversing_engine);
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_object_root_container_memory_block_builder->object_root_container_memory_block_executed_tasks, list) {
+		struct object_root_container_memory_block_builder_memory_block_task * p_object_root_container_memory_block_builder_memory_block_task = cds_list_entry(
+			p_task,
+			struct object_root_container_memory_block_builder_memory_block_task, task);
+		cds_list_del(&p_task->list);
+		//object_root_builder_delete_memory_block_task(&p_object_root_container_memory_block_builder_memory_block_task);
+	}
+	object_root_container_memory_block_container_clean(&p_object_root_container_memory_block_builder->container, keep_data);
+	p_object_root_container_memory_block_builder->p_object_root_container_memory_block = NULL;
+}
+static int object_root_container_memory_block_builder_process_object_root_container_memory_block(
+		struct object_root_container_memory_block_builder *
+													p_object_root_container_memory_block_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	struct memory_block * p_memory_block = p_object_root_container_memory_block->p_memory_block;
+
+	assert(p_memory_block != NULL);
+
+	msg_stderr("PROCESSING %s: ptr=%p byte_size=%d type=%s elements_count=%d \n",
+			global_path,
+			p_memory_block->ptr,
+			(int)p_memory_block->byte_size,
+			p_memory_block->p_elements?p_memory_block->p_elements[0].p_element_type->p_type->name:"<invalid>",
+			(int)p_memory_block->elements_count);
+
+	metac_count_t i;
+
+	for (i = 0; i < p_memory_block->elements_count; ++i) {
+		struct metac_type * p_actual_type = metac_type_actual_type(p_memory_block->p_elements[i].p_element_type->p_type);
+		if (p_actual_type != NULL) {
+			switch (p_actual_type->id) {
+			case DW_TAG_pointer_type:
+//				/*TODO: update global path with [<i>]... or do it inside the function, so we can add there generic_cast info as well*/
+//				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
+				break;
+			case DW_TAG_array_type:
+				/*TODO: _process_array(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
+				break;
+			case DW_TAG_structure_type:
+			case DW_TAG_union_type:
+				/*TODO: _process_hierarchy_top(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
+				break;
+			}
+		}
+	}
+	return 0;
 }
 /*****************************************************************************/
 static int object_root_builder_delete_memory_block_task(
@@ -2020,13 +2146,22 @@ static int object_root_builder_process_pointer(
 		/*TODO: add support of v*/
 		struct element_hierarchy_member *			p_element_hierarchy_member
 ) {
-	/*TODO: support several cases pointer and pointer as a member of hierarchy */
+	/*TODO: VVV support several cases pointer and pointer as a member of hierarchy VVV */
+	assert(p_element_hierarchy_member == NULL);
+
 	/*TODO: recalculate global_path*/
 	struct element_type * p_element_type;
 	assert(p_element->p_element_type->p_type->id == DW_TAG_pointer_type);
 
+	/*****************************************************************************/
 	/*read pointer from memory_block*/
 	p_element->pointer.ptr = ((void**)p_element->p_memory_block->ptr)[p_element->id]; /*TODO: emm... it's ok, but... add some checks */
+	/* exit normally if pointer is NULL */
+	if (p_element->pointer.ptr == NULL) {
+		return 0;
+	}
+	/*****************************************************************************/
+
 	/*type cast if needed*/
 	p_element->pointer.actual_ptr = p_element->pointer.ptr;
 	p_element_type = p_element->p_element_type->pointer.p_element_type;
@@ -2131,46 +2266,61 @@ static int object_root_builder_process_pointer(
 	}
 	return 0;
 }
-static int object_root_builder_process_memory_block(
-		struct object_root_builder *				p_object_root_builder,
-		char *										global_path,
-		struct memory_block *						p_memory_block) {
-	metac_count_t i;
-	msg_stddbg("PROCESSING %p: ptr=%p byte_size=%d\n",
-			p_memory_block,
-			p_memory_block->ptr,
-			(int)p_memory_block->byte_size);
-
-	for (i = 0; i < p_memory_block->elements_count; ++i) {
-		struct metac_type * p_actual_type = metac_type_actual_type(p_memory_block->p_elements[i].p_element_type->p_type);
-		if (p_actual_type != NULL) {
-			switch (p_actual_type->id) {
-			case DW_TAG_pointer_type:
-				/*TODO: update global path with [<i>]... or do it inside the function, so we can add there generic_cast info as well*/
-				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
-				break;
-			case DW_TAG_array_type:
-				/*TODO: _process_array(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
-				break;
-			case DW_TAG_structure_type:
-			case DW_TAG_union_type:
-				/*TODO: _process_hierarchy_top(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
-				break;
-			}
-		}
-	}
-	return 0;
-}
 static int object_root_builder_process_object_root_container_memory_block(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
 		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
-	assert(p_object_root_container_memory_block->p_memory_block != NULL);
-	/*TODO: create a logic to put all information about pointers in order of appearance to p_object_root_container_memory_block
-	 * remove object_root_builder_process_memory_block - create another function intead
-	 * and call object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
-	 * */
-	return object_root_builder_process_memory_block(p_object_root_builder, global_path, p_object_root_container_memory_block->p_memory_block);
+	struct object_root_container_pointer * _pointer;
+	struct object_root_container_memory_block_builder object_root_container_memory_block_builder;
+	struct memory_block * p_memory_block = p_object_root_container_memory_block->p_memory_block;
+
+	assert(p_memory_block != NULL);
+	msg_stderr("PROCESSING_TOP %s: ptr=%p byte_size=%d type=%s elements_count=%d \n",
+			global_path,
+			p_memory_block->ptr,
+			(int)p_memory_block->byte_size,
+			p_memory_block->p_elements?p_memory_block->p_elements[0].p_element_type->p_type->name:"<invalid>",
+			(int)p_memory_block->elements_count);
+
+	/* create a logic to put all information about pointers in order of appearance to p_object_root_container_memory_block */
+	if (object_root_container_memory_block_builder_init(
+			&object_root_container_memory_block_builder,
+			p_object_root_container_memory_block) != 0) {
+		msg_stderr("object_root_container_memory_block_builder_init failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+	/* process main p_object_root_container_memory_block */
+	if (object_root_container_memory_block_builder_process_object_root_container_memory_block(
+			&object_root_container_memory_block_builder,
+			global_path,
+			p_object_root_container_memory_block) != 0) {
+		msg_stderr("tasks object_root_container_memory_block_builder_process_object_root_container_memory_block finished with fail\n");
+		object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+		return (-EFAULT);
+	}
+	/*process all scheduled memory blocks*/
+	if (traversing_engine_run(&object_root_container_memory_block_builder.object_root_container_memory_block_traversing_engine) != 0) {
+		msg_stderr("tasks execution finished with fail\n");
+		object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+		return (-EFAULT);
+	}
+	/*process each pointer*/
+	cds_list_for_each_entry(_pointer, &object_root_container_memory_block_builder.container.object_root_container_pointer_list, list) {
+		if (object_root_builder_process_pointer(
+				p_object_root_builder,
+				_pointer->global_path,
+				_pointer->p_element,
+				_pointer->p_element_hierarchy_member) != 0) {
+			msg_stderr("object_root_builder_process_pointer finished with fail\n");
+			object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+			return (-EFAULT);
+		}
+	}
+	/*TODO:fill in */
+
+	/*clean builder objects*/
+	object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 1);
+	return 0;
 }
 static int object_root_builder_process_object_root_container_memory_block_task_fn(
 	struct traversing_engine * 						p_engine,
@@ -2209,7 +2359,7 @@ static void object_root_container_clean(
 	struct object_root_container_memory_block * _memory_block, * __memory_block;
 	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_object_root_container->memory_block_list, list) {
 		cds_list_del(&_memory_block->list);
-		//array_top_container_clean_pointer(_element_type, keep_data);
+		object_root_container_memory_block_clean(_memory_block, keep_data);
 		free(_memory_block);
 	}
 }
@@ -2263,11 +2413,11 @@ static int object_root_init(
 		return -EFAULT;
 	}
 	/*process memory_block to schedule all necessary memory blocks etc*/
-	if (object_root_builder_process_memory_block(
+	if (object_root_builder_process_pointer(
 			&object_root_builder,
 			"ptr",
-			&p_object_root->memory_block_for_pointer) != 0) {
-		/*TODO: ^ call directly object_root_builder_process_pointer(p_object_root_builder, global_path, &p_object_root->memory_block_for_pointer->p_elements[i], NULL); or similar*/
+			&p_object_root->memory_block_for_pointer.p_elements[0],
+			NULL) != 0) {
 		msg_stderr("object_root_builder_process_object_root_container_memory_block failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
 		return -EFAULT;
@@ -2289,7 +2439,7 @@ struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		) {
-	msg_stddbg("CREATING: ptr = %p\n", ptr);
+	msg_stderr("PARSING OBJECT: ptr = %p\n", ptr);
 	_create_(metac_runtime_object);
 	if (object_root_init(
 			ptr,

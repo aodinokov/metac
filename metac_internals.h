@@ -160,6 +160,9 @@ struct memory_block_top {
 
 	metac_count_t									memory_blocks_count;
 	struct memory_block	**							pp_memory_blocks;
+
+	metac_count_t									pointers_count;
+	/*TODO: p_pointers*/
 };
 struct element_pointer {
 	metac_flag										use_cast;
@@ -182,7 +185,6 @@ struct element_array {
 struct element_hierarchy_member {
 	metac_count_t									id;
 	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
-	//struct memory_block *							p_memory_block;						/* memory which this element is part of ??? do we need it? */
 
 	union {
 		struct element_pointer						pointer;
