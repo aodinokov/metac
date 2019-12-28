@@ -212,7 +212,7 @@ struct object_root {
 	metac_count_t									memory_block_tops_count;			/*only memory_blocks without parents*/
 	struct memory_block_top	**						pp_memory_block_tops;
 
-	/*pointers to ranges can be calculated via mem_blocks if we count all originating info*/
+	/*pointers to ranges can be calculated via mem_blocks if we count all originating info??? anyway we'll get the list of all pointers*/
 };
 struct metac_runtime_object {
 	struct object_root								object_root;

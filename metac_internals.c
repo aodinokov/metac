@@ -1921,14 +1921,14 @@ struct memory_block * memory_block_create(
 	return p_memory_block;
 }
 /*****************************************************************************/
-void object_root_container_memory_block_clean(
+static void object_root_container_memory_block_clean(
 		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
 	if (p_object_root_container_memory_block->p_memory_block != NULL) {
 		memory_block_delete(&p_object_root_container_memory_block->p_memory_block);
 	}
 	/*TODO: cleanup links list */
 }
-int object_root_container_memory_block_init(
+static int object_root_container_memory_block_init(
 		struct object_root_container_memory_block *	p_object_root_container_memory_block,
 		struct memory_block *						p_memory_block) {
 	assert(p_object_root_container_memory_block);
@@ -1940,7 +1940,7 @@ int object_root_container_memory_block_init(
 	p_object_root_container_memory_block->p_memory_block = p_memory_block;
 	return 0;
 }
-int object_root_container_memory_block_delete(
+static int object_root_container_memory_block_delete(
 		struct object_root_container_memory_block **pp_object_root_container_memory_block) {
 	_delete_start_(object_root_container_memory_block);
 	cds_list_del(&(*pp_object_root_container_memory_block)->list);
@@ -1948,7 +1948,7 @@ int object_root_container_memory_block_delete(
 	_delete_finish(object_root_container_memory_block);
 	return 0;
 }
-struct object_root_container_memory_block * object_root_container_memory_block_create(
+static struct object_root_container_memory_block * object_root_container_memory_block_create(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
 		struct element *							p_local_parent_element,
@@ -2136,6 +2136,11 @@ static int object_root_builder_process_memory_block(
 		char *										global_path,
 		struct memory_block *						p_memory_block) {
 	metac_count_t i;
+	msg_stddbg("PROCESSING %p: ptr=%p byte_size=%d\n",
+			p_memory_block,
+			p_memory_block->ptr,
+			(int)p_memory_block->byte_size);
+
 	for (i = 0; i < p_memory_block->elements_count; ++i) {
 		struct metac_type * p_actual_type = metac_type_actual_type(p_memory_block->p_elements[i].p_element_type->p_type);
 		if (p_actual_type != NULL) {
@@ -2161,6 +2166,10 @@ static int object_root_builder_process_object_root_container_memory_block(
 		char *										global_path,
 		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
 	assert(p_object_root_container_memory_block->p_memory_block != NULL);
+	/*TODO: create a logic to put all information about pointers in order of appearance to p_object_root_container_memory_block
+	 * remove object_root_builder_process_memory_block - create another function intead
+	 * and call object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
+	 * */
 	return object_root_builder_process_memory_block(p_object_root_builder, global_path, p_object_root_container_memory_block->p_memory_block);
 }
 static int object_root_builder_process_object_root_container_memory_block_task_fn(
@@ -2231,7 +2240,7 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
-int object_root_init(
+static int object_root_init(
 		void *										ptr,
 		struct element_type_top *					p_element_type_top,
 		struct object_root *						p_object_root) {
@@ -2258,6 +2267,7 @@ int object_root_init(
 			&object_root_builder,
 			"ptr",
 			&p_object_root->memory_block_for_pointer) != 0) {
+		/*TODO: ^ call directly object_root_builder_process_pointer(p_object_root_builder, global_path, &p_object_root->memory_block_for_pointer->p_elements[i], NULL); or similar*/
 		msg_stderr("object_root_builder_process_object_root_container_memory_block failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
 		return -EFAULT;
@@ -2279,6 +2289,7 @@ struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		) {
+	msg_stddbg("CREATING: ptr = %p\n", ptr);
 	_create_(metac_runtime_object);
 	if (object_root_init(
 			ptr,
