@@ -1727,12 +1727,40 @@ struct object_root_container_memory_block {
 
 	struct memory_block *							p_memory_block;
 
-//	/* V this data is for struct memory_block_top only (will be used only if memory_block doesn't have parents) V*/
-//	struct cds_list_head							object_root_container_pointer_list;
-//	struct cds_list_head							object_root_container_memory_block_list;
+	//struct cds_list_head							references;
 };
-struct object_root_container {
+struct object_root_container_memory_block_top {
+	struct cds_list_head							list;
+
+	struct object_root_container_memory_block *		p_object_root_container_memory_block;
+
+	struct cds_list_head							object_root_container_memory_block_list;
+	struct cds_list_head							object_root_container_pointer_list;
+};
+/*****************************************************************************/
+struct memory_block_top_container {
+	/* contains object_root_container_memory_block */
 	struct cds_list_head							memory_block_list;
+	/* contains object_root_container_pointer */
+	struct cds_list_head							pointer_list;
+};
+struct memory_block_top_builder {
+	struct object_root_container_memory_block_top *	p_object_root_container_memory_block_top;
+
+	struct memory_block_top_container				container;
+
+	struct traversing_engine						memory_block_top_traversing_engine;
+	struct cds_list_head							memory_block_top_executed_tasks;
+};
+struct memory_block_top_builder_memory_block_task {
+	struct traversing_engine_task					task;
+	char *											global_path;
+	//TODO: struct object_root_container_memory_block *	p_object_root_container_memory_block;
+};
+/*****************************************************************************/
+struct object_root_container {
+	/* contains object_root_container_memory_block_top */
+	struct cds_list_head							memory_block_top_list;
 };
 struct object_root_builder {
 	/*TODO: add params??? eventually */
@@ -1744,37 +1772,17 @@ struct object_root_builder {
 	struct traversing_engine						object_root_traversing_engine;
 	struct cds_list_head							object_root_executed_tasks;
 };
-struct object_root_builder_memory_block_task {
+struct object_root_builder_memory_block_top_task {
 	struct traversing_engine_task					task;
 	char *											global_path;
-	struct object_root_container_memory_block *		p_object_root_container_memory_block;
+	struct object_root_container_memory_block_top *	p_object_root_container_memory_block_top;
 };
 /*****************************************************************************/
-struct object_root_container_memory_block_container {
-	struct cds_list_head							object_root_container_memory_block_list;
-	struct cds_list_head							object_root_container_pointer_list;
-};
-struct object_root_container_memory_block_builder {
-	//???struct object_root_builder *					p_object_root_builder;
-
-	struct object_root_container_memory_block *		p_object_root_container_memory_block;
-
-	struct object_root_container_memory_block_container
-													container;
-
-	struct traversing_engine						object_root_container_memory_block_traversing_engine;
-	struct cds_list_head							object_root_container_memory_block_executed_tasks;
-};
-struct object_root_container_memory_block_builder_memory_block_task {
-	struct traversing_engine_task					task;
-	char *											global_path;
-	//TODO: struct object_root_container_memory_block *	p_object_root_container_memory_block;
-};
-/*****************************************************************************/
-static int object_root_builder_schedule_object_root_container_memory_block(
+static int object_root_builder_schedule_object_root_container_memory_block_top(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block);
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top);
 /*****************************************************************************/
 int discriminator_value_free(
 		struct discriminator_value **				pp_discriminator_value) {
@@ -1921,7 +1929,6 @@ int memory_block_init(
 			return -EFAULT;
 		}
 	}
-
 	return 0;
 }
 int memory_block_delete(
@@ -1954,13 +1961,17 @@ struct memory_block * memory_block_create(
 	return p_memory_block;
 }
 /*****************************************************************************/
+/*TODO:*/
+//object_root_container_pointer_delete(&_memory_block, keep_data);
+//object_root_container_pointer_create();
+/*****************************************************************************/
 static void object_root_container_memory_block_clean(
 		struct object_root_container_memory_block *	p_object_root_container_memory_block,
 		metac_flag									keep_data) {
 	if (p_object_root_container_memory_block->p_memory_block != NULL) {
 		memory_block_delete(&p_object_root_container_memory_block->p_memory_block);
 	}
-	/*TODO: cleanup links list */
+	/*TODO: cleanup references list: */
 }
 static int object_root_container_memory_block_init(
 		struct object_root_container_memory_block *	p_object_root_container_memory_block,
@@ -1970,21 +1981,19 @@ static int object_root_container_memory_block_init(
 		msg_stderr("p_memory_block is invalid\n");
 		return -EINVAL;
 	}
-	/*TODO: init links list */
 	p_object_root_container_memory_block->p_memory_block = p_memory_block;
+	/*TODO: init references list */
 	return 0;
 }
 static int object_root_container_memory_block_delete(
-		struct object_root_container_memory_block **pp_object_root_container_memory_block) {
+		struct object_root_container_memory_block **pp_object_root_container_memory_block,
+		metac_flag									keep_data) {
 	_delete_start_(object_root_container_memory_block);
-	cds_list_del(&(*pp_object_root_container_memory_block)->list);
-	object_root_container_memory_block_clean(*pp_object_root_container_memory_block, 0);
+	object_root_container_memory_block_clean(*pp_object_root_container_memory_block, keep_data);
 	_delete_finish(object_root_container_memory_block);
 	return 0;
 }
 static struct object_root_container_memory_block * object_root_container_memory_block_create(
-		struct object_root_builder *				p_object_root_builder,
-		char *										global_path,
 		struct element *							p_local_parent_element,
 		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
 		void *										ptr,
@@ -1995,80 +2004,141 @@ static struct object_root_container_memory_block * object_root_container_memory_
 	_create_(object_root_container_memory_block);
 	if (object_root_container_memory_block_init(
 			p_object_root_container_memory_block,
-			memory_block_create(
+				memory_block_create(
+						p_local_parent_element,
+						p_local_parent_element_hierarchy_member,
+						ptr,
+						byte_size,
+						p_element_type,
+						elements_count)) != 0) {
+		object_root_container_memory_block_delete(&p_object_root_container_memory_block, 0);
+		msg_stderr("object_root_container_memory_block_init failed\n");
+		return NULL;
+	}
+	return p_object_root_container_memory_block;
+}
+/*****************************************************************************/
+static void object_root_container_memory_block_top_clean(
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top,
+		metac_flag									keep_data) {
+	struct object_root_container_memory_block * _memory_block, *__memory_block;
+	struct object_root_container_pointer * _pointer, * __pointer;
+	if (p_object_root_container_memory_block_top->p_object_root_container_memory_block != NULL) {
+		object_root_container_memory_block_delete(&p_object_root_container_memory_block_top->p_object_root_container_memory_block, keep_data);
+	}
+
+	/*this part will be used only when p_object_root_container_memory_block_top already filled-in (see object_root_builder_process_object_root_container_memory_block_top) */
+	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_object_root_container_memory_block_top->object_root_container_memory_block_list, list) {
+		cds_list_del(&_memory_block->list);
+		object_root_container_memory_block_delete(&_memory_block, keep_data);
+	}
+	cds_list_for_each_entry_safe(_pointer, __pointer, &p_object_root_container_memory_block_top->object_root_container_pointer_list, list) {
+		cds_list_del(&_pointer->list);
+		/*TODO: cleanup: */
+		//object_root_container_pointer_delete(&_memory_block, keep_data);
+	}
+}
+static int object_root_container_memory_block_top_init(
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	assert(p_object_root_container_memory_block_top);
+	if (p_object_root_container_memory_block == NULL) {
+		msg_stderr("p_object_root_container_memory_block is invalid\n");
+		return -EINVAL;
+	}
+	p_object_root_container_memory_block_top->p_object_root_container_memory_block = p_object_root_container_memory_block;
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_top->object_root_container_pointer_list);
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_top->object_root_container_memory_block_list);
+
+	return 0;
+}
+static int object_root_container_memory_block_top_delete(
+		struct object_root_container_memory_block_top **
+													pp_object_root_container_memory_block_top) {
+	_delete_start_(object_root_container_memory_block_top);
+	object_root_container_memory_block_top_clean(*pp_object_root_container_memory_block_top, 0);
+	_delete_finish(object_root_container_memory_block_top);
+	return 0;
+}
+static struct object_root_container_memory_block_top * object_root_container_memory_block_top_create(
+		struct element *							p_local_parent_element,
+		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
+		void *										ptr,
+		metac_count_t								byte_size,
+		struct element_type *						p_element_type,
+		metac_count_t								elements_count
+		) {
+	_create_(object_root_container_memory_block_top);
+	if (object_root_container_memory_block_top_init(
+			p_object_root_container_memory_block_top,
+			object_root_container_memory_block_create(
 					p_local_parent_element,
 					p_local_parent_element_hierarchy_member,
 					ptr,
 					byte_size,
 					p_element_type,
 					elements_count)) != 0) {
-		object_root_container_memory_block_delete(&p_object_root_container_memory_block);
-		msg_stderr("object_root_container_memory_block_init failed\n");
+		object_root_container_memory_block_top_delete(&p_object_root_container_memory_block_top);
+		msg_stderr("object_root_container_memory_block_top_init failed\n");
 		return NULL;
 	}
-	/* add to the list */
-	cds_list_add_tail(
-		&p_object_root_container_memory_block->list,
-		&p_object_root_builder->container.memory_block_list);
-	return p_object_root_container_memory_block;
+	return p_object_root_container_memory_block_top;
 }
 /*****************************************************************************/
-static int object_root_container_memory_block_container_init(
-		struct object_root_container_memory_block_container *
-													p_object_root_container_memory_block_container) {
-	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_container->object_root_container_memory_block_list);
-	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_container->object_root_container_pointer_list);
+static int memory_block_top_container_init(
+		struct memory_block_top_container *			p_memory_block_top_container) {
+	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->memory_block_list);
+	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->pointer_list);
 	return 0;
 }
-static void object_root_container_memory_block_container_clean(
-		struct object_root_container_memory_block_container *
-													p_object_root_container_memory_block_container,
+static void memory_block_top_container_clean(
+		struct memory_block_top_container *			p_memory_block_top_container,
 		metac_flag									keep_data) {
 	struct object_root_container_memory_block * _memory_block, * __memory_block;
 	struct object_root_container_pointer * _pointer, * __pointer;
-	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_object_root_container_memory_block_container->object_root_container_memory_block_list, list) {
+	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_memory_block_top_container->memory_block_list, list) {
 		cds_list_del(&_memory_block->list);
 		object_root_container_memory_block_clean(_memory_block, keep_data);
 		free(_memory_block);
 	}
-	cds_list_for_each_entry_safe(_pointer, __pointer, &p_object_root_container_memory_block_container->object_root_container_memory_block_list, list) {
+	cds_list_for_each_entry_safe(_pointer, __pointer, &p_memory_block_top_container->pointer_list, list) {
 		cds_list_del(&_pointer->list);
 		//TODO: array_top_container_clean_pointer(_element_type, keep_data);
 		free(_pointer);
 	}
 }
-static int object_root_container_memory_block_builder_init(
-		struct object_root_container_memory_block_builder *
-													p_object_root_container_memory_block_builder,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block
+static int memory_block_top_builder_init(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top
 		) {
-	p_object_root_container_memory_block_builder->p_object_root_container_memory_block = p_object_root_container_memory_block;
+	p_memory_block_top_builder->p_object_root_container_memory_block_top = p_object_root_container_memory_block_top;
 
-	object_root_container_memory_block_container_init(&p_object_root_container_memory_block_builder->container);
-	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_builder->object_root_container_memory_block_executed_tasks);
-	traversing_engine_init(&p_object_root_container_memory_block_builder->object_root_container_memory_block_traversing_engine);
+	memory_block_top_container_init(&p_memory_block_top_builder->container);
+	CDS_INIT_LIST_HEAD(&p_memory_block_top_builder->memory_block_top_executed_tasks);
+	traversing_engine_init(&p_memory_block_top_builder->memory_block_top_traversing_engine);
 	return 0;
 }
-static void object_root_container_memory_block_builder_clean(
-		struct object_root_container_memory_block_builder *
-													p_object_root_container_memory_block_builder,
+static void memory_block_top_builder_clean(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
 		metac_flag									keep_data) {
 	struct traversing_engine_task * p_task, *_p_task;
 
-	traversing_engine_clean(&p_object_root_container_memory_block_builder->object_root_container_memory_block_traversing_engine);
-	cds_list_for_each_entry_safe(p_task, _p_task, &p_object_root_container_memory_block_builder->object_root_container_memory_block_executed_tasks, list) {
-		struct object_root_container_memory_block_builder_memory_block_task * p_object_root_container_memory_block_builder_memory_block_task = cds_list_entry(
+	traversing_engine_clean(&p_memory_block_top_builder->memory_block_top_traversing_engine);
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_memory_block_top_builder->memory_block_top_executed_tasks, list) {
+		struct memory_block_top_builder_memory_block_task * p_memory_block_top_builder_memory_block_task = cds_list_entry(
 			p_task,
-			struct object_root_container_memory_block_builder_memory_block_task, task);
+			struct memory_block_top_builder_memory_block_task, task);
 		cds_list_del(&p_task->list);
-		//object_root_builder_delete_memory_block_task(&p_object_root_container_memory_block_builder_memory_block_task);
+		//memory_block_top_builder_delete_memory_block_task(&p_memory_block_top_builder_memory_block_task);
 	}
-	object_root_container_memory_block_container_clean(&p_object_root_container_memory_block_builder->container, keep_data);
-	p_object_root_container_memory_block_builder->p_object_root_container_memory_block = NULL;
+	memory_block_top_container_clean(&p_memory_block_top_builder->container, keep_data);
+	p_memory_block_top_builder->p_object_root_container_memory_block_top = NULL;
 }
-static int object_root_container_memory_block_builder_process_object_root_container_memory_block(
-		struct object_root_container_memory_block_builder *
-													p_object_root_container_memory_block_builder,
+static int memory_block_top_builder_process_object_root_container_memory_block(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
 		char *										global_path,
 		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
 	struct memory_block * p_memory_block = p_object_root_container_memory_block->p_memory_block;
@@ -2105,39 +2175,39 @@ static int object_root_container_memory_block_builder_process_object_root_contai
 	return 0;
 }
 /*****************************************************************************/
-static int object_root_builder_delete_memory_block_task(
-		struct object_root_builder_memory_block_task **		pp_object_root_builder_memory_block_task) {
-	_delete_start_(object_root_builder_memory_block_task);
-	if ((*pp_object_root_builder_memory_block_task)->global_path) {
-		free((*pp_object_root_builder_memory_block_task)->global_path);
-		(*pp_object_root_builder_memory_block_task)->global_path = NULL;
+static int object_root_builder_delete_memory_block_top_task(
+		struct object_root_builder_memory_block_top_task **		pp_object_root_builder_memory_block_top_task) {
+	_delete_start_(object_root_builder_memory_block_top_task);
+	if ((*pp_object_root_builder_memory_block_top_task)->global_path) {
+		free((*pp_object_root_builder_memory_block_top_task)->global_path);
+		(*pp_object_root_builder_memory_block_top_task)->global_path = NULL;
 	}
-	_delete_finish(object_root_builder_memory_block_task);
+	_delete_finish(object_root_builder_memory_block_top_task);
 	return 0;
 }
-static struct object_root_builder_memory_block_task * object_root_builder_schedule_memory_block_with_fn(
+static struct object_root_builder_memory_block_top_task * object_root_builder_schedule_memory_block_top_with_fn(
 		struct object_root_builder *				p_object_root_builder,
 		traversing_engine_task_fn_t 				fn,
 		char *										global_path,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
-	_create_(object_root_builder_memory_block_task);
+		struct object_root_container_memory_block_top *	p_object_root_container_memory_block_top) {
+	_create_(object_root_builder_memory_block_top_task);
 
-	p_object_root_builder_memory_block_task->task.fn = fn;
-	p_object_root_builder_memory_block_task->global_path = strdup(global_path);
-	p_object_root_builder_memory_block_task->p_object_root_container_memory_block = p_object_root_container_memory_block;
-	if (p_object_root_builder_memory_block_task->global_path == NULL) {
+	p_object_root_builder_memory_block_top_task->task.fn = fn;
+	p_object_root_builder_memory_block_top_task->global_path = strdup(global_path);
+	p_object_root_builder_memory_block_top_task->p_object_root_container_memory_block_top = p_object_root_container_memory_block_top;
+	if (p_object_root_builder_memory_block_top_task->global_path == NULL) {
 		msg_stderr("wasn't able to duplicate global_path\n");
-		object_root_builder_delete_memory_block_task(&p_object_root_builder_memory_block_task);
+		object_root_builder_delete_memory_block_top_task(&p_object_root_builder_memory_block_top_task);
 		return NULL;
 	}
 	if (add_traversing_task_to_tail(
 		&p_object_root_builder->object_root_traversing_engine,
-		&p_object_root_builder_memory_block_task->task) != 0) {
+		&p_object_root_builder_memory_block_top_task->task) != 0) {
 		msg_stderr("wasn't able to schedule task\n");
-		object_root_builder_delete_memory_block_task(&p_object_root_builder_memory_block_task);
+		object_root_builder_delete_memory_block_top_task(&p_object_root_builder_memory_block_top_task);
 		return NULL;
 	}
-	return p_object_root_builder_memory_block_task;
+	return p_object_root_builder_memory_block_top_task;
 }
 static int object_root_builder_process_pointer(
 		struct object_root_builder *				p_object_root_builder,
@@ -2219,60 +2289,65 @@ static int object_root_builder_process_pointer(
 	/*try to find the existing block first*/
 	{
 		/*TODO: move to a separate function */
-		struct object_root_container_memory_block * p_object_root_container_memory_block;
+		struct object_root_container_memory_block_top * p_object_root_container_memory_block_top;
 		metac_count_t elements_count = metac_array_info_get_element_count(p_element->pointer.p_array_info);
 		metac_count_t byte_size = p_element_type->byte_size * elements_count;
 
 		cds_list_for_each_entry(
-			p_object_root_container_memory_block,
-			&p_object_root_builder->container.memory_block_list,
+			p_object_root_container_memory_block_top,
+			&p_object_root_builder->container.memory_block_top_list,
 			list) {
-
+			struct memory_block * p_memory_block = p_object_root_container_memory_block_top->p_object_root_container_memory_block->p_memory_block;
 			msg_stddbg("COMPARING WITH %p\n",
 					p_object_root_container_memory_block->p_memory_block);
 
-			if (	p_object_root_container_memory_block->p_memory_block->ptr == p_element->pointer.actual_ptr &&
-					p_object_root_container_memory_block->p_memory_block->byte_size == byte_size &&
-					p_object_root_container_memory_block->p_memory_block->elements_count == elements_count) {
-				msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block);
+			if (	p_memory_block->ptr == p_element->pointer.actual_ptr &&
+					p_memory_block->byte_size == byte_size &&
+					p_memory_block->elements_count == elements_count) {
+				msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block_top);
 
-				p_element->pointer.memory_block_reference.p_memory_block = p_object_root_container_memory_block->p_memory_block;
+				p_element->pointer.memory_block_reference.p_memory_block = p_memory_block;
 				/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
 				return 0;
 			}
 		}
-		p_object_root_container_memory_block = object_root_container_memory_block_create(
-				p_object_root_builder,
-				global_path,
+		p_object_root_container_memory_block_top = object_root_container_memory_block_top_create(
 				NULL,
 				NULL,
 				p_element->pointer.actual_ptr,
 				byte_size,
 				p_element_type,
 				elements_count);
-		if (p_object_root_container_memory_block == NULL) {
-			msg_stderr("object_root_container_memory_block_create failed for %s\n", global_path);
+		if (p_object_root_container_memory_block_top == NULL) {
+			msg_stderr("object_root_container_memory_block_top_create failed for %s\n", global_path);
 			return (-EFAULT);
 		}
-		if (object_root_builder_schedule_object_root_container_memory_block(
+
+		if (object_root_builder_schedule_object_root_container_memory_block_top(
 				p_object_root_builder,
 				global_path,
-				p_object_root_container_memory_block) != 0) {
-			msg_stderr("object_root_builder_schedule_object_root_container_memory_block failed for %s\n", global_path);
-			object_root_container_memory_block_delete(&p_object_root_container_memory_block);
+				p_object_root_container_memory_block_top) != 0) {
+			msg_stderr("object_root_builder_schedule_object_root_container_memory_block_top failed for %s\n", global_path);
+			object_root_container_memory_block_top_delete(&p_object_root_container_memory_block_top);
 			return (-EFAULT);
 		}
 		/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
+
+		/* add to the list - after this point container will take care of deleting this item */
+		cds_list_add_tail(
+			&p_object_root_container_memory_block_top->list,
+			&p_object_root_builder->container.memory_block_top_list);
 	}
 	return 0;
 }
-static int object_root_builder_process_object_root_container_memory_block(
+static int object_root_builder_process_object_root_container_memory_block_top(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top) {
 	struct object_root_container_pointer * _pointer;
-	struct object_root_container_memory_block_builder object_root_container_memory_block_builder;
-	struct memory_block * p_memory_block = p_object_root_container_memory_block->p_memory_block;
+	struct memory_block_top_builder memory_block_top_builder;
+	struct memory_block * p_memory_block = p_object_root_container_memory_block_top->p_object_root_container_memory_block->p_memory_block;
 
 	assert(p_memory_block != NULL);
 	msg_stderr("PROCESSING_TOP %s: ptr=%p byte_size=%d type=%s elements_count=%d \n",
@@ -2283,43 +2358,43 @@ static int object_root_builder_process_object_root_container_memory_block(
 			(int)p_memory_block->elements_count);
 
 	/* create a logic to put all information about pointers in order of appearance to p_object_root_container_memory_block */
-	if (object_root_container_memory_block_builder_init(
-			&object_root_container_memory_block_builder,
-			p_object_root_container_memory_block) != 0) {
-		msg_stderr("object_root_container_memory_block_builder_init failed for %s\n", global_path);
+	if (memory_block_top_builder_init(
+			&memory_block_top_builder,
+			p_object_root_container_memory_block_top) != 0) {
+		msg_stderr("memory_block_top_builder_init failed for %s\n", global_path);
 		return (-EFAULT);
 	}
 	/* process main p_object_root_container_memory_block */
-	if (object_root_container_memory_block_builder_process_object_root_container_memory_block(
-			&object_root_container_memory_block_builder,
+	if (memory_block_top_builder_process_object_root_container_memory_block(
+			&memory_block_top_builder,
 			global_path,
-			p_object_root_container_memory_block) != 0) {
+			p_object_root_container_memory_block_top->p_object_root_container_memory_block) != 0) {
 		msg_stderr("tasks object_root_container_memory_block_builder_process_object_root_container_memory_block finished with fail\n");
-		object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+		memory_block_top_builder_clean(&memory_block_top_builder, 0);
 		return (-EFAULT);
 	}
 	/*process all scheduled memory blocks*/
-	if (traversing_engine_run(&object_root_container_memory_block_builder.object_root_container_memory_block_traversing_engine) != 0) {
+	if (traversing_engine_run(&memory_block_top_builder.memory_block_top_traversing_engine) != 0) {
 		msg_stderr("tasks execution finished with fail\n");
-		object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+		memory_block_top_builder_clean(&memory_block_top_builder, 0);
 		return (-EFAULT);
 	}
 	/*process each pointer*/
-	cds_list_for_each_entry(_pointer, &object_root_container_memory_block_builder.container.object_root_container_pointer_list, list) {
+	cds_list_for_each_entry(_pointer, &memory_block_top_builder.container.pointer_list, list) {
 		if (object_root_builder_process_pointer(
 				p_object_root_builder,
 				_pointer->global_path,
 				_pointer->p_element,
 				_pointer->p_element_hierarchy_member) != 0) {
 			msg_stderr("object_root_builder_process_pointer finished with fail\n");
-			object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 0);
+			memory_block_top_builder_clean(&memory_block_top_builder, 0);
 			return (-EFAULT);
 		}
 	}
 	/*TODO:fill in */
 
 	/*clean builder objects*/
-	object_root_container_memory_block_builder_clean(&object_root_container_memory_block_builder, 1);
+	memory_block_top_builder_clean(&memory_block_top_builder, 1);
 	return 0;
 }
 static int object_root_builder_process_object_root_container_memory_block_task_fn(
@@ -2328,39 +2403,40 @@ static int object_root_builder_process_object_root_container_memory_block_task_f
 	int 											error_flag) {
 	struct object_root_builder * p_object_root_builder =
 		cds_list_entry(p_engine, struct object_root_builder, object_root_traversing_engine);
-	struct object_root_builder_memory_block_task * p_object_root_builder_memory_block_task =
-		cds_list_entry(p_task, struct object_root_builder_memory_block_task, task);
+	struct object_root_builder_memory_block_top_task * p_object_root_builder_memory_block_top_task =
+		cds_list_entry(p_task, struct object_root_builder_memory_block_top_task, task);
 	cds_list_add_tail(&p_task->list, &p_object_root_builder->object_root_executed_tasks);
 	if (error_flag != 0)return (-EALREADY);
 
-	return object_root_builder_process_object_root_container_memory_block(
+	return object_root_builder_process_object_root_container_memory_block_top(
 			p_object_root_builder,
-			p_object_root_builder_memory_block_task->global_path,
-			p_object_root_builder_memory_block_task->p_object_root_container_memory_block);
+			p_object_root_builder_memory_block_top_task->global_path,
+			p_object_root_builder_memory_block_top_task->p_object_root_container_memory_block_top);
 }
-static int object_root_builder_schedule_object_root_container_memory_block(
+static int object_root_builder_schedule_object_root_container_memory_block_top(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
-	return (object_root_builder_schedule_memory_block_with_fn(
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top) {
+	return (object_root_builder_schedule_memory_block_top_with_fn(
 			p_object_root_builder,
 			object_root_builder_process_object_root_container_memory_block_task_fn,
 			global_path,
-			p_object_root_container_memory_block) != NULL)?0:(-EFAULT);
+			p_object_root_container_memory_block_top) != NULL)?0:(-EFAULT);
 }
 static int object_root_container_init(
 		struct object_root_container *				p_object_root_container) {
-	CDS_INIT_LIST_HEAD(&p_object_root_container->memory_block_list);
+	CDS_INIT_LIST_HEAD(&p_object_root_container->memory_block_top_list);
 	return 0;
 }
 static void object_root_container_clean(
 		struct object_root_container *				p_object_root_container,
 		metac_flag									keep_data) {
-	struct object_root_container_memory_block * _memory_block, * __memory_block;
-	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_object_root_container->memory_block_list, list) {
-		cds_list_del(&_memory_block->list);
-		object_root_container_memory_block_clean(_memory_block, keep_data);
-		free(_memory_block);
+	struct object_root_container_memory_block_top * _memory_block_top, * __memory_block_top;
+	cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_container->memory_block_top_list, list) {
+		cds_list_del(&_memory_block_top->list);
+		object_root_container_memory_block_top_clean(_memory_block_top, keep_data);
+		free(_memory_block_top);
 	}
 }
 static int object_root_builder_init(
@@ -2381,11 +2457,11 @@ static void object_root_builder_clean(
 
 	traversing_engine_clean(&p_object_root_builder->object_root_traversing_engine);
 	cds_list_for_each_entry_safe(p_task, _p_task, &p_object_root_builder->object_root_executed_tasks, list) {
-		struct object_root_builder_memory_block_task * p_object_root_builder_memory_block_task = cds_list_entry(
+		struct object_root_builder_memory_block_top_task * p_object_root_builder_memory_block_top_task = cds_list_entry(
 			p_task,
-			struct object_root_builder_memory_block_task, task);
+			struct object_root_builder_memory_block_top_task, task);
 		cds_list_del(&p_task->list);
-		object_root_builder_delete_memory_block_task(&p_object_root_builder_memory_block_task);
+		object_root_builder_delete_memory_block_top_task(&p_object_root_builder_memory_block_top_task);
 	}
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
