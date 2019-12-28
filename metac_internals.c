@@ -1792,7 +1792,7 @@ int element_hierarchy_top_init(
 	if (p_element_type_hierarchy_top->members_count > 0) {
 		p_element_hierarchy_top->pp_hierarchy_members =
 				(struct element_hierarchy_member **)calloc(p_element_type_hierarchy_top->members_count, sizeof(*p_element_hierarchy_top->pp_hierarchy_members));
-		if (p_element_hierarchy_top->pp_hierarchy_members != NULL) {
+		if (p_element_hierarchy_top->pp_hierarchy_members == NULL) {
 			msg_stderr("wasn't able to get memory for pp_hierarchy_members\n");
 			element_hierarchy_top_clean(p_element_hierarchy_top, p_element_type_hierarchy_top);
 			return (-EFAULT);
@@ -1826,7 +1826,7 @@ int element_init(
 		if (element_hierarchy_top_init(
 				&p_element->hierarchy_top,
 				&p_element_type->hierarchy_top) != 0) {
-			msg_stderr("wasn't able to init hierarchy_top\n");
+			msg_stderr("wasn't able to init hierarchy_top: %s\n", p_element_type->p_type->name);
 			return (-EFAULT);
 		}
 	}
@@ -1883,13 +1883,100 @@ int memory_block_init(
 				p_local_parent_element_hierarchy_member,
 				p_element_type,
 				p_memory_block) != 0) {
-			msg_stderr("element_init failed\n");
+			msg_stderr("element_init failed %d\n", (int)i);
 			memory_block_clean(p_memory_block);
 			return -EFAULT;
 		}
 	}
 
 	return 0;
+}
+int memory_block_delete(
+		struct memory_block **						pp_memory_block) {
+	_delete_start_(memory_block);
+	memory_block_clean(*pp_memory_block);
+	_delete_finish(memory_block);
+	return 0;
+}
+struct memory_block * memory_block_create(
+		struct element *							p_local_parent_element,
+		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
+		void *										ptr,
+		metac_count_t								byte_size,
+		struct element_type *						p_element_type,
+		metac_count_t								elements_count) {
+	_create_(memory_block);
+	if (memory_block_init(
+			p_memory_block,
+			p_local_parent_element,
+			p_local_parent_element_hierarchy_member,
+			ptr,
+			byte_size,
+			p_element_type,
+			elements_count) != 0) {
+		msg_stderr("element_init failed\n");
+		memory_block_delete(&p_memory_block);
+		return NULL;
+	}
+	return p_memory_block;
+}
+/*****************************************************************************/
+void object_root_container_memory_block_clean(
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	if (p_object_root_container_memory_block->p_memory_block != NULL) {
+		memory_block_delete(&p_object_root_container_memory_block->p_memory_block);
+	}
+	/*TODO: cleanup links list */
+}
+int object_root_container_memory_block_init(
+		struct object_root_container_memory_block *	p_object_root_container_memory_block,
+		struct memory_block *						p_memory_block) {
+	assert(p_object_root_container_memory_block);
+	if (p_memory_block == NULL) {
+		msg_stderr("p_memory_block is invalid\n");
+		return -EINVAL;
+	}
+	/*TODO: init links list */
+	p_object_root_container_memory_block->p_memory_block = p_memory_block;
+	return 0;
+}
+int object_root_container_memory_block_delete(
+		struct object_root_container_memory_block **pp_object_root_container_memory_block) {
+	_delete_start_(object_root_container_memory_block);
+	cds_list_del(&(*pp_object_root_container_memory_block)->list);
+	object_root_container_memory_block_clean(*pp_object_root_container_memory_block);
+	_delete_finish(object_root_container_memory_block);
+	return 0;
+}
+struct object_root_container_memory_block * object_root_container_memory_block_create(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct element *							p_local_parent_element,
+		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
+		void *										ptr,
+		metac_count_t								byte_size,
+		struct element_type *						p_element_type,
+		metac_count_t								elements_count
+		) {
+	_create_(object_root_container_memory_block);
+	if (object_root_container_memory_block_init(
+			p_object_root_container_memory_block,
+			memory_block_create(
+					p_local_parent_element,
+					p_local_parent_element_hierarchy_member,
+					ptr,
+					byte_size,
+					p_element_type,
+					elements_count)) != 0) {
+		object_root_container_memory_block_delete(&p_object_root_container_memory_block);
+		msg_stderr("object_root_container_memory_block_init failed\n");
+		return NULL;
+	}
+	/* add to the list */
+	cds_list_add_tail(
+		&p_object_root_container_memory_block->list,
+		&p_object_root_builder->container.memory_block_list);
+	return p_object_root_container_memory_block;
 }
 /*****************************************************************************/
 static int object_root_builder_delete_memory_block_task(
@@ -1926,21 +2013,24 @@ static struct object_root_builder_memory_block_task * object_root_builder_schedu
 	}
 	return p_object_root_builder_memory_block_task;
 }
-
 static int object_root_builder_process_pointer(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
-		struct element *							p_element
-		/*TODO: add support of
-		struct element_hierarchy_member *			p_element_hierarchy_member,*/
+		struct element *							p_element,
+		/*TODO: add support of v*/
+		struct element_hierarchy_member *			p_element_hierarchy_member
 ) {
 	/*TODO: support several cases pointer and pointer as a member of hierarchy */
+	/*TODO: recalculate global_path*/
+	struct element_type * p_element_type;
 	assert(p_element->p_element_type->p_type->id == DW_TAG_pointer_type);
 
 	/*read pointer from memory_block*/
 	p_element->pointer.ptr = ((void**)p_element->p_memory_block->ptr)[p_element->id]; /*TODO: emm... it's ok, but... add some checks */
 	/*type cast if needed*/
 	p_element->pointer.actual_ptr = p_element->pointer.ptr;
+	p_element_type = p_element->p_element_type->pointer.p_element_type;
+
 	if (p_element->p_element_type->pointer.generic_cast.cb != NULL) {
 		int res = p_element->p_element_type->pointer.generic_cast.cb(
 				global_path,
@@ -1954,6 +2044,14 @@ static int object_root_builder_process_pointer(
 			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
 			return res;
 		}
+		if (p_element->pointer.generic_cast_type_id >= p_element->p_element_type->pointer.generic_cast.types_count) {
+			msg_stderr("generic_cast.cb set incorrect generic_cast_type_id %d for %s. Maximum value is %d\n",
+					p_element->pointer.generic_cast_type_id,
+					global_path,
+					p_element->p_element_type->pointer.generic_cast.types_count);
+			return -EINVAL;
+		}
+		p_element_type = p_element->p_element_type->pointer.generic_cast.p_types[p_element->pointer.generic_cast_type_id].p_element_type;
 	}
 	/* need to get array length*/
 	if (p_element->p_element_type->pointer.array_elements_count.cb == NULL) {
@@ -1980,14 +2078,57 @@ static int object_root_builder_process_pointer(
 		return (-EFAULT);
 	}
 	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
-	/*
-	 * use
-	 * static int object_root_builder_schedule_object_root_container_memory_block(
-		struct object_root_builder *				p_object_root_builder,
-		char *										global_path,
-		struct object_root_container_memory_block *	p_object_root_container_memory_block)
-	 *
-	 * */
+	p_element->pointer.memory_block_reference.reference_location.p_element = p_element;
+	p_element->pointer.memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
+
+	/*try to find the existing block first*/
+	{
+		/*TODO: move to a separate function */
+		struct object_root_container_memory_block * p_object_root_container_memory_block;
+		metac_count_t elements_count = metac_array_info_get_element_count(p_element->pointer.p_array_info);
+		metac_count_t byte_size = p_element_type->byte_size * elements_count;
+
+		cds_list_for_each_entry(
+			p_object_root_container_memory_block,
+			&p_object_root_builder->container.memory_block_list,
+			list) {
+
+			msg_stddbg("COMPARING WITH %p\n",
+					p_object_root_container_memory_block->p_memory_block);
+
+			if (	p_object_root_container_memory_block->p_memory_block->ptr == p_element->pointer.actual_ptr &&
+					p_object_root_container_memory_block->p_memory_block->byte_size == byte_size &&
+					p_object_root_container_memory_block->p_memory_block->elements_count == elements_count) {
+				msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block);
+
+				p_element->pointer.memory_block_reference.p_memory_block = p_object_root_container_memory_block->p_memory_block;
+				/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
+				return 0;
+			}
+		}
+		p_object_root_container_memory_block = object_root_container_memory_block_create(
+				p_object_root_builder,
+				global_path,
+				NULL,
+				NULL,
+				p_element->pointer.actual_ptr,
+				byte_size,
+				p_element_type,
+				elements_count);
+		if (p_object_root_container_memory_block == NULL) {
+			msg_stderr("object_root_container_memory_block_create failed for %s\n", global_path);
+			return (-EFAULT);
+		}
+		if (object_root_builder_schedule_object_root_container_memory_block(
+				p_object_root_builder,
+				global_path,
+				p_object_root_container_memory_block) != 0) {
+			msg_stderr("object_root_builder_schedule_object_root_container_memory_block failed for %s\n", global_path);
+			object_root_container_memory_block_delete(&p_object_root_container_memory_block);
+			return (-EFAULT);
+		}
+		/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
+	}
 	return 0;
 }
 static int object_root_builder_process_memory_block(
@@ -2001,7 +2142,7 @@ static int object_root_builder_process_memory_block(
 			switch (p_actual_type->id) {
 			case DW_TAG_pointer_type:
 				/*TODO: update global path with [<i>]... or do it inside the function, so we can add there generic_cast info as well*/
-				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);
+				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
 				break;
 			case DW_TAG_array_type:
 				/*TODO: _process_array(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
