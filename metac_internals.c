@@ -1719,16 +1719,14 @@ struct object_root_container_pointer {
 	struct cds_list_head							list;
 
 	char *											global_path;
-	/*TODO: change to struct memory_pointer* */
-	struct element *								p_element;
-	struct element_hierarchy_member *				p_element_hierarchy_member;
+	struct memory_pointer *							p_memory_pointer;
 };
 struct object_root_container_memory_block {
 	struct cds_list_head							list;
 
 	struct memory_block *							p_memory_block;
 
-	//struct cds_list_head							references;
+	//TODO: struct cds_list_head							references;
 };
 struct object_root_container_memory_block_top {
 	struct cds_list_head							list;
@@ -1741,9 +1739,9 @@ struct object_root_container_memory_block_top {
 /*****************************************************************************/
 struct memory_block_top_container {
 	/* contains object_root_container_memory_block */
-	struct cds_list_head							memory_block_list;
+	struct cds_list_head							container_memory_block_list;
 	/* contains object_root_container_pointer */
-	struct cds_list_head							pointer_list;
+	struct cds_list_head							container_pointer_list;
 };
 struct memory_block_top_builder {
 	struct object_root_container_memory_block_top *	p_object_root_container_memory_block_top;
@@ -1785,7 +1783,7 @@ static int object_root_builder_schedule_object_root_container_memory_block_top(
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top);
 /*****************************************************************************/
-int discriminator_value_free(
+int discriminator_value_delete(
 		struct discriminator_value **				pp_discriminator_value) {
 	_delete_(discriminator_value);
 	return 0;
@@ -1812,7 +1810,7 @@ void element_hierarchy_top_clean(
 	if (p_element_hierarchy_top->pp_discriminator_values) {
 		for (i = 0; i < p_element_type_hierarchy_top->discriminators_count; ++i) {
 			if (p_element_hierarchy_top->pp_discriminator_values[i] != NULL) {
-				discriminator_value_free(&p_element_hierarchy_top->pp_discriminator_values[i]);
+				discriminator_value_delete(&p_element_hierarchy_top->pp_discriminator_values[i]);
 			}
 		}
 		free(p_element_hierarchy_top->pp_discriminator_values);
@@ -1872,9 +1870,131 @@ int element_init(
 			return (-EFAULT);
 		}
 	}
+	return 0;
+}
+void * element_get_ptr(
+		struct element *							p_element) {
+	if (p_element == NULL) {
+		msg_stderr("invalid p_element\n");
+		return NULL;
+	}
+	assert(p_element->p_memory_block);
+
+	if (p_element->p_memory_block->ptr == NULL) {
+		msg_stderr("element's memory_block ptr isn't initialized\n");
+		return NULL;
+	}
+	if (p_element->id >= p_element->p_memory_block->elements_count) {
+		msg_stderr("id %d is invalid. elements_count is %d\n", (int)p_element->id, (int)p_element->p_memory_block->elements_count);
+	}
+	assert(p_element->p_memory_block->elements_count > 0);
+
+	return p_element->p_memory_block->ptr + p_element->id * p_element->p_element_type->byte_size;
+}
+
+int element_process_hierarchy(
+		char *										global_path,
+		struct element *							p_element) {
+	metac_count_t i;
+	void * ptr;
+	assert(p_element);
+	if (element_type_is_hierachy(p_element->p_element_type) == 0) {
+		msg_stderr("element isn't hierarchy\n");
+		return (-EFAULT);
+	}
+
+	ptr = element_get_ptr(p_element);
+	if (ptr == NULL) {
+		msg_stderr("can't get ptr\n");
+		return (-EFAULT);
+	}
+
+
+	for (i = 0; i < p_element->p_element_type->hierarchy_top.discriminators_count; ++i) {
+		metac_flag allocate = 0;
+
+		assert(p_element->p_element_type->hierarchy_top.pp_discriminators[i] != NULL);
+		/*assumption: if we initialize all discriminators in order of their appearance - we won't need to resolve dependencides*/
+		assert(
+			p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL ||
+			p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id < i);
+		/*Not needed since it's checked with the previous assert:*/
+		/*assert(
+			p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL ||
+			p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id < p_element->p_element_type->hierarchy_top.discriminators_count);*/
+
+		if (p_element->p_element_type->hierarchy_top.pp_discriminators[i]->cb == NULL) {
+			msg_stderr("discriminator %d for path %s is NULL\n", (int)i, global_path);
+			return (-EFAULT);
+		}
+
+		if (	allocate == 0 &&
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL) {
+			allocate = 1;
+		}
+
+		if (	allocate == 0 &&
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator != NULL) {
+			struct discriminator_value * p_value =
+					p_element->hierarchy_top.pp_discriminator_values[p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id];
+			if (	p_value != NULL &&
+					p_value->value == p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.expected_discriminator_value) {
+				allocate = 1;
+			}
+		}
+
+		if (allocate != 0) {
+			p_element->hierarchy_top.pp_discriminator_values[i] = (struct discriminator_value *)calloc(1, sizeof(*p_element->hierarchy_top.pp_discriminator_values[i]));
+			if (p_element->hierarchy_top.pp_discriminator_values[i] == NULL) {
+				msg_stderr("can't allocated pp_discriminator_values %d for path %s\n", (int)i, global_path);
+				return (-EFAULT);
+			}
+
+			/*TODO: copy annotation key when create discriminator to pass it here v*/
+			if (p_element->p_element_type->hierarchy_top.pp_discriminators[i]->cb(
+					NULL,
+					0,
+					ptr,
+					p_element->p_element_type->p_type,
+					&p_element->hierarchy_top.pp_discriminator_values[i]->value,
+					p_element->p_element_type->hierarchy_top.pp_discriminators[i]->p_data) < 0) {
+				msg_stderr("discriminator %d returned negative result for path %s\n", (int)i, global_path);
+				return (-EFAULT);
+			}
+		}
+	}
+
+	for (i = 0; i < p_element->p_element_type->hierarchy_top.members_count; ++i) {
+		metac_flag allocate = 0;
+
+		if (	allocate == 0 &&
+				p_element->p_element_type->hierarchy_top.pp_members[i]->precondition.p_discriminator == NULL) {
+			allocate = 1;
+		}
+
+		if (	allocate == 0 &&
+				p_element->p_element_type->hierarchy_top.pp_members[i]->precondition.p_discriminator != NULL) {
+			struct discriminator_value * p_value =
+					p_element->hierarchy_top.pp_discriminator_values[p_element->p_element_type->hierarchy_top.pp_members[i]->precondition.p_discriminator->id];
+			if (	p_value != NULL &&
+					p_value->value == p_element->p_element_type->hierarchy_top.pp_members[i]->precondition.expected_discriminator_value) {
+				allocate = 1;
+			}
+		}
+
+		if (allocate != 0) {
+			p_element->hierarchy_top.pp_hierarchy_members[i] = (struct element_hierarchy_member*)calloc(1, sizeof(*p_element->hierarchy_top.pp_hierarchy_members[i]));
+			if (p_element->hierarchy_top.pp_hierarchy_members[i] == NULL) {
+				msg_stderr("can't allocated pp_hierarchy_members %d for path %s\n", (int)i, global_path);
+				return (-EFAULT);
+			}
+			p_element->hierarchy_top.pp_hierarchy_members[i]->p_element_type_hierarchy_member = p_element->p_element_type->hierarchy_top.pp_members[i];
+		}
+	}
 
 	return 0;
 }
+
 void memory_block_clean(
 		struct memory_block *						p_memory_block) {
 	if (p_memory_block->p_elements != NULL) {
@@ -1961,10 +2081,55 @@ struct memory_block * memory_block_create(
 	}
 	return p_memory_block;
 }
+int memory_pointer_delete(
+		struct memory_pointer **					pp_memory_pointer) {
+	_delete_(memory_pointer);
+	return 0;
+}
+struct memory_pointer * memory_pointer_create(
+		struct element *							p_element,
+		struct element_hierarchy_member *			p_element_hierarchy_member) {
+	_create_(memory_pointer);
+	p_memory_pointer->p_element = p_element;
+	p_memory_pointer->p_element_hierarchy_member = p_element_hierarchy_member;
+	return p_memory_pointer;
+}
 /*****************************************************************************/
-/*TODO:*/
-//object_root_container_pointer_delete(&_memory_block, keep_data);
-//object_root_container_pointer_create();
+static int object_root_container_pointer_delete(
+		struct object_root_container_pointer **		pp_object_root_container_pointer,
+		metac_flag									keep_data) {
+	_delete_start_(object_root_container_pointer);
+	if (keep_data == 0) {
+		//TODO: object_root_container_memory_block_clean(*pp_object_root_container_pointer);
+	}
+	if ((*pp_object_root_container_pointer)->global_path) {
+		free((*pp_object_root_container_pointer)->global_path);
+		(*pp_object_root_container_pointer)->global_path = NULL;
+	}
+	_delete_finish(object_root_container_pointer);
+	return 0;
+}
+static struct object_root_container_pointer * object_root_container_pointer_create(
+		char *										global_path,
+		struct memory_pointer *						p_memory_pointer) {
+	if (global_path == NULL) {
+		msg_stderr("global_path is invalid\n");
+		return NULL;
+	}
+	if (p_memory_pointer == NULL) {
+		msg_stderr("p_memory_pointer is invalid\n");
+		return NULL;
+	}
+	_create_(object_root_container_pointer);
+	p_object_root_container_pointer->p_memory_pointer = p_memory_pointer;
+	p_object_root_container_pointer->global_path = strdup(global_path);
+	if (p_object_root_container_pointer->global_path == NULL) {
+		msg_stderr("wasn't able to copy global_path\n");
+		object_root_container_pointer_delete(&p_object_root_container_pointer, 0);
+		return NULL;
+	}
+	return p_object_root_container_pointer;
+}
 /*****************************************************************************/
 static void object_root_container_memory_block_clean(
 		struct object_root_container_memory_block *	p_object_root_container_memory_block,
@@ -2036,8 +2201,7 @@ static void object_root_container_memory_block_top_clean(
 	}
 	cds_list_for_each_entry_safe(_pointer, __pointer, &p_object_root_container_memory_block_top->object_root_container_pointer_list, list) {
 		cds_list_del(&_pointer->list);
-		/*TODO: cleanup: */
-		//object_root_container_pointer_delete(&_memory_block, keep_data);
+		object_root_container_pointer_delete(&_pointer, keep_data);
 	}
 }
 static int object_root_container_memory_block_top_init(
@@ -2064,8 +2228,6 @@ static int object_root_container_memory_block_top_delete(
 	return 0;
 }
 static struct object_root_container_memory_block_top * object_root_container_memory_block_top_create(
-		struct element *							p_local_parent_element,
-		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
 		void *										ptr,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
@@ -2075,8 +2237,8 @@ static struct object_root_container_memory_block_top * object_root_container_mem
 	if (object_root_container_memory_block_top_init(
 			p_object_root_container_memory_block_top,
 			object_root_container_memory_block_create(
-					p_local_parent_element,
-					p_local_parent_element_hierarchy_member,
+					NULL,
+					NULL,
 					ptr,
 					byte_size,
 					p_element_type,
@@ -2090,24 +2252,22 @@ static struct object_root_container_memory_block_top * object_root_container_mem
 /*****************************************************************************/
 static int memory_block_top_container_init(
 		struct memory_block_top_container *			p_memory_block_top_container) {
-	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->memory_block_list);
-	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->pointer_list);
+	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->container_memory_block_list);
+	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->container_pointer_list);
 	return 0;
 }
 static void memory_block_top_container_clean(
 		struct memory_block_top_container *			p_memory_block_top_container,
 		metac_flag									keep_data) {
-	struct object_root_container_memory_block * _memory_block, * __memory_block;
-	struct object_root_container_pointer * _pointer, * __pointer;
-	cds_list_for_each_entry_safe(_memory_block, __memory_block, &p_memory_block_top_container->memory_block_list, list) {
-		cds_list_del(&_memory_block->list);
-		object_root_container_memory_block_clean(_memory_block, keep_data);
-		free(_memory_block);
+	struct object_root_container_memory_block * _container_memory_block, * __container_memory_block;
+	struct object_root_container_pointer * _container_pointer, * __container_pointer;
+	cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_container->container_memory_block_list, list) {
+		cds_list_del(&_container_memory_block->list);
+		object_root_container_memory_block_delete(&_container_memory_block, keep_data);
 	}
-	cds_list_for_each_entry_safe(_pointer, __pointer, &p_memory_block_top_container->pointer_list, list) {
-		cds_list_del(&_pointer->list);
-		//TODO: array_top_container_clean_pointer(_element_type, keep_data);
-		free(_pointer);
+	cds_list_for_each_entry_safe(_container_pointer, __container_pointer, &p_memory_block_top_container->container_pointer_list, list) {
+		cds_list_del(&_container_pointer->list);
+		object_root_container_pointer_delete(&_container_pointer, keep_data);
 	}
 }
 static int memory_block_top_builder_init(
@@ -2142,6 +2302,7 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 		struct memory_block_top_builder *			p_memory_block_top_builder,
 		char *										global_path,
 		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	metac_count_t i, j;
 	struct memory_block * p_memory_block = p_object_root_container_memory_block->p_memory_block;
 
 	assert(p_memory_block != NULL);
@@ -2153,24 +2314,59 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 			p_memory_block->p_elements?p_memory_block->p_elements[0].p_element_type->p_type->name:"<invalid>",
 			(int)p_memory_block->elements_count);
 
-	metac_count_t i;
-
 	for (i = 0; i < p_memory_block->elements_count; ++i) {
+		struct object_root_container_pointer * p_object_root_container_pointer;
 		struct metac_type * p_actual_type = metac_type_actual_type(p_memory_block->p_elements[i].p_element_type->p_type);
-		if (p_actual_type != NULL) {
-			switch (p_actual_type->id) {
-			case DW_TAG_pointer_type:
-//				/*TODO: update global path with [<i>]... or do it inside the function, so we can add there generic_cast info as well*/
-//				object_root_builder_process_pointer(p_object_root_builder, global_path, &p_memory_block->p_elements[i], NULL);
-				break;
-			case DW_TAG_array_type:
-				/*TODO: _process_array(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
-				break;
-			case DW_TAG_structure_type:
-			case DW_TAG_union_type:
-				/*TODO: _process_hierarchy_top(p_object_root_builder, global_path, &p_memory_block->p_elements[i]);*/
-				break;
+		void * element_ptr = element_get_ptr(&p_memory_block->p_elements[i]);
+
+		if (p_actual_type == NULL) {
+			msg_stderr("incomplete type on path %s - skipping\n", global_path);
+			break;
+		}
+		if (element_ptr == NULL) {
+			msg_stderr("can't get element_ptr for %d, path %s\n", (int)i, global_path);
+		}
+
+		switch (p_actual_type->id) {
+		case DW_TAG_pointer_type:
+			p_object_root_container_pointer = object_root_container_pointer_create(
+					global_path,
+					memory_pointer_create(&p_memory_block->p_elements[i], NULL));
+			if (p_object_root_container_pointer == NULL) {
+				msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+				return (-EFAULT);
 			}
+			cds_list_add(
+				&p_object_root_container_pointer->list,
+				&p_memory_block_top_builder->container.container_pointer_list);
+			break;
+		case DW_TAG_array_type:
+			/*TODO: create child memory_block and shedule it's processing in p_memory_block_top_builder*/
+			break;
+		case DW_TAG_structure_type:
+		case DW_TAG_union_type:
+			if (element_process_hierarchy(global_path, &p_memory_block->p_elements[i]) != 0) {
+				msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+				return (-EFAULT);
+			}
+			for (j = 0; j < p_memory_block->p_elements[i].p_element_type->hierarchy_top.members_count; ++j) {
+				if (p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]->p_element_type_hierarchy_member->p_type->id == DW_TAG_pointer_type) {
+					p_object_root_container_pointer = object_root_container_pointer_create(
+							global_path,
+							memory_pointer_create(&p_memory_block->p_elements[i],
+									p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]));
+					if (p_object_root_container_pointer == NULL) {
+						msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+						return (-EFAULT);
+					}
+					cds_list_add(
+						&p_object_root_container_pointer->list,
+						&p_memory_block_top_builder->container.container_pointer_list);
+				} else if (p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]->p_element_type_hierarchy_member->p_type->id == DW_TAG_array_type) {
+					/*TODO: create child memory_block and shedule it's processing in p_memory_block_top_builder*/
+				}
+			}
+			break;
 		}
 	}
 	return 0;
@@ -2218,7 +2414,9 @@ static int object_root_builder_process_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member
 ) {
 	/*TODO: VVV support several cases pointer and pointer as a member of hierarchy VVV */
-	assert(p_element_hierarchy_member == NULL);
+	//assert(p_element_hierarchy_member == NULL);
+	if (p_element_hierarchy_member != NULL)
+		return -EFAULT;
 
 	/*TODO: recalculate global_path*/
 	struct element_type * p_element_type;
@@ -2283,6 +2481,7 @@ static int object_root_builder_process_pointer(
 		msg_stderr("metac_array_info_create_from_type failed for %s\n", global_path);
 		return (-EFAULT);
 	}
+
 	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
 	p_element->pointer.memory_block_reference.reference_location.p_element = p_element;
 	p_element->pointer.memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
@@ -2302,7 +2501,7 @@ static int object_root_builder_process_pointer(
 			msg_stddbg("COMPARING WITH %p\n",
 					p_object_root_container_memory_block->p_memory_block);
 
-			if (	p_memory_block->ptr == p_element->pointer.actual_ptr &&
+			if (	p_memory_block->ptr == p_element->pointer.actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
 					p_memory_block->byte_size == byte_size &&
 					p_memory_block->elements_count == elements_count) {
 				msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block_top);
@@ -2312,9 +2511,13 @@ static int object_root_builder_process_pointer(
 				return 0;
 			}
 		}
+
+		/*TODO: check if elements_count == 1 and type is flexible, it's possible that this memory_block is flexible - try it out (create memory_block here and do the magic)
+		 * pass it as argument to object_root_container_memory_block_top_create instead of current arguments.
+		 * if will contain pre-filled info already - condition values and single flex_length
+		 * ??? it may be that it's more convenient to schedule pointers, or
+		 */
 		p_object_root_container_memory_block_top = object_root_container_memory_block_top_create(
-				NULL,
-				NULL,
 				p_element->pointer.actual_ptr,
 				byte_size,
 				p_element_type,
@@ -2346,7 +2549,8 @@ static int object_root_builder_process_object_root_container_memory_block_top(
 		char *										global_path,
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top) {
-	struct object_root_container_pointer * _pointer;
+	struct object_root_container_pointer * _container_pointer;
+	/*TODO: separate memory_block_top as a special function, and keep here only scheduling of found pointers -> */
 	struct memory_block_top_builder memory_block_top_builder;
 	struct memory_block * p_memory_block = p_object_root_container_memory_block_top->p_object_root_container_memory_block->p_memory_block;
 
@@ -2380,19 +2584,22 @@ static int object_root_builder_process_object_root_container_memory_block_top(
 		memory_block_top_builder_clean(&memory_block_top_builder, 0);
 		return (-EFAULT);
 	}
+	/*TODO: fill in */
+	/*TODO: memory_block_top_builder_clean(&memory_block_top_builder, 1);*/
+	/*TODO: <- separate memory_block_top as a special function, and keep here only scheduling of found pointers */
 	/*process each pointer*/
-	cds_list_for_each_entry(_pointer, &memory_block_top_builder.container.pointer_list, list) {
+	/*TODO: rewrite to use p_object_root_container_memory_block_top->object_root_container_pointer_list*/
+	cds_list_for_each_entry(_container_pointer, &memory_block_top_builder.container.container_pointer_list, list) {
 		if (object_root_builder_process_pointer(
 				p_object_root_builder,
-				_pointer->global_path,
-				_pointer->p_element,
-				_pointer->p_element_hierarchy_member) != 0) {
+				_container_pointer->global_path,
+				_container_pointer->p_memory_pointer->p_element,
+				_container_pointer->p_memory_pointer->p_element_hierarchy_member) != 0) {
 			msg_stderr("object_root_builder_process_pointer finished with fail\n");
 			memory_block_top_builder_clean(&memory_block_top_builder, 0);
 			return (-EFAULT);
 		}
 	}
-	/*TODO:fill in */
 
 	/*clean builder objects*/
 	memory_block_top_builder_clean(&memory_block_top_builder, 1);
