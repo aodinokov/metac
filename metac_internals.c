@@ -1719,6 +1719,7 @@ struct object_root_container_pointer {
 	struct cds_list_head							list;
 
 	char *											global_path;
+	/*TODO: change to struct memory_pointer* */
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;
 };

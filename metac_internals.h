@@ -121,18 +121,18 @@ struct metac_precompiled_type {
 struct discriminator_value {
 	metac_discriminator_value_t						value;
 };
-struct reference_location {
+struct memory_pointer {
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
 };
 struct memory_block_reference {
-	struct reference_location						reference_location;
+	struct memory_pointer							reference_location;
 
 	struct memory_block	*							p_memory_block;						/* original memory_block */
 
 	/*????depends on how we recalculate it */
 	/*reference destination and offset are initialized only if pointer was pointing to the place other than beginning of the p_memory_block*/
-	struct reference_location						reference_destination;
+	struct memory_pointer							reference_destination;
 	metac_data_member_location_t					offset;
 };
 struct memory_block {
@@ -161,8 +161,9 @@ struct memory_block_top {
 	metac_count_t									memory_blocks_count;
 	struct memory_block	**							pp_memory_blocks;
 
+	/*TODO: */
 	metac_count_t									pointers_count;
-	/*TODO: p_pointers*/
+	struct memory_pointer **						pp_memory_pointers;
 };
 struct element_pointer {
 	metac_flag										use_cast;
@@ -193,7 +194,7 @@ struct element_hierarchy_member {
 };
 struct element {
 	metac_count_t									id;
-	struct reference_location						local_parent;						/* parent within one memory_block_top */
+	struct memory_pointer							local_parent;						/* parent within one memory_block_top */
 
 	struct element_type *							p_element_type;
 	struct memory_block *							p_memory_block;						/* memory which this element is part of */
