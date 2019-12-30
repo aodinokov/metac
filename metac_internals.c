@@ -452,6 +452,7 @@ struct element_type_hierarchy_member * element_type_hierarchy_member_create(
 	p_element_type_hierarchy_member->p_type = p_member_info->type;
 	if (p_element_type_hierarchy_member->p_type != NULL) {
 		p_element_type_hierarchy_member->p_actual_type = metac_type_actual_type(p_member_info->type);
+		p_element_type_hierarchy_member->byte_size = metac_type_byte_size(p_member_info->type);
 	}
 
 	p_element_type_hierarchy_member->path_within_hierarchy = strdup(hirarchy_path);
@@ -2410,87 +2411,114 @@ static int object_root_builder_process_pointer(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
 		struct element *							p_element,
-		/*TODO: add support of v*/
 		struct element_hierarchy_member *			p_element_hierarchy_member
 ) {
-	/*TODO: VVV support several cases pointer and pointer as a member of hierarchy VVV */
-	//assert(p_element_hierarchy_member == NULL);
-	if (p_element_hierarchy_member != NULL)
-		return -EFAULT;
+	/* pointer params */
+	struct element_pointer * p_element_pointer;
+	struct element_type_pointer * p_element_type_pointer;
+	struct metac_type * p_actual_type;
+	metac_data_member_location_t read_offset;
+	metac_count_t read_byte_size;
 
-	/*TODO: recalculate global_path*/
+	/* element type the pointer is pointing */
 	struct element_type * p_element_type;
-	assert(p_element->p_element_type->p_type->id == DW_TAG_pointer_type);
 
-	/*****************************************************************************/
-	/*read pointer from memory_block*/
-	p_element->pointer.ptr = ((void**)p_element->p_memory_block->ptr)[p_element->id]; /*TODO: emm... it's ok, but... add some checks */
+	if (p_element_hierarchy_member == NULL) {
+		assert(p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
+		p_element_pointer = &p_element->pointer;
+		p_actual_type = p_element->p_element_type->p_actual_type;
+		p_element_type_pointer = &p_element->p_element_type->pointer;
+
+		read_offset = p_element->id * p_element->p_element_type->byte_size;
+		read_byte_size = p_element->p_element_type->byte_size;
+		assert(read_byte_size == sizeof(void*));
+	}else {
+		assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
+		p_element_pointer = &p_element_hierarchy_member->pointer;
+		p_actual_type = p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
+		p_element_type_pointer = &p_element_hierarchy_member->p_element_type_hierarchy_member->pointer;
+
+		read_offset = p_element->id * p_element->p_element_type->byte_size + p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
+		read_byte_size = p_element_hierarchy_member->p_element_type_hierarchy_member->byte_size;
+		assert(read_byte_size == sizeof(void*));
+	}
+
+	if (read_offset + read_byte_size > p_element->p_memory_block->byte_size) {
+		msg_stderr("reading out-of-bounds attempt by offset 0x%x, 0x%x bytes. memory_block size 0x%x for %s\n",
+				(int)read_offset,
+				(int)read_byte_size,
+				(int)p_element->p_memory_block->byte_size,
+				global_path);
+		return -EFAULT;
+	}
+
+	memcpy(&p_element_pointer->ptr, p_element->p_memory_block->ptr + read_offset, read_byte_size);
+	p_element_pointer->actual_ptr = p_element_pointer->ptr;
+
 	/* exit normally if pointer is NULL */
-	if (p_element->pointer.ptr == NULL) {
+	if (p_element_pointer->ptr == NULL) {
 		return 0;
 	}
-	/*****************************************************************************/
 
 	/*type cast if needed*/
-	p_element->pointer.actual_ptr = p_element->pointer.ptr;
-	p_element_type = p_element->p_element_type->pointer.p_element_type;
-
-	if (p_element->p_element_type->pointer.generic_cast.cb != NULL) {
-		int res = p_element->p_element_type->pointer.generic_cast.cb(
+	p_element_type = p_element_type_pointer->p_element_type;
+	if (p_element_type_pointer->generic_cast.cb != NULL) {
+		int res = p_element_type_pointer->generic_cast.cb(
 				global_path,
 				0,
-				&p_element->pointer.use_cast,
-				&p_element->pointer.generic_cast_type_id,
-				&p_element->pointer.ptr,
-				&p_element->pointer.actual_ptr,
-				p_element->p_element_type->pointer.generic_cast.p_data);
+				&p_element_pointer->use_cast,
+				&p_element_pointer->generic_cast_type_id,
+				&p_element_pointer->ptr,
+				&p_element_pointer->actual_ptr,
+				p_element_type_pointer->generic_cast.p_data);
 		if (res != 0) {
 			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
 			return res;
 		}
-		if (p_element->pointer.generic_cast_type_id >= p_element->p_element_type->pointer.generic_cast.types_count) {
+		if (p_element_pointer->generic_cast_type_id >= p_element_type_pointer->generic_cast.types_count) {
 			msg_stderr("generic_cast.cb set incorrect generic_cast_type_id %d for %s. Maximum value is %d\n",
-					p_element->pointer.generic_cast_type_id,
+					p_element_pointer->generic_cast_type_id,
 					global_path,
-					p_element->p_element_type->pointer.generic_cast.types_count);
+					p_element_type_pointer->generic_cast.types_count);
 			return -EINVAL;
 		}
-		p_element_type = p_element->p_element_type->pointer.generic_cast.p_types[p_element->pointer.generic_cast_type_id].p_element_type;
+		p_element_type = p_element_type_pointer->generic_cast.p_types[p_element_pointer->generic_cast_type_id].p_element_type;
 	}
+
 	/* need to get array length*/
-	if (p_element->p_element_type->pointer.array_elements_count.cb == NULL) {
+	if (p_element_type_pointer->array_elements_count.cb == NULL) {
 		msg_stderr("Pointer length callback isn't defined for %s\n", global_path);
 		return (-EFAULT);
 	}
-	if (p_element->p_element_type->pointer.array_elements_count.cb(
+	if (p_element_type_pointer->array_elements_count.cb(
 			global_path,
 			0,
-			p_element->pointer.actual_ptr,
-			p_element->p_element_type->p_type,
+			p_element_pointer->actual_ptr,
+			p_actual_type,
 			/*TODO: take the next params from the global context*/
-			/*FIXME:*/p_element->pointer.actual_ptr,
-			/*FIXME:*/p_element->p_element_type->p_type,
-			&p_element->pointer.subrange0_count,
-			p_element->p_element_type->pointer.array_elements_count.p_data) != 0) {
+			/*FIXME:*/p_element_pointer->actual_ptr,
+			/*FIXME:*/p_actual_type,
+			&p_element_pointer->subrange0_count,
+			p_element_type_pointer->array_elements_count.p_data) != 0) {
 		msg_stderr("Pointer length callback failed for %s\n", global_path);
 		return (-EFAULT);
 	}
 	/*init p_array_info*/
-	p_element->pointer.p_array_info = metac_array_info_create_from_type(p_element->p_element_type->p_type, p_element->pointer.subrange0_count);
-	if (p_element->pointer.p_array_info == NULL) {
+	p_element_pointer->p_array_info = metac_array_info_create_from_type(p_actual_type, p_element_pointer->subrange0_count);
+	if (p_element_pointer->p_array_info == NULL) {
 		msg_stderr("metac_array_info_create_from_type failed for %s\n", global_path);
 		return (-EFAULT);
 	}
 
 	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
-	p_element->pointer.memory_block_reference.reference_location.p_element = p_element;
-	p_element->pointer.memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
+	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
+	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
 
 	/*try to find the existing block first*/
 	{
 		/*TODO: move to a separate function */
 		struct object_root_container_memory_block_top * p_object_root_container_memory_block_top;
-		metac_count_t elements_count = metac_array_info_get_element_count(p_element->pointer.p_array_info);
+		metac_count_t elements_count = metac_array_info_get_element_count(p_element_pointer->p_array_info);
 		metac_count_t byte_size = p_element_type->byte_size * elements_count;
 
 		cds_list_for_each_entry(
@@ -2501,12 +2529,12 @@ static int object_root_builder_process_pointer(
 			msg_stddbg("COMPARING WITH %p\n",
 					p_object_root_container_memory_block->p_memory_block);
 
-			if (	p_memory_block->ptr == p_element->pointer.actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
+			if (	p_memory_block->ptr == p_element_pointer->actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
 					p_memory_block->byte_size == byte_size &&
 					p_memory_block->elements_count == elements_count) {
 				msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block_top);
 
-				p_element->pointer.memory_block_reference.p_memory_block = p_memory_block;
+				p_element_pointer->memory_block_reference.p_memory_block = p_memory_block;
 				/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
 				return 0;
 			}
@@ -2518,7 +2546,7 @@ static int object_root_builder_process_pointer(
 		 * ??? it may be that it's more convenient to schedule pointers, or
 		 */
 		p_object_root_container_memory_block_top = object_root_container_memory_block_top_create(
-				p_element->pointer.actual_ptr,
+				p_element_pointer->actual_ptr,
 				byte_size,
 				p_element_type,
 				elements_count);
