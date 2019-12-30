@@ -2299,6 +2299,119 @@ static void memory_block_top_builder_clean(
 	memory_block_top_container_clean(&p_memory_block_top_builder->container, keep_data);
 	p_memory_block_top_builder->p_object_root_container_memory_block_top = NULL;
 }
+/*****************************************************************************/
+/*TODO: create child memory_block and schedule it's processing in p_memory_block_top_builder*/
+static int memory_block_top_builder_process_array(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
+		char *										global_path,
+		struct element *							p_element,
+		struct element_hierarchy_member *			p_element_hierarchy_member
+) {
+	metac_flag is_flexible;
+	struct element_array * p_element_array;
+	struct element_type_array * p_element_type_array;
+	struct metac_type * p_actual_type;
+
+	metac_data_member_location_t new_offset;
+	void * new_ptr;
+//	metac_count_t read_byte_size;
+
+	/* element type the array is containing */
+	struct element_type * p_element_type;
+
+	if (p_element_hierarchy_member == NULL) {
+		assert(p_element->p_element_type->p_actual_type->id == DW_TAG_array_type);
+
+		p_element_array = &p_element->array;
+		p_element_type_array = &p_element->p_element_type->array;
+
+		p_actual_type = p_element->p_element_type->p_actual_type;
+
+		new_offset = p_element->id * p_element->p_element_type->byte_size;
+	}else {
+		assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_array_type);
+
+		p_element_array = &p_element_hierarchy_member->array;
+		p_element_type_array = &p_element_hierarchy_member->p_element_type_hierarchy_member->array;
+
+		p_actual_type = p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
+
+		new_offset = p_element->id * p_element->p_element_type->byte_size + p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
+	}
+
+	/*TODO:*/
+	new_ptr = p_element->p_memory_block->ptr + new_offset;
+
+	p_element_type = p_element_type_array->p_element_type;
+	is_flexible = p_actual_type->array_type_info.is_flexible;
+
+	/*TODO: flexible will work only if p_memory_block->element_count == 1 all the way here */
+	if (is_flexible != 0) {
+		if (p_element_type_array->array_elements_count.cb == NULL) {
+			msg_stderr("Flexible array length callback isn't defined for %s\n", global_path);
+			return (-EFAULT);
+		}
+
+		if (p_element_type_array->array_elements_count.cb(
+				global_path,
+				0,
+				new_ptr,
+				p_actual_type,
+				/*TODO: take the next params from the global context*/
+				/*FIXME:*/new_ptr,
+				/*FIXME:*/p_actual_type,
+				&p_element_array->subrange0_count,
+				p_element_type_array->array_elements_count.p_data) != 0) {
+			msg_stderr("Flexible array length callback failed for %s\n", global_path);
+			return (-EFAULT);
+		}
+	}else{
+		  metac_type_array_subrange_count(p_actual_type, 0, &p_element_array->subrange0_count);
+	}
+
+	/*init p_array_info*/
+	p_element_array->p_array_info = metac_array_info_create_from_type(p_actual_type, p_element_array->subrange0_count);
+	if (p_element_array->p_array_info == NULL) {
+		msg_stderr("metac_array_info_create_from_type failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	{
+		/*TODO: move to a separate function */
+		struct object_root_container_memory_block * p_object_root_container_memory_block;
+		metac_count_t elements_count = metac_array_info_get_element_count(p_element_array->p_array_info);
+		metac_count_t byte_size = p_element_type->byte_size * elements_count;
+
+		p_object_root_container_memory_block = object_root_container_memory_block_create(
+				p_element,
+				p_element_hierarchy_member,
+				new_ptr,
+				byte_size,
+				p_element_type,
+				elements_count);
+		if (p_object_root_container_memory_block == NULL) {
+			msg_stderr("object_root_container_memory_block_create failed for %s\n", global_path);
+			return (-EFAULT);
+		}
+
+	/*TODO: */
+	//	if (memory_block_top_builder_schedule_object_root_container_memory_block(
+	//			p_memory_block_top_builder,
+	//			global_path,
+	//			p_object_root_container_memory_block) != 0) {
+	//		msg_stderr("memory_block_top_builder_schedule_object_root_container_memory_block failed for %s\n", global_path);
+	//		object_root_container_memory_block_delete(&p_object_root_container_memory_block);
+	//		return (-EFAULT);
+	//	}
+
+		/* add to the list - after this point container will take care of deleting this item */
+		cds_list_add_tail(
+			&p_object_root_container_memory_block->list,
+			&p_memory_block_top_builder->container.container_memory_block_list);
+	}
+
+	return 0;
+}
 static int memory_block_top_builder_process_object_root_container_memory_block(
 		struct memory_block_top_builder *			p_memory_block_top_builder,
 		char *										global_path,
@@ -2314,6 +2427,8 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 			(int)p_memory_block->byte_size,
 			p_memory_block->p_elements?p_memory_block->p_elements[0].p_element_type->p_type->name:"<invalid>",
 			(int)p_memory_block->elements_count);
+
+	/*TODO: it's so ugly - need to rework*/
 
 	for (i = 0; i < p_memory_block->elements_count; ++i) {
 		struct object_root_container_pointer * p_object_root_container_pointer;
@@ -2334,7 +2449,7 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 					global_path,
 					memory_pointer_create(&p_memory_block->p_elements[i], NULL));
 			if (p_object_root_container_pointer == NULL) {
-				msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+				msg_stderr("wasn't able to created p_object_root_container_pointer for %d, path %s\n", (int)i, global_path);
 				return (-EFAULT);
 			}
 			cds_list_add(
@@ -2342,12 +2457,19 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 				&p_memory_block_top_builder->container.container_pointer_list);
 			break;
 		case DW_TAG_array_type:
-			/*TODO: create child memory_block and shedule it's processing in p_memory_block_top_builder*/
+			if (memory_block_top_builder_process_array(
+					p_memory_block_top_builder,
+					global_path,
+					&p_memory_block->p_elements[i],
+					NULL) != 0) {
+				msg_stderr("object_root_builder_process_array failed for %d, path %s\n", (int)i, global_path);
+				return (-EFAULT);
+			}
 			break;
 		case DW_TAG_structure_type:
 		case DW_TAG_union_type:
 			if (element_process_hierarchy(global_path, &p_memory_block->p_elements[i]) != 0) {
-				msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+				msg_stderr("wasn't able to created p_object_root_container_pointer for %d, path %s\n", (int)i, global_path);
 				return (-EFAULT);
 			}
 			for (j = 0; j < p_memory_block->p_elements[i].p_element_type->hierarchy_top.members_count; ++j) {
@@ -2357,14 +2479,21 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 							memory_pointer_create(&p_memory_block->p_elements[i],
 									p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]));
 					if (p_object_root_container_pointer == NULL) {
-						msg_stderr("wasn't able to created p_object_root_container_pointer for element %i\n", (int)i);
+						msg_stderr("wasn't able to created p_object_root_container_pointer for %d, path %s\n", (int)i, global_path);
 						return (-EFAULT);
 					}
 					cds_list_add(
 						&p_object_root_container_pointer->list,
 						&p_memory_block_top_builder->container.container_pointer_list);
 				} else if (p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]->p_element_type_hierarchy_member->p_type->id == DW_TAG_array_type) {
-					/*TODO: create child memory_block and shedule it's processing in p_memory_block_top_builder*/
+					if (memory_block_top_builder_process_array(
+							p_memory_block_top_builder,
+							global_path,
+							&p_memory_block->p_elements[i],
+							p_memory_block->p_elements[i].hierarchy_top.pp_hierarchy_members[j]) != 0) {
+						msg_stderr("object_root_builder_process_array failed for %d, path %s\n", (int)i, global_path);
+						return (-EFAULT);
+					}
 				}
 			}
 			break;
@@ -2423,6 +2552,8 @@ static int object_root_builder_process_pointer(
 	/* element type the pointer is pointing */
 	struct element_type * p_element_type;
 
+	/*TODO: it's so ugly - need to rework*/
+
 	if (p_element_hierarchy_member == NULL) {
 		assert(p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
 		p_element_pointer = &p_element->pointer;
@@ -2452,6 +2583,7 @@ static int object_root_builder_process_pointer(
 		return -EFAULT;
 	}
 
+	/*move this to memblock_ function */
 	memcpy(&p_element_pointer->ptr, p_element->p_memory_block->ptr + read_offset, read_byte_size);
 	p_element_pointer->actual_ptr = p_element_pointer->ptr;
 
