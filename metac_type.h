@@ -297,6 +297,8 @@ struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		);
+int metac_runtime_object_delete(
+		struct metac_runtime_object **				pp_metac_runtime_object);
 
 /* C-type-> C-type (simplified operation, like delete, but using memcpy) */
 int metac_copy(void *ptr, metac_byte_size_t byte_size, metac_precompiled_type_t * precompiled_type, metac_count_t elements_count, void **p_ptr);

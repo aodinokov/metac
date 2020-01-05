@@ -1755,7 +1755,7 @@ struct memory_block_top_builder {
 struct memory_block_top_builder_memory_block_task {
 	struct traversing_engine_task					task;
 	char *											global_path;
-	//TODO: struct object_root_container_memory_block *	p_object_root_container_memory_block;
+	struct object_root_container_memory_block *		p_object_root_container_memory_block;
 };
 /*****************************************************************************/
 struct object_root_container {
@@ -1778,6 +1778,10 @@ struct object_root_builder_memory_block_top_task {
 	struct object_root_container_memory_block_top *	p_object_root_container_memory_block_top;
 };
 /*****************************************************************************/
+static int memory_block_top_builder_schedule_object_root_container_memory_block(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block);
 static int object_root_builder_schedule_object_root_container_memory_block_top(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
@@ -1795,6 +1799,52 @@ struct discriminator_value * discriminator_value_create(
 	p_discriminator_value->value = value;
 	return p_discriminator_value;
 }
+void element_array_clean(
+		struct element_array *						p_element_array,
+		struct element_type_array *					p_element_type_array) {
+	if (p_element_array->p_array_info != NULL) {
+		metac_array_info_delete(&p_element_array->p_array_info);
+	}
+}
+//int element_array_init() {
+//
+//}
+void element_pointer_clean(
+		struct element_pointer *					p_element_pointer,
+		struct element_type_pointer *				p_element_type_pointer) {
+	if (p_element_pointer->p_array_info != NULL) {
+		metac_array_info_delete(&p_element_pointer->p_array_info);
+	}
+}
+//int element_pointer_init() {
+//
+//}
+void element_hierarchy_member_clean(
+		struct element_hierarchy_member *			p_element_hierarchy_member,
+		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
+	if (p_element_type_hierarchy_member != NULL) {
+		switch(p_element_type_hierarchy_member->p_actual_type->id) {
+		case DW_TAG_pointer_type:
+			element_pointer_clean(&p_element_hierarchy_member->pointer, &p_element_type_hierarchy_member->pointer);
+			break;
+		case DW_TAG_array_type:
+			element_array_clean(&p_element_hierarchy_member->array, &p_element_type_hierarchy_member->array);
+			break;
+		}
+	}
+}
+int element_hierarchy_member_delete(
+		struct element_hierarchy_member **			pp_element_hierarchy_member,
+		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
+	_delete_start_(element_hierarchy_member);
+	element_hierarchy_member_clean(*pp_element_hierarchy_member, p_element_type_hierarchy_member);
+	_delete_finish(element_hierarchy_member);
+	return 0;
+}
+//int element_hierarchy_member_init()
+//struct discriminator_value * element_hierarchy_membercreate(
+//		metac_discriminator_value_t					value) {
+
 void element_hierarchy_top_clean(
 		struct element_hierarchy_top *				p_element_hierarchy_top,
 		struct element_type_hierarchy_top *			p_element_type_hierarchy_top) {
@@ -1802,7 +1852,9 @@ void element_hierarchy_top_clean(
 	if (p_element_hierarchy_top->pp_hierarchy_members) {
 		for (i = 0; i < p_element_type_hierarchy_top->members_count; ++i) {
 			if (p_element_hierarchy_top->pp_hierarchy_members[i] != NULL) {
-				//element_hierarchy_member_free(&p_element_hierarchy_top->pp_hierarchy_members[i]);
+				element_hierarchy_member_delete(
+						&p_element_hierarchy_top->pp_hierarchy_members[i],
+						p_element_type_hierarchy_top->pp_members[i]);	/*TODO: let them all be pp_members!!!*/
 			}
 		}
 		free(p_element_hierarchy_top->pp_hierarchy_members);
@@ -1839,13 +1891,24 @@ int element_hierarchy_top_init(
 			return (-EFAULT);
 		}
 	}
+	/*put here element_process_hierarchy*/
 	return 0;
 }
 void element_clean(
 		struct element *							p_element) {
-	if (p_element->p_element_type != NULL &&
-		element_type_is_hierachy(p_element->p_element_type)) {
-		element_hierarchy_top_clean(&p_element->hierarchy_top, &p_element->p_element_type->hierarchy_top);
+	if (p_element->p_element_type != NULL) {
+		switch(p_element->p_element_type->p_actual_type->id) {
+		case DW_TAG_structure_type:
+		case DW_TAG_union_type:
+			element_hierarchy_top_clean(&p_element->hierarchy_top, &p_element->p_element_type->hierarchy_top);
+			break;
+		case DW_TAG_pointer_type:
+			element_pointer_clean(&p_element->pointer, &p_element->p_element_type->pointer);
+			break;
+		case DW_TAG_array_type:
+			element_array_clean(&p_element->array, &p_element->p_element_type->array);
+			break;
+		}
 	}
 }
 int element_init(
@@ -2101,9 +2164,11 @@ static int object_root_container_pointer_delete(
 		metac_flag									keep_data) {
 	_delete_start_(object_root_container_pointer);
 	if (keep_data == 0) {
-		//TODO: object_root_container_memory_block_clean(*pp_object_root_container_pointer);
+		if ((*pp_object_root_container_pointer)->p_memory_pointer != NULL) {
+			memory_pointer_delete(&((*pp_object_root_container_pointer)->p_memory_pointer));
+		}
 	}
-	if ((*pp_object_root_container_pointer)->global_path) {
+	if ((*pp_object_root_container_pointer)->global_path != NULL) {
 		free((*pp_object_root_container_pointer)->global_path);
 		(*pp_object_root_container_pointer)->global_path = NULL;
 	}
@@ -2251,6 +2316,17 @@ static struct object_root_container_memory_block_top * object_root_container_mem
 	return p_object_root_container_memory_block_top;
 }
 /*****************************************************************************/
+static int memory_block_top_builder_delete_memory_block_task(
+		struct memory_block_top_builder_memory_block_task **
+													pp_memory_block_top_builder_memory_block_task) {
+	_delete_start_(memory_block_top_builder_memory_block_task);
+	if ((*pp_memory_block_top_builder_memory_block_task)->global_path) {
+		free((*pp_memory_block_top_builder_memory_block_task)->global_path);
+		(*pp_memory_block_top_builder_memory_block_task)->global_path = NULL;
+	}
+	_delete_finish(memory_block_top_builder_memory_block_task);
+	return 0;
+}
 static int memory_block_top_container_init(
 		struct memory_block_top_container *			p_memory_block_top_container) {
 	CDS_INIT_LIST_HEAD(&p_memory_block_top_container->container_memory_block_list);
@@ -2294,13 +2370,12 @@ static void memory_block_top_builder_clean(
 			p_task,
 			struct memory_block_top_builder_memory_block_task, task);
 		cds_list_del(&p_task->list);
-		//memory_block_top_builder_delete_memory_block_task(&p_memory_block_top_builder_memory_block_task);
+		memory_block_top_builder_delete_memory_block_task(&p_memory_block_top_builder_memory_block_task);
 	}
 	memory_block_top_container_clean(&p_memory_block_top_builder->container, keep_data);
 	p_memory_block_top_builder->p_object_root_container_memory_block_top = NULL;
 }
 /*****************************************************************************/
-/*TODO: create child memory_block and schedule it's processing in p_memory_block_top_builder*/
 static int memory_block_top_builder_process_array(
 		struct memory_block_top_builder *			p_memory_block_top_builder,
 		char *										global_path,
@@ -2394,15 +2469,14 @@ static int memory_block_top_builder_process_array(
 			return (-EFAULT);
 		}
 
-	/*TODO: */
-	//	if (memory_block_top_builder_schedule_object_root_container_memory_block(
-	//			p_memory_block_top_builder,
-	//			global_path,
-	//			p_object_root_container_memory_block) != 0) {
-	//		msg_stderr("memory_block_top_builder_schedule_object_root_container_memory_block failed for %s\n", global_path);
-	//		object_root_container_memory_block_delete(&p_object_root_container_memory_block);
-	//		return (-EFAULT);
-	//	}
+		if (memory_block_top_builder_schedule_object_root_container_memory_block(
+				p_memory_block_top_builder,
+				global_path,
+				p_object_root_container_memory_block) != 0) {
+			msg_stderr("memory_block_top_builder_schedule_object_root_container_memory_block failed for %s\n", global_path);
+			object_root_container_memory_block_delete(&p_object_root_container_memory_block, 0);
+			return (-EFAULT);
+		}
 
 		/* add to the list - after this point container will take care of deleting this item */
 		cds_list_add_tail(
@@ -2468,7 +2542,7 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 			break;
 		case DW_TAG_structure_type:
 		case DW_TAG_union_type:
-			if (element_process_hierarchy(global_path, &p_memory_block->p_elements[i]) != 0) {
+			if (element_process_hierarchy(global_path, &p_memory_block->p_elements[i]) != 0) {	/*move to element_init?*/
 				msg_stderr("wasn't able to created p_object_root_container_pointer for %d, path %s\n", (int)i, global_path);
 				return (-EFAULT);
 			}
@@ -2500,6 +2574,57 @@ static int memory_block_top_builder_process_object_root_container_memory_block(
 		}
 	}
 	return 0;
+}
+static int memory_block_top_builder_process_object_root_container_memory_block_task_fn(
+	struct traversing_engine * 						p_engine,
+	struct traversing_engine_task * 				p_task,
+	int 											error_flag) {
+	struct memory_block_top_builder * p_memory_block_top_builder =
+		cds_list_entry(p_engine, struct memory_block_top_builder, memory_block_top_traversing_engine);
+	struct memory_block_top_builder_memory_block_task * p_memory_block_top_builder_memory_block_task =
+		cds_list_entry(p_task, struct memory_block_top_builder_memory_block_task, task);
+	cds_list_add_tail(&p_task->list, &p_memory_block_top_builder->memory_block_top_executed_tasks);
+	if (error_flag != 0)return (-EALREADY);
+
+	return memory_block_top_builder_process_object_root_container_memory_block(
+			p_memory_block_top_builder,
+			p_memory_block_top_builder_memory_block_task->global_path,
+			p_memory_block_top_builder_memory_block_task->p_object_root_container_memory_block);
+}
+static struct memory_block_top_builder_memory_block_task * memory_block_top_builder_schedule_memory_block_with_fn(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
+		traversing_engine_task_fn_t 				fn,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	_create_(memory_block_top_builder_memory_block_task);
+
+	p_memory_block_top_builder_memory_block_task->task.fn = fn;
+	p_memory_block_top_builder_memory_block_task->global_path = strdup(global_path);
+	p_memory_block_top_builder_memory_block_task->p_object_root_container_memory_block = p_object_root_container_memory_block;
+	if (p_memory_block_top_builder_memory_block_task->global_path == NULL) {
+		msg_stderr("wasn't able to duplicate global_path\n");
+		memory_block_top_builder_delete_memory_block_task(&p_memory_block_top_builder_memory_block_task);
+		return NULL;
+	}
+	if (add_traversing_task_to_tail(
+		&p_memory_block_top_builder->memory_block_top_traversing_engine,
+		&p_memory_block_top_builder_memory_block_task->task) != 0) {
+		msg_stderr("wasn't able to schedule task\n");
+		memory_block_top_builder_delete_memory_block_task(&p_memory_block_top_builder_memory_block_task);
+		return NULL;
+	}
+	return p_memory_block_top_builder_memory_block_task;
+}
+static int memory_block_top_builder_schedule_object_root_container_memory_block(
+		struct memory_block_top_builder *			p_memory_block_top_builder,
+		char *										global_path,
+		struct object_root_container_memory_block *	p_object_root_container_memory_block) {
+	return (memory_block_top_builder_schedule_memory_block_with_fn(
+			p_memory_block_top_builder,
+			memory_block_top_builder_process_object_root_container_memory_block_task_fn,
+			global_path,
+			p_object_root_container_memory_block) != NULL)?0:(-EFAULT);
+
 }
 /*****************************************************************************/
 static int object_root_builder_delete_memory_block_top_task(
@@ -2553,7 +2678,6 @@ static int object_root_builder_process_pointer(
 	struct element_type * p_element_type;
 
 	/*TODO: it's so ugly - need to rework*/
-
 	if (p_element_hierarchy_member == NULL) {
 		assert(p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
 		p_element_pointer = &p_element->pointer;
@@ -2762,7 +2886,8 @@ static int object_root_builder_process_object_root_container_memory_block_top(
 	}
 
 	/*clean builder objects*/
-	memory_block_top_builder_clean(&memory_block_top_builder, 1);
+	memory_block_top_builder_clean(&memory_block_top_builder, 0);
+	//memory_block_top_builder_clean(&memory_block_top_builder, 1);
 	return 0;
 }
 static int object_root_builder_process_object_root_container_memory_block_task_fn(
@@ -2834,6 +2959,12 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
+static void object_root_clean(
+		struct object_root *						p_object_root) {
+	memory_block_clean(&p_object_root->memory_block_for_pointer);
+	/*TBD*/
+	/*filled in */
+}
 static int object_root_init(
 		void *										ptr,
 		struct element_type_top *					p_element_type_top,
@@ -2876,7 +3007,8 @@ static int object_root_init(
 	/*TBD*/
 
 	/*clean builder objects*/
-	object_root_builder_clean(&object_root_builder, 1);
+	//object_root_builder_clean(&object_root_builder, 1);
+	object_root_builder_clean(&object_root_builder, 0);
 	return 0;
 }
 struct metac_runtime_object * metac_runtime_object_create(
@@ -2894,6 +3026,13 @@ struct metac_runtime_object * metac_runtime_object_create(
 		return NULL;
 	}
 	return p_metac_runtime_object;
+}
+int metac_runtime_object_delete(
+		struct metac_runtime_object **				pp_metac_runtime_object) {
+	_delete_start_(metac_runtime_object);
+	object_root_clean(&((*pp_metac_runtime_object)->object_root));
+	_delete_finish(metac_runtime_object);
+	return 0;
 }
 /*****************************************************************************/
 #define DUMPPREFIX "    "

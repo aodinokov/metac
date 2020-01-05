@@ -1227,6 +1227,9 @@ START_TEST(basic_tree_t_ut) {
 
 		struct metac_runtime_object* p_runtime_object;
 		p_runtime_object = metac_runtime_object_create((void*)(&x), precompiled_type);
+		if (p_runtime_object != NULL) {
+			metac_runtime_object_delete(&p_runtime_object);
+		}
 
 //		fail_unless(metac_visit((void*)(&x), sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed");
 //		fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed");
