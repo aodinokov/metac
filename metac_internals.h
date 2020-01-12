@@ -118,9 +118,6 @@ struct metac_precompiled_type {
 };
 
 /*****************************************************************************/
-struct discriminator_value {
-	metac_discriminator_value_t						value;
-};
 struct memory_pointer {
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
@@ -154,17 +151,6 @@ struct memory_block {
 	metac_count_t									memory_block_references_count;
 	struct memory_block_reference ** 				pp_memory_block_references;
 };
-struct memory_block_top {
-	metac_count_t									id;
-	struct memory_block	*							p_memory_block;						/* block without parents */
-
-	metac_count_t									memory_blocks_count;
-	struct memory_block	**							pp_memory_blocks;
-
-	/*TODO: */
-	metac_count_t									pointers_count;
-	struct memory_pointer **						pp_memory_pointers;
-};
 struct element_pointer {
 	metac_flag										use_cast;
 	metac_count_t									generic_cast_type_id;				/*we use callback to get this*/
@@ -192,6 +178,9 @@ struct element_hierarchy_member {
 		struct element_array						array;
 	};
 };
+struct discriminator_value {
+	metac_discriminator_value_t						value;
+};
 struct element {
 	metac_count_t									id;
 	struct memory_pointer							local_parent;						/* parent within one memory_block_top */
@@ -204,9 +193,19 @@ struct element {
 		struct element_array						array;
 		struct element_hierarchy_top {
 			struct discriminator_value **			pp_discriminator_values;			/*we use callback to get this*/
-			struct element_hierarchy_member **		pp_hierarchy_members;
+			struct element_hierarchy_member **		pp_members;
 		}											hierarchy_top;
 	};
+};
+struct memory_block_top {
+	metac_count_t									id;
+	struct memory_block	*							p_memory_block;						/* block without parents */
+
+	metac_count_t									memory_blocks_count;				/* others */
+	struct memory_block	**							pp_memory_blocks;
+
+	metac_count_t									pointers_count;
+	struct memory_pointer **						pp_memory_pointers;
 };
 struct object_root {
 	void * 											ptr;
