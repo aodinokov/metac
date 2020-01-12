@@ -166,12 +166,15 @@ struct element_pointer {
 struct element_array {
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 	metac_array_info_t *							p_array_info;
+	void *											actual_ptr;							/* after generic_cast if it's a case */
 
 	struct memory_block	*							p_memory_block;
 };
 struct element_hierarchy_member {
 	metac_count_t									id;
+
 	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
+	struct element *								p_element;
 
 	union {
 		struct element_pointer						pointer;
@@ -183,7 +186,7 @@ struct discriminator_value {
 };
 struct element {
 	metac_count_t									id;
-	struct memory_pointer							local_parent;						/* parent within one memory_block_top */
+	//struct memory_pointer							local_parent;						/* TODO: reconsider moving this to this to memory_block. parent within one memory_block_top */
 
 	struct element_type *							p_element_type;
 	struct memory_block *							p_memory_block;						/* memory which this element is part of */
