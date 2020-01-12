@@ -1716,20 +1716,10 @@ int metac_free_precompiled_type(
 	return (-EINVAL);
 }
 /*****************************************************************************/
-struct object_root_container_memory_block_top {
-	struct cds_list_head							list;
-	/*TODO: struct memory_block_top instead and rename other structs to memory_block_top_container_[memory_block|pointer]*/
-	struct memory_block_top *						p_memory_block_top;
-
-	//TODO: struct cds_list_head							references;
-};
-/*****************************************************************************/
 struct memory_block_top_container_memory_block {
 	struct cds_list_head							list;
 
 	struct memory_block *							p_memory_block;
-	/*TODO: struct memory_block_top instead and rename other structs to memory_block_top_container_[memory_block|pointer]*/
-
 	struct cds_list_head							object_root_container_memory_block_list;
 	struct cds_list_head							object_root_container_pointer_list;
 };
@@ -1740,11 +1730,11 @@ struct memory_block_top_container_pointer {
 	struct memory_pointer *							p_memory_pointer;
 };
 struct memory_block_top_container {
-	/*first element*/
+	/* first element */
 	struct memory_block_top_container_memory_block * p_memory_block_top_container_memory_block;
-	/* contains object_root_container_memory_block */
+	/* contains memory_block_top_container_memory_block */
 	struct cds_list_head							container_memory_block_list;
-	/* contains object_root_container_pointer */
+	/* contains memory_block_top_container_pointer */
 	struct cds_list_head							container_pointer_list;
 };
 struct memory_block_top_builder {
@@ -1761,6 +1751,11 @@ struct memory_block_top_builder_memory_block_task {
 	struct memory_block_top_container_memory_block *p_memory_block_top_container_memory_block;
 };
 /*****************************************************************************/
+struct object_root_container_memory_block_top {
+	struct cds_list_head							list;
+	struct memory_block_top *						p_memory_block_top;
+	//TODO: struct cds_list_head							references;
+};
 struct object_root_container {
 	/* contains object_root_container_memory_block_top */
 	struct cds_list_head							memory_block_top_list;
