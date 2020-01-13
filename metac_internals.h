@@ -203,12 +203,12 @@ struct element {
 };
 struct memory_block_top {
 	metac_count_t									id;
-	struct memory_block	*							p_memory_block;						/* block without parents */
+	struct memory_block								memory_block;						/* block without parents */
 
 	metac_count_t									memory_blocks_count;				/* others */
 	struct memory_block	**							pp_memory_blocks;
 
-	metac_count_t									pointers_count;
+	metac_count_t									memory_pointers_count;
 	struct memory_pointer **						pp_memory_pointers;
 };
 struct object_root {
