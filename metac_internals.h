@@ -157,6 +157,7 @@ struct element_pointer {
 
 	void *											ptr;								// TODO: maybe offset is enough? another option - additional range
 	void *											actual_ptr;							/* after generic_cast if it's a case */
+	struct element_type * 							p_actual_element_type;				/* after generic_cast if it's a case */
 
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 	metac_array_info_t *							p_array_info;

@@ -1833,6 +1833,42 @@ static int object_root_builder_schedule_object_root_container_memory_block_top(
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top);
 /*****************************************************************************/
+void * element_get_ptr(
+		struct element *							p_element) {
+	if (p_element == NULL) {
+		msg_stderr("invalid p_element\n");
+		return NULL;
+	}
+	assert(p_element->p_memory_block);
+
+	if (p_element->p_memory_block->ptr == NULL) {
+		msg_stderr("element's memory_block ptr isn't initialized\n");
+		return NULL;
+	}
+	if (p_element->id >= p_element->p_memory_block->elements_count) {
+		msg_stderr("id %d is invalid. elements_count is %d\n", (int)p_element->id, (int)p_element->p_memory_block->elements_count);
+	}
+	assert(p_element->p_memory_block->elements_count > 0);
+
+	return p_element->p_memory_block->ptr + p_element->id * p_element->p_element_type->byte_size;
+}
+int element_copy_from(
+		struct element *							p_element,
+		void *										destination,
+		metac_data_member_location_t				source_offset,
+		metac_count_t								byte_size) {
+	if (source_offset + byte_size > p_element->p_memory_block->byte_size) {
+		msg_stderr("reading out-of-bounds attempt by offset 0x%x, 0x%x bytes. memory_block size 0x%x\n",
+				(int)source_offset,
+				(int)byte_size,
+				(int)p_element->p_memory_block->byte_size);
+		return -EFAULT;
+	}
+
+	/*move this to memblock_ function */
+	memcpy(destination, p_element->p_memory_block->ptr + source_offset, byte_size);
+	return 0;
+}
 int discriminator_value_delete(
 		struct discriminator_value **				pp_discriminator_value) {
 	_delete_(discriminator_value);
@@ -1857,14 +1893,10 @@ static int element_array_init(
 		char *										global_path,
 		void *										actual_ptr,
 		struct metac_type *							p_actual_type) {
-	metac_flag is_flexible;
-
 	p_element_array->actual_ptr = actual_ptr;
 
-	is_flexible = p_actual_type->array_type_info.is_flexible;
-
 	/*TODO: flexible will work only if p_memory_block->element_count == 1 all the way here */
-	if (is_flexible != 0) {
+	if (p_actual_type->array_type_info.is_flexible != 0) {
 		if (p_element_type_array->array_elements_count.cb == NULL) {
 			msg_stderr("Flexible array length callback isn't defined for %s\n", global_path);
 			return (-EFAULT);
@@ -1874,9 +1906,9 @@ static int element_array_init(
 				global_path,
 				0,
 				actual_ptr,
-				p_actual_type,
+				p_element_array->actual_ptr,
 				/*TODO: take the next params from the global context*/
-				/*FIXME:*/actual_ptr,
+				/*FIXME:*/p_element_array->actual_ptr,
 				/*FIXME:*/p_actual_type,
 				&p_element_array->subrange0_count,
 				p_element_type_array->array_elements_count.p_data) != 0) {
@@ -1896,34 +1928,78 @@ static int element_array_init(
 
 	return 0;
 }
-void element_pointer_clean(
+static void element_pointer_clean(
 		struct element_pointer *					p_element_pointer,
 		struct element_type_pointer *				p_element_type_pointer) {
 	if (p_element_pointer->p_array_info != NULL) {
 		metac_array_info_delete(&p_element_pointer->p_array_info);
 	}
 }
-//int element_pointer_init() {
-//
-//}
-void * element_get_ptr(
-		struct element *							p_element) {
-	if (p_element == NULL) {
-		msg_stderr("invalid p_element\n");
-		return NULL;
+static int element_pointer_init(
+		struct element_pointer *					p_element_pointer,
+		struct element_type_pointer *				p_element_type_pointer,
+		char *										global_path,
+		void *										ptr,
+		struct metac_type *							p_actual_type) {
+	/* exit normally if pointer is NULL */
+	p_element_pointer->ptr = ptr;
+	if (p_element_pointer->ptr == NULL) {
+		return 0;
 	}
-	assert(p_element->p_memory_block);
 
-	if (p_element->p_memory_block->ptr == NULL) {
-		msg_stderr("element's memory_block ptr isn't initialized\n");
-		return NULL;
-	}
-	if (p_element->id >= p_element->p_memory_block->elements_count) {
-		msg_stderr("id %d is invalid. elements_count is %d\n", (int)p_element->id, (int)p_element->p_memory_block->elements_count);
-	}
-	assert(p_element->p_memory_block->elements_count > 0);
+	/*type cast if needed*/
+	p_element_pointer->actual_ptr = p_element_pointer->ptr;
+	p_element_pointer->p_actual_element_type = p_element_type_pointer->p_element_type;
 
-	return p_element->p_memory_block->ptr + p_element->id * p_element->p_element_type->byte_size;
+	if (p_element_type_pointer->generic_cast.cb != NULL) {
+		int res = p_element_type_pointer->generic_cast.cb(
+				global_path,
+				0,
+				&p_element_pointer->use_cast,
+				&p_element_pointer->generic_cast_type_id,
+				&p_element_pointer->ptr,
+				&p_element_pointer->actual_ptr,
+				p_element_type_pointer->generic_cast.p_data);
+		if (res != 0) {
+			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
+			return res;
+		}
+		if (p_element_pointer->generic_cast_type_id >= p_element_type_pointer->generic_cast.types_count) {
+			msg_stderr("generic_cast.cb set incorrect generic_cast_type_id %d for %s. Maximum value is %d\n",
+					p_element_pointer->generic_cast_type_id,
+					global_path,
+					p_element_type_pointer->generic_cast.types_count);
+			return -EINVAL;
+		}
+		p_element_pointer->p_actual_element_type = p_element_type_pointer->generic_cast.p_types[p_element_pointer->generic_cast_type_id].p_element_type;
+	}
+
+	/* need to get array length*/
+	if (p_element_type_pointer->array_elements_count.cb == NULL) {
+		msg_stderr("Pointer length callback isn't defined for %s\n", global_path);
+		return (-EFAULT);
+	}
+	if (p_element_type_pointer->array_elements_count.cb(
+			global_path,
+			0,
+			p_element_pointer->actual_ptr,
+			p_actual_type,
+			/*TODO: take the next params from the global context*/
+			/*FIXME:*/p_element_pointer->actual_ptr,
+			/*FIXME:*/p_actual_type,
+			&p_element_pointer->subrange0_count,
+			p_element_type_pointer->array_elements_count.p_data) != 0) {
+		msg_stderr("Pointer length callback failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+	/*init p_array_info*/
+	p_element_pointer->p_array_info = metac_array_info_create_from_type(p_actual_type, p_element_pointer->subrange0_count);
+	if (p_element_pointer->p_array_info == NULL) {
+		msg_stderr("metac_array_info_create_from_type failed for %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	return 0;
 }
 static void element_hierarchy_member_clean_array(
 		struct element_hierarchy_member *			p_element_hierarchy_member) {
@@ -1983,7 +2059,40 @@ static void element_hierarchy_member_clean_pointer(
 static int element_hierarchy_member_init_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member,
 		char *										global_path) {
-	/*TODO: */
+	/* pointer params */
+	struct element_pointer * p_element_pointer;
+	struct element_type_pointer * p_element_type_pointer;
+	struct metac_type * p_actual_type;
+	metac_data_member_location_t read_offset;
+	metac_count_t read_byte_size;
+
+	void * ptr;
+
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
+	p_element_pointer = &p_element_hierarchy_member->pointer;
+	p_actual_type = p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
+	p_element_type_pointer = &p_element_hierarchy_member->p_element_type_hierarchy_member->pointer;
+
+	read_offset = p_element_hierarchy_member->p_element->id * p_element_hierarchy_member->p_element->p_element_type->byte_size +
+			p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
+	read_byte_size = p_element_hierarchy_member->p_element_type_hierarchy_member->byte_size;
+	assert(read_byte_size == sizeof(void*));
+
+	if (element_copy_from(p_element_hierarchy_member->p_element, &ptr, read_offset, read_byte_size) != 0) {
+		msg_stderr("element_copy_from failed: %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	if (element_pointer_init(
+			p_element_pointer,
+			p_element_type_pointer,
+			global_path,
+			ptr,
+			p_actual_type) != 0) {
+		msg_stderr("element_pointer_init failed: %s\n", global_path);
+		return (-EFAULT);
+	}
+
 	return 0;
 }
 void element_hierarchy_member_clean(
@@ -2283,7 +2392,38 @@ static void element_clean_pointer(
 static int element_init_pointer(
 		struct element *							p_element,
 		char *										global_path) {
-	/*TODO: */
+	/* pointer params */
+	struct element_pointer * p_element_pointer;
+	struct element_type_pointer * p_element_type_pointer;
+	struct metac_type * p_actual_type;
+	metac_data_member_location_t read_offset;
+	metac_count_t read_byte_size;
+	void * ptr;
+
+	assert(p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
+	p_element_pointer = &p_element->pointer;
+	p_actual_type = p_element->p_element_type->p_actual_type;
+	p_element_type_pointer = &p_element->p_element_type->pointer;
+
+	read_offset = p_element->id * p_element->p_element_type->byte_size;
+	read_byte_size = p_element->p_element_type->byte_size;
+	assert(read_byte_size == sizeof(void*));
+
+	if (element_copy_from(p_element, &ptr, read_offset, read_byte_size) != 0) {
+		msg_stderr("element_copy_from failed: %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	if (element_pointer_init(
+			p_element_pointer,
+			p_element_type_pointer,
+			global_path,
+			ptr,
+			p_actual_type) != 0) {
+		msg_stderr("element_pointer_init failed: %s\n", global_path);
+		return (-EFAULT);
+	}
+
 	return 0;
 }
 void element_clean(
@@ -2979,118 +3119,28 @@ static int object_root_builder_process_pointer(
 		struct element *							p_element,
 		struct element_hierarchy_member *			p_element_hierarchy_member
 ) {
-	/*TODO: move to element_pointer_init*/
 	/* pointer params */
 	struct element_pointer * p_element_pointer;
 	struct element_type_pointer * p_element_type_pointer;
-	struct metac_type * p_actual_type;
-	metac_data_member_location_t read_offset;
-	metac_count_t read_byte_size;
 
-	/* element type the pointer is pointing */
-	struct element_type * p_element_type;
-
-	/*TODO: it's so ugly - need to rework*/
 	if (p_element_hierarchy_member == NULL) {
 		assert(p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
 		p_element_pointer = &p_element->pointer;
-		p_actual_type = p_element->p_element_type->p_actual_type;
 		p_element_type_pointer = &p_element->p_element_type->pointer;
-
-		read_offset = p_element->id * p_element->p_element_type->byte_size;
-		read_byte_size = p_element->p_element_type->byte_size;
-		assert(read_byte_size == sizeof(void*));
 	}else {
 		assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
 		p_element_pointer = &p_element_hierarchy_member->pointer;
-		p_actual_type = p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
 		p_element_type_pointer = &p_element_hierarchy_member->p_element_type_hierarchy_member->pointer;
-
-		read_offset = p_element->id * p_element->p_element_type->byte_size + p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
-		read_byte_size = p_element_hierarchy_member->p_element_type_hierarchy_member->byte_size;
-		assert(read_byte_size == sizeof(void*));
 	}
-
-	if (read_offset + read_byte_size > p_element->p_memory_block->byte_size) {
-		msg_stderr("reading out-of-bounds attempt by offset 0x%x, 0x%x bytes. memory_block size 0x%x for %s\n",
-				(int)read_offset,
-				(int)read_byte_size,
-				(int)p_element->p_memory_block->byte_size,
-				global_path);
-		return -EFAULT;
-	}
-
-	/*move this to memblock_ function */
-	memcpy(&p_element_pointer->ptr, p_element->p_memory_block->ptr + read_offset, read_byte_size);
-	p_element_pointer->actual_ptr = p_element_pointer->ptr;
-
-	/* exit normally if pointer is NULL */
-	if (p_element_pointer->ptr == NULL) {
-		return 0;
-	}
-
-	/*type cast if needed*/
-	p_element_type = p_element_type_pointer->p_element_type;
-	if (p_element_type_pointer->generic_cast.cb != NULL) {
-		int res = p_element_type_pointer->generic_cast.cb(
-				global_path,
-				0,
-				&p_element_pointer->use_cast,
-				&p_element_pointer->generic_cast_type_id,
-				&p_element_pointer->ptr,
-				&p_element_pointer->actual_ptr,
-				p_element_type_pointer->generic_cast.p_data);
-		if (res != 0) {
-			msg_stderr("generic_cast.cb returned error %d for %s\n", res, global_path);
-			return res;
-		}
-		if (p_element_pointer->generic_cast_type_id >= p_element_type_pointer->generic_cast.types_count) {
-			msg_stderr("generic_cast.cb set incorrect generic_cast_type_id %d for %s. Maximum value is %d\n",
-					p_element_pointer->generic_cast_type_id,
-					global_path,
-					p_element_type_pointer->generic_cast.types_count);
-			return -EINVAL;
-		}
-		p_element_type = p_element_type_pointer->generic_cast.p_types[p_element_pointer->generic_cast_type_id].p_element_type;
-	}
-
-	/* need to get array length*/
-	if (p_element_type_pointer->array_elements_count.cb == NULL) {
-		msg_stderr("Pointer length callback isn't defined for %s\n", global_path);
-		return (-EFAULT);
-	}
-	if (p_element_type_pointer->array_elements_count.cb(
-			global_path,
-			0,
-			p_element_pointer->actual_ptr,
-			p_actual_type,
-			/*TODO: take the next params from the global context*/
-			/*FIXME:*/p_element_pointer->actual_ptr,
-			/*FIXME:*/p_actual_type,
-			&p_element_pointer->subrange0_count,
-			p_element_type_pointer->array_elements_count.p_data) != 0) {
-		msg_stderr("Pointer length callback failed for %s\n", global_path);
-		return (-EFAULT);
-	}
-	/*init p_array_info*/
-	p_element_pointer->p_array_info = metac_array_info_create_from_type(p_actual_type, p_element_pointer->subrange0_count);
-	if (p_element_pointer->p_array_info == NULL) {
-		msg_stderr("metac_array_info_create_from_type failed for %s\n", global_path);
-		return (-EFAULT);
-	}
-
 	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
 	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
 	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
 
-	/*till that*/
-
-	/*try to find the existing block first*/
 	{
 		/*TODO: move to a separate function */
 		struct object_root_container_memory_block_top * p_object_root_container_memory_block_top;
 		metac_count_t elements_count = metac_array_info_get_element_count(p_element_pointer->p_array_info);
-		metac_count_t byte_size = p_element_type->byte_size * elements_count;
+		metac_count_t byte_size = p_element_pointer->p_actual_element_type->byte_size * elements_count;
 
 		cds_list_for_each_entry(
 			p_object_root_container_memory_block_top,
@@ -3110,7 +3160,6 @@ static int object_root_builder_process_pointer(
 				return 0;
 			}
 		}
-
 		/*TODO: check if elements_count == 1 and type is flexible, it's possible that this memory_block is flexible - try it out (create memory_block here and do the magic)
 		 * pass it as argument to object_root_container_memory_block_top_create instead of current arguments.
 		 * if will contain pre-filled info already - condition values and single flex_length
@@ -3120,7 +3169,7 @@ static int object_root_builder_process_pointer(
 				global_path,
 				p_element_pointer->actual_ptr,
 				byte_size,
-				p_element_type,
+				p_element_pointer->p_actual_element_type,
 				elements_count);
 		if (p_object_root_container_memory_block_top == NULL) {
 			msg_stderr("object_root_container_memory_block_top_create failed for %s\n", global_path);
@@ -3136,7 +3185,6 @@ static int object_root_builder_process_pointer(
 			return (-EFAULT);
 		}
 		/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
-
 		/* add to the list - after this point container will take care of deleting this item */
 		cds_list_add_tail(
 			&p_object_root_container_memory_block_top->list,
@@ -3286,11 +3334,12 @@ static int object_root_init(
 		struct element_type_top *					p_element_type_top,
 		struct object_root *						p_object_root) {
 	struct object_root_builder object_root_builder;
-	object_root_builder_init(&object_root_builder, p_object_root/*, TODO:*/);
+	object_root_builder_init(&object_root_builder, p_object_root);
 
 	p_object_root->ptr = ptr;
 
 	/*init memory_block_for_pointer and ptr element */
+	/*TODO: think about substitution with memory_block_top_init???. but so far it seems ok*/
 	if (memory_block_init(
 			&p_object_root->memory_block_for_pointer,
 			"ptr",
@@ -3307,7 +3356,7 @@ static int object_root_init(
 	/*process memory_block to schedule all necessary memory blocks etc*/
 	if (object_root_builder_process_pointer(
 			&object_root_builder,
-			"ptr",
+			"ptr[0]",
 			&p_object_root->memory_block_for_pointer.p_elements[0],
 			NULL) != 0) {
 		msg_stderr("object_root_builder_process_object_root_container_memory_block failed\n");
