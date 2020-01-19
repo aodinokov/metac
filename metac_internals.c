@@ -9,7 +9,7 @@
 
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
-#include <stdlib.h>			/* calloc, free, NULL... */
+#include <stdlib.h>			/* calloc, free, NULL, qsort... */
 #include <string.h>			/* strdup */
 #include <urcu/list.h>		/* struct cds_list_head etc */
 
@@ -3226,6 +3226,7 @@ static int object_root_builder_process_pointer(
 		msg_stddbg("COMPARING WITH %p\n",
 				p_object_root_container_memory_block->p_memory_block);
 
+		/* hmm.. maybe to put comparison to the driver? */
 		if (	p_memory_block->ptr == p_element_pointer->actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
 				p_memory_block->byte_size == byte_size &&
 				p_memory_block->elements_count == elements_count) {
@@ -3358,17 +3359,84 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
+
+static int _compare_memory_block_top(const void *_a, const void *_b) {
+	struct memory_block_top *a = *((struct memory_block_top **)_a);
+	struct memory_block_top *b = *((struct memory_block_top **)_b);
+	if (a->memory_block.ptr < b->memory_block.ptr)
+		return -1;
+	if (a->memory_block.ptr == b->memory_block.ptr) {
+		if (a->memory_block.byte_size > b->memory_block.byte_size)return -1;
+		if (a->memory_block.byte_size == b->memory_block.byte_size)return 0;
+		return 1;
+	}
+	return 1;
+}
+static int object_root_builder_validate(
+		struct object_root_builder *				p_object_root_builder) {
+	/* TODO: validation works only for real pointers - should be taken to drivers */
+	int result = 0;
+	metac_count_t i = 0;
+	metac_count_t _count = 0;
+	struct memory_block_top	** _tops;
+	struct object_root_container_memory_block_top * _memory_block_top;
+
+	/*get arrays lengths */
+	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+		++_count;
+	}
+	if (_count == 0) {
+		return 0;
+	}
+
+	_tops = (struct memory_block_top	**)calloc(_count, sizeof(*_tops));
+	if (_tops == NULL) {
+		msg_stderr("can't allocate memory for _tops\n");
+		return (-ENOMEM);
+	}
+	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+		_tops[i] = _memory_block_top->p_memory_block_top;
+		++i;
+	}
+
+	/*find unique regions*/
+	qsort(_tops, _count,
+			sizeof(*_tops),
+			_compare_memory_block_top); /*TODO: change to hsort? - low prio so far*/
+
+	for (i = 1; i < _count; ++i) {
+		if (_tops[i-1]->memory_block.ptr == _tops[i]->memory_block.ptr) {
+			msg_stderr("found the same ptr twice- error\n");
+			result = -EFAULT;
+			break;
+		}
+		if (	_tops[i]->memory_block.ptr > _tops[i-1]->memory_block.ptr &&
+				_tops[i]->memory_block.ptr < _tops[i-1]->memory_block.ptr + _tops[i-1]->memory_block.byte_size) {
+			msg_stderr("memory_block_tops are overlapping - error\n");
+			result = -EFAULT;
+			break;
+		}
+	}
+
+	free(_tops);
+	return result;
+}
 static int object_root_builder_finalize(
 		struct object_root_builder *				p_object_root_builder,
 		struct object_root *						p_object_root) {
 	metac_count_t i;
-	struct object_root_container_memory_block_top * _memory_block_top, * __memory_block_top;
+	struct object_root_container_memory_block_top * _memory_block_top;
+
+	if (object_root_builder_validate(p_object_root_builder) != 0) {
+		msg_stderr("Validation of the parsed object hasn't passed\n");
+		return -(EFAULT);
+	}
 
 	p_object_root->memory_block_tops_count = 0;
 	p_object_root->pp_memory_block_tops = NULL;
 
 	/*get arrays lengths */
-	cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
 		++p_object_root->memory_block_tops_count;
 	}
 
@@ -3381,7 +3449,7 @@ static int object_root_builder_finalize(
 		}
 
 		i = 0;
-		cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+		cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
 			p_object_root->pp_memory_block_tops[i] = _memory_block_top->p_memory_block_top;
 			p_object_root->pp_memory_block_tops[i]->id = i;
 			//TODO: msg_stddbg("added memory_block %s\n", _container_memory_block->path_within_memory_block_top);
