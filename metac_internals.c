@@ -3101,7 +3101,7 @@ static void object_root_container_memory_block_top_clean(
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top,
 		metac_flag									keep_data) {
-	if (	keep_data != 0 &&
+	if (	keep_data == 0 &&
 			p_object_root_container_memory_block_top->p_memory_block_top != NULL) {
 		memory_block_top_delete(&p_object_root_container_memory_block_top->p_memory_block_top);
 	}
@@ -3358,11 +3358,52 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
+static int object_root_builder_finalize(
+		struct object_root_builder *				p_object_root_builder,
+		struct object_root *						p_object_root) {
+	metac_count_t i;
+	struct object_root_container_memory_block_top * _memory_block_top, * __memory_block_top;
+
+	p_object_root->memory_block_tops_count = 0;
+	p_object_root->pp_memory_block_tops = NULL;
+
+	/*get arrays lengths */
+	cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+		++p_object_root->memory_block_tops_count;
+	}
+
+	if (p_object_root->memory_block_tops_count > 0) {
+		p_object_root->pp_memory_block_tops = (struct memory_block_top	**)calloc(
+				p_object_root->memory_block_tops_count, sizeof(*p_object_root->pp_memory_block_tops));
+		if (p_object_root->pp_memory_block_tops == NULL) {
+			msg_stderr("can't allocate memory for memory_block_tops\n");
+			return (-ENOMEM);
+		}
+
+		i = 0;
+		cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+			p_object_root->pp_memory_block_tops[i] = _memory_block_top->p_memory_block_top;
+			p_object_root->pp_memory_block_tops[i]->id = i;
+			//TODO: msg_stddbg("added memory_block %s\n", _container_memory_block->path_within_memory_block_top);
+			++i;
+		}
+	}
+	return 0;
+}
 static void object_root_clean(
 		struct object_root *						p_object_root) {
+	int i;
 	memory_block_clean(&p_object_root->memory_block_for_pointer);
-	/*TBD*/
 	/*filled in */
+	if (p_object_root->pp_memory_block_tops) {
+		for (i = 0; i < p_object_root->memory_block_tops_count; ++i) {
+			if (p_object_root->pp_memory_block_tops[i] != NULL) {
+				memory_block_top_delete(&p_object_root->pp_memory_block_tops[i]);
+			}
+		}
+		free(p_object_root->pp_memory_block_tops);
+		p_object_root->pp_memory_block_tops = NULL;
+	}
 }
 static int object_root_init(
 		struct object_root *						p_object_root,
@@ -3385,6 +3426,7 @@ static int object_root_init(
 			1) != 0) {
 		msg_stderr("memory_block_init failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
+		object_root_clean(p_object_root);
 		return -EFAULT;
 	}
 	/*process memory_block to schedule all necessary memory blocks etc*/
@@ -3395,20 +3437,33 @@ static int object_root_init(
 			NULL) != 0) {
 		msg_stderr("object_root_builder_process_object_root_container_memory_block failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
+		object_root_clean(p_object_root);
 		return -EFAULT;
 	}
 	/*process all scheduled memory blocks*/
 	if (traversing_engine_run(&object_root_builder.object_root_traversing_engine) != 0) {
 		msg_stderr("tasks execution finished with fail\n");
 		object_root_builder_clean(&object_root_builder, 0);
+		object_root_clean(p_object_root);
 		return (-EFAULT);
 	}
-	/*fill in */
-	/*TBD*/
+	/*TBD: validate for issues in the structures */
 
+	if (object_root_builder_finalize(&object_root_builder, p_object_root) != 0) {
+		msg_stderr("object_root_builder_finalize finished with fail\n");
+		object_root_builder_clean(&object_root_builder, 0);
+		object_root_clean(p_object_root);
+		return (-EFAULT);
+	}
 	/*clean builder objects*/
-	//object_root_builder_clean(&object_root_builder, 1);
-	object_root_builder_clean(&object_root_builder, 0);
+	object_root_builder_clean(&object_root_builder, 1);
+	return 0;
+}
+int metac_runtime_object_delete(
+		struct metac_runtime_object **				pp_metac_runtime_object) {
+	_delete_start_(metac_runtime_object);
+	object_root_clean(&((*pp_metac_runtime_object)->object_root));
+	_delete_finish(metac_runtime_object);
 	return 0;
 }
 struct metac_runtime_object * metac_runtime_object_create(
@@ -3422,17 +3477,10 @@ struct metac_runtime_object * metac_runtime_object_create(
 			ptr,
 			&p_metac_precompiled_type->element_type_top) != 0) {
 		msg_stderr("object_root_init failed\n");
-		/*TODO: call metac_runtime_object_free*/
+		metac_runtime_object_delete(&p_metac_runtime_object);
 		return NULL;
 	}
 	return p_metac_runtime_object;
-}
-int metac_runtime_object_delete(
-		struct metac_runtime_object **				pp_metac_runtime_object) {
-	_delete_start_(metac_runtime_object);
-	object_root_clean(&((*pp_metac_runtime_object)->object_root));
-	_delete_finish(metac_runtime_object);
-	return 0;
 }
 /*****************************************************************************/
 #define DUMPPREFIX "    "
