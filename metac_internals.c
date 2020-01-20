@@ -1493,7 +1493,7 @@ static int element_type_top_builder_add_element_type_from_pointer(
 		list) {
 
 		msg_stddbg("COMPARING WITH %p %p\n",
-				p_element_type_top_container_element_type->p_element_type->type,
+				p_element_type_top_container_element_type->p_element_type->p_type,
 				p_element_type_top_container_element_type->p_from_member_info);
 
 		if (p_element_type_top_container_element_type->p_element_type->p_type == p_type &&
@@ -3035,7 +3035,7 @@ static int memory_block_top_builder_finalize(
 			p_memory_block_top->pp_memory_blocks[i]->id = i;
 
 			if (p_memory_block->local_parent.p_element != NULL) {
-				/*TODO: DRY - */
+				/*TODO: DRY - see element_init and hierarchy_member_init */
 				p_memory_block->p_parent_memory_block = p_memory_block->local_parent.p_element->p_memory_block;
 				p_memory_block->parent_memory_block_offset = p_memory_block->local_parent.p_element->id * p_memory_block->local_parent.p_element->p_element_type->byte_size;
 				if (p_memory_block->local_parent.p_element_hierarchy_member != NULL) {
@@ -3315,7 +3315,7 @@ static int object_root_builder_process_pointer(
 		list) {
 		struct memory_block * p_memory_block = &p_object_root_container_memory_block_top->p_memory_block_top->memory_block;//p_object_root_container_memory_block_top->p_memory_block_top->p_memory_block;
 		msg_stddbg("COMPARING WITH %p\n",
-				p_object_root_container_memory_block->p_memory_block);
+				p_memory_block);
 
 		/* hmm.. maybe to put comparison to the driver? */
 		if (	p_memory_block->ptr == p_element_pointer->actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
