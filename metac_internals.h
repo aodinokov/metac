@@ -142,11 +142,11 @@ struct memory_block_reference {
 struct memory_block {
 	metac_count_t									id;
 
-	/*TODO: calculate based on p_parent_memory_block*/
+	/* calculate based on p_parent_memory_block*/
 	struct memory_block_top * 						p_memory_block_top;
 	metac_data_member_location_t					memory_block_top_offset;
 
-	/*TODO: calculate based on local_parent*/
+	/* calculate based on local_parent*/
 	struct memory_block *							p_parent_memory_block;
 	metac_data_member_location_t					parent_memory_block_offset;
 

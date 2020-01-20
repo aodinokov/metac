@@ -3004,6 +3004,8 @@ static int memory_block_top_builder_finalize(
 	struct memory_block_top_container_pointer * _container_pointer, * __container_pointer;
 
 	p_memory_block_top->memory_block.id = -1;
+	p_memory_block_top->memory_block.p_memory_block_top = p_memory_block_top;
+	p_memory_block_top->memory_block.memory_block_top_offset = 0;
 
 	p_memory_block_top->memory_blocks_count = 0;
 	p_memory_block_top->pp_memory_blocks = NULL;
@@ -3028,9 +3030,30 @@ static int memory_block_top_builder_finalize(
 
 		i = 0;
 		cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_builder->container.container_memory_block_list, list) {
-			p_memory_block_top->pp_memory_blocks[i] = _container_memory_block->p_memory_block;
+			struct memory_block * p_memory_block = _container_memory_block->p_memory_block;
+			p_memory_block_top->pp_memory_blocks[i] = p_memory_block;
 			p_memory_block_top->pp_memory_blocks[i]->id = i;
-			//TODO: msg_stddbg("added memory_block %s\n", _container_memory_block->path_within_memory_block_top);
+
+			if (p_memory_block->local_parent.p_element != NULL) {
+				/*TODO: DRY - */
+				p_memory_block->p_parent_memory_block = p_memory_block->local_parent.p_element->p_memory_block;
+				p_memory_block->parent_memory_block_offset = p_memory_block->local_parent.p_element->id * p_memory_block->local_parent.p_element->p_element_type->byte_size;
+				if (p_memory_block->local_parent.p_element_hierarchy_member != NULL) {
+					p_memory_block->parent_memory_block_offset += p_memory_block->local_parent.p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
+				}
+			}
+			/* since we're adding them in the sequence of parsing we're sure that the higher the index, the deeper the child*/
+			if (p_memory_block->p_parent_memory_block != NULL) {
+				p_memory_block->p_memory_block_top = p_memory_block->p_parent_memory_block->p_memory_block_top;
+				p_memory_block->memory_block_top_offset = p_memory_block->parent_memory_block_offset + p_memory_block->p_parent_memory_block->parent_memory_block_offset;
+			}
+
+			msg_stddbg("added child memory_block for %s%s%s\n",
+				_container_memory_block->p_memory_block->local_parent,
+				(p_memory_block->local_parent.p_element==NULL)?"top":p_memory_block->local_parent.p_element->path_within_memory_block_top,
+				(p_memory_block->local_parent.p_element==NULL && p_memory_block->local_parent.p_element_hierarchy_member==NULL)?"":".",
+				(p_memory_block->local_parent.p_element==NULL && p_memory_block->local_parent.p_element_hierarchy_member==NULL)?"":p_memory_block->local_parent.p_element_hierarchy_member->p_element_type_hierarchy_member->path_within_hierarchy);
+
 			++i;
 		}
 	}
