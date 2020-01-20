@@ -22,6 +22,9 @@ struct condition {
 struct discriminator {
 	metac_count_t									id;									/*index in the region_element_type. needed to correlate with discriminator_values */
 	struct condition								precondition;						/*pre-condition for this discriminator*/
+
+	char *											annotation_key;						/*keep annotation_key to use it for cb call*/
+
 	metac_cb_discriminator_t						cb;
 	void *											p_data;
 };
@@ -31,6 +34,8 @@ struct element_type_base_type_hierarchy_member {
 };
 struct element_type_pointer {
 	struct element_type *							p_element_type;
+	/*keep annotation_key to use it for cb call*/
+	char *											annotation_key;
 	/* from annotations:*/
 	struct {
 		metac_cb_generic_cast_t						cb;
@@ -48,6 +53,8 @@ struct element_type_pointer {
 };
 struct element_type_array {
 	struct element_type *							p_element_type;
+	/*keep annotation_key to use it for cb call*/
+	char *											annotation_key;
 	/* from annotations:*/
 	struct {
 		metac_cb_array_elements_count_t				cb;
@@ -135,11 +142,15 @@ struct memory_block_reference {
 struct memory_block {
 	metac_count_t									id;
 
+	/*TODO: calculate based on p_parent_memory_block*/
 	struct memory_block_top * 						p_memory_block_top;
 	metac_data_member_location_t					memory_block_top_offset;
 
+	/*TODO: calculate based on local_parent*/
 	struct memory_block *							p_parent_memory_block;
 	metac_data_member_location_t					parent_memory_block_offset;
+
+	struct memory_pointer							local_parent;
 
 	void * 											ptr;								/*real mem - not always initialized*/
 	metac_count_t									byte_size;							/* 0 - unknown?*/
@@ -187,10 +198,11 @@ struct discriminator_value {
 };
 struct element {
 	metac_count_t									id;
-	//struct memory_pointer							local_parent;						/* TODO: reconsider moving this to this to memory_block. parent within one memory_block_top */
 
 	struct element_type *							p_element_type;
 	struct memory_block *							p_memory_block;						/* memory which this element is part of */
+
+	char *											path_within_memory_block_top;		/* path relevant to the memory_block_top */
 
 	union {
 		struct element_pointer						pointer;
