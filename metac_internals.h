@@ -79,7 +79,7 @@ struct element_type_hierarchy_member {
 	metac_data_member_location_t					offset;
 
 	struct metac_type *								p_type;
-	struct metac_type *								p_actual_type;
+	struct metac_type *								p_actual_type;						/* metac_actual_type(p_type) */
 
 	metac_byte_size_t 								byte_size;							/*bite size*/
 

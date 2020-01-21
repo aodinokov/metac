@@ -3010,23 +3010,17 @@ static int memory_block_top_builder_finalize(
 	struct memory_block_top_container_memory_block * _container_memory_block, * __container_memory_block;
 	struct memory_block_top_container_pointer * _container_pointer, * __container_pointer;
 
-	p_memory_block_top->memory_block.id = -1;
+	p_memory_block_top->memory_block.id = 0;
 	p_memory_block_top->memory_block.p_memory_block_top = p_memory_block_top;
 	p_memory_block_top->memory_block.memory_block_top_offset = 0;
 
-	p_memory_block_top->memory_blocks_count = 0;
+	p_memory_block_top->memory_blocks_count = 1;
 	p_memory_block_top->pp_memory_blocks = NULL;
-	p_memory_block_top->memory_pointers_count = 0;
-	p_memory_block_top->pp_memory_pointers = NULL;
 
 	/*get arrays lengths */
 	cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_builder->container.container_memory_block_list, list) {
 		++p_memory_block_top->memory_blocks_count;
 	}
-	cds_list_for_each_entry_safe(_container_pointer, __container_pointer, &p_memory_block_top_builder->container.container_pointer_list, list) {
-		++p_memory_block_top->memory_pointers_count;
-	}
-
 	if (p_memory_block_top->memory_blocks_count > 0) {
 		p_memory_block_top->pp_memory_blocks = (struct memory_block	**)calloc(
 				p_memory_block_top->memory_blocks_count, sizeof(*p_memory_block_top->pp_memory_blocks));
@@ -3036,6 +3030,8 @@ static int memory_block_top_builder_finalize(
 		}
 
 		i = 0;
+		p_memory_block_top->pp_memory_blocks[i] = &p_memory_block_top->memory_block;
+		++i;
 		cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_builder->container.container_memory_block_list, list) {
 			struct memory_block * p_memory_block = _container_memory_block->p_memory_block;
 			p_memory_block_top->pp_memory_blocks[i] = p_memory_block;
@@ -3063,6 +3059,13 @@ static int memory_block_top_builder_finalize(
 
 			++i;
 		}
+	}
+
+	p_memory_block_top->memory_pointers_count = 0;
+	p_memory_block_top->pp_memory_pointers = NULL;
+
+	cds_list_for_each_entry_safe(_container_pointer, __container_pointer, &p_memory_block_top_builder->container.container_pointer_list, list) {
+		++p_memory_block_top->memory_pointers_count;
 	}
 	if (p_memory_block_top->memory_pointers_count > 0) {
 		p_memory_block_top->pp_memory_pointers = (struct memory_pointer **)calloc(
@@ -3100,7 +3103,8 @@ void memory_block_top_clean(
 	}
 	if (p_memory_block_top->pp_memory_blocks != NULL) {
 		/* to clean memory_blocks*/
-		for (i = 0 ; i < p_memory_block_top->memory_blocks_count; ++i) {
+		p_memory_block_top->pp_memory_blocks[0] = NULL;
+		for (i = 1 ; i < p_memory_block_top->memory_blocks_count; ++i) {
 			memory_block_delete(&p_memory_block_top->pp_memory_blocks[i]);
 		}
 		free(p_memory_block_top->pp_memory_blocks);
@@ -3197,6 +3201,53 @@ struct memory_block_top * memory_block_top_create(
 		return NULL;
 	}
 	return p_memory_block_top;
+}
+int memory_block_top_find_closest_member(
+		struct memory_block_top *					p_memory_block_top,
+		struct element_type *						p_member_element_type,		/* note: actually we can use only actual_type and byte_size from here in case of weak pointer. */
+		metac_data_member_location_t				member_offset,
+		/*resulting data*/
+		struct element **							pp_element,
+		struct element_hierarchy_member **			pp_element_hierarchy_member,
+		metac_data_member_location_t *				p_remaining_offset) {
+	int i = 0;
+	struct element * p_element;
+	struct element_hierarchy_member * p_element_hierarchy_member;
+	metac_data_member_location_t remaining_offset = member_offset;
+	struct memory_block * p_memory_block = &p_memory_block_top->memory_block;
+
+	if (member_offset + p_member_element_type->byte_size > p_memory_block->byte_size) {
+		msg_stderr("member offset and byte_size are bigger than size of the memory_block_top\n");
+		return -(EINVAL);
+	}
+
+	do {
+		if (p_member_element_type->byte_size > p_memory_block->p_elements[0].p_element_type->byte_size) {
+			break;
+		}
+
+		i = member_offset / p_memory_block->p_elements[0].p_element_type->byte_size;
+		remaining_offset = member_offset % p_memory_block->p_elements[0].p_element_type->byte_size;
+
+		assert(i < p_memory_block->elements_count);
+		if (	remaining_offset == 0 &&
+				p_member_element_type->p_actual_type == p_memory_block->p_elements[i].p_element_type->p_actual_type) {
+			/*found - element i - TODO: store and break*/
+			break;
+		}
+		switch (p_memory_block->p_elements[i].p_element_type->p_actual_type->id) {
+			case DW_TAG_union_type:
+			case DW_TAG_structure_type:
+				/* TODO: look inside all members, if array is found do the same as V */
+				break;
+			case DW_TAG_array_type:
+				p_memory_block = p_memory_block->p_elements[i].array.p_memory_block;
+				continue;
+		}
+	} while(0);
+
+	/*TODO: relax type a bit if pp_element has a memory_block_top->memory_block as a parent and id is 0 and instance_offset was 0;*/
+//	return 0;
 }
 /*****************************************************************************/
 static int object_root_container_memory_block_reference_delete(
@@ -3335,9 +3386,17 @@ static int object_root_builder_update_pointer(
 	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
 	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
 	/* fill-in to info */
-	/*TODO: try to find an element in the p_element_pointer->memory_block_reference.p_memory_block_top with offset=p_element_pointer->ptr_offset and type=p_element_type_pointer->p_element_type->p_type*/
-//	p_element_pointer->ptr_offset;
-//	p_element_type_pointer->p_element_type->p_type;
+	/*try to find an element in the p_element_pointer->memory_block_reference.p_memory_block_top with
+	 * offset=p_element_pointer->ptr_offset and
+	 * type=p_element_type_pointer->p_element_type->p_type
+	 */
+	memory_block_top_find_closest_member(
+			p_element_pointer->memory_block_reference.p_memory_block_top,
+			p_element_type_pointer->p_element_type,
+			p_element_pointer->ptr_offset,
+			&p_element_pointer->memory_block_reference.reference_destination.p_element,
+			&p_element_pointer->memory_block_reference.reference_destination.p_element_hierarchy_member,
+			&p_element_pointer->memory_block_reference.offset);
 
 	return 0;
 }
@@ -3524,7 +3583,7 @@ static void object_root_builder_clean(
 	p_object_root_builder->p_object_root = NULL;
 }
 
-static int _compare_memory_block_top(const void *_a, const void *_b) {
+static int memory_block_top_compare4qsort(const void *_a, const void *_b) {
 	struct memory_block_top *a = *((struct memory_block_top **)_a);
 	struct memory_block_top *b = *((struct memory_block_top **)_b);
 	if (a->memory_block.ptr < b->memory_block.ptr)
@@ -3566,7 +3625,7 @@ static int object_root_builder_validate(
 	/*find unique regions*/
 	qsort(_tops, _count,
 			sizeof(*_tops),
-			_compare_memory_block_top); /*TODO: change to hsort? - low prio so far*/
+			memory_block_top_compare4qsort); /*TODO: change to hsort? - low prio so far*/
 
 	for (i = 1; i < _count; ++i) {
 		if (_tops[i-1]->memory_block.ptr == _tops[i]->memory_block.ptr) {
