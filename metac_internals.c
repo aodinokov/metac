@@ -2325,7 +2325,6 @@ static int element_init_hierarchy_top(
 				element_clean_hierarchy_top(p_element);
 				return (-EFAULT);
 			}
-			/*TODO: copy annotation key when create discriminator to pass it here v*/
 			if (p_element->p_element_type->hierarchy_top.pp_discriminators[i]->cb(
 					p_element->p_element_type->hierarchy_top.pp_discriminators[i]->annotation_key,
 					0,
@@ -2722,7 +2721,6 @@ static void memory_block_top_container_memory_block_clean(
 			p_memory_block_top_container_memory_block->p_memory_block != NULL) {
 		memory_block_delete(&p_memory_block_top_container_memory_block->p_memory_block);
 	}
-	/*TODO: cleanup references list: */
 }
 static int memory_block_top_container_memory_block_init(
 		struct memory_block_top_container_memory_block *
@@ -2734,7 +2732,6 @@ static int memory_block_top_container_memory_block_init(
 		return -EINVAL;
 	}
 	p_memory_block_top_container_memory_block->p_memory_block = p_memory_block;
-	/*TODO: init references list */
 	return 0;
 }
 /*TODO: this can be done via MACROCES*/
@@ -3429,7 +3426,6 @@ static int object_root_builder_process_pointer(
 		object_root_container_memory_block_top_delete(&p_object_root_container_memory_block_top);
 		return (-EFAULT);
 	}
-	/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
 	/* add to the list - after this point container will take care of deleting this item */
 	cds_list_add_tail(
 		&p_object_root_container_memory_block_top->list,
@@ -3645,7 +3641,6 @@ static int object_root_builder_finalize(
 				++j;
 			}
 
-			//TODO: msg_stddbg("added memory_block %s\n", _container_memory_block->path_within_memory_block_top);
 			++i;
 		}
 	}
