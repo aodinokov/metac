@@ -1831,10 +1831,14 @@ struct memory_block_top_builder_memory_block_task {
 	struct memory_block *							p_memory_block;
 };
 /*****************************************************************************/
+struct object_root_container_memory_block_reference {
+	struct cds_list_head							list;
+	struct memory_block_reference *					p_memory_block_reference;
+};
 struct object_root_container_memory_block_top {
 	struct cds_list_head							list;
 	struct memory_block_top *						p_memory_block_top;
-	//TODO: struct cds_list_head							references;
+	struct cds_list_head							references;
 };
 struct object_root_container {
 	/* contains object_root_container_memory_block_top */
@@ -1992,6 +1996,12 @@ static int element_pointer_init(
 			return -EINVAL;
 		}
 		p_element_pointer->p_actual_element_type = p_element_type_pointer->generic_cast.p_types[p_element_pointer->generic_cast_type_id].p_element_type;
+	}
+
+	/* TODO: move this to the driver level. this is an implementation for real pointers */
+	p_element_pointer->ptr_offset = 0;
+	if (p_element_pointer->ptr > p_element_pointer->actual_ptr) {
+		p_element_pointer->ptr_offset = p_element_pointer->ptr - p_element_pointer->actual_ptr;
 	}
 
 	/* need to get array length*/
@@ -3079,6 +3089,10 @@ void memory_block_top_clean(
 		struct memory_block_top *					p_memory_block_top) {
 	metac_count_t i;
 
+	if (p_memory_block_top->pp_memory_block_references != NULL) {
+		free(p_memory_block_top->pp_memory_block_references);
+		p_memory_block_top->pp_memory_block_references = NULL;
+	}
 	if (p_memory_block_top->pp_memory_pointers != NULL) {
 		/* to clean memory_pointers*/
 		for (i = 0 ; i < p_memory_block_top->memory_pointers_count; ++i) {
@@ -3188,13 +3202,38 @@ struct memory_block_top * memory_block_top_create(
 	return p_memory_block_top;
 }
 /*****************************************************************************/
+static int object_root_container_memory_block_reference_delete(
+		struct object_root_container_memory_block_reference **
+													pp_object_root_container_memory_block_reference) {
+	_delete_start_(object_root_container_memory_block_reference);
+	(*pp_object_root_container_memory_block_reference)->p_memory_block_reference = NULL;
+	_delete_finish(object_root_container_memory_block_reference);
+	return 0;
+}
+static struct object_root_container_memory_block_reference * object_root_container_memory_block_reference_create(
+		struct memory_block_reference *				p_memory_block_reference) {
+	if (p_memory_block_reference == NULL) {
+		msg_stderr("p_memory_block_reference is invalid\n");
+		return NULL;
+	}
+	_create_(object_root_container_memory_block_reference);
+	p_object_root_container_memory_block_reference->p_memory_block_reference = p_memory_block_reference;
+	return p_object_root_container_memory_block_reference;
+}
 static void object_root_container_memory_block_top_clean(
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top,
 		metac_flag									keep_data) {
+	struct object_root_container_memory_block_reference * _memory_block_reference, * __memory_block_reference;
+
 	if (	keep_data == 0 &&
 			p_object_root_container_memory_block_top->p_memory_block_top != NULL) {
 		memory_block_top_delete(&p_object_root_container_memory_block_top->p_memory_block_top);
+	}
+
+	cds_list_for_each_entry_safe(_memory_block_reference, __memory_block_reference, &p_object_root_container_memory_block_top->references, list) {
+		cds_list_del(&_memory_block_reference->list);
+		object_root_container_memory_block_reference_delete(&_memory_block_reference);
 	}
 }
 static int object_root_container_memory_block_top_init(
@@ -3207,6 +3246,7 @@ static int object_root_container_memory_block_top_init(
 		return -EINVAL;
 	}
 	p_object_root_container_memory_block_top->p_memory_block_top = p_memory_block_top;
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_top->references);
 	return 0;
 }
 static int object_root_container_memory_block_top_delete(
@@ -3274,6 +3314,36 @@ static struct object_root_builder_memory_block_top_task * object_root_builder_sc
 	}
 	return p_object_root_builder_memory_block_top_task;
 }
+static int object_root_builder_update_pointer(
+		struct object_root_builder *				p_object_root_builder,
+		char *										global_path,
+		struct element *							p_element,
+		struct element_hierarchy_member *			p_element_hierarchy_member,
+		struct element_pointer * 					p_element_pointer,
+		struct element_type_pointer * 				p_element_type_pointer,
+		struct object_root_container_memory_block_top *
+													p_object_root_container_memory_block_top) {
+	struct object_root_container_memory_block_reference * _memory_block_reference;
+
+	/* link memory_block_top and pointer in both directions */
+	_memory_block_reference = object_root_container_memory_block_reference_create(&p_element_pointer->memory_block_reference);
+	if (_memory_block_reference == NULL) {
+		msg_stderr("wasn't able to create object_root_container_memory_block_reference\n");
+		return -(EFAULT);
+	}
+	cds_list_add(&_memory_block_reference->list, &p_object_root_container_memory_block_top->references);
+	p_element_pointer->memory_block_reference.p_memory_block_top = p_object_root_container_memory_block_top->p_memory_block_top;
+
+	/* fill-in from info */
+	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
+	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
+	/* fill-in to info */
+	/*TODO: try to find an element in the p_element_pointer->memory_block_reference.p_memory_block_top with offset=p_element_pointer->ptr_offset and type=p_element_type_pointer->p_element_type->p_type*/
+//	p_element_pointer->ptr_offset;
+//	p_element_type_pointer->p_element_type->p_type;
+
+	return 0;
+}
 static int object_root_builder_process_pointer(
 		struct object_root_builder *				p_object_root_builder,
 		char *										global_path,
@@ -3297,17 +3367,12 @@ static int object_root_builder_process_pointer(
 		p_element_type_pointer = &p_element_hierarchy_member->p_element_type_hierarchy_member->pointer;
 	}
 
-	if (p_element_pointer->actual_ptr == NULL) {
-		/*NULL pointer - there is nothing to process*/
+	if (p_element_pointer->actual_ptr == NULL) { /* NULL pointer - that's ok. exiting, since there is nothing to process */
 		return 0;
 	}
 
 	elements_count = metac_array_info_get_element_count(p_element_pointer->p_array_info);
 	byte_size = p_element_pointer->p_actual_element_type->byte_size * elements_count;
-
-	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
-	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
-	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
 
 	cds_list_for_each_entry(
 		p_object_root_container_memory_block_top,
@@ -3323,16 +3388,18 @@ static int object_root_builder_process_pointer(
 				p_memory_block->elements_count == elements_count) {
 			msg_stddbg("found %p - skipping\n", p_object_root_container_memory_block_top);
 
-			p_element_pointer->memory_block_reference.p_memory_block = p_memory_block;
-			/*TODO: add info about back-reference p_object_root_container_memory_block->p_memory_block*/
+			object_root_builder_update_pointer(
+					p_object_root_builder,
+					global_path,
+					p_element,
+					p_element_hierarchy_member,
+					p_element_pointer,
+					p_element_type_pointer,
+					p_object_root_container_memory_block_top);
 			return 0;
 		}
 	}
-	/*TODO: check if elements_count == 1 and type is flexible, it's possible that this memory_block is flexible - try it out (create memory_block here and do the magic)
-	 * pass it as argument to object_root_container_memory_block_top_create instead of current arguments.
-	 * if will contain pre-filled info already - condition values and single flex_length
-	 * ??? it may be that it's more convenient to schedule pointers, or
-	 */
+
 	p_object_root_container_memory_block_top = object_root_container_memory_block_top_create(
 			global_path,
 			p_element_pointer->actual_ptr,
@@ -3343,6 +3410,16 @@ static int object_root_builder_process_pointer(
 		msg_stderr("object_root_container_memory_block_top_create failed for %s\n", global_path);
 		return (-EFAULT);
 	}
+
+	/*create memory_block_reference and schedule processing of the memory_block_reference->p_memory_block*/
+	object_root_builder_update_pointer(
+			p_object_root_builder,
+			global_path,
+			p_element,
+			p_element_hierarchy_member,
+			p_element_pointer,
+			p_element_type_pointer,
+			p_object_root_container_memory_block_top);
 
 	if (object_root_builder_schedule_object_root_container_memory_block_top(
 			p_object_root_builder,
@@ -3515,7 +3592,7 @@ static int object_root_builder_validate(
 static int object_root_builder_finalize(
 		struct object_root_builder *				p_object_root_builder,
 		struct object_root *						p_object_root) {
-	metac_count_t i;
+	metac_count_t i, j;
 	struct object_root_container_memory_block_top * _memory_block_top;
 
 	if (object_root_builder_validate(p_object_root_builder) != 0) {
@@ -3533,7 +3610,8 @@ static int object_root_builder_finalize(
 
 	if (p_object_root->memory_block_tops_count > 0) {
 		p_object_root->pp_memory_block_tops = (struct memory_block_top	**)calloc(
-				p_object_root->memory_block_tops_count, sizeof(*p_object_root->pp_memory_block_tops));
+				p_object_root->memory_block_tops_count,
+				sizeof(*p_object_root->pp_memory_block_tops));
 		if (p_object_root->pp_memory_block_tops == NULL) {
 			msg_stderr("can't allocate memory for memory_block_tops\n");
 			return (-ENOMEM);
@@ -3541,8 +3619,32 @@ static int object_root_builder_finalize(
 
 		i = 0;
 		cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
+			struct object_root_container_memory_block_reference * _memory_block_reference;
+
 			p_object_root->pp_memory_block_tops[i] = _memory_block_top->p_memory_block_top;
+
 			p_object_root->pp_memory_block_tops[i]->id = i;
+			p_object_root->pp_memory_block_tops[i]->memory_block_references_count = 0;
+			cds_list_for_each_entry(_memory_block_reference, &_memory_block_top->references, list) {
+				++p_object_root->pp_memory_block_tops[i]->memory_block_references_count;
+			}
+
+			if (p_object_root->pp_memory_block_tops[i]->memory_block_references_count > 0) {
+				p_object_root->pp_memory_block_tops[i]->pp_memory_block_references = (struct memory_block_reference	**)calloc(
+						p_object_root->pp_memory_block_tops[i]->memory_block_references_count,
+						sizeof(*p_object_root->pp_memory_block_tops[i]->pp_memory_block_references));
+				if (p_object_root->pp_memory_block_tops[i]->pp_memory_block_references == NULL) {
+					msg_stderr("can't allocate memory for memory_block_references\n");
+					return (-ENOMEM);
+				}
+			}
+
+			j = 0;
+			cds_list_for_each_entry(_memory_block_reference, &_memory_block_top->references, list) {
+				p_object_root->pp_memory_block_tops[i]->pp_memory_block_references[j] = _memory_block_reference->p_memory_block_reference;
+				++j;
+			}
+
 			//TODO: msg_stddbg("added memory_block %s\n", _container_memory_block->path_within_memory_block_top);
 			++i;
 		}

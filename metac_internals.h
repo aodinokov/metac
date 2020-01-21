@@ -129,11 +129,10 @@ struct memory_pointer {
 	struct element *								p_element;
 	struct element_hierarchy_member *				p_element_hierarchy_member;			/* only if element is hierarchy(struct/union) */
 };
-struct memory_block_reference {
+struct memory_block_reference {	/*TODO: rename to memory_block_top_reference*/
+	struct memory_block_top	*						p_memory_block_top;
+
 	struct memory_pointer							reference_location;
-
-	struct memory_block	*							p_memory_block;						/* original memory_block */
-
 	/*????depends on how we recalculate it */
 	/*reference destination and offset are initialized only if pointer was pointing to the place other than beginning of the p_memory_block*/
 	struct memory_pointer							reference_destination;
@@ -157,18 +156,15 @@ struct memory_block {
 
 	metac_count_t									elements_count;
 	struct element *								p_elements;
-
-	/* answers who is pointing to this memory_block*/
-	metac_count_t									memory_block_references_count;
-	struct memory_block_reference ** 				pp_memory_block_references;
 };
 struct element_pointer {
 	metac_flag										use_cast;
 	metac_count_t									generic_cast_type_id;				/*we use callback to get this*/
 
-	void *											ptr;								// TODO: maybe offset is enough? another option - additional range
 	void *											actual_ptr;							/* after generic_cast if it's a case */
 	struct element_type * 							p_actual_element_type;				/* after generic_cast if it's a case */
+	void *											ptr;								/* the pointer that was read */
+	metac_data_member_location_t					ptr_offset;							/* the delta between ptr and actual_ptr*/
 
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 	metac_array_info_t *							p_array_info;
@@ -222,6 +218,10 @@ struct memory_block_top {
 
 	metac_count_t									memory_pointers_count;
 	struct memory_pointer **						pp_memory_pointers;
+
+	/* answers who is pointing to this memory_block*/
+	metac_count_t									memory_block_references_count;
+	struct memory_block_reference ** 				pp_memory_block_references;
 };
 struct object_root {
 	void * 											ptr;
