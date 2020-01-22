@@ -1911,20 +1911,63 @@ static void element_array_clean(
 		metac_array_info_delete(&p_element_array->p_array_info);
 	}
 }
+static int element_array_check_parents(
+		struct element_array *						p_element_array,
+		char *										path_within_memory_block_top,
+		struct element *							p_containing_element,
+		struct element_hierarchy_member *			p_containing_element_hierarchy_member) { /*returns -EFAULT if can't use flexible*/
+
+	struct element * p_current_element;
+	struct element_hierarchy_member * p_current_element_hierarchy_member;
+
+	if (p_containing_element_hierarchy_member != NULL) {
+		if (p_containing_element->p_memory_block->elements_count > 1) {
+			return -EFAULT;
+		}
+	}
+
+	p_current_element = p_containing_element->p_memory_block->local_parent.p_element;
+	p_current_element_hierarchy_member = p_containing_element->p_memory_block->local_parent.p_element_hierarchy_member;
+
+	while(p_current_element != NULL) {
+		if (p_current_element_hierarchy_member != NULL) {
+			assert(	p_current_element->p_element_type->p_actual_type->id == DW_TAG_structure_type ||
+					p_current_element->p_element_type->p_actual_type->id == DW_TAG_union_type);
+			assert(p_current_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_array_type);
+			assert(p_current_element_hierarchy_member->array.p_array_info);
+			if (metac_array_info_get_element_count(p_current_element_hierarchy_member->array.p_array_info) > 1) {
+				return -EFAULT;
+			}
+		}else{
+			assert(p_current_element->p_element_type->p_actual_type->id == DW_TAG_array_type);
+			assert(p_current_element->array.p_array_info);
+			if (metac_array_info_get_element_count(p_current_element->array.p_array_info) > 1) {
+				return -EFAULT;
+			}
+		}
+		p_current_element = p_current_element->p_memory_block->local_parent.p_element;
+		p_current_element_hierarchy_member = p_current_element->p_memory_block->local_parent.p_element_hierarchy_member;
+	}
+	return 0;
+}
 static int element_array_init(
 		struct element_array *						p_element_array,
 		struct element_type_array *					p_element_type_array,
 		char *										path_within_memory_block_top,
+		struct element *							p_containing_element,
+		struct element_hierarchy_member *			p_containing_element_hierarchy_member,
 		void *										actual_ptr,
 		struct metac_type *							p_actual_type) {
 	p_element_array->actual_ptr = actual_ptr;
 
-	/*TODO: flexible will work only if p_memory_block->element_count == 1 all the way here */
 	if (p_actual_type->array_type_info.is_flexible != 0) {
+
 		if (p_element_type_array->array_elements_count.cb == NULL) {
 			msg_stderr("Flexible array length callback isn't defined for %s\n", path_within_memory_block_top);
 			return (-EFAULT);
 		}
+
+		p_element_array->is_flexible = 1;
 
 		if (p_element_type_array->array_elements_count.cb(
 				p_element_type_array->annotation_key,
@@ -1939,6 +1982,26 @@ static int element_array_init(
 			msg_stderr("Flexible array length callback failed for %s\n", path_within_memory_block_top);
 			return (-EFAULT);
 		}
+
+		msg_stddbg("cb returned subrange0_count %d", (int)p_element_array->subrange0_count);
+		/*
+		 * flexible will work only if p_memory_block->element_count == 1 all the way here
+		 * check for the incorrect combinations
+		 * */
+		if (element_array_check_parents(
+				p_element_array,
+				path_within_memory_block_top,
+				p_containing_element,
+				p_containing_element_hierarchy_member) != 0) {
+
+			if (p_element_array->subrange0_count > 0) {
+				msg_stderr("Flexible array can't have size %d, that is > 0, because parent arrays already had size >1 %s\n",
+						(int)p_element_array->subrange0_count,
+						path_within_memory_block_top);
+				return (-EFAULT);
+			}
+		}
+
 	}else{
 		  metac_type_array_subrange_count(p_actual_type, 0, &p_element_array->subrange0_count);
 	}
@@ -2061,7 +2124,14 @@ static int element_hierarchy_member_init_array(
 	p_actual_type = p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type;
 	new_offset = p_element_hierarchy_member->p_element->id * p_element_hierarchy_member->p_element->p_element_type->byte_size + p_element_hierarchy_member->p_element_type_hierarchy_member->offset;
 
-	if (element_array_init(p_element_array, p_element_type_array, path_within_memory_block_top, p_element_hierarchy_member->p_element->p_memory_block->ptr + new_offset, p_actual_type) != 0) {
+	if (element_array_init(
+			p_element_array,
+			p_element_type_array,
+			path_within_memory_block_top,
+			p_element_hierarchy_member->p_element,
+			p_element_hierarchy_member,
+			p_element_hierarchy_member->p_element->p_memory_block->ptr + new_offset,
+			p_actual_type) != 0) {
 		msg_stderr("element_array_init failed\n");
 		element_hierarchy_member_clean_array(p_element_hierarchy_member);
 		return -(EFAULT);
@@ -2403,7 +2473,14 @@ static int element_init_array(
 	p_actual_type = p_element->p_element_type->p_actual_type;
 	new_offset = p_element->id * p_element->p_element_type->byte_size;
 
-	if (element_array_init(p_element_array, p_element_type_array, path_within_memory_block_top, p_element->p_memory_block->ptr + new_offset, p_actual_type) != 0) {
+	if (element_array_init(
+			p_element_array,
+			p_element_type_array,
+			path_within_memory_block_top,
+			p_element,
+			NULL,
+			p_element->p_memory_block->ptr + new_offset,
+			p_actual_type) != 0) {
 		msg_stderr("element_array_init failed\n");
 		element_clean_array(p_element);
 		return -(EFAULT);
@@ -2554,7 +2631,8 @@ int memory_block_init(
 		void *										ptr,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
-		metac_count_t								elements_count) {
+		metac_count_t								elements_count,
+		metac_flag									is_flexible) {
 	metac_count_t i;
 	char * new_path_pattern;
 
@@ -2587,6 +2665,7 @@ int memory_block_init(
 	p_memory_block->ptr = ptr;
 	p_memory_block->byte_size = byte_size;
 	p_memory_block->elements_count = elements_count;
+	p_memory_block->is_flexible = is_flexible;
 	p_memory_block->local_parent.p_element = p_local_parent_element;
 	p_memory_block->local_parent.p_element_hierarchy_member = p_local_parent_element_hierarchy_member;
 
@@ -2638,7 +2717,8 @@ struct memory_block * memory_block_create(
 		void *										ptr,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
-		metac_count_t								elements_count) {
+		metac_count_t								elements_count,
+		metac_flag									is_flexible) {
 	_create_(memory_block);
 	if (memory_block_init(
 			p_memory_block,
@@ -2647,7 +2727,8 @@ struct memory_block * memory_block_create(
 			ptr,
 			byte_size,
 			p_element_type,
-			elements_count) != 0) {
+			elements_count,
+			is_flexible) != 0) {
 		msg_stderr("element_init failed\n");
 		memory_block_delete(&p_memory_block);
 		return NULL;
@@ -2750,8 +2831,8 @@ static struct memory_block_top_container_memory_block * memory_block_top_contain
 		void *										ptr,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
-		metac_count_t								elements_count
-		) {
+		metac_count_t								elements_count,
+		metac_flag									is_flexible) {
 	_create_(memory_block_top_container_memory_block);
 	if (memory_block_top_container_memory_block_init(
 			p_memory_block_top_container_memory_block,
@@ -2761,7 +2842,8 @@ static struct memory_block_top_container_memory_block * memory_block_top_contain
 						ptr,
 						byte_size,
 						p_element_type,
-						elements_count)) != 0) {
+						elements_count,
+						is_flexible)) != 0) {
 		memory_block_top_container_memory_block_delete(&p_memory_block_top_container_memory_block, 0);
 		msg_stderr("memory_block_top_container_memory_block_delete failed\n");
 		return NULL;
@@ -2849,13 +2931,19 @@ static int memory_block_top_builder_process_array(
 	elements_count = metac_array_info_get_element_count(p_element_array->p_array_info);
 	byte_size = p_element_type->byte_size * elements_count;
 
+	if (elements_count == 0) {
+		/*array has size 0 - nothing to process */
+		return 0;
+	}
+
 	p_memory_block_top_container_memory_block = memory_block_top_container_memory_block_create(
 			p_element,
 			p_element_hierarchy_member,
 			p_element_array->actual_ptr,
 			byte_size,
 			p_element_type,
-			elements_count);
+			elements_count,
+			p_element_array->is_flexible);
 	if (p_memory_block_top_container_memory_block == NULL) {
 		msg_stderr("memory_block_top_container_memory_block_create failed for %s%s%s\n",
 				(p_element==NULL)?"":p_element->path_within_memory_block_top,
@@ -3010,6 +3098,7 @@ static int memory_block_top_builder_finalize(
 	struct memory_block_top_container_memory_block * _container_memory_block, * __container_memory_block;
 	struct memory_block_top_container_pointer * _container_pointer, * __container_pointer;
 
+	/* collect all memory blocks */
 	p_memory_block_top->memory_block.id = 0;
 	p_memory_block_top->memory_block.p_memory_block_top = p_memory_block_top;
 	p_memory_block_top->memory_block.memory_block_top_offset = 0;
@@ -3017,7 +3106,7 @@ static int memory_block_top_builder_finalize(
 	p_memory_block_top->memory_blocks_count = 1;
 	p_memory_block_top->pp_memory_blocks = NULL;
 
-	/*get arrays lengths */
+	/* get memory blocks number */
 	cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_builder->container.container_memory_block_list, list) {
 		++p_memory_block_top->memory_blocks_count;
 	}
@@ -3061,6 +3150,17 @@ static int memory_block_top_builder_finalize(
 		}
 	}
 
+	/* calculate flexible part if any*/
+	p_memory_block_top->is_flexible = 0;
+	p_memory_block_top->flexible_byte_size = 0;
+	for (i = 0; i < p_memory_block_top->memory_blocks_count; ++i) {
+		if (p_memory_block_top->pp_memory_blocks[i]->is_flexible) {
+			p_memory_block_top->is_flexible = 1;
+			p_memory_block_top->flexible_byte_size += p_memory_block_top->pp_memory_blocks[i]->byte_size;
+		}
+	}
+
+	/* collect pointers */
 	p_memory_block_top->memory_pointers_count = 0;
 	p_memory_block_top->pp_memory_pointers = NULL;
 
@@ -3141,7 +3241,8 @@ int memory_block_top_init(
 			ptr,
 			byte_size,
 			p_element_type,
-			elements_count) != 0) {
+			elements_count,
+			0) != 0) {
 		msg_stderr("tasks memory_block_top_container_memory_block_create finished with fail\n");
 		memory_block_top_builder_clean(&memory_block_top_builder, 0);
 		return (-EFAULT);
@@ -3214,15 +3315,26 @@ int memory_block_top_find_closest_member(
 	int i, j;
 	struct element * p_element;
 	struct element_hierarchy_member * p_element_hierarchy_member;
-	metac_data_member_location_t remaining_offset = member_offset;
-	struct memory_block * p_memory_block = &p_memory_block_top->memory_block;
+	metac_data_member_location_t remaining_offset;
+	struct memory_block * p_memory_block;
+
+	if (p_memory_block_top == NULL ||
+		p_member_element_type == NULL ||
+		pp_element == NULL ||
+		pp_element_hierarchy_member == NULL ||
+		p_remaining_offset == NULL) {
+		msg_stderr("one of the pointers is NULL (invalid value for this function)\n");
+		return -(EINVAL);
+	}
+
+	remaining_offset = member_offset;
+	p_memory_block = &p_memory_block_top->memory_block;
 
 	if (member_offset + p_member_element_type->byte_size > p_memory_block->byte_size) {
 		msg_stderr("member offset and byte_size are bigger than size of the memory_block_top\n");
 		return -(EINVAL);
 	}
 
-	remaining_offset = member_offset;
 	do {
 		metac_flag need_continue = 0;
 
@@ -3825,7 +3937,8 @@ static int object_root_init(
 			&p_object_root->ptr,
 			sizeof(p_object_root->ptr),
 			p_element_type_top->p_element_type_for_pointer,
-			1) != 0) {
+			1,
+			0) != 0) {
 		msg_stderr("memory_block_init failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
 		object_root_clean(p_object_root);

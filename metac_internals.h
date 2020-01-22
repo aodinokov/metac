@@ -154,6 +154,8 @@ struct memory_block {
 	void * 											ptr;								/*real mem - not always initialized*/
 	metac_count_t									byte_size;							/* 0 - unknown?*/
 
+	metac_flag										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
+
 	metac_count_t									elements_count;
 	struct element *								p_elements;
 };
@@ -172,7 +174,9 @@ struct element_pointer {
 	struct memory_block_reference					memory_block_reference;
 };
 struct element_array {
+	metac_flag										is_flexible;
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
+
 	metac_array_info_t *							p_array_info;
 	void *											actual_ptr;							/* after generic_cast if it's a case */
 
@@ -222,6 +226,9 @@ struct memory_block_top {
 	/* answers who is pointing to this memory_block*/
 	metac_count_t									memory_block_references_count;
 	struct memory_block_reference ** 				pp_memory_block_references;
+
+	metac_flag										is_flexible;						/* if contained flexible arrays */
+	metac_byte_size_t								flexible_byte_size;					/* flexible part: should be added to the memory_block_top*/
 };
 struct object_root {
 	void * 											ptr;
