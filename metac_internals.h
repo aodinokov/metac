@@ -131,9 +131,8 @@ struct memory_pointer {
 };
 struct memory_block_reference {	/*TODO: rename to memory_block_top_reference*/
 	struct memory_block_top	*						p_memory_block_top;
-
+	/*reference info about itself, so it's possible to go in the reverse direction*/
 	struct memory_pointer							reference_location;
-	/*????depends on how we recalculate it */
 	/*reference destination and offset are initialized only if pointer was pointing to the place other than beginning of the p_memory_block*/
 	struct memory_pointer							reference_destination;
 	metac_data_member_location_t					offset;
@@ -236,11 +235,36 @@ struct object_root {
 
 	metac_count_t									memory_block_tops_count;			/*only memory_blocks without parents*/
 	struct memory_block_top	**						pp_memory_block_tops;
-
-	/*pointers to ranges can be calculated via mem_blocks if we count all originating info??? anyway we'll get the list of all pointers*/
 };
 struct metac_runtime_object {
 	struct object_root								object_root;
+};
+/*****************************************************************************/
+/*TODO: backend_drivers - move them somewhere once finish */
+struct memory_backend_interface;
+struct memory_backend_interface_ops {
+	/* p_memory_backend_interface here always points to the p_memory_block of the element */
+	int												(*read)(
+//			struct memory_backend_interface *			p_memory_backend_interface,
+			struct element *							p_element,
+			struct element_hierarchy_member *			p_element_hierarchy_member);
+	/*...*/
+	int												(*get_ptr_for_element)(				/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
+//			struct memory_backend_interface *			p_memory_backend_interface,
+			struct element *							p_element,
+			struct element_hierarchy_member *			p_element_hierarchy_member,
+			struct memory_backend_interface **			pp_memory_backend_interface);
+	int												(*get_ptr_from_element)(			/* using info about the current element read the it and create new p_memory_backend_interface*/
+//			struct memory_backend_interface *			p_memory_backend_interface,
+			struct element *							p_element,
+			struct element_hierarchy_member *			p_element_hierarchy_member,
+			struct memory_backend_interface **			pp_memory_backend_interface);
+	int												(*put_ptr)(
+			struct memory_backend_interface *			p_memory_backend_interface);
+};
+struct memory_backend_interface {
+	void *											ptr;
+	struct memory_backend_interface_ops *			p_ops;
 };
 /*****************************************************************************/
 struct discriminator * discriminator_create(
