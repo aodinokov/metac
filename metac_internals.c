@@ -3210,7 +3210,8 @@ int memory_block_top_find_closest_member(
 		struct element **							pp_element,
 		struct element_hierarchy_member **			pp_element_hierarchy_member,
 		metac_data_member_location_t *				p_remaining_offset) {
-	int i = 0;
+	/*TODO: this is ad-hoc function, we need to cover it with unit-tests*/
+	int i, j;
 	struct element * p_element;
 	struct element_hierarchy_member * p_element_hierarchy_member;
 	metac_data_member_location_t remaining_offset = member_offset;
@@ -3221,33 +3222,103 @@ int memory_block_top_find_closest_member(
 		return -(EINVAL);
 	}
 
+	remaining_offset = member_offset;
 	do {
-		if (p_member_element_type->byte_size > p_memory_block->p_elements[0].p_element_type->byte_size) {
-			break;
-		}
+		metac_flag need_continue = 0;
 
-		i = member_offset / p_memory_block->p_elements[0].p_element_type->byte_size;
-		remaining_offset = member_offset % p_memory_block->p_elements[0].p_element_type->byte_size;
+		/* find element that matches the offset */
+		i = remaining_offset / p_memory_block->p_elements[0].p_element_type->byte_size;
+		remaining_offset = remaining_offset % p_memory_block->p_elements[0].p_element_type->byte_size;
 
 		assert(i < p_memory_block->elements_count);
 		if (	remaining_offset == 0 &&
 				p_member_element_type->p_actual_type == p_memory_block->p_elements[i].p_element_type->p_actual_type) {
-			/*found - element i - TODO: store and break*/
-			break;
+			/*found - element i - store and return*/
+			/*relax type a bit if pp_element has a memory_block_top->memory_block as a parent and id is 0 and instance_offset was 0;*/
+			if (i == 0 &&
+				p_memory_block->id == 0) {
+				msg_stddbg("found the memory_block_top by itself\n");
+				*pp_element = NULL;
+			}else{
+				msg_stderr("found precise element %d\n", (int)i);
+				*pp_element = &p_memory_block->p_elements[i];
+			}
+			*pp_element_hierarchy_member = NULL;
+			*p_remaining_offset = 0;
+
+
+			return 0;
 		}
 		switch (p_memory_block->p_elements[i].p_element_type->p_actual_type->id) {
-			case DW_TAG_union_type:
-			case DW_TAG_structure_type:
-				/* TODO: look inside all members, if array is found do the same as V */
-				break;
 			case DW_TAG_array_type:
+				msg_stderr("going deeper into the next array\n");
 				p_memory_block = p_memory_block->p_elements[i].array.p_memory_block;
 				continue;
+			case DW_TAG_union_type:
+			case DW_TAG_structure_type:
+
+				need_continue = 0;
+
+				/* look inside all members, if array is found do the same as V */
+				for (j = 0; j < p_memory_block->p_elements[i].p_element_type->hierarchy_top.members_count; ++j) {
+
+					if (p_memory_block->p_elements[i].hierarchy_top.pp_members[j] != NULL) {
+						metac_data_member_location_t offset = p_memory_block->p_elements[i].hierarchy_top.pp_members[j]->p_element_type_hierarchy_member->offset;
+
+						if (	offset == remaining_offset &&
+								p_member_element_type->p_actual_type ==
+										p_memory_block->p_elements[i].hierarchy_top.pp_members[j]->p_element_type_hierarchy_member->p_actual_type) {
+							/*found - element i - store and return*/
+							msg_stderr("found precise element %d member %d\n", (int)i, (int)j);
+							*pp_element = &p_memory_block->p_elements[i];
+							*pp_element_hierarchy_member = p_memory_block->p_elements[i].hierarchy_top.pp_members[j];
+							*p_remaining_offset = 0;
+							return 0;
+						}
+
+						if (p_memory_block->p_elements[i].p_element_type->p_actual_type->id == DW_TAG_array_type) {
+							msg_stderr("going deeper into the next member array\n");
+							p_memory_block = p_memory_block->p_elements[i].array.p_memory_block;
+							need_continue = 1;
+							break;
+						}
+
+						remaining_offset = remaining_offset - offset;
+						if (p_member_element_type->p_actual_type !=
+								p_memory_block->p_elements[i].hierarchy_top.pp_members[j]->p_element_type_hierarchy_member->p_actual_type) {
+							msg_stderr("WARNING: type of the pointer doesn't match with the element found by its address\n");
+						}
+						/*found - element i + offset - store and return*/
+						msg_stderr("found element %d member %d + offset %d\n", (int)i, (int)j, (int)remaining_offset);
+						*pp_element = &p_memory_block->p_elements[i];
+						*pp_element_hierarchy_member = p_memory_block->p_elements[i].hierarchy_top.pp_members[j];
+						*p_remaining_offset = remaining_offset;
+						return 0;
+					}
+				}
+
+				if (need_continue != 0) {
+					need_continue = 0;
+					continue;
+				}
+
+				break;
+			default:
+				if (p_member_element_type->p_actual_type !=
+						p_memory_block->p_elements[i].p_element_type->p_actual_type) {
+					msg_stderr("WARNING: type of the pointer doesn't match with the element found by its address\n");
+				}
+				/*found - element i + offset - store and return*/
+				msg_stderr("found element %d + offset %d\n", (int)i, (int)remaining_offset);
+				*pp_element = &p_memory_block->p_elements[i];
+				*pp_element_hierarchy_member = NULL;
+				*p_remaining_offset = remaining_offset;
+
+				return 0;
 		}
 	} while(0);
 
-	/*TODO: relax type a bit if pp_element has a memory_block_top->memory_block as a parent and id is 0 and instance_offset was 0;*/
-//	return 0;
+	return -(EFAULT);
 }
 /*****************************************************************************/
 static int object_root_container_memory_block_reference_delete(
@@ -3329,7 +3400,8 @@ static struct object_root_container_memory_block_top * object_root_container_mem
 }
 /*****************************************************************************/
 static int object_root_builder_delete_memory_block_top_task(
-		struct object_root_builder_memory_block_top_task **		pp_object_root_builder_memory_block_top_task) {
+		struct object_root_builder_memory_block_top_task **
+													pp_object_root_builder_memory_block_top_task) {
 	_delete_start_(object_root_builder_memory_block_top_task);
 	if ((*pp_object_root_builder_memory_block_top_task)->global_path) {
 		free((*pp_object_root_builder_memory_block_top_task)->global_path);
@@ -3385,18 +3457,22 @@ static int object_root_builder_update_pointer(
 	/* fill-in from info */
 	p_element_pointer->memory_block_reference.reference_location.p_element = p_element;
 	p_element_pointer->memory_block_reference.reference_location.p_element_hierarchy_member = p_element_hierarchy_member;
-	/* fill-in to info */
-	/*try to find an element in the p_element_pointer->memory_block_reference.p_memory_block_top with
+
+	/* fill-in to info:
+	 * try to find an element in the p_element_pointer->memory_block_reference.p_memory_block_top with
 	 * offset=p_element_pointer->ptr_offset and
 	 * type=p_element_type_pointer->p_element_type->p_type
 	 */
-	memory_block_top_find_closest_member(
+	if (memory_block_top_find_closest_member(
 			p_element_pointer->memory_block_reference.p_memory_block_top,
 			p_element_type_pointer->p_element_type,
 			p_element_pointer->ptr_offset,
 			&p_element_pointer->memory_block_reference.reference_destination.p_element,
 			&p_element_pointer->memory_block_reference.reference_destination.p_element_hierarchy_member,
-			&p_element_pointer->memory_block_reference.offset);
+			&p_element_pointer->memory_block_reference.offset) != 0) {
+		msg_stderr("memory_block_top_find_closest_member failed\n");
+		return -(EFAULT);
+	}
 
 	return 0;
 }
@@ -3582,17 +3658,29 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
-
-static int memory_block_top_compare4qsort(const void *_a, const void *_b) {
+static int memory_block_top_compare4qsort(
+		const void *								_a,
+		const void *								_b) {
 	struct memory_block_top *a = *((struct memory_block_top **)_a);
 	struct memory_block_top *b = *((struct memory_block_top **)_b);
-	if (a->memory_block.ptr < b->memory_block.ptr)
+
+	if (a->memory_block.ptr < b->memory_block.ptr) {
 		return -1;
+	}
+
 	if (a->memory_block.ptr == b->memory_block.ptr) {
-		if (a->memory_block.byte_size > b->memory_block.byte_size)return -1;
-		if (a->memory_block.byte_size == b->memory_block.byte_size)return 0;
+
+		if (a->memory_block.byte_size > b->memory_block.byte_size) {
+			return -1;
+		}
+
+		if (a->memory_block.byte_size == b->memory_block.byte_size) {
+			return 0;
+		}
+
 		return 1;
 	}
+
 	return 1;
 }
 static int object_root_builder_validate(

@@ -181,8 +181,8 @@ struct element_array {
 struct element_hierarchy_member {
 	metac_count_t									id;
 
-	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;
-	struct element *								p_element;
+	struct element_type_hierarchy_member *			p_element_type_hierarchy_member;	/* type description */
+	struct element *								p_element;							/* element to which this member belongs to */
 
 	union {
 		struct element_pointer						pointer;
