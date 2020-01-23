@@ -123,7 +123,9 @@ struct element_type_top {
 struct metac_precompiled_type {
 	struct element_type_top							element_type_top;
 };
-
+/*****************************************************************************/
+/* abstract substitution for pointers */
+struct memory_backend_interface;
 /*****************************************************************************/
 struct memory_pointer {
 	struct element *								p_element;
@@ -150,7 +152,8 @@ struct memory_block {
 
 	struct memory_pointer							local_parent;
 
-	void * 											ptr;								/*real mem - not always initialized*/
+	void * 											ptr;								/* real mem - not always initialized TODO: to remove after p_memory_backend_interface inrroduction*/
+	struct memory_backend_interface *				p_memory_backend_interface;			/* abstract memory access */
 	metac_count_t									byte_size;							/* 0 - unknown?*/
 
 	metac_flag										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
@@ -240,32 +243,69 @@ struct metac_runtime_object {
 	struct object_root								object_root;
 };
 /*****************************************************************************/
-/*TODO: backend_drivers - move them somewhere once finish */
-struct memory_backend_interface;
 struct memory_backend_interface_ops {
-	/* p_memory_backend_interface here always points to the p_memory_block of the element */
-	int												(*read)(
-//			struct memory_backend_interface *			p_memory_backend_interface,
+	/* abstract destructor */
+	int												(*memory_backend_interface_delete)(
+			struct memory_backend_interface **			pp_memory_backend_interface);
+	/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
+	int												(*element_get_memory_backend_interface)(
 			struct element *							p_element,
-			struct element_hierarchy_member *			p_element_hierarchy_member);
-	/*...*/
-	int												(*get_ptr_for_element)(				/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
-//			struct memory_backend_interface *			p_memory_backend_interface,
-			struct element *							p_element,
+			struct memory_backend_interface **			pp_memory_backend_interface);
+	/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
+	int												(*element_hierarchy_member_get_memory_backend_interface)(
 			struct element_hierarchy_member *			p_element_hierarchy_member,
 			struct memory_backend_interface **			pp_memory_backend_interface);
-	int												(*get_ptr_from_element)(			/* using info about the current element read the it and create new p_memory_backend_interface*/
-//			struct memory_backend_interface *			p_memory_backend_interface,
+	/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
+	int												(*element_read_memory_backend_interface)(
 			struct element *							p_element,
+			struct memory_backend_interface **			pp_memory_backend_interface);
+	/* calculate new pp_memory_backend_interface based on the current p_memory_backend_interface and info about element*/
+	int												(*element_hierarchy_member_read_memory_backend_interface)(
 			struct element_hierarchy_member *			p_element_hierarchy_member,
 			struct memory_backend_interface **			pp_memory_backend_interface);
-	int												(*put_ptr)(
-			struct memory_backend_interface *			p_memory_backend_interface);
+	/* TBD: params */
+	int												(*element_get_array_subrange0)(
+			);
+	/* TBD: params */
+	int												(*element_hierarchy_member_get_array_subrange0)(
+			);
+	/* TBD: params */
+	int												(*element_get_pointer_subrange0)(
+			);
+	/* TBD: params */
+	int												(*element_hierarchy_member_get_pointer_subrange0)(
+			);
+	/* TBD: params */
+	int												(*element_generic_cast_pointer)(
+			);
+	/* TBD: params */
+	int												(*element_hierarchy_member_generic_cast_pointer)(
+			);
+	/* TBD: params */
+	int												(*element_calculate_discriminators)(
+			);
 };
 struct memory_backend_interface {
-	void *											ptr;
 	struct memory_backend_interface_ops *			p_ops;
 };
+int memory_backend_interface_delete(
+		struct memory_backend_interface **			pp_memory_backend_interface);
+int element_get_memory_backend_interface(
+		struct element *							p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface);
+int element_hierarchy_member_get_memory_backend_interface(
+		struct element_hierarchy_member *			p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface);
+int element_read_memory_backend_interface(
+		struct element *							p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface);
+int element_hierarchy_member_read_memory_backend_interface(
+		struct element_hierarchy_member *			p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface);
+/*TBD: finalize the list*/
+/*****************************************************************************/
+struct memory_backend_pointer * memory_backend_interface_create_from_pointer(
+		void *										ptr);
 /*****************************************************************************/
 struct discriminator * discriminator_create(
 		struct metac_type *							p_root_type,
