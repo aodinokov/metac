@@ -53,7 +53,7 @@ static inline struct memory_backend_pointer * memory_backend_pointer(
 			struct memory_backend_pointer,
 			memory_backend_interface);
 }
-
+/*****************************************************************************/
 static int memory_backend_pointer_delete(
 		struct memory_backend_pointer **			pp_memory_backend_pointer) {
 	_delete_start_(memory_backend_pointer);
@@ -95,7 +95,43 @@ static int _element_get_memory_backend_interface(
 			p_element->id * p_element->p_element_type->byte_size);
 
 	if (p_result_memory_backend_pointer == NULL) {
-		msg_stderr("memory_backend_interface_create_from_pointer failed");
+		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
+		return -(EFAULT);
+	}
+
+	if (pp_memory_backend_interface) {
+		*pp_memory_backend_interface = &p_result_memory_backend_pointer->memory_backend_interface;
+	}
+
+	return 0;
+}
+
+static int _element_read_memory_backend_interface(
+		struct element *							p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface) {
+
+	struct memory_backend_pointer * p_memory_backend_pointer;
+	struct memory_backend_pointer * p_result_memory_backend_pointer;
+
+	assert(p_element);
+	assert(p_element->p_memory_block);
+	assert(p_element->p_memory_block->p_memory_backend_interface);
+
+	p_memory_backend_pointer = memory_backend_pointer(p_element->p_memory_block->p_memory_backend_interface);
+	assert(p_memory_backend_pointer);
+
+	if (p_memory_backend_pointer->ptr == NULL) {
+		msg_stderr("memory block is initialized with NULL\n");
+		return -(EFAULT);
+	}
+
+	p_result_memory_backend_pointer = memory_backend_interface_create_from_pointer(
+			*((void**)(
+					p_memory_backend_pointer->ptr +
+					p_element->id * p_element->p_element_type->byte_size)));
+
+	if (p_result_memory_backend_pointer == NULL) {
+		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
 		return -(EFAULT);
 	}
 
@@ -127,7 +163,7 @@ static int _element_hierarchy_member_get_memory_backend_interface(
 			p_element_hierarchy_member->p_element_type_hierarchy_member->offset);
 
 	if (p_result_memory_backend_pointer == NULL) {
-		msg_stderr("memory_backend_interface_create_from_pointer failed");
+		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
 		return -(EFAULT);
 	}
 
@@ -138,17 +174,41 @@ static int _element_hierarchy_member_get_memory_backend_interface(
 	return 0;
 }
 
-static int _element_read_memory_backend_interface(
-		struct element *							p_element,
-		struct memory_backend_interface **			pp_memory_backend_interface) {
-	/*TODO:*/
-	return 0;
-}
-
 static int _element_hierarchy_member_read_memory_backend_interface(
 		struct element_hierarchy_member *			p_element_hierarchy_member,
 		struct memory_backend_interface **			pp_memory_backend_interface) {
-	/*TODO:*/
+
+	struct memory_backend_pointer * p_memory_backend_pointer;
+	struct memory_backend_pointer * p_result_memory_backend_pointer;
+
+	assert(p_element_hierarchy_member);
+	assert(p_element_hierarchy_member->p_element);
+	assert(p_element_hierarchy_member->p_element->p_memory_block);
+	assert(p_element_hierarchy_member->p_element->p_memory_block->p_memory_backend_interface);
+
+	p_memory_backend_pointer = memory_backend_pointer(p_element_hierarchy_member->p_element->p_memory_block->p_memory_backend_interface);
+	assert(p_memory_backend_pointer);
+
+	if (p_memory_backend_pointer->ptr == NULL) {
+		msg_stderr("memory block is initialized with NULL\n");
+		return -(EFAULT);
+	}
+
+	p_result_memory_backend_pointer = memory_backend_interface_create_from_pointer(
+			*((void**)(
+					p_memory_backend_pointer->ptr +
+					p_element_hierarchy_member->p_element->id * p_element_hierarchy_member->p_element->p_element_type->byte_size +
+					p_element_hierarchy_member->p_element_type_hierarchy_member->offset)));
+
+	if (p_result_memory_backend_pointer == NULL) {
+		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
+		return -(EFAULT);
+	}
+
+	if (pp_memory_backend_interface) {
+		*pp_memory_backend_interface = &p_result_memory_backend_pointer->memory_backend_interface;
+	}
+
 	return 0;
 }
 
@@ -156,11 +216,11 @@ static int _element_hierarchy_member_read_memory_backend_interface(
 static struct memory_backend_interface_ops ops = {
 	.memory_backend_interface_delete = 				_memory_backend_interface_delete,
 	.element_get_memory_backend_interface = 		_element_get_memory_backend_interface,
-	.element_hierarchy_member_get_memory_backend_interface =
-													_element_hierarchy_member_get_memory_backend_interface,
 	.element_read_memory_backend_interface =		_element_read_memory_backend_interface,
 	.element_hierarchy_member_read_memory_backend_interface =
 													_element_hierarchy_member_read_memory_backend_interface,
+	.element_hierarchy_member_get_memory_backend_interface =
+													_element_hierarchy_member_get_memory_backend_interface,
 };
 /*****************************************************************************/
 struct memory_backend_pointer * memory_backend_interface_create_from_pointer(
