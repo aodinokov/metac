@@ -165,10 +165,12 @@ struct element_pointer {
 	metac_flag										use_cast;
 	metac_count_t									generic_cast_type_id;				/*we use callback to get this*/
 
-	void *											actual_ptr;							/* after generic_cast if it's a case */
-	struct element_type * 							p_actual_element_type;				/* after generic_cast if it's a case */
-	void *											ptr;								/* the pointer that was read */
-	metac_data_member_location_t					ptr_offset;							/* the delta between ptr and actual_ptr*/
+	void *											actual_ptr;							/* after generic_cast if it's a case TODO: to remove */
+	void *											ptr;								/* the pointer that was read TODO: to remove*/
+	struct memory_backend_interface *				p_casted_memory_backend_interface;	/* the interface what was read */
+	struct memory_backend_interface *				p_original_memory_backend_interface;/* the interface what was read */
+	struct element_type * 							p_actual_element_type;				/* after generic_cast if it's a case TODO: rename to p_casted_element_type*/
+	metac_data_member_location_t					ptr_offset;							/* the delta between ptr and actual_ptr TODO: rename to original_to_casted_offset*/
 
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 	metac_array_info_t *							p_array_info;
@@ -292,6 +294,7 @@ struct memory_backend_interface_ops {
 struct memory_backend_interface {
 	struct memory_backend_interface_ops *			p_ops;
 };
+/*****************************************************************************/
 int memory_backend_interface_delete(
 		struct memory_backend_interface **			pp_memory_backend_interface);
 int memory_backend_interface_equals(

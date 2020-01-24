@@ -142,6 +142,19 @@ int	element_get_array_subrange0(
 		return -(EINVAL);
 	}
 
+	assert(p_element->p_element_type);
+	assert(p_element->p_element_type->p_actual_type);
+
+	if (p_element->p_element_type->p_actual_type->id != DW_TAG_array_type) {
+		msg_stderr("p_element isn't array\n");
+		return -(EINVAL);
+	}
+
+	if (p_element->p_element_type->p_actual_type->array_type_info.is_flexible == 0) {
+		msg_stderr("p_element isn't flexible array\n");
+		return -(EINVAL);
+	}
+
 	assert(p_element->p_memory_block);
 	assert(p_element->p_memory_block->p_memory_backend_interface);
 
@@ -162,6 +175,14 @@ int element_get_pointer_subrange0(
 
 	if (p_element == NULL) {
 		msg_stderr("p_element is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_element->p_element_type);
+	assert(p_element->p_element_type->p_actual_type);
+
+	if (p_element->p_element_type->p_actual_type->id != DW_TAG_pointer_type) {
+		msg_stderr("p_element isn't pointer\n");
 		return -(EINVAL);
 	}
 
@@ -188,6 +209,14 @@ int element_cast_pointer(
 		return -(EINVAL);
 	}
 
+	assert(p_element->p_element_type);
+	assert(p_element->p_element_type->p_actual_type);
+
+	if (p_element->p_element_type->p_actual_type->id != DW_TAG_pointer_type) {
+		msg_stderr("p_element isn't pointer\n");
+		return -(EINVAL);
+	}
+
 	assert(p_element->p_memory_block);
 	assert(p_element->p_memory_block->p_memory_backend_interface);
 
@@ -208,6 +237,15 @@ int element_calculate_hierarchy_top_discriminator_values(
 
 	if (p_element == NULL) {
 		msg_stderr("p_element is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_element->p_element_type);
+	assert(p_element->p_element_type->p_actual_type);
+
+	if (p_element->p_element_type->p_actual_type->id != DW_TAG_structure_type ||
+		p_element->p_element_type->p_actual_type->id != DW_TAG_union_type) {
+		msg_stderr("p_element isn't hierarchy(structure or union)\n");
 		return -(EINVAL);
 	}
 
@@ -311,6 +349,19 @@ int element_hierarchy_member_get_array_subrange0(
 		return -(EINVAL);
 	}
 
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member);
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type);
+
+	if (p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id != DW_TAG_array_type) {
+		msg_stderr("p_element_hierarchy_member isn't array\n");
+		return -(EINVAL);
+	}
+
+	if (p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->array_type_info.is_flexible == 0) {
+		msg_stderr("p_element_hierarchy_member isn't flexible array\n");
+		return -(EINVAL);
+	}
+
 	assert(p_element_hierarchy_member->p_element);
 	assert(p_element_hierarchy_member->p_element->p_memory_block);
 	assert(p_element_hierarchy_member->p_element->p_memory_block->p_memory_backend_interface);
@@ -335,6 +386,14 @@ int element_hierarchy_member_get_pointer_subrange0(
 		return -(EINVAL);
 	}
 
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member);
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type);
+
+	if (p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id != DW_TAG_pointer_type) {
+		msg_stderr("p_element_hierarchy_member isn't array\n");
+		return -(EINVAL);
+	}
+
 	assert(p_element_hierarchy_member->p_element);
 	assert(p_element_hierarchy_member->p_element->p_memory_block);
 	assert(p_element_hierarchy_member->p_element->p_memory_block->p_memory_backend_interface);
@@ -356,6 +415,14 @@ int element_hierarchy_member_cast_pointer(
 
 	if (p_element_hierarchy_member == NULL) {
 		msg_stderr("p_element_hierarchy_member is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member);
+	assert(p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type);
+
+	if (p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id != DW_TAG_pointer_type) {
+		msg_stderr("p_element_hierarchy_member isn't array\n");
 		return -(EINVAL);
 	}
 

@@ -60,6 +60,51 @@ static int memory_backend_pointer_delete(
 	_delete_finish(memory_backend_pointer);
 	return 0;
 }
+#if 0
+/*WIP*/
+static int element_pointer_cast_pointer(
+		struct element_pointer *					p_element_pointer,
+		struct element_type_pointer *				p_element_type_pointer) {
+
+	/* exit normally if pointer is NULL */
+	if (p_element_pointer->ptr == NULL) {
+		return 0;
+	}
+
+	/*type cast if needed*/
+	p_element_pointer->actual_ptr = p_element_pointer->ptr;
+	p_element_pointer->p_actual_element_type = p_element_type_pointer->p_element_type;
+
+	if (p_element_type_pointer->generic_cast.cb != NULL) {
+		int res = p_element_type_pointer->generic_cast.cb(
+				p_element_type_pointer->annotation_key,
+				0,
+				&p_element_pointer->use_cast,
+				&p_element_pointer->generic_cast_type_id,
+				&p_element_pointer->ptr,
+				&p_element_pointer->actual_ptr,
+				p_element_type_pointer->generic_cast.p_data);
+		if (res != 0) {
+			msg_stderr("generic_cast.cb returned error %d\n", res);
+			return res;
+		}
+		if (p_element_pointer->generic_cast_type_id >= p_element_type_pointer->generic_cast.types_count) {
+			msg_stderr("generic_cast.cb set incorrect generic_cast_type_id %d. Maximum value is %d\n",
+					p_element_pointer->generic_cast_type_id,
+					p_element_type_pointer->generic_cast.types_count);
+			return -EINVAL;
+		}
+		p_element_pointer->p_actual_element_type = p_element_type_pointer->generic_cast.p_types[p_element_pointer->generic_cast_type_id].p_element_type;
+	}
+
+	p_element_pointer->ptr_offset = 0;
+	if (p_element_pointer->ptr > p_element_pointer->actual_ptr) {
+		p_element_pointer->ptr_offset = p_element_pointer->ptr - p_element_pointer->actual_ptr;
+	}
+
+	return 0;
+}
+#endif
 /*****************************************************************************/
 static int _memory_backend_interface_delete(
 		struct memory_backend_interface **			pp_memory_backend_interface) {
@@ -77,6 +122,21 @@ static int _memory_backend_interface_delete(
 	return 0;
 }
 
+static int _memory_backend_interface_equals(
+		struct memory_backend_interface *			p_memory_backend_interface0,
+		struct memory_backend_interface *			p_memory_backend_interface1) {
+	struct memory_backend_pointer * p_memory_backend_pointer0;
+	struct memory_backend_pointer * p_memory_backend_pointer1;
+
+	assert(p_memory_backend_interface0);
+	assert(p_memory_backend_interface1);
+
+	p_memory_backend_pointer0 = memory_backend_pointer(p_memory_backend_interface0);
+	p_memory_backend_pointer1 = memory_backend_pointer(p_memory_backend_interface1);
+
+	return p_memory_backend_pointer0 == p_memory_backend_pointer1;
+}
+/*****************************************************************************/
 static int _element_get_memory_backend_interface(
 		struct element *							p_element,
 		struct memory_backend_interface **			pp_memory_backend_interface) {
@@ -142,6 +202,32 @@ static int _element_read_memory_backend_interface(
 	return 0;
 }
 
+static int _element_get_array_subrange0(
+		struct element *							p_element) {
+	return 0;
+}
+
+static int _element_get_pointer_subrange0(
+		struct element *							p_element) {
+	return 0;
+}
+
+static int _element_cast_pointer(
+		struct element *							p_element) {
+
+	assert(p_element);
+	assert(p_element->p_element_type);
+
+
+	return 0;
+}
+
+static int _element_calculate_hierarchy_top_discriminator_values(
+		struct element *							p_element) {
+	return 0;
+}
+
+/*****************************************************************************/
 static int _element_hierarchy_member_get_memory_backend_interface(
 		struct element_hierarchy_member *			p_element_hierarchy_member,
 		struct memory_backend_interface **			pp_memory_backend_interface) {
@@ -212,15 +298,43 @@ static int _element_hierarchy_member_read_memory_backend_interface(
 	return 0;
 }
 
+static int _element_hierarchy_member_get_array_subrange0(
+		struct element_hierarchy_member *			p_element_hierarchy_member) {
+	return 0;
+}
+
+static int _element_hierarchy_member_get_pointer_subrange0(
+		struct element_hierarchy_member *			p_element_hierarchy_member) {
+	return 0;
+}
+
+static int _element_hierarchy_member_cast_pointer(
+		struct element_hierarchy_member *			p_element_hierarchy_member) {
+	return 0;
+}
 /*****************************************************************************/
 static struct memory_backend_interface_ops ops = {
-	.memory_backend_interface_delete = 				_memory_backend_interface_delete,
-	.element_get_memory_backend_interface = 		_element_get_memory_backend_interface,
+	/* Mandatory handlers */
+	.memory_backend_interface_delete =				_memory_backend_interface_delete,
+	.memory_backend_interface_equals =				_memory_backend_interface_equals,
+
+	.element_get_memory_backend_interface =			_element_get_memory_backend_interface,
 	.element_read_memory_backend_interface =		_element_read_memory_backend_interface,
+	.element_get_array_subrange0 =					_element_get_array_subrange0,
+	.element_get_pointer_subrange0 =				_element_get_pointer_subrange0,
+	.element_cast_pointer =							_element_cast_pointer,
+	.element_calculate_hierarchy_top_discriminator_values =
+													_element_calculate_hierarchy_top_discriminator_values,
+
 	.element_hierarchy_member_read_memory_backend_interface =
 													_element_hierarchy_member_read_memory_backend_interface,
 	.element_hierarchy_member_get_memory_backend_interface =
 													_element_hierarchy_member_get_memory_backend_interface,
+	.element_hierarchy_member_get_array_subrange0 =	_element_hierarchy_member_get_array_subrange0,
+	.element_hierarchy_member_get_pointer_subrange0 =
+													_element_hierarchy_member_get_pointer_subrange0,
+	.element_hierarchy_member_cast_pointer =		_element_hierarchy_member_cast_pointer,
+	/* Optional handlers */
 };
 /*****************************************************************************/
 struct memory_backend_pointer * memory_backend_interface_create_from_pointer(
