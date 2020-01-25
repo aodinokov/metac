@@ -314,7 +314,7 @@ metac_array_info_t * metac_array_info_create_from_type(struct metac_type *type, 
 		subranges_count = type->array_type_info.subranges_count;
 		break;
 	default:
-		msg_stderr("metac_array_info_t can't be created(%d)\n", (int)id);
+		msg_stderr("metac_array_info_t can't be created from type(0x%x)\n", (int)id);
 		return NULL;
 	}
 

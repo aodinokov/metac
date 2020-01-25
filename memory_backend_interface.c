@@ -9,11 +9,57 @@
 
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
+#include <stdint.h>			/* UINT32_MAX */
 
 #include "metac_internals.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
 
-int memory_backend_interface_delete(
+int memory_backend_interface(
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct memory_backend_interface_ops *		p_memory_backend_interface_ops) {
+
+	if (p_memory_backend_interface == NULL) {
+		msg_stderr("p_memory_backend_interface is NULL\n");
+		return -(EINVAL);
+	}
+
+	if (p_memory_backend_interface_ops == NULL) {
+		msg_stderr("p_memory_backend_interface_ops is NULL\n");
+		return -(EINVAL);
+	}
+
+	p_memory_backend_interface->p_ops = p_memory_backend_interface_ops;
+	p_memory_backend_interface->_ref_count = 1;
+
+	return 0;
+}
+
+int memory_backend_interface_get(
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct memory_backend_interface **			pp_memory_backend_interface) {
+
+	if (p_memory_backend_interface == NULL) {
+		msg_stderr("p_memory_backend_interface is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_memory_backend_interface->_ref_count < UINT32_MAX);
+
+	if (p_memory_backend_interface->_ref_count == UINT32_MAX) {
+		msg_stderr("too many references\n");
+		return -(EFAULT);
+	}
+
+	++p_memory_backend_interface->_ref_count;
+
+	if (pp_memory_backend_interface != NULL) {
+		*pp_memory_backend_interface = p_memory_backend_interface;
+	}
+
+	return 0;
+}
+
+int memory_backend_interface_put(
 		struct memory_backend_interface **			pp_memory_backend_interface) {
 
 	if (pp_memory_backend_interface == NULL) {
@@ -24,6 +70,11 @@ int memory_backend_interface_delete(
 	if ((*pp_memory_backend_interface) == NULL) {
 		msg_stddbg("p_memory_backend_interface is NULL\n");
 		return -EALREADY;
+	}
+
+	if ((--(*pp_memory_backend_interface)->_ref_count) > 0) {
+		*pp_memory_backend_interface = NULL;	/*???*/
+		return 0;
 	}
 
 	if ((*pp_memory_backend_interface)->p_ops->memory_backend_interface_delete == NULL) {

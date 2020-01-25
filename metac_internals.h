@@ -1,5 +1,6 @@
 /*
- * metac_internals.h
+
+* metac_internals.h
  *
  *  Created on: Feb 19, 2018
  *      Author: mralex
@@ -9,6 +10,7 @@
 #define METAC_INTERNALS_H_
 
 #include "metac_type.h"
+#include <stdint.h>	/*uint32_t*/
 
 /*****************************************************************************/
 struct element_type_hierarchy_member;
@@ -152,8 +154,11 @@ struct memory_block {
 
 	struct memory_pointer							local_parent;
 
-	void * 											ptr;								/* real mem - not always initialized TODO: to remove after p_memory_backend_interface inrroduction*/
+//	/* will be removed*/
+//	void * 											ptr;								/* real mem - not always initialized TODO: to remove after p_memory_backend_interface inrroduction*/
+	/*this will work instead*/
 	struct memory_backend_interface *				p_memory_backend_interface;			/* abstract memory access */
+
 	metac_count_t									byte_size;							/* 0 - unknown?*/
 
 	metac_flag										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
@@ -162,27 +167,27 @@ struct memory_block {
 	struct element *								p_elements;
 };
 struct element_pointer {
-	metac_flag										use_cast;
-	metac_count_t									generic_cast_type_id;				/*we use callback to get this*/
-
-	void *											actual_ptr;							/* after generic_cast if it's a case TODO: to remove */
-	void *											ptr;								/* the pointer that was read TODO: to remove*/
-	struct memory_backend_interface *				p_casted_memory_backend_interface;	/* the interface what was read */
 	struct memory_backend_interface *				p_original_memory_backend_interface;/* the interface what was read */
-	struct element_type * 							p_actual_element_type;				/* after generic_cast if it's a case TODO: rename to p_casted_element_type*/
-	metac_data_member_location_t					ptr_offset;							/* the delta between ptr and actual_ptr TODO: rename to original_to_casted_offset*/
+
+	metac_flag										use_cast;
+	metac_count_t									generic_cast_type_id;				/* we use callback to get this*/
+	struct element_type *							p_casted_element_type;				/* after generic_cast */
+	struct memory_backend_interface *				p_casted_memory_backend_interface;	/* the interface what was read */
+	metac_data_member_location_t					casted_based_original_offset;		/* the delta between original and casted offsets*/
 
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
+
 	metac_array_info_t *							p_array_info;
 
 	struct memory_block_reference					memory_block_reference;
 };
 struct element_array {
+	struct memory_backend_interface *				p_memory_backend_interface;			/* the interface what was read */
+
 	metac_flag										is_flexible;
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 
 	metac_array_info_t *							p_array_info;
-	void *											actual_ptr;							/* after generic_cast if it's a case */
 
 	struct memory_block	*							p_memory_block;
 };
@@ -292,10 +297,17 @@ struct memory_backend_interface_ops {
 			struct element_hierarchy_member *			p_element_hierarchy_member);
 };
 struct memory_backend_interface {
+	uint32_t										_ref_count;
 	struct memory_backend_interface_ops *			p_ops;
 };
 /*****************************************************************************/
-int memory_backend_interface_delete(
+int memory_backend_interface(
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct memory_backend_interface_ops *		p_memory_backend_interface_ops);
+int memory_backend_interface_get(
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct memory_backend_interface **			pp_memory_backend_interface);
+int memory_backend_interface_put(
 		struct memory_backend_interface **			pp_memory_backend_interface);
 int memory_backend_interface_equals(
 		struct memory_backend_interface *			p_memory_backend_interface0,
@@ -327,7 +339,7 @@ int element_hierarchy_member_get_pointer_subrange0(
 int element_hierarchy_member_cast_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
 /*****************************************************************************/
-struct memory_backend_pointer * memory_backend_interface_create_from_pointer(
+struct memory_backend_interface * memory_backend_interface_create_from_pointer(
 		void *										ptr);
 /*****************************************************************************/
 struct discriminator * discriminator_create(
@@ -389,6 +401,11 @@ int element_type_top_init(
 		struct element_type_top *					p_element_type_top);
 void element_type_top_clean(
 		struct element_type_top *					p_element_type_top);
+/*****************************************************************************/
+struct discriminator_value * discriminator_value_create(
+		metac_discriminator_value_t					value);
+int discriminator_value_delete(
+		struct discriminator_value **				pp_discriminator_value);
 
 #if 0
 struct region_element_type_member {
