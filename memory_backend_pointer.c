@@ -199,84 +199,6 @@ static int element_pointer_get_pointer_subrange0(
 
 	return 0;
 }
-
-
-#if 0
-//static int memory_block_top_compare4qsort(
-//		const void *								_a,
-//		const void *								_b) {
-//	struct memory_block_top *a = *((struct memory_block_top **)_a);
-//	struct memory_block_top *b = *((struct memory_block_top **)_b);
-//
-//	if (a->memory_block.ptr < b->memory_block.ptr) {
-//		return -1;
-//	}
-//
-//	if (a->memory_block.ptr == b->memory_block.ptr) {
-//
-//		if (a->memory_block.byte_size > b->memory_block.byte_size) {
-//			return -1;
-//		}
-//
-//		if (a->memory_block.byte_size == b->memory_block.byte_size) {
-//			return 0;
-//		}
-//
-//		return 1;
-//	}
-//
-//	return 1;
-//}
-//static int object_root_builder_validate(
-//		struct object_root_builder *				p_object_root_builder) {
-//	/* TODO: validation works only for real pointers - should be taken to drivers */
-//	int result = 0;
-//	metac_count_t i = 0;
-//	metac_count_t _count = 0;
-//	struct memory_block_top	** _tops;
-//	struct object_root_container_memory_block_top * _memory_block_top;
-//
-//	/*get arrays lengths */
-//	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
-//		++_count;
-//	}
-//	if (_count == 0) {
-//		return 0;
-//	}
-//
-//	_tops = (struct memory_block_top	**)calloc(_count, sizeof(*_tops));
-//	if (_tops == NULL) {
-//		msg_stderr("can't allocate memory for _tops\n");
-//		return (-ENOMEM);
-//	}
-//	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
-//		_tops[i] = _memory_block_top->p_memory_block_top;
-//		++i;
-//	}
-//
-//	/*find unique regions*/
-//	qsort(_tops, _count,
-//			sizeof(*_tops),
-//			memory_block_top_compare4qsort); /*TODO: change to hsort? - low prio so far*/
-//
-//	for (i = 1; i < _count; ++i) {
-//		if (_tops[i-1]->memory_block.ptr == _tops[i]->memory_block.ptr) {
-//			msg_stderr("found the same ptr twice- error\n");
-//			result = -EFAULT;
-//			break;
-//		}
-//		if (	_tops[i]->memory_block.ptr > _tops[i-1]->memory_block.ptr &&
-//				_tops[i]->memory_block.ptr < _tops[i-1]->memory_block.ptr + _tops[i-1]->memory_block.byte_size) {
-//			msg_stderr("memory_block_tops are overlapping - error\n");
-//			result = -EFAULT;
-//			break;
-//		}
-//	}
-//
-//	free(_tops);
-//	return result;
-//}
-#endif
 /*****************************************************************************/
 static int _memory_backend_interface_delete(
 		struct memory_backend_interface **			pp_memory_backend_interface) {
@@ -521,6 +443,88 @@ static int _element_hierarchy_member_cast_pointer(
 
 }
 /*****************************************************************************/
+static inline void * memory_block_top_get_ptr(
+		struct memory_block_top *					p_memory_block_top) {
+	assert(p_memory_block_top);
+	struct memory_backend_pointer * p_memory_backend_pointer =
+			memory_backend_pointer(p_memory_block_top->memory_block.p_memory_backend_interface);
+	return p_memory_backend_pointer?p_memory_backend_pointer->ptr:NULL;
+}
+
+static int memory_block_top_compare4qsort(
+		const void *								_a,
+		const void *								_b) {
+	struct memory_block_top *a = *((struct memory_block_top **)_a);
+	struct memory_block_top *b = *((struct memory_block_top **)_b);
+
+	if (memory_block_top_get_ptr(a) < memory_block_top_get_ptr(b)) {
+		return -1;
+	}
+
+	if (memory_block_top_get_ptr(a) == memory_block_top_get_ptr(b)) {
+
+		if (memory_block_top_get_ptr(a) > memory_block_top_get_ptr(b)) {
+			return -1;
+		}
+
+		if (memory_block_top_get_ptr(a) == memory_block_top_get_ptr(b)) {
+			return 0;
+		}
+
+		return 1;
+	}
+
+	return 1;
+}
+
+static int _object_root_validate(
+		struct object_root *						p_object_root) {
+
+	int result = 0;
+	metac_count_t i = 0;
+
+	struct memory_block_top	** _tops;
+
+	if (p_object_root->memory_block_tops_count == 0) {
+		/*TODO: actually it's strange*/
+		return 0;
+	}
+
+	_tops = (struct memory_block_top **)calloc(p_object_root->memory_block_tops_count, sizeof(*_tops));
+	if (_tops == NULL) {
+		msg_stderr("can't allocate memory for _tops\n");
+		return (-ENOMEM);
+	}
+
+	for (i = 0; i < p_object_root->memory_block_tops_count; ++i) {
+		_tops[i] = p_object_root->pp_memory_block_tops[i];
+	}
+
+	/*find unique regions*/
+	qsort(_tops, p_object_root->memory_block_tops_count,
+			sizeof(*_tops),
+			memory_block_top_compare4qsort); /*TODO: change to hsort? - low prio so far*/
+
+	for (i = 1; i < p_object_root->memory_block_tops_count; ++i) {
+		if (memory_block_top_get_ptr(_tops[i-1]) == memory_block_top_get_ptr(_tops[i])) {
+			msg_stderr("found the same ptr twice- error\n");
+			result = -EFAULT;
+			break;
+		}
+		if (	memory_block_top_get_ptr(_tops[i]) > memory_block_top_get_ptr(_tops[i-1]) &&
+				memory_block_top_get_ptr(_tops[i]) < memory_block_top_get_ptr(_tops[i-1]) + _tops[i-1]->memory_block.byte_size) {
+			msg_stderr("memory_block_tops are overlapping - error\n");
+			result = -EFAULT;
+			break;
+		}
+	}
+
+
+	free(_tops);
+	return result;
+}
+
+/*****************************************************************************/
 static struct memory_backend_interface_ops ops = {
 	/* Mandatory handlers */
 	.memory_backend_interface_delete =				_memory_backend_interface_delete,
@@ -543,6 +547,7 @@ static struct memory_backend_interface_ops ops = {
 													_element_hierarchy_member_get_pointer_subrange0,
 	.element_hierarchy_member_cast_pointer =		_element_hierarchy_member_cast_pointer,
 	/* Optional handlers */
+	.object_root_validate =							_object_root_validate,
 };
 /*****************************************************************************/
 struct memory_backend_interface * memory_backend_interface_create_from_pointer(

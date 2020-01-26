@@ -3655,90 +3655,12 @@ static void object_root_builder_clean(
 	object_root_container_clean(&p_object_root_builder->container, keep_data);
 	p_object_root_builder->p_object_root = NULL;
 }
-//static int memory_block_top_compare4qsort(
-//		const void *								_a,
-//		const void *								_b) {
-//	struct memory_block_top *a = *((struct memory_block_top **)_a);
-//	struct memory_block_top *b = *((struct memory_block_top **)_b);
-//
-//	if (a->memory_block.ptr < b->memory_block.ptr) {
-//		return -1;
-//	}
-//
-//	if (a->memory_block.ptr == b->memory_block.ptr) {
-//
-//		if (a->memory_block.byte_size > b->memory_block.byte_size) {
-//			return -1;
-//		}
-//
-//		if (a->memory_block.byte_size == b->memory_block.byte_size) {
-//			return 0;
-//		}
-//
-//		return 1;
-//	}
-//
-//	return 1;
-//}
-//static int object_root_builder_validate(
-//		struct object_root_builder *				p_object_root_builder) {
-//	/* TODO: validation works only for real pointers - should be taken to drivers */
-//	int result = 0;
-//	metac_count_t i = 0;
-//	metac_count_t _count = 0;
-//	struct memory_block_top	** _tops;
-//	struct object_root_container_memory_block_top * _memory_block_top;
-//
-//	/*get arrays lengths */
-//	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
-//		++_count;
-//	}
-//	if (_count == 0) {
-//		return 0;
-//	}
-//
-//	_tops = (struct memory_block_top	**)calloc(_count, sizeof(*_tops));
-//	if (_tops == NULL) {
-//		msg_stderr("can't allocate memory for _tops\n");
-//		return (-ENOMEM);
-//	}
-//	cds_list_for_each_entry(_memory_block_top, &p_object_root_builder->container.memory_block_top_list, list) {
-//		_tops[i] = _memory_block_top->p_memory_block_top;
-//		++i;
-//	}
-//
-//	/*find unique regions*/
-//	qsort(_tops, _count,
-//			sizeof(*_tops),
-//			memory_block_top_compare4qsort); /*TODO: change to hsort? - low prio so far*/
-//
-//	for (i = 1; i < _count; ++i) {
-//		if (_tops[i-1]->memory_block.ptr == _tops[i]->memory_block.ptr) {
-//			msg_stderr("found the same ptr twice- error\n");
-//			result = -EFAULT;
-//			break;
-//		}
-//		if (	_tops[i]->memory_block.ptr > _tops[i-1]->memory_block.ptr &&
-//				_tops[i]->memory_block.ptr < _tops[i-1]->memory_block.ptr + _tops[i-1]->memory_block.byte_size) {
-//			msg_stderr("memory_block_tops are overlapping - error\n");
-//			result = -EFAULT;
-//			break;
-//		}
-//	}
-//
-//	free(_tops);
-//	return result;
-//}
+
 static int object_root_builder_finalize(
 		struct object_root_builder *				p_object_root_builder,
 		struct object_root *						p_object_root) {
 	metac_count_t i, j;
 	struct object_root_container_memory_block_top * _memory_block_top;
-
-//	if (object_root_builder_validate(p_object_root_builder) != 0) {
-//		msg_stderr("Validation of the parsed object hasn't passed\n");
-//		return -(EFAULT);
-//	}
 
 	p_object_root->memory_block_tops_count = 0;
 	p_object_root->pp_memory_block_tops = NULL;
@@ -3775,6 +3697,7 @@ static int object_root_builder_finalize(
 						sizeof(*p_object_root->pp_memory_block_tops[i]->pp_memory_block_references));
 				if (p_object_root->pp_memory_block_tops[i]->pp_memory_block_references == NULL) {
 					msg_stderr("can't allocate memory for memory_block_references\n");
+					/*TODO: if it fails here - some objects will be deleted twice. make _safe and delete objects while finalizing */
 					return (-ENOMEM);
 				}
 			}
@@ -3793,7 +3716,6 @@ static int object_root_builder_finalize(
 static void object_root_clean(
 		struct object_root *						p_object_root) {
 	int i;
-	memory_block_clean(&p_object_root->memory_block_for_pointer);
 	/*filled in */
 	if (p_object_root->pp_memory_block_tops) {
 		for (i = 0; i < p_object_root->memory_block_tops_count; ++i) {
@@ -3804,20 +3726,24 @@ static void object_root_clean(
 		free(p_object_root->pp_memory_block_tops);
 		p_object_root->pp_memory_block_tops = NULL;
 	}
+
+	memory_block_clean(&p_object_root->memory_block_for_pointer);
+
+	if (p_object_root->p_memory_backend_interface != NULL) {
+		memory_backend_interface_put(&p_object_root->p_memory_backend_interface);
+	}
 }
 static int object_root_init(
 		struct object_root *						p_object_root,
-		void *										ptr,
+		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type_top *					p_element_type_top) {
-	struct memory_backend_interface * p_memory_backend_interface;
 	struct object_root_builder object_root_builder;
 	object_root_builder_init(&object_root_builder, p_object_root);
 
-	p_object_root->ptr = ptr;
-
-	p_memory_backend_interface = memory_backend_interface_create_from_pointer(&p_object_root->ptr);
-	if (p_memory_backend_interface == NULL) {
-		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
+	if (memory_backend_interface_get(
+			p_memory_backend_interface,
+			&p_object_root->p_memory_backend_interface) != 0){
+		msg_stderr("memory_backend_interface_get failed\n");
 		object_root_builder_clean(&object_root_builder, 0);
 		object_root_clean(p_object_root);
 		return -EFAULT;
@@ -3829,18 +3755,15 @@ static int object_root_init(
 			NULL,
 			NULL,
 			p_memory_backend_interface,
-			sizeof(p_object_root->ptr),
+			p_element_type_top->p_element_type_for_pointer->byte_size, /*sizeof(void*),*/
 			p_element_type_top->p_element_type_for_pointer,
 			1,
 			0) != 0) {
 		msg_stderr("memory_block_init failed\n");
-		memory_backend_interface_put(&p_memory_backend_interface);
 		object_root_builder_clean(&object_root_builder, 0);
 		object_root_clean(p_object_root);
 		return -EFAULT;
 	}
-
-	memory_backend_interface_put(&p_memory_backend_interface);
 
 	/*process memory_block to schedule all necessary memory blocks etc*/
 	if (object_root_builder_process_pointer(
@@ -3869,6 +3792,13 @@ static int object_root_init(
 	}
 	/*clean builder objects*/
 	object_root_builder_clean(&object_root_builder, 1);
+
+	/*validate*/
+	if (object_root_validate(p_object_root) != 0) {
+		msg_stderr("Validation of the parsed object hasn't passed\n");
+		return -(EFAULT);
+	}
+
 	return 0;
 }
 int metac_runtime_object_delete(
@@ -3882,16 +3812,29 @@ struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
 		) {
+	struct memory_backend_interface * p_memory_backend_interface;
+
 	msg_stderr("PARSING OBJECT: ptr = %p\n", ptr);
+
+	p_memory_backend_interface = memory_backend_interface_create_from_pointer(&ptr);
+	if (p_memory_backend_interface == NULL) {
+		msg_stderr("memory_backend_interface_create_from_pointer failed\n");
+		return NULL;
+	}
+
 	_create_(metac_runtime_object);
+
 	if (object_root_init(
 			&p_metac_runtime_object->object_root,
-			ptr,
+			p_memory_backend_interface,
 			&p_metac_precompiled_type->element_type_top) != 0) {
 		msg_stderr("object_root_init failed\n");
 		metac_runtime_object_delete(&p_metac_runtime_object);
+		memory_backend_interface_put(&p_memory_backend_interface);
 		return NULL;
 	}
+	memory_backend_interface_put(&p_memory_backend_interface);
+
 	return p_metac_runtime_object;
 }
 /*****************************************************************************/

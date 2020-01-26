@@ -237,7 +237,7 @@ struct memory_block_top {
 	metac_byte_size_t								flexible_byte_size;					/* flexible part: should be added to the memory_block_top*/
 };
 struct object_root {
-	void * 											ptr;
+	struct memory_backend_interface * 				p_memory_backend_interface;
 	struct memory_block								memory_block_for_pointer;
 
 	metac_count_t									memory_block_tops_count;			/*only memory_blocks without parents*/
@@ -292,6 +292,9 @@ struct memory_backend_interface_ops {
 
 	int												(*element_hierarchy_member_cast_pointer)(
 			struct element_hierarchy_member *			p_element_hierarchy_member);
+	/* work with p_object_root */
+	int												(*object_root_validate)(
+			struct object_root *						p_object_root);
 };
 struct memory_backend_interface {
 	uint32_t										_ref_count;
@@ -335,6 +338,8 @@ int element_hierarchy_member_get_pointer_subrange0(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
 int element_hierarchy_member_cast_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
+int object_root_validate(
+		struct object_root *						p_object_root);
 /*****************************************************************************/
 struct memory_backend_interface * memory_backend_interface_create_from_pointer(
 		void *										ptr);

@@ -504,3 +504,19 @@ int element_hierarchy_member_cast_pointer(
 			p_element_hierarchy_member);
 }
 
+int object_root_validate(
+		struct object_root *						p_object_root) {
+
+	if (p_object_root == NULL) {
+		msg_stderr("p_object_root is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_object_root->p_memory_backend_interface);
+
+	if (p_object_root->p_memory_backend_interface->p_ops->object_root_validate == NULL) { /*optional function*/
+		return 0;
+	}
+
+	return p_object_root->p_memory_backend_interface->p_ops->object_root_validate(p_object_root);
+}
