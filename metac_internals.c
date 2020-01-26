@@ -1956,9 +1956,20 @@ static int element_hierarchy_member_init_array(
 	}
 
 	/* set is_flexible and subrange0_count*/
-	if (element_hierarchy_member_get_array_subrange0(p_element_hierarchy_member) != 0) {
-		msg_stderr("wasn't able to get subrange0 for pointer: %s\n", path_within_memory_block_top);
-		return (-EFAULT);
+	if (p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->array_type_info.is_flexible != 0) {
+
+		if (element_hierarchy_member_get_array_subrange0(p_element_hierarchy_member) != 0) {
+			msg_stderr("wasn't able to get subrange0 for pointer: %s\n", path_within_memory_block_top);
+			return (-EFAULT);
+		}
+
+		p_element_hierarchy_member->array.is_flexible = 1;
+	} else {
+
+		metac_type_array_subrange_count(
+				p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type,
+				0,
+				&p_element_hierarchy_member->array.subrange0_count);
 	}
 
 	if (p_element_hierarchy_member->array.is_flexible != 0 &&
@@ -2157,6 +2168,7 @@ static void element_clean_hierarchy_top(
 		p_element_hierarchy_top->pp_discriminator_values = NULL;
 	}
 }
+
 static int element_init_hierarchy_top(
 		struct element *							p_element,
 		char *										path_within_memory_block_top) {
@@ -2183,6 +2195,7 @@ static int element_init_hierarchy_top(
 		}
 	}
 	if (p_element_type_hierarchy_top->members_count > 0) {
+
 		p_element_hierarchy_top->pp_members =
 				(struct element_hierarchy_member **)calloc(p_element_type_hierarchy_top->members_count, sizeof(*p_element_hierarchy_top->pp_members));
 		if (p_element_hierarchy_top->pp_members == NULL) {
@@ -2190,11 +2203,56 @@ static int element_init_hierarchy_top(
 			element_clean_hierarchy_top(p_element);
 			return (-EFAULT);
 		}
-	}
 
-	if (element_calculate_hierarchy_top_discriminator_values(p_element) != 0){
-		msg_stderr("element_calculate_hierarchy_top_discriminator_values failed for path %s\n", path_within_memory_block_top);
-		element_clean_hierarchy_top(p_element);
+		for (i = 0; i < p_element->p_element_type->hierarchy_top.discriminators_count; ++i) {
+			metac_flag allocate = 0;
+
+			assert(p_element->p_element_type->hierarchy_top.pp_discriminators[i] != NULL);
+			/*assumption: if we initialize all discriminators in order of their appearance - we won't need to resolve dependencides*/
+			assert(
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL ||
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id < i);
+			/*Not needed since it's checked with the previous assert:*/
+			/*assert(
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL ||
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id < p_element->p_element_type->hierarchy_top.discriminators_count);*/
+
+			if (p_element->p_element_type->hierarchy_top.pp_discriminators[i]->cb == NULL) {
+				msg_stderr("discriminator %d for path %s is NULL\n", (int)i, path_within_memory_block_top);
+				element_clean_hierarchy_top(p_element);
+				return (-EFAULT);
+			}
+
+			if (	allocate == 0 &&
+					p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator == NULL) {
+				allocate = 1;
+			}
+
+			if (	allocate == 0 &&
+					p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator != NULL) {
+				struct discriminator_value * p_value =
+						p_element->hierarchy_top.pp_discriminator_values[p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.p_discriminator->id];
+				if (	p_value != NULL &&
+						p_value->value == p_element->p_element_type->hierarchy_top.pp_discriminators[i]->precondition.expected_discriminator_value) {
+					allocate = 1;
+				}
+			}
+
+			if (allocate != 0) {
+				p_element->hierarchy_top.pp_discriminator_values[i] = discriminator_value_create(0);
+				if (p_element->hierarchy_top.pp_discriminator_values[i] == NULL) {
+					msg_stderr("can't allocated pp_discriminator_values %d for path %s\n", (int)i, path_within_memory_block_top);
+					element_clean_hierarchy_top(p_element);
+					return (-EFAULT);
+				}
+			}
+		}
+
+		if (element_calculate_hierarchy_top_discriminator_values(p_element) != 0){
+			msg_stderr("element_calculate_hierarchy_top_discriminator_values failed for path %s\n", path_within_memory_block_top);
+			element_clean_hierarchy_top(p_element);
+			return (-EFAULT);
+		}
 	}
 
 	/* create members based on discriminators */
@@ -2260,9 +2318,20 @@ static int element_init_array(
 	}
 
 	/* set is_flexible and subrange0_count*/
-	if (element_get_array_subrange0(p_element) != 0) {
-		msg_stderr("wasn't able to get subrange0 for pointer: %s\n", path_within_memory_block_top);
-		return (-EFAULT);
+	if (p_element->p_element_type->p_actual_type->array_type_info.is_flexible != 0) {
+
+		if (element_get_array_subrange0(p_element) != 0) {
+			msg_stderr("wasn't able to get subrange0 for pointer: %s\n", path_within_memory_block_top);
+			return (-EFAULT);
+		}
+
+		p_element->array.is_flexible = 1;
+	} else {
+
+		metac_type_array_subrange_count(
+				p_element->p_element_type->p_actual_type,
+				0,
+				&p_element->array.subrange0_count);
 	}
 
 	if (p_element->array.is_flexible != 0 &&
@@ -2527,7 +2596,6 @@ int memory_block_delete(
 struct memory_block * memory_block_create(
 		struct element *							p_local_parent_element,
 		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
-		//void *										ptr,
 		struct memory_backend_interface *			p_memory_backend_interface,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
@@ -2642,7 +2710,7 @@ static int memory_block_top_container_memory_block_delete(
 static struct memory_block_top_container_memory_block * memory_block_top_container_memory_block_create(
 		struct element *							p_local_parent_element,
 		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
-		void *										ptr,
+		struct memory_backend_interface *			p_memory_backend_interface,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
 		metac_count_t								elements_count,
@@ -2653,7 +2721,7 @@ static struct memory_block_top_container_memory_block * memory_block_top_contain
 				memory_block_create(
 						p_local_parent_element,
 						p_local_parent_element_hierarchy_member,
-						ptr,
+						p_memory_backend_interface,
 						byte_size,
 						p_element_type,
 						elements_count,
@@ -3029,14 +3097,14 @@ void memory_block_top_clean(
 int memory_block_top_init(
 		struct memory_block_top *					p_memory_block_top,
 		char *										global_path,
-		void *										ptr,
+		struct memory_backend_interface *			p_memory_backend_interface,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
 		metac_count_t								elements_count) {
 	struct memory_block_top_builder memory_block_top_builder;
 	msg_stderr("PROCESSING_TOP %s: ptr=%p byte_size=%d type=%s elements_count=%d \n",
 			global_path,
-			ptr,
+			/* TODO: something printable */ p_memory_backend_interface,
 			byte_size,
 			(p_element_type != NULL)?p_element_type->p_type->name:"<invalid>",
 			elements_count);
@@ -3052,7 +3120,7 @@ int memory_block_top_init(
 			&p_memory_block_top->memory_block,
 			NULL,
 			NULL,
-			ptr,
+			p_memory_backend_interface,
 			byte_size,
 			p_element_type,
 			elements_count,
@@ -3098,7 +3166,7 @@ int memory_block_top_delete(
 }
 struct memory_block_top * memory_block_top_create(
 		char *										global_path,
-		void *										ptr,
+		struct memory_backend_interface *			p_memory_backend_interface,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
 		metac_count_t								elements_count
@@ -3107,7 +3175,7 @@ struct memory_block_top * memory_block_top_create(
 	if (memory_block_top_init(
 			p_memory_block_top,
 			global_path,
-			ptr,
+			p_memory_backend_interface,
 			byte_size,
 			p_element_type,
 			elements_count) != 0) {
@@ -3286,12 +3354,14 @@ static int object_root_container_memory_block_top_init(
 													p_object_root_container_memory_block_top,
 		struct memory_block_top *					p_memory_block_top) {
 	assert(p_object_root_container_memory_block_top);
+	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_top->references);
+
 	if (p_memory_block_top == NULL) {
 		msg_stderr("p_memory_block_top is invalid\n");
 		return -EINVAL;
 	}
+
 	p_object_root_container_memory_block_top->p_memory_block_top = p_memory_block_top;
-	CDS_INIT_LIST_HEAD(&p_object_root_container_memory_block_top->references);
 	return 0;
 }
 static int object_root_container_memory_block_top_delete(
@@ -3304,7 +3374,7 @@ static int object_root_container_memory_block_top_delete(
 }
 static struct object_root_container_memory_block_top * object_root_container_memory_block_top_create(
 		char *										global_path,
-		void *										ptr,
+		struct memory_backend_interface *			p_memory_backend_interface,
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
 		metac_count_t								elements_count
@@ -3314,7 +3384,7 @@ static struct object_root_container_memory_block_top * object_root_container_mem
 			p_object_root_container_memory_block_top,
 			memory_block_top_create(
 					global_path,
-					ptr,
+					p_memory_backend_interface,
 					byte_size,
 					p_element_type,
 					elements_count)) != 0) {
@@ -3442,7 +3512,6 @@ static int object_root_builder_process_pointer(
 
 		/* hmm.. maybe to put comparison to the driver? */
 		if (
-//				p_memory_block->ptr == p_element_pointer->actual_ptr &&	/*TODO: it's enough to compare actual_ptr and p_element_type only - everything else is calc params*/
 				memory_backend_interface_equals(p_memory_block->p_memory_backend_interface, p_element_pointer->p_casted_memory_backend_interface) &&
 				p_memory_block->byte_size == byte_size &&
 				p_memory_block->elements_count == elements_count) {
@@ -3462,10 +3531,8 @@ static int object_root_builder_process_pointer(
 
 	p_object_root_container_memory_block_top = object_root_container_memory_block_top_create(
 			global_path,
-//			p_element_pointer->actual_ptr,
 			p_element_pointer->p_casted_memory_backend_interface,
 			byte_size,
-//			p_element_pointer->p_actual_element_type,
 			p_element_pointer->p_casted_element_type,
 			elements_count);
 	if (p_object_root_container_memory_block_top == NULL) {

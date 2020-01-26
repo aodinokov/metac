@@ -253,6 +253,7 @@ int element_get_pointer_subrange0(
 
 int element_cast_pointer(
 		struct element *							p_element) {
+
 	struct memory_backend_interface * p_memory_backend_interface;
 
 	if (p_element == NULL) {
@@ -278,8 +279,19 @@ int element_cast_pointer(
 		return -(ENOENT);
 	}
 
-	return p_memory_backend_interface->p_ops->element_cast_pointer(
-			p_element);
+	if (p_memory_backend_interface->p_ops->element_cast_pointer(
+			p_element) != 0){
+		msg_stderr("element_cast_pointer call failed\n");
+		return -(EFAULT);
+	}
+
+	if (p_element->pointer.p_casted_element_type == NULL ||
+		p_element->pointer.p_casted_memory_backend_interface == NULL) {
+		msg_stderr("element_cast_pointer call was successful, but some mandatory fields were still empty\n");
+		return -(EFAULT);
+	}
+
+	return 0;
 }
 
 int element_calculate_hierarchy_top_discriminator_values(
@@ -294,7 +306,7 @@ int element_calculate_hierarchy_top_discriminator_values(
 	assert(p_element->p_element_type);
 	assert(p_element->p_element_type->p_actual_type);
 
-	if (p_element->p_element_type->p_actual_type->id != DW_TAG_structure_type ||
+	if (p_element->p_element_type->p_actual_type->id != DW_TAG_structure_type &&
 		p_element->p_element_type->p_actual_type->id != DW_TAG_union_type) {
 		msg_stderr("p_element isn't hierarchy(structure or union)\n");
 		return -(EINVAL);

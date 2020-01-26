@@ -154,9 +154,6 @@ struct memory_block {
 
 	struct memory_pointer							local_parent;
 
-//	/* will be removed*/
-//	void * 											ptr;								/* real mem - not always initialized TODO: to remove after p_memory_backend_interface inrroduction*/
-	/*this will work instead*/
 	struct memory_backend_interface *				p_memory_backend_interface;			/* abstract memory access */
 
 	metac_count_t									byte_size;							/* 0 - unknown?*/
