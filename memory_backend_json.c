@@ -205,33 +205,33 @@ int memory_backend_interface_create_from_json_ex(
 			json_object_put(p_json_extra_offset);
 		}
 
-		if (json_pointer_get(
-				p_json_root,
-				override_current_object_json_path,
-				&p_memory_backend_json->p_current_object_json) != 0){
-			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
-			json_object_put(p_json_json_path);
-			json_object_put(p_json_pointer_object);
-			json_object_put(p_json_root);
-			memory_backend_json_delete(&p_memory_backend_json);
-			return -(EFAULT);
-		}
+//		if (json_pointer_get(
+//				p_json_root,
+//				override_current_object_json_path,
+//				&p_memory_backend_json->p_current_object_json) != 0){
+//			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
+//			json_object_put(p_json_json_path);
+//			json_object_put(p_json_pointer_object);
+//			json_object_put(p_json_root);
+//			memory_backend_json_delete(&p_memory_backend_json);
+//			return -(EFAULT);
+//		}
 
 		p_memory_backend_json->current_object_extra_offset = override_current_object_extra_offset;
 
 		json_object_put(p_json_json_path);
 	} else {
 
-		if (json_pointer_get(
-				p_json_root,
-				override_current_object_json_path,
-				&p_memory_backend_json->p_current_object_json) != 0){
-			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
-			json_object_put(p_json_pointer_object);
-			json_object_put(p_json_root);
-			memory_backend_json_delete(&p_memory_backend_json);
-			return -(EFAULT);
-		}
+//		if (json_pointer_get(
+//				p_json_root,
+//				override_current_object_json_path,
+//				&p_memory_backend_json->p_current_object_json) != 0){
+//			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
+//			json_object_put(p_json_pointer_object);
+//			json_object_put(p_json_root);
+//			memory_backend_json_delete(&p_memory_backend_json);
+//			return -(EFAULT);
+//		}
 
 		p_memory_backend_json->current_object_extra_offset = override_current_object_extra_offset;
 	}
