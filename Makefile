@@ -32,7 +32,7 @@ metac_objs = \
 	memory_backend_json.o \
 	traversing_engine.o
 
-metac_ut_libs = -ldl -lcheck -lm -lrt -ljson
+metac_ut_libs = -ldl -lcheck -lm -lrt -ljson-c
 metac_ut_libs += -lsubunit
 
 # tests
