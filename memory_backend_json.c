@@ -11,7 +11,7 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <stdlib.h>			/* calloc, free, NULL, qsort... */
 #include <urcu/list.h>		/* struct cds_list_entry etc */
-#include <json/json.h>		/* json_... */
+#include <json-c/json.h>	/* json_... */
 
 #include "metac_internals.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
