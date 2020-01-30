@@ -343,6 +343,10 @@ int object_root_validate(
 /*****************************************************************************/
 struct memory_backend_interface * memory_backend_interface_create_from_pointer(
 		void *										ptr);
+/*TODO: change function format to something similar to json ^ (because we don't distinguish error from NULL ptr */
+//int memory_backend_interface_create_from_json(
+//		json_object *								p_json,
+//		struct memory_backend_interface **			pp_memory_backend_interface);
 /*****************************************************************************/
 struct discriminator * discriminator_create(
 		struct metac_type *							p_root_type,

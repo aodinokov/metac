@@ -29,6 +29,7 @@ metac_objs = \
 	metac_internals.o \
 	memory_backend_interface.o \
 	memory_backend_pointer.o \
+	memory_backend_json.o \
 	traversing_engine.o
 
 metac_ut_libs = -ldl -lcheck -lm -lrt -ljson
