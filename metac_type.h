@@ -1,8 +1,8 @@
 #ifndef METAC_H_
 #define METAC_H_
 
-//#include <dwarf.h>
-#include <libdwarf/dwarf.h>
+#include <dwarf.h>
+//#include <libdwarf/dwarf.h> /*for bionic*/
 
 #ifdef __cplusplus
 extern "C" {
