@@ -45,6 +45,9 @@
 	_delete_finish(_type_)
 
 /*****************************************************************************/
+int memory_backend_interface_create_from_json(
+		json_object *								p_master_json,
+		struct memory_backend_interface **			pp_memory_backend_interface);
 int memory_backend_interface_create_from_json_ex(
 		json_object *								p_master_json,
 		const char *								override_current_object_path,		/* JSON pointer notation as defined in RFC 6901 */
@@ -97,28 +100,63 @@ static int _memory_backend_interface_delete(
 	return 0;
 }
 
-//static int _memory_backend_interface_equals(
-//		struct memory_backend_interface *			p_memory_backend_interface0,
-//		struct memory_backend_interface *			p_memory_backend_interface1) {
-//	struct memory_backend_pointer * p_memory_backend_pointer0;
-//	struct memory_backend_pointer * p_memory_backend_pointer1;
-//
-//	assert(p_memory_backend_interface0);
-//	assert(p_memory_backend_interface1);
-//
-//	p_memory_backend_pointer0 = memory_backend_pointer(p_memory_backend_interface0);
-//	p_memory_backend_pointer1 = memory_backend_pointer(p_memory_backend_interface1);
-//
-//	return p_memory_backend_pointer0 == p_memory_backend_pointer1;
-//}
+static int _memory_backend_interface_equals(
+		struct memory_backend_interface *			p_memory_backend_interface0,
+		struct memory_backend_interface *			p_memory_backend_interface1) {
+	struct memory_backend_json * p_memory_backend_json0;
+	struct memory_backend_json * p_memory_backend_json1;
 
+	assert(p_memory_backend_interface0);
+	assert(p_memory_backend_interface1);
+
+	p_memory_backend_json0 = memory_backend_json(p_memory_backend_interface0);
+	p_memory_backend_json1 = memory_backend_json(p_memory_backend_interface1);
+
+	return
+			p_memory_backend_json0->p_master_json == p_memory_backend_json0->p_master_json &&
+			p_memory_backend_json0->p_current_object_json == p_memory_backend_json1->p_current_object_json &&
+			p_memory_backend_json0->current_object_extra_offset == p_memory_backend_json1->current_object_extra_offset;
+}
+/*****************************************************************************/
+static int _element_get_memory_backend_interface(
+		struct element *							p_element,
+		struct memory_backend_interface **			pp_memory_backend_interface) {
+	int i;
+
+	struct memory_backend_json * p_memory_backend_json;
+	struct memory_backend_json * p_result_memory_backend_json;
+
+	assert(p_element);
+	assert(p_element->p_memory_block);
+	assert(p_element->p_memory_block->p_memory_backend_interface);
+
+	p_memory_backend_json = memory_backend_json(p_element->p_memory_block->p_memory_backend_interface);
+	assert(p_memory_backend_json);
+
+
+
+	if (json_object_get_type(p_memory_backend_json->p_current_object_json) != json_type_array) {
+		msg_stderr("expected array and found %s\n", json_object_to_json_string(p_memory_backend_json->p_current_object_json));
+		return -(EFAULT);
+	}
+
+//	if (_memory_backend_interface_create_from_pointer(
+//			p_memory_backend_pointer->ptr +
+//			p_element->id * p_element->p_element_type->byte_size,
+//			pp_memory_backend_interface) != 0) {
+//		msg_stderr("_memory_backend_interface_create_from_pointer failed\n");
+//		return -(EFAULT);
+//	}
+
+	return 0;
+}
 
 /*****************************************************************************/
 static struct memory_backend_interface_ops ops = {
 	/* Mandatory handlers */
 	.memory_backend_interface_delete =				_memory_backend_interface_delete,
-//	.memory_backend_interface_equals =				_memory_backend_interface_equals,
-//
+	.memory_backend_interface_equals =				_memory_backend_interface_equals,
+
 //	.element_get_memory_backend_interface =			_element_get_memory_backend_interface,
 //	.element_read_memory_backend_interface =		_element_read_memory_backend_interface,
 //	.element_get_array_subrange0 =					_element_get_array_subrange0,
@@ -135,8 +173,8 @@ static struct memory_backend_interface_ops ops = {
 //	.element_hierarchy_member_get_pointer_subrange0 =
 //													_element_hierarchy_member_get_pointer_subrange0,
 //	.element_hierarchy_member_cast_pointer =		_element_hierarchy_member_cast_pointer,
-//	/* Optional handlers */
-//	.object_root_validate =							_object_root_validate,
+	/* Optional handlers */
+	/*.object_root_validate =							_object_root_validate,*/
 };
 /*****************************************************************************/
 int memory_backend_interface_create_from_json_ex(
@@ -205,33 +243,33 @@ int memory_backend_interface_create_from_json_ex(
 			json_object_put(p_json_extra_offset);
 		}
 
-//		if (json_pointer_get(
-//				p_json_root,
-//				override_current_object_json_path,
-//				&p_memory_backend_json->p_current_object_json) != 0){
-//			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
-//			json_object_put(p_json_json_path);
-//			json_object_put(p_json_pointer_object);
-//			json_object_put(p_json_root);
-//			memory_backend_json_delete(&p_memory_backend_json);
-//			return -(EFAULT);
-//		}
+		if (json_pointer_get(
+				p_json_root,
+				override_current_object_json_path,
+				&p_memory_backend_json->p_current_object_json) != 0){
+			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
+			json_object_put(p_json_json_path);
+			json_object_put(p_json_pointer_object);
+			json_object_put(p_json_root);
+			memory_backend_json_delete(&p_memory_backend_json);
+			return -(EFAULT);
+		}
 
 		p_memory_backend_json->current_object_extra_offset = override_current_object_extra_offset;
 
 		json_object_put(p_json_json_path);
 	} else {
 
-//		if (json_pointer_get(
-//				p_json_root,
-//				override_current_object_json_path,
-//				&p_memory_backend_json->p_current_object_json) != 0){
-//			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
-//			json_object_put(p_json_pointer_object);
-//			json_object_put(p_json_root);
-//			memory_backend_json_delete(&p_memory_backend_json);
-//			return -(EFAULT);
-//		}
+		if (json_pointer_get(
+				p_json_root,
+				override_current_object_json_path,
+				&p_memory_backend_json->p_current_object_json) != 0){
+			msg_stderr("wasn't able to find object by path %s\n", override_current_object_json_path);
+			json_object_put(p_json_pointer_object);
+			json_object_put(p_json_root);
+			memory_backend_json_delete(&p_memory_backend_json);
+			return -(EFAULT);
+		}
 
 		p_memory_backend_json->current_object_extra_offset = override_current_object_extra_offset;
 	}
@@ -246,3 +284,12 @@ int memory_backend_interface_create_from_json_ex(
 	return 0;
 }
 
+int memory_backend_interface_create_from_json(
+		json_object *								p_master_json,
+		struct memory_backend_interface **			pp_memory_backend_interface) {
+	return memory_backend_interface_create_from_json_ex(
+			p_master_json,
+			NULL,
+			0,
+			pp_memory_backend_interface);
+}

@@ -2617,6 +2617,71 @@ struct memory_block * memory_block_create(
 	}
 	return p_memory_block;
 }
+/*this function will work only after the final initialization. TODO: I think we can actually fix that */
+int memory_block_get_array_info(
+		struct memory_block *						p_memory_block,
+		metac_array_info_t **						pp_array_info) {
+
+	if (p_memory_block == NULL) {
+		msg_stderr("invalid p_memory_block\n");
+		return -(EINVAL);
+	}
+
+	if (p_memory_block->local_parent.p_element != NULL) {	/*this is part of memory_block_top - parent can be only array */
+
+		if (p_memory_block->local_parent.p_element_hierarchy_member == NULL) {
+
+			assert(p_memory_block->local_parent.p_element->p_element_type->p_actual_type->id == DW_TAG_array_type);
+
+			if (pp_array_info != NULL) {
+				*pp_array_info = p_memory_block->local_parent.p_element->array.p_array_info;
+			}
+
+			return 0;
+		}
+
+		assert(p_memory_block->local_parent.p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_array_type);
+
+		if (pp_array_info != NULL) {
+			*pp_array_info = p_memory_block->local_parent.p_element_hierarchy_member->array.p_array_info;
+		}
+
+		return 0;
+	}
+
+	if (p_memory_block->p_memory_block_top != NULL) {
+
+		assert(p_memory_block->memory_block_top_offset == 0);
+		assert(&p_memory_block->p_memory_block_top->memory_block == p_memory_block);
+
+		if (p_memory_block->p_memory_block_top->memory_block_references_count > 0) {
+			/*TODO: make sure that they're all the same time?*/
+			assert(p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element != NULL);
+			if (p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element_hierarchy_member != NULL) {
+
+				assert(p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
+
+				if (pp_array_info != NULL) {
+					*pp_array_info = p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element_hierarchy_member->array.p_array_info;
+				}
+				return 0;
+			}
+
+			assert(p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
+			if (pp_array_info != NULL) {
+				*pp_array_info = p_memory_block->p_memory_block_top->pp_memory_block_references[0]->reference_location.p_element->array.p_array_info;
+			}
+			return 0;
+		}
+
+	}
+
+	if (pp_array_info != NULL) {
+		*pp_array_info = NULL;
+	}
+
+	return 0;
+}
 /*****************************************************************************/
 int memory_pointer_delete(
 		struct memory_pointer **					pp_memory_pointer) {

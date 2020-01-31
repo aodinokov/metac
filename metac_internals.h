@@ -413,6 +413,10 @@ struct discriminator_value * discriminator_value_create(
 int discriminator_value_delete(
 		struct discriminator_value **				pp_discriminator_value);
 
+int memory_block_get_array_info(
+		struct memory_block *						p_memory_block,
+		metac_array_info_t **						pp_array_info);
+
 #if 0
 struct region_element_type_member {
 	int 							id;							/*index in the region_element_type. needed to find parents quickier */

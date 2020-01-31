@@ -489,6 +489,33 @@ int metac_array_info_increment_counter(metac_array_info_t *p_array_info, metac_a
 	return 0;
 }
 
+metac_array_info_t * metac_array_info_convert_linear_id_2_subranges(
+		metac_array_info_t *p_array_info,
+		metac_num_t linear_id) {
+	int i;
+
+	metac_array_info_t * p_subranges_id;
+
+	if (linear_id >= metac_array_info_get_element_count(p_array_info)) {
+		msg_stderr("Can't convert linear_id %d - too big for this array_info\n", (int)linear_id);
+		return NULL;
+	}
+
+	p_subranges_id = metac_array_info_copy(p_array_info);
+	if (p_subranges_id == NULL) {
+		return NULL;
+	}
+
+	for (i = 1; i <= p_array_info->subranges_count; ++i){
+		p_subranges_id->subranges[p_array_info->subranges_count - i].count = linear_id % p_array_info->subranges[p_array_info->subranges_count - i].count;
+		linear_id = linear_id / p_array_info->subranges[p_array_info->subranges_count - i].count;
+	}
+
+	assert(linear_id == 0);
+
+	return p_subranges_id;
+}
+
 /*****************************************************************************/
 int metac_array_elements_single(
 	char * annotation_key,

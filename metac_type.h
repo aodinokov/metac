@@ -192,6 +192,8 @@ int 					metac_array_info_delete(metac_array_info_t ** pp_array_info);
 metac_array_info_t * 	metac_array_info_create_counter(metac_array_info_t *p_array_info);
 int 					metac_array_info_increment_counter(metac_array_info_t *p_array_info, metac_array_info_t *p_array_info_counter);
 
+metac_array_info_t *	metac_array_info_convert_linear_id_2_subranges(metac_array_info_t *p_array_info, metac_num_t linear_id);
+
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions and their params in code*/
