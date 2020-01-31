@@ -55,7 +55,7 @@ struct memory_backend_json {
 	struct memory_backend_interface					memory_backend_interface;
 	json_object *									p_master_json;
 	json_object *									p_current_object_json;
-	metac_data_member_location_t					current_object_extra_offset
+	metac_data_member_location_t					current_object_extra_offset;
 };
 /*****************************************************************************/
 static inline struct memory_backend_json * memory_backend_json(
