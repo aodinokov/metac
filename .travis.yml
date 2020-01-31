@@ -5,6 +5,6 @@ compiler:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y autoconf automake libtool gawk libsigsegv2 dwarfdump check libdwarf-dev liburcu-dev
-  - git clone https://github.com/json-c/json-c.git && cd json-c && git checkout json-c-0.13.1-20180305 && sh autogen.sh && ./configure && make && sudo make install
+  - (git clone https://github.com/json-c/json-c.git && cd json-c && git checkout json-c-0.13.1-20180305 && sh autogen.sh && ./configure && make && sudo make install)
 script: make all
 
