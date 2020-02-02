@@ -160,7 +160,9 @@ struct memory_block {
 
 	metac_flag										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
 
-	metac_count_t									elements_count;
+	metac_array_info_t *							p_array_info;
+
+	metac_count_t									elements_count;						/* calculated from p_array_info */
 	struct element *								p_elements;
 };
 struct element_pointer {
@@ -174,8 +176,6 @@ struct element_pointer {
 
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 
-	metac_array_info_t *							p_array_info;
-
 	struct memory_block_reference					memory_block_reference;
 };
 struct element_array {
@@ -183,8 +183,6 @@ struct element_array {
 
 	metac_flag										is_flexible;
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
-
-	metac_array_info_t *							p_array_info;
 
 	struct memory_block	*							p_memory_block;
 };
