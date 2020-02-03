@@ -400,33 +400,28 @@ static int _element_cast_pointer(
 	return 0;
 }
 /*****************************************************************************/
-static int _get_hierarchy_related_json(
+static int _get_hierarchy_member_related_json(
 		json_object *								p_json_root,
-		struct element_type_hierarchy *				p_hierarchy,
+		struct element_type_hierarchy_member *		p_hierarchy_member,
 		json_object **								pp_json_hierarchy_related) {
 
 	int i = 0,
 		count = 0;
-	struct element_type_hierarchy * p_current_hierarchy;
+	struct element_type_hierarchy_member * p_current_hierarchy_member;
 	json_object * p_current_json_root;
 
 	metac_name_t * p_names;
 
 	/* calculate all field_names till element top */
-	p_current_hierarchy = p_hierarchy;
-	while (p_current_hierarchy->parent != NULL) {
-		struct element_type_hierarchy_member * p_element_type_hierarchy_member =
-				element_type_hierarchy_get_element_hierarchy_member(p_current_hierarchy);
-		if (p_current_hierarchy == NULL) {
-			break;
-		}
+	p_current_hierarchy_member = p_hierarchy_member;
+	while (p_current_hierarchy_member != NULL) {
 
-		if (p_element_type_hierarchy_member->p_member_info->name != NULL &&
-			strcmp(p_element_type_hierarchy_member->p_member_info->name, METAC_ANON_MEMBER_NAME) != 0) {
+		if (p_current_hierarchy_member->p_member_info->name != NULL &&
+			strcmp(p_current_hierarchy_member->p_member_info->name, METAC_ANON_MEMBER_NAME) != 0) {
 			++count;
 		}
 
-		p_current_hierarchy = p_element_type_hierarchy_member->p_hierarchy;
+		p_current_hierarchy_member = element_type_hierarchy_member_get_parent_element_hierarchy_member(p_current_hierarchy_member);
 	}
 
 	if (count == 0) {
@@ -445,22 +440,17 @@ static int _get_hierarchy_related_json(
 	}
 
 	/* repeat the same: calculate all field_names till element top, but now store the data (yeah... TODO: some dynamic types like stack would simplify the code) */
-	p_current_hierarchy = p_hierarchy;
-	while (p_current_hierarchy->parent != NULL) {
-		struct element_type_hierarchy_member * p_element_type_hierarchy_member =
-				element_type_hierarchy_get_element_hierarchy_member(p_current_hierarchy);
-		if (p_current_hierarchy == NULL) {
-			break;
-		}
+	p_current_hierarchy_member = p_hierarchy_member;
+	while (p_current_hierarchy_member != NULL) {
 
-		if (p_element_type_hierarchy_member->p_member_info->name != NULL &&
-			strcmp(p_element_type_hierarchy_member->p_member_info->name, METAC_ANON_MEMBER_NAME) != 0) {
+		if (p_current_hierarchy_member->p_member_info->name != NULL &&
+			strcmp(p_current_hierarchy_member->p_member_info->name, METAC_ANON_MEMBER_NAME) != 0) {
 
-			p_names[count - i - 1] = p_element_type_hierarchy_member->p_member_info->name;
+			p_names[count - i - 1] = p_current_hierarchy_member->p_member_info->name;
 			++i;
 		}
 
-		p_current_hierarchy = p_element_type_hierarchy_member->p_hierarchy;
+		p_current_hierarchy_member = element_type_hierarchy_member_get_parent_element_hierarchy_member(p_current_hierarchy_member);
 	}
 
 	p_current_json_root = json_object_get(p_json_root);
@@ -613,27 +603,38 @@ static int _element_calculate_hierarchy_top_discriminator_values(
 	 */
 	for (i = 0; i < p_element->p_element_type->hierarchy_top.discriminators_count; ++i) {
 
-		int result;
-		int j;
 		json_object * p_hierarchy_json;
+		struct element_type_hierarchy_member * p_hierarchy_member;
 
 		if (p_element->hierarchy_top.pp_discriminator_values[i] == NULL) {
 			continue;
 		}
 
-		result = _get_hierarchy_related_json(
-				p_memory_backend_json->p_current_object_json,
-				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->p_hierarchy,
-				&p_hierarchy_json);
+		/* get member for hierarchy if any*/
+		p_hierarchy_member = element_type_hierarchy_get_element_hierarchy_member(
+				p_element->p_element_type->hierarchy_top.pp_discriminators[i]->p_hierarchy);
 
-		if (result == -(ENOENT)) {
-			/*just skip*/
-			continue;
-		} else if (result != 0) {
-			msg_stderr("_element_get_memory_backend_interface failed\n");
-			memory_backend_interface_put(&p_memory_backend_interface);
-			return result;
+		if (p_hierarchy_member == NULL) {
+			/* if there is no member - it's a top hierarchy in the element and we can use it's json*/
+			p_hierarchy_json = json_object_get(p_memory_backend_json->p_current_object_json);
+		} else {
 
+			int result;
+
+			result = _get_hierarchy_member_related_json(
+					p_memory_backend_json->p_current_object_json,
+					p_hierarchy_member,
+					&p_hierarchy_json);
+
+			if (result == -(ENOENT)) {
+				/*just skip*/
+				continue;
+			} else if (result != 0) {
+				msg_stderr("_element_get_memory_backend_interface failed\n");
+				memory_backend_interface_put(&p_memory_backend_interface);
+				return result;
+
+			}
 		}
 
 		/* ok p_hierarchy_json contains json corresponding to p_element->p_element_type->hierarchy_top.pp_discriminators[i]->p_hierarchy
@@ -688,54 +689,32 @@ static int _element_hierarchy_member_get_memory_backend_interface(
 	p_memory_backend_json = memory_backend_json(p_element_memory_backend_interface);
 	assert(p_memory_backend_json);
 
-
+	if (_get_hierarchy_member_related_json(
+			p_memory_backend_json->p_current_object_json,
+			p_element_hierarchy_member->p_element_type_hierarchy_member,
+			&p_current_object_json) != 0) {
+		msg_stderr("_get_hierarchy_member_related_json failed\n");
+		memory_backend_interface_put(&p_element_memory_backend_interface);
+		return -(EFAULT);
+	}
+	assert(p_current_object_json);
 
 	memory_backend_interface_put(&p_element_memory_backend_interface);
 
-//	p_memory_backend_json = memory_backend_json(p_element_hierarchy_member->p_element->p_memory_block->p_memory_backend_interface);
-//	assert(p_memory_backend_json);
-//
-//	p_array_indexes = metac_array_info_convert_linear_id_2_subranges(
-//			p_element->p_memory_block->p_array_info,
-//			p_element->id);
-//	if (p_array_indexes == NULL) {
-//		msg_stderr("metac_array_info_convert_linear_id_2_subranges failed\n");
-//		return -(EFAULT);
-//	}
-//
-//	p_current_object_json = json_object_get(p_memory_backend_json->p_current_object_json);
-//	for (i = 0; i < p_array_indexes->subranges_count; ++i) {
-//
-//		json_object * p_element_object_json;
-//
-//		/*TODO: compare len with p_element->p_element_type->p_actual_type->array_type_info.subranges[0].count */
-//
-//		if (json_object_get_type(p_current_object_json) != json_type_array) {
-//			msg_stderr("expected array and found %s\n", json_object_to_json_string(p_current_object_json));
-//			metac_array_info_delete(&p_array_indexes);
-//			json_object_put(p_current_object_json);
-//			return -(EFAULT);
-//		}
-//
-//		p_element_object_json = json_object_array_get_idx(p_current_object_json, p_array_indexes->subranges[i].count);
-//		json_object_put(p_current_object_json);
-//		p_current_object_json = p_element_object_json;
-//	}
-//
-//	/* ok, let's create memory_backend_json with this current_object_json*/
-//	p_result_memory_backend_json = memory_backend_json_create(
-//			p_memory_backend_json->p_master_json,
-//			p_current_object_json);
-//	json_object_put(p_current_object_json);
-//
-//	if (p_result_memory_backend_json == NULL) {
-//		msg_stderr("memory_backend_json_create failed\n");
-//		return -(EFAULT);
-//	}
-//
-//	if (pp_memory_backend_interface != NULL) {
-//		*pp_memory_backend_interface =  &p_memory_backend_json->memory_backend_interface;
-//	}
+	/* ok, let's create memory_backend_json with this current_object_json*/
+	p_result_memory_backend_json = memory_backend_json_create(
+			p_memory_backend_json->p_master_json,
+			p_current_object_json);
+	json_object_put(p_current_object_json);
+
+	if (p_result_memory_backend_json == NULL) {
+		msg_stderr("memory_backend_json_create failed\n");
+		return -(EFAULT);
+	}
+
+	if (pp_memory_backend_interface != NULL) {
+		*pp_memory_backend_interface =  &p_memory_backend_json->memory_backend_interface;
+	}
 
 	return 0;
 }
