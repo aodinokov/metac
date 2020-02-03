@@ -13,6 +13,7 @@
 #include <stdint.h>	/*uint32_t*/
 
 /*****************************************************************************/
+struct element_type_hierarchy;
 struct element_type_hierarchy_member;
 struct element_hierarchy_member;
 struct array;
@@ -24,6 +25,8 @@ struct condition {
 struct discriminator {
 	metac_count_t									id;									/*index in the region_element_type. needed to correlate with discriminator_values */
 	struct condition								precondition;						/*pre-condition for this discriminator*/
+
+	struct element_type_hierarchy *					p_hierarchy;						/* weak pointer to hierarchy (union) that needs this discriminator */
 
 	char *											annotation_key;						/*keep annotation_key to use it for cb call*/
 
@@ -351,7 +354,8 @@ struct discriminator * discriminator_create(
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct discriminator *						p_previous_discriminator,
-		metac_discriminator_value_t					previous_expected_discriminator_value);
+		metac_discriminator_value_t					previous_expected_discriminator_value,
+		struct element_type_hierarchy *				p_hierarchy);
 int discriminator_delete(
 		struct discriminator **						pp_discriminator);
 int element_type_array_init(
@@ -379,6 +383,8 @@ int element_type_hierarchy_init(
 		struct element_type_hierarchy *				p_parent_hierarchy);
 void element_type_hierarchy_clean(
 		struct element_type_hierarchy *				p_element_type_hierarchy);
+struct element_type_hierarchy_member * element_type_hierarchy_get_element_hierarchy_member(
+		struct element_type_hierarchy *				p_element_type_hierarchy);
 struct element_type_hierarchy_member * element_type_hierarchy_member_create(
 		struct metac_type *							p_root_type,
 		char *										global_path,
@@ -391,6 +397,8 @@ struct element_type_hierarchy_member * element_type_hierarchy_member_create(
 		struct metac_type_member_info *				p_member_info);
 int element_type_hierarchy_member_delete(
 		struct element_type_hierarchy_member **		pp_element_type_hierarchy_member);
+struct element_type_hierarchy_member * element_type_hierarchy_member_get_parent_element_hierarchy_member(
+		struct element_type_hierarchy_member *		p_element_type_hierarchy_member);
 struct element_type * element_type_create(
 		struct metac_type *							p_root_type,
 		char *										global_path,

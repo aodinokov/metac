@@ -153,6 +153,7 @@ int discriminator_delete(
 		free((*pp_discriminator)->annotation_key);
 		(*pp_discriminator)->annotation_key = NULL;
 	}
+	(*pp_discriminator)->p_hierarchy = NULL;
 	_delete_finish(discriminator);
 	return 0;
 }
@@ -161,7 +162,8 @@ struct discriminator * discriminator_create(
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct discriminator *						p_previous_discriminator,
-		metac_discriminator_value_t					previous_expected_discriminator_value) {
+		metac_discriminator_value_t					previous_expected_discriminator_value,
+		struct element_type_hierarchy *				p_hierarchy) {
 	const metac_type_annotation_t * p_annotation;
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
@@ -190,6 +192,7 @@ struct discriminator * discriminator_create(
 
 	p_discriminator->cb = p_annotation->value->discriminator.cb;
 	p_discriminator->p_data = p_annotation->value->discriminator.data;
+	p_discriminator->p_hierarchy = p_hierarchy;
 
 	return p_discriminator;
 }
@@ -418,6 +421,14 @@ int element_type_hierarchy_init(
 	}
 	return 0;
 }
+struct element_type_hierarchy_member * element_type_hierarchy_get_element_hierarchy_member(
+		struct element_type_hierarchy *				p_element_type_hierarchy) {
+	if (p_element_type_hierarchy == NULL ||
+			p_element_type_hierarchy->parent == NULL) {
+		return NULL;
+	}
+	return cds_list_entry(p_element_type_hierarchy, struct element_type_hierarchy_member, hierarchy);
+}
 void element_type_hierarchy_clean(
 		struct element_type_hierarchy *				p_element_type_hierarchy) {
 	if (p_element_type_hierarchy->members != NULL) {
@@ -448,15 +459,13 @@ int element_type_hierarchy_member_delete(
 	_delete_finish(element_type_hierarchy_member);
 	return 0;
 }
-static struct element_type_hierarchy_member * element_type_hierarchy_member_get_parent_element_hierarchy_member(
+struct element_type_hierarchy_member * element_type_hierarchy_member_get_parent_element_hierarchy_member(
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
 	if (p_element_type_hierarchy_member == NULL ||
 		p_element_type_hierarchy_member->p_hierarchy == NULL) {
 		return NULL;
 	}
-	if (p_element_type_hierarchy_member->p_hierarchy->parent != NULL)
-		return cds_list_entry(p_element_type_hierarchy_member->p_hierarchy, struct element_type_hierarchy_member, hierarchy);
-	return NULL;
+	return element_type_hierarchy_get_element_hierarchy_member(p_element_type_hierarchy_member->p_hierarchy);
 }
 metac_flag element_type_hierarchy_member_is_hierachy(
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
@@ -694,7 +703,8 @@ static int element_type_hierarchy_top_builder_process_union(
 			global_path,
 			p_element_type_hierarchy_top_builder->p_override_annotations,
 			p_previous_discriminator,
-			previous_expected_discriminator_value);
+			previous_expected_discriminator_value,
+			p_hierarchy);
 	if (p_discriminator == NULL){
 		msg_stddbg("global_path: %s failed to create discriminator\n", global_path);
 		return (-EFAULT);
