@@ -293,6 +293,9 @@ struct memory_backend_interface_ops {
 
 	int												(*element_hierarchy_member_cast_pointer)(
 			struct element_hierarchy_member *			p_element_hierarchy_member);
+	/* work with p_memory_block_top*/
+	int												(*memory_block_top_free_memory)(
+  			struct memory_block_top *					p_memory_block_top);
 	/* work with p_object_root */
 	int												(*object_root_validate)(
 			struct object_root *						p_object_root);
@@ -339,6 +342,8 @@ int element_hierarchy_member_get_pointer_subrange0(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
 int element_hierarchy_member_cast_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
+int memory_block_top_free_memory(
+		struct memory_block_top *					p_memory_block_top);
 int object_root_validate(
 		struct object_root *						p_object_root);
 /*****************************************************************************/

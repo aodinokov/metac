@@ -504,6 +504,28 @@ int element_hierarchy_member_cast_pointer(
 			p_element_hierarchy_member);
 }
 
+int memory_block_top_free_memory(
+        struct memory_block_top *                   p_memory_block_top) {
+	struct memory_backend_interface * p_memory_backend_interface;
+
+    if (p_memory_block_top == NULL) {
+        msg_stderr("p_memory_block_top is NULL\n");
+        return -(EINVAL);
+    }
+
+    assert(p_memory_block_top->memory_block.p_memory_backend_interface);
+
+	p_memory_backend_interface = p_memory_block_top->memory_block.p_memory_backend_interface;
+
+    if (p_memory_backend_interface->p_ops->memory_block_top_free_memory == NULL) {
+        msg_stderr("memory_block_top_free_memory isn't defined\n");
+        return -(ENOENT);
+    }
+
+    return p_memory_backend_interface->p_ops->memory_block_top_free_memory(
+            p_memory_block_top);
+}
+
 int object_root_validate(
 		struct object_root *						p_object_root) {
 

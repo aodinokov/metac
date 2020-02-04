@@ -3803,12 +3803,29 @@ static int object_root_init(
 
 	return 0;
 }
-int metac_runtime_object_delete(
-		struct metac_runtime_object **				pp_metac_runtime_object) {
-	_delete_start_(metac_runtime_object);
-	object_root_clean(&((*pp_metac_runtime_object)->object_root));
-	_delete_finish(metac_runtime_object);
+static int object_root_free_memory(
+        struct object_root *                        p_object_root) {
+	int i;
+
+	if (p_object_root->pp_memory_block_tops) {
+		for (i = 0; i < p_object_root->memory_block_tops_count; ++i) {
+			if (p_object_root->pp_memory_block_tops[i] != NULL) {
+
+				memory_block_top_free_memory(p_object_root->pp_memory_block_tops[i]);
+			}
+		}
+	}
+	object_root_clean(p_object_root);
+
 	return 0;
+}
+
+int metac_runtime_object_delete(
+        struct metac_runtime_object **              pp_metac_runtime_object) {
+    _delete_start_(metac_runtime_object);
+    object_root_clean(&((*pp_metac_runtime_object)->object_root));
+    _delete_finish(metac_runtime_object);
+    return 0;
 }
 struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
