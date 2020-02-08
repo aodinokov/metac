@@ -3839,6 +3839,7 @@ int object_root_equals(
 	/*TODO: implement*/
 	return -(EFAULT);
 }
+/*****************************************************************************/
 int metac_runtime_object_delete(
 		struct metac_runtime_object **				pp_metac_runtime_object) {
 	_delete_start_(metac_runtime_object);
@@ -3846,7 +3847,6 @@ int metac_runtime_object_delete(
 	_delete_finish(metac_runtime_object);
 	return 0;
 }
-
 struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type

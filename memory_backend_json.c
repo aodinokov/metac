@@ -892,6 +892,12 @@ static int _element_hierarchy_member_cast_pointer(
 	return 0;
 }
 /*****************************************************************************/
+static int _memory_block_top_free_memory(
+		struct memory_block_top *					p_memory_block_top) {
+	/*nothing to do*/
+	return 0;
+}
+/*****************************************************************************/
 static struct memory_backend_interface_ops ops = {
 	/* Mandatory handlers */
 	.memory_backend_interface_delete =				_memory_backend_interface_delete,
@@ -913,6 +919,8 @@ static struct memory_backend_interface_ops ops = {
 	.element_hierarchy_member_get_pointer_subrange0 =
 													_element_hierarchy_member_get_pointer_subrange0,
 	.element_hierarchy_member_cast_pointer =		_element_hierarchy_member_cast_pointer,
+
+	.memory_block_top_free_memory = 				_memory_block_top_free_memory,
 	/* Optional handlers */
 	/*.object_root_validate =							_object_root_validate,*/
 };
