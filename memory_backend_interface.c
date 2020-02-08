@@ -530,31 +530,6 @@ int memory_block_top_free_memory(
 	 }
 
 	/* clean up all child memory_blocks & pointers first */
-	/*hmm. not sure about pointers, it may be it's better to cleanup references*/
-#if 0
-	/*clear pointers */
-	for (i = 0; i < p_memory_block_top->memory_pointers_count; ++i) {
-		if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member == NULL) {
-			assert(p_memory_block_top->pp_memory_pointers[i]->p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
-
-			if (p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_casted_memory_backend_interface != NULL) {
-				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_casted_memory_backend_interface);
-			}
-			if (p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_original_memory_backend_interface != NULL) {
-				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_original_memory_backend_interface);
-			}
-		} else {
-			assert(p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
-
-			if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_casted_memory_backend_interface != NULL) {
-				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_casted_memory_backend_interface);
-			}
-			if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_original_memory_backend_interface != NULL) {
-				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_original_memory_backend_interface);
-			}
-		}
-	}
-#else
 	/* cleanup references to this object*/
 	for (i = 0; i < p_memory_block_top->memory_block_references_count; ++i) {
 		if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member == NULL) {
@@ -578,7 +553,6 @@ int memory_block_top_free_memory(
 		}
 	}
 
-#endif
 	for (i = 0; i < p_memory_block_top->memory_blocks_count; ++i) {
 		for (j = 0; j < p_memory_block_top->pp_memory_blocks[j]->elements_count; ++j) {
 			if (p_memory_block_top->pp_memory_blocks[j]->p_elements->p_element_type->p_actual_type->id == DW_TAG_array_type) {

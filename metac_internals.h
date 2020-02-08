@@ -252,10 +252,12 @@ struct memory_backend_interface_ops {
 	/* abstract destructor */
 	int												(*memory_backend_interface_delete)(
 			struct memory_backend_interface **			pp_memory_backend_interface);
+
 	/* compare pointers/objects. returns < 0 in case of error, 1 if equals and 0 if not */
 	int												(*memory_backend_interface_equals)(
 			struct memory_backend_interface *			p_memory_backend_interface0,
 			struct memory_backend_interface *			p_memory_backend_interface1);
+
 	/* work with p_element */
 	int												(*element_get_memory_backend_interface)(
 			struct element *							p_element,
@@ -294,6 +296,8 @@ struct memory_backend_interface_ops {
 	int												(*element_hierarchy_member_cast_pointer)(
 			struct element_hierarchy_member *			p_element_hierarchy_member);
 	/* work with p_memory_block_top*/
+//	int												(*memory_block_top_alloc_memory)(
+//			struct memory_block_top *					p_memory_block_top);
 	int												(*memory_block_top_free_memory)(
 			struct memory_block_top *					p_memory_block_top);
 	/* work with p_object_root */
@@ -342,8 +346,6 @@ int element_hierarchy_member_get_pointer_subrange0(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
 int element_hierarchy_member_cast_pointer(
 		struct element_hierarchy_member *			p_element_hierarchy_member);
-int memory_block_top_free_memory(
-		struct memory_block_top *					p_memory_block_top);
 int object_root_validate(
 		struct object_root *						p_object_root);
 /*****************************************************************************/
@@ -424,9 +426,43 @@ struct discriminator_value * discriminator_value_create(
 int discriminator_value_delete(
 		struct discriminator_value **				pp_discriminator_value);
 
-int memory_block_get_array_info(
+int memory_block_init(
 		struct memory_block *						p_memory_block,
-		metac_array_info_t **						pp_array_info);
+		struct element *							p_local_parent_element,
+		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct element_type *						p_element_type,
+		metac_array_info_t *						p_array_info,
+		metac_flag									is_flexible);
+struct memory_block * memory_block_create(
+		struct element *							p_local_parent_element,
+		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct element_type *						p_element_type,
+		metac_array_info_t *						p_array_info,
+		metac_flag									is_flexible);
+void memory_block_clean(
+		struct memory_block *						p_memory_block);
+int memory_block_delete(
+		struct memory_block **						pp_memory_block);
+
+int memory_block_top_init(
+		struct memory_block_top *					p_memory_block_top,
+		char *										global_path,
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct element_type *						p_element_type,
+		metac_array_info_t *						p_array_info);
+void memory_block_top_clean(
+		struct memory_block_top *					p_memory_block_top);
+struct memory_block_top * memory_block_top_create(
+		char *										global_path,
+		struct memory_backend_interface *			p_memory_backend_interface,
+		struct element_type *						p_element_type,
+		metac_array_info_t *						p_array_info);
+int memory_block_top_delete(
+		struct memory_block_top **					pp_memory_block_top);
+int memory_block_top_free_memory(
+		struct memory_block_top *					p_memory_block_top);
 
 int object_root_init(
 		struct object_root *						p_object_root,
@@ -434,7 +470,18 @@ int object_root_init(
 		struct element_type_top *					p_element_type_top);
 void object_root_clean(
 		struct object_root *						p_object_root);
+int object_root_equals(
+		struct object_root *						p_object_root0,
+		struct object_root *						p_object_root1);
+int object_root_copy(
+		struct object_root *						p_object_root,
+		struct object_root **						pp_object_root);
+int object_root_copy_ex(
+		struct object_root *						p_object_root,
+		struct memory_backend_interface_ops *		p_memory_backend_interface_ops,				/*it may be we want to have a fabric here */
+		struct object_root **						pp_object_root);
 int object_root_free_memory(
 		struct object_root *						p_object_root);
+
 
 #endif /* METAC_INTERNALS_H_ */

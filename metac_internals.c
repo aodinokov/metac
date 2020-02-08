@@ -3818,7 +3818,27 @@ int object_root_free_memory(
 
 	return 0;
 }
-
+int object_root_copy(
+		struct object_root *						p_object_root,
+		struct object_root **						pp_object_root) {
+	return object_root_copy_ex(
+			p_object_root,
+			p_object_root->p_memory_backend_interface->p_ops,
+			pp_object_root);
+}
+int object_root_copy_ex(
+		struct object_root *						p_object_root,
+		struct memory_backend_interface_ops *		p_memory_backend_interface_ops,
+		struct object_root **						pp_object_root) {
+	/*TODO: implement*/
+	return -(EFAULT);
+}
+int object_root_equals(
+		struct object_root *						p_object_root0,
+		struct object_root *						p_object_root1) {
+	/*TODO: implement*/
+	return -(EFAULT);
+}
 int metac_runtime_object_delete(
 		struct metac_runtime_object **				pp_metac_runtime_object) {
 	_delete_start_(metac_runtime_object);
