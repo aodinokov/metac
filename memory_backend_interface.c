@@ -505,25 +505,102 @@ int element_hierarchy_member_cast_pointer(
 }
 
 int memory_block_top_free_memory(
-        struct memory_block_top *                   p_memory_block_top) {
+		struct memory_block_top *					p_memory_block_top) {
 	struct memory_backend_interface * p_memory_backend_interface;
 
-    if (p_memory_block_top == NULL) {
-        msg_stderr("p_memory_block_top is NULL\n");
-        return -(EINVAL);
-    }
+	int i,j;
 
-    assert(p_memory_block_top->memory_block.p_memory_backend_interface);
+	if (p_memory_block_top == NULL) {
+		msg_stderr("p_memory_block_top is NULL\n");
+		return -(EINVAL);
+	}
+
+	assert(p_memory_block_top->memory_block.p_memory_backend_interface);
 
 	p_memory_backend_interface = p_memory_block_top->memory_block.p_memory_backend_interface;
 
-    if (p_memory_backend_interface->p_ops->memory_block_top_free_memory == NULL) {
-        msg_stderr("memory_block_top_free_memory isn't defined\n");
-        return -(ENOENT);
-    }
+	if (p_memory_backend_interface->p_ops->memory_block_top_free_memory == NULL) {
+		msg_stderr("memory_block_top_free_memory isn't defined\n");
+		return -(ENOENT);
+	}
 
-    return p_memory_backend_interface->p_ops->memory_block_top_free_memory(
-            p_memory_block_top);
+	 if (memory_backend_interface_get(p_memory_block_top->memory_block.p_memory_backend_interface, &p_memory_backend_interface) != 0) {
+			msg_stderr("memory_backend_interface_get returned error\n");
+			return -(ENOENT);
+	 }
+
+	/* clean up all child memory_blocks & pointers first */
+	/*hmm. not sure about pointers, it may be it's better to cleanup references*/
+#if 0
+	/*clear pointers */
+	for (i = 0; i < p_memory_block_top->memory_pointers_count; ++i) {
+		if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member == NULL) {
+			assert(p_memory_block_top->pp_memory_pointers[i]->p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
+
+			if (p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_casted_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_casted_memory_backend_interface);
+			}
+			if (p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_original_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element->pointer.p_original_memory_backend_interface);
+			}
+		} else {
+			assert(p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
+
+			if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_casted_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_casted_memory_backend_interface);
+			}
+			if (p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_original_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_pointers[i]->p_element_hierarchy_member->pointer.p_original_memory_backend_interface);
+			}
+		}
+	}
+#else
+	/* cleanup references to this object*/
+	for (i = 0; i < p_memory_block_top->memory_block_references_count; ++i) {
+		if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member == NULL) {
+			assert(p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element->p_element_type->p_actual_type->id == DW_TAG_pointer_type);
+
+			if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element->pointer.p_casted_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element->pointer.p_casted_memory_backend_interface);
+			}
+			if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element->pointer.p_original_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element->pointer.p_original_memory_backend_interface);
+			}
+		} else {
+			assert(p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member->p_element_type_hierarchy_member->p_actual_type->id == DW_TAG_pointer_type);
+
+			if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member->pointer.p_casted_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member->pointer.p_casted_memory_backend_interface);
+			}
+			if (p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member->pointer.p_original_memory_backend_interface != NULL) {
+				memory_backend_interface_put(&p_memory_block_top->pp_memory_block_references[i]->reference_location.p_element_hierarchy_member->pointer.p_original_memory_backend_interface);
+			}
+		}
+	}
+
+#endif
+	for (i = 0; i < p_memory_block_top->memory_blocks_count; ++i) {
+		for (j = 0; j < p_memory_block_top->pp_memory_blocks[j]->elements_count; ++j) {
+			if (p_memory_block_top->pp_memory_blocks[j]->p_elements->p_element_type->p_actual_type->id == DW_TAG_array_type) {
+				if (p_memory_block_top->pp_memory_blocks[j]->p_elements->array.p_memory_backend_interface != NULL) {
+					memory_backend_interface_put(&p_memory_block_top->pp_memory_blocks[j]->p_elements->array.p_memory_backend_interface);
+				}
+			}
+		}
+	}
+
+	for (i = 0; i < p_memory_block_top->memory_blocks_count; ++i) {
+		if (p_memory_block_top->pp_memory_blocks[j]->p_memory_backend_interface != NULL) {
+			memory_backend_interface_put(&p_memory_block_top->pp_memory_blocks[j]->p_memory_backend_interface);
+		}
+	}
+
+	p_memory_backend_interface->p_ops->memory_block_top_free_memory(
+			p_memory_block_top);
+
+	memory_backend_interface_put(&p_memory_backend_interface);
+
+	return 0;
 }
 
 int object_root_validate(

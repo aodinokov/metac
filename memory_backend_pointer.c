@@ -352,25 +352,13 @@ static int _element_calculate_hierarchy_top_discriminator_values(
 }
 /*****************************************************************************/
 static int _memory_block_top_free_memory(
-	struct memory_block_top *                   p_memory_block_top) {
+		struct memory_block_top *					p_memory_block_top) {
 
 	int i;
 
 	assert(p_memory_block_top);
 	struct memory_backend_pointer * p_memory_backend_pointer =
 		memory_backend_pointer(p_memory_block_top->memory_block.p_memory_backend_interface);
-
-	/* TODO: move it to the upper level: clean up all child memory_blocks first */
-	for (i = 1; i < p_memory_block_top->memory_blocks_count; ++i) {
-		struct memory_backend_pointer * p_memory_backend_pointer_to_empty;
-
-		p_memory_backend_pointer_to_empty =
-			memory_backend_pointer(p_memory_block_top->pp_memory_blocks[i]->p_memory_backend_interface);
-
-		if (p_memory_backend_pointer_to_empty->ptr != NULL) {
-			p_memory_backend_pointer_to_empty->ptr = NULL;
-		}
-	}
 
 	if (p_memory_backend_pointer->ptr != NULL) {
 		free(p_memory_backend_pointer->ptr);
@@ -574,6 +562,8 @@ static struct memory_backend_interface_ops ops = {
 	.element_hierarchy_member_get_pointer_subrange0 =
 													_element_hierarchy_member_get_pointer_subrange0,
 	.element_hierarchy_member_cast_pointer =		_element_hierarchy_member_cast_pointer,
+
+	.memory_block_top_free_memory =					_memory_block_top_free_memory,
 	/* Optional handlers */
 	.object_root_validate =							_object_root_validate,
 };

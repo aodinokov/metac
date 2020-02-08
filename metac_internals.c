@@ -3705,7 +3705,7 @@ static int object_root_builder_finalize(
 	}
 	return 0;
 }
-static void object_root_clean(
+void object_root_clean(
 		struct object_root *						p_object_root) {
 	int i;
 	/*filled in */
@@ -3725,7 +3725,7 @@ static void object_root_clean(
 		memory_backend_interface_put(&p_object_root->p_memory_backend_interface);
 	}
 }
-static int object_root_init(
+int object_root_init(
 		struct object_root *						p_object_root,
 		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type_top *					p_element_type_top) {
@@ -3803,8 +3803,8 @@ static int object_root_init(
 
 	return 0;
 }
-static int object_root_free_memory(
-        struct object_root *                        p_object_root) {
+int object_root_free_memory(
+		struct object_root *						p_object_root) {
 	int i;
 
 	if (p_object_root->pp_memory_block_tops) {
@@ -3815,18 +3815,18 @@ static int object_root_free_memory(
 			}
 		}
 	}
-	object_root_clean(p_object_root);
 
 	return 0;
 }
 
 int metac_runtime_object_delete(
-        struct metac_runtime_object **              pp_metac_runtime_object) {
-    _delete_start_(metac_runtime_object);
-    object_root_clean(&((*pp_metac_runtime_object)->object_root));
-    _delete_finish(metac_runtime_object);
-    return 0;
+		struct metac_runtime_object **				pp_metac_runtime_object) {
+	_delete_start_(metac_runtime_object);
+	object_root_clean(&((*pp_metac_runtime_object)->object_root));
+	_delete_finish(metac_runtime_object);
+	return 0;
 }
+
 struct metac_runtime_object * metac_runtime_object_create(
 		void *										ptr,
 		struct metac_precompiled_type *				p_metac_precompiled_type
