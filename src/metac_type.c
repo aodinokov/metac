@@ -15,32 +15,9 @@
 #include <errno.h>
 
 #include "metac/metac_type.h"
-#include "metac_debug.h"
 
-/*****************************************************************************/
-#define _create_(_type_) \
-	struct _type_ * p_##_type_; \
-	p_##_type_ = calloc(1, sizeof(*(p_##_type_))); \
-	if (p_##_type_ == NULL) { \
-		msg_stderr("Can't create " #_type_ ": no memory\n"); \
-		return NULL; \
-	}
-#define _delete_start_(_type_) \
-	if (pp_##_type_ == NULL) { \
-		msg_stderr("Can't delete " #_type_ ": invalid parameter\n"); \
-		return -EINVAL; \
-	} \
-	if (*pp_##_type_ == NULL) { \
-		msg_stderr("Can't delete " #_type_ ": already deleted\n"); \
-		return -EALREADY; \
-	}
-#define _delete_finish(_type_) \
-	free(*pp_##_type_); \
-	*pp_##_type_ = NULL;
-#define _delete_(_type_) \
-	_delete_start_(_type_) \
-	_delete_finish(_type_)
-/*****************************************************************************/
+#include "metac_oop.h"		/*_create, _delete, ...*/
+#include "metac_debug.h"
 
 static const metac_type_annotation_t *
 	_annotation_by_key(metac_type_annotation_t *annotations, const char *key) {
