@@ -187,7 +187,7 @@ static int element_type_hierarchy_top_container_init_discriminator(
 static void element_type_hierarchy_top_container_clean_discriminator(
 		struct element_type_hierarchy_top_container_discriminator *
 													p_element_type_hierarchy_top_container_discriminator,
-		metac_flag									keep_data
+		metac_flag_t									keep_data
 		) {
 	if (keep_data == 0) {
 		discriminator_delete(&p_element_type_hierarchy_top_container_discriminator->p_discriminator);
@@ -444,7 +444,7 @@ struct element_type_hierarchy_member * element_type_hierarchy_member_get_parent_
 	}
 	return element_type_hierarchy_get_element_hierarchy_member(p_element_type_hierarchy_member->p_hierarchy);
 }
-metac_flag element_type_hierarchy_member_is_hierachy(
+metac_flag_t element_type_hierarchy_member_is_hierachy(
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
 	if (p_element_type_hierarchy_member != NULL &&
 			p_element_type_hierarchy_member->p_actual_type != NULL && (
@@ -454,7 +454,7 @@ metac_flag element_type_hierarchy_member_is_hierachy(
 		return 1;
 	return 0;
 }
-metac_flag element_type_hierarchy_member_is_array(
+metac_flag_t element_type_hierarchy_member_is_array(
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
 	if (p_element_type_hierarchy_member != NULL &&
 			p_element_type_hierarchy_member->p_actual_type != NULL && (
@@ -463,7 +463,7 @@ metac_flag element_type_hierarchy_member_is_array(
 		return 1;
 	return 0;
 }
-metac_flag element_type_hierarchy_member_is_pointer(
+metac_flag_t element_type_hierarchy_member_is_pointer(
 		struct element_type_hierarchy_member *		p_element_type_hierarchy_member) {
 	if (p_element_type_hierarchy_member != NULL &&
 			p_element_type_hierarchy_member->p_actual_type != NULL && (
@@ -559,7 +559,7 @@ static int element_type_hierarchy_top_container_init_element_type_hierarchy_memb
 static void element_type_hierarchy_top_container_clean_element_type_hierarchy_member(
 		struct element_type_hierarchy_top_container_element_type_hierarchy_member *
 													p_element_type_hierarchy_top_container_element_type_hierarchy_member,
-		metac_flag									keep_data
+		metac_flag_t									keep_data
 		) {
 	if (keep_data == 0) {
 		element_type_hierarchy_member_delete(&p_element_type_hierarchy_top_container_element_type_hierarchy_member->p_element_type_hierarchy_member);
@@ -899,7 +899,7 @@ static int element_type_hierarchy_top_container_init(
 static void element_type_hierarchy_top_container_clean(
 		struct element_type_hierarchy_top_container *
 													p_element_type_hierarchy_top_container,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct element_type_hierarchy_top_container_discriminator * _discriminator, * __discriminator;
 	struct element_type_hierarchy_top_container_element_type_hierarchy_member * _member, * __member;
 	cds_list_for_each_entry_safe(_member, __member, &p_element_type_hierarchy_top_container->element_type_hierarchy_member_type_list, list) {
@@ -926,7 +926,7 @@ static int element_type_hierarchy_top_builder_init(
 }
 static void element_type_hierarchy_top_builder_clean(
 		struct element_type_hierarchy_top_builder * p_element_type_hierarchy_top_builder,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct traversing_engine_task * p_task, *_p_task;
 
 	traversing_engine_clean(&p_element_type_hierarchy_top_builder->hierarchy_traversing_engine);
@@ -1071,7 +1071,7 @@ int element_type_hierarchy_top_init(
 	return 0;
 }
 /*****************************************************************************/
-static metac_flag element_type_is_potentially_flexible(
+static metac_flag_t element_type_is_potentially_flexible(
 		struct element_type *						p_element_type) {
 	switch(p_element_type->p_actual_type->id) {
 	case DW_TAG_array_type:
@@ -1145,7 +1145,7 @@ struct element_type * element_type_create(
 	p_element_type->is_potentially_flexible = element_type_is_potentially_flexible(p_element_type);
 	return p_element_type;
 }
-metac_flag element_type_is_hierachy(
+metac_flag_t element_type_is_hierachy(
 		struct element_type *						p_element_type) {
 	if (p_element_type != NULL &&
 		p_element_type->p_actual_type != NULL && (
@@ -1155,7 +1155,7 @@ metac_flag element_type_is_hierachy(
 		return 1;
 	return 0;
 }
-metac_flag element_type_is_array(
+metac_flag_t element_type_is_array(
 		struct element_type *						p_element_type) {
 	if (p_element_type != NULL &&
 		p_element_type->p_actual_type != NULL && (
@@ -1164,7 +1164,7 @@ metac_flag element_type_is_array(
 		return 1;
 	return 0;
 }
-metac_flag element_type_is_pointer(
+metac_flag_t element_type_is_pointer(
 		struct element_type *						p_element_type) {
 	if (p_element_type != NULL &&
 		p_element_type->p_actual_type != NULL && (
@@ -1189,7 +1189,7 @@ static int element_type_top_container_init_element_type(
 static void element_type_top_container_clean_element_type(
 		struct element_type_top_container_element_type *
 													p_element_type_top_container_element_type,
-		metac_flag									keep_data
+		metac_flag_t									keep_data
 		) {
 	if (keep_data == 0) {
 		element_type_delete(&p_element_type_top_container_element_type->p_element_type);
@@ -1204,7 +1204,7 @@ static int element_type_top_container_init(
 }
 static void element_type_top_container_clean(
 		struct element_type_top_container *			p_element_type_top_container,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct element_type_top_container_element_type * _element_type, * __element_type;
 	cds_list_for_each_entry_safe(_element_type, __element_type, &p_element_type_top_container->pointers_element_type_list, list) {
 		cds_list_del(&_element_type->list);
@@ -1632,7 +1632,7 @@ static int element_type_top_builder_init(
 }
 static void element_type_top_builder_clean(
 		struct element_type_top_builder *			p_element_type_top_builder,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct traversing_engine_task * p_task, *_p_task;
 
 	traversing_engine_clean(&p_element_type_top_builder->element_type_traversing_engine);
@@ -2170,7 +2170,7 @@ static int element_init_hierarchy_top(
 		}
 
 		for (i = 0; i < p_element->p_element_type->hierarchy_top.discriminators_count; ++i) {
-			metac_flag allocate = 0;
+			metac_flag_t allocate = 0;
 
 			assert(p_element->p_element_type->hierarchy_top.pp_discriminators[i] != NULL);
 			/*assumption: if we initialize all discriminators in order of their appearance - we won't need to resolve dependencides*/
@@ -2222,7 +2222,7 @@ static int element_init_hierarchy_top(
 
 	/* create members based on discriminators */
 	for (i = 0; i < p_element->p_element_type->hierarchy_top.members_count; ++i) {
-		metac_flag allocate = 0;
+		metac_flag_t allocate = 0;
 
 		if (	allocate == 0 &&
 				p_element->p_element_type->hierarchy_top.pp_members[i]->precondition.p_discriminator == NULL) {
@@ -2457,7 +2457,7 @@ int memory_block_init(
 		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type *						p_element_type,
 		metac_array_info_t *						p_array_info,
-		metac_flag									is_flexible) {
+		metac_flag_t									is_flexible) {
 	metac_count_t i;
 	char * new_path_pattern;
 
@@ -2549,7 +2549,7 @@ struct memory_block * memory_block_create(
 		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type *						p_element_type,
 		metac_array_info_t *						p_array_info,
-		metac_flag									is_flexible) {
+		metac_flag_t									is_flexible) {
 	_create_(memory_block);
 	if (memory_block_init(
 			p_memory_block,
@@ -2589,7 +2589,7 @@ static int memory_block_top_builder_delete_memory_block_task(
 }
 static int memory_block_top_container_pointer_delete(
 		struct memory_block_top_container_pointer **		pp_memory_block_top_container_pointer,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	_delete_start_(memory_block_top_container_pointer);
 	if (keep_data == 0) {
 		if ((*pp_memory_block_top_container_pointer)->p_memory_pointer != NULL) {
@@ -2627,7 +2627,7 @@ static struct memory_block_top_container_pointer * memory_block_top_container_po
 static void memory_block_top_container_memory_block_clean(
 		struct memory_block_top_container_memory_block *
 													p_memory_block_top_container_memory_block,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	if (	keep_data ==0 &&
 			p_memory_block_top_container_memory_block->p_memory_block != NULL) {
 		memory_block_delete(&p_memory_block_top_container_memory_block->p_memory_block);
@@ -2649,7 +2649,7 @@ static int memory_block_top_container_memory_block_init(
 static int memory_block_top_container_memory_block_delete(
 		struct memory_block_top_container_memory_block **
 													pp_memory_block_top_container_memory_block,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	_delete_start_(memory_block_top_container_memory_block);
 	memory_block_top_container_memory_block_clean(*pp_memory_block_top_container_memory_block, keep_data);
 	_delete_finish(memory_block_top_container_memory_block);
@@ -2662,7 +2662,7 @@ static struct memory_block_top_container_memory_block * memory_block_top_contain
 		metac_count_t								byte_size,
 		struct element_type *						p_element_type,
 		metac_array_info_t *						p_array_info,
-		metac_flag									is_flexible) {
+		metac_flag_t									is_flexible) {
 	_create_(memory_block_top_container_memory_block);
 	if (memory_block_top_container_memory_block_init(
 			p_memory_block_top_container_memory_block,
@@ -2688,7 +2688,7 @@ static int memory_block_top_container_init(
 }
 static void memory_block_top_container_clean(
 		struct memory_block_top_container *			p_memory_block_top_container,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct memory_block_top_container_memory_block * _container_memory_block, * __container_memory_block;
 	struct memory_block_top_container_pointer * _container_pointer, * __container_pointer;
 	cds_list_for_each_entry_safe(_container_memory_block, __container_memory_block, &p_memory_block_top_container->container_memory_block_list, list) {
@@ -2711,7 +2711,7 @@ static int memory_block_top_builder_init(
 }
 static void memory_block_top_builder_clean(
 		struct memory_block_top_builder *			p_memory_block_top_builder,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct traversing_engine_task * p_task, *_p_task;
 
 	traversing_engine_clean(&p_memory_block_top_builder->memory_block_top_traversing_engine);
@@ -3171,7 +3171,7 @@ int memory_block_top_find_closest_member(
 	}
 
 	do {
-		metac_flag need_continue = 0;
+		metac_flag_t need_continue = 0;
 
 		/* find element that matches the offset */
 		i = remaining_offset / p_memory_block->p_elements[0].p_element_type->byte_size;
@@ -3289,7 +3289,7 @@ static struct object_root_container_memory_block_reference * object_root_contain
 static void object_root_container_memory_block_top_clean(
 		struct object_root_container_memory_block_top *
 													p_object_root_container_memory_block_top,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct object_root_container_memory_block_reference * _memory_block_reference, * __memory_block_reference;
 
 	if (	keep_data == 0 &&
@@ -3589,7 +3589,7 @@ static int object_root_container_init(
 }
 static void object_root_container_clean(
 		struct object_root_container *				p_object_root_container,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct object_root_container_memory_block_top * _memory_block_top, * __memory_block_top;
 	cds_list_for_each_entry_safe(_memory_block_top, __memory_block_top, &p_object_root_container->memory_block_top_list, list) {
 		cds_list_del(&_memory_block_top->list);
@@ -3610,7 +3610,7 @@ static int object_root_builder_init(
 }
 static void object_root_builder_clean(
 		struct object_root_builder *				p_object_root_builder,
-		metac_flag									keep_data) {
+		metac_flag_t									keep_data) {
 	struct traversing_engine_task * p_task, *_p_task;
 
 	traversing_engine_clean(&p_object_root_builder->object_root_traversing_engine);

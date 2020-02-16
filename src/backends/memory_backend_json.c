@@ -457,7 +457,7 @@ static int _get_hierarchy_member_related_json(
 	return 0;
 }
 
-static metac_flag _is_hierarchy_closest_non_anon_member(
+static metac_flag_t _is_hierarchy_closest_non_anon_member(
 		struct element_type_hierarchy *				p_hierarchy,
 		struct element_type_hierarchy_member *		p_hierarchy_member,
 		metac_discriminator_value_t *				p_value) {
@@ -498,7 +498,7 @@ static int _guess_discriminator_value(
 		metac_discriminator_value_t *				p_value) {
 
 	int i;
-	metac_flag value_is_set = 0;
+	metac_flag_t value_is_set = 0;
 	metac_discriminator_value_t value = 0;
 
 	assert(p_element_type->p_actual_type->id == DW_TAG_union_type || p_element_type->p_actual_type->id == DW_TAG_structure_type);

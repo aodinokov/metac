@@ -102,7 +102,7 @@ struct element_type {																	/*array element type*/
 
 	metac_byte_size_t 								byte_size;							/*cached: element bite size*/
 
-	metac_flag										is_potentially_flexible;
+	metac_flag_t										is_potentially_flexible;
 
 	union {	/*depending on actual_type->id*/
 		struct element_type_pointer					pointer;
@@ -161,7 +161,7 @@ struct memory_block {
 
 	metac_count_t									byte_size;							/* 0 - unknown?*/
 
-	metac_flag										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
+	metac_flag_t										is_flexible;						/* was created from flexible array (don't confuse with pointers) */
 
 	metac_array_info_t *							p_array_info;
 
@@ -171,7 +171,7 @@ struct memory_block {
 struct element_pointer {
 	struct memory_backend_interface *				p_original_memory_backend_interface;/* the interface what was read */
 
-	metac_flag										use_cast;
+	metac_flag_t										use_cast;
 	metac_count_t									generic_cast_type_id;				/* we use callback to get this*/
 	struct element_type *							p_casted_element_type;				/* after generic_cast */
 	struct memory_backend_interface *				p_casted_memory_backend_interface;	/* the interface what was read */
@@ -184,7 +184,7 @@ struct element_pointer {
 struct element_array {
 	struct memory_backend_interface *				p_memory_backend_interface;			/* the interface what was read */
 
-	metac_flag										is_flexible;
+	metac_flag_t										is_flexible;
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
 
 	struct memory_block	*							p_memory_block;
@@ -234,7 +234,7 @@ struct memory_block_top {
 	metac_count_t									memory_block_references_count;
 	struct memory_block_reference ** 				pp_memory_block_references;
 
-	metac_flag										is_flexible;						/* if contained flexible arrays */
+	metac_flag_t										is_flexible;						/* if contained flexible arrays */
 	metac_byte_size_t								flexible_byte_size;					/* flexible part: should be added to the memory_block_top*/
 };
 struct object_root {
@@ -433,14 +433,14 @@ int memory_block_init(
 		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type *						p_element_type,
 		metac_array_info_t *						p_array_info,
-		metac_flag									is_flexible);
+		metac_flag_t									is_flexible);
 struct memory_block * memory_block_create(
 		struct element *							p_local_parent_element,
 		struct element_hierarchy_member *			p_local_parent_element_hierarchy_member,
 		struct memory_backend_interface *			p_memory_backend_interface,
 		struct element_type *						p_element_type,
 		metac_array_info_t *						p_array_info,
-		metac_flag									is_flexible);
+		metac_flag_t									is_flexible);
 void memory_block_clean(
 		struct memory_block *						p_memory_block);
 int memory_block_delete(

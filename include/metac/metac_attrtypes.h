@@ -22,11 +22,13 @@ typedef unsigned int					metac_bit_size_t;
 typedef unsigned int					metac_bound_t;					/*make it long? for easier calculations*/
 typedef unsigned int					metac_count_t;
 typedef unsigned long					metac_const_value_t;
-typedef int								metac_flag;
+typedef int								metac_flag_t;
 
 typedef int								metac_type_id_t;
 typedef int								metac_type_at_id_t;
 typedef unsigned int					metac_num_t;
+
+typedef int								metac_discriminator_value_t;
 
 #ifdef __cplusplus
 }
