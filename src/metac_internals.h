@@ -10,6 +10,7 @@
 #define METAC_INTERNALS_H_
 
 #include "metac/metac_type.h"
+#include "metac/metac_array_info.h"
 #include <stdint.h>	/*uint32_t*/
 
 /*****************************************************************************/
