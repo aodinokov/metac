@@ -9,7 +9,7 @@
 #ifndef METAC_INTERNALS_H_
 #define METAC_INTERNALS_H_
 
-#include "metac_type.h"
+#include "metac/metac_type.h"
 #include <stdint.h>	/*uint32_t*/
 
 /*****************************************************************************/

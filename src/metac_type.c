@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "metac_type.h"
+#include "metac/metac_type.h"
 #include "metac_debug.h"
 
 /*****************************************************************************/

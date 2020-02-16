@@ -360,7 +360,7 @@ END {
     asort(obj);
     
     print "/* This file is auto-generated. Don't modify it if you aren't really sure about the reason. */";
-    print "#include \"metac_type.h\""
+    print "#include \"metac/metac_type.h\""
     print "#include <stdio.h>  /* NULL */"
     print "\n/* explicit type parameters declarations */"
     

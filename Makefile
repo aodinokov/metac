@@ -1,4 +1,4 @@
-CFLAGS+=-g3 -o0 -D_GNU_SOURCE
+CFLAGS+=-g3 -o0 -D_GNU_SOURCE -Iinclude -Isrc
 
 all:
 
@@ -18,34 +18,39 @@ _always_:
 	#@echo "dwarf------------------------------------------------------------------"
 	#@dwarfdump $< > xxx
 	#@echo "-----------------------------------------------------------------------"
-	dwarfdump $< | ./metac.awk -v file=$<.task > $@
+	dwarfdump $< | ./bin/metac.awk -v file=$<.task > $@
 	rm -f $<.task
 	@echo "result-----------------------------------------------------------------"
 	#@cat $@
 	@echo "-----------------------------------------------------------------------"
 
 metac_objs = \
-	metac_type.o \
-	metac_internals.o \
-	memory_backend_interface.o \
-	memory_backend_pointer.o \
-	memory_backend_json.o \
-	traversing_engine.o
+	src/metac_type.o \
+	src/traversing_engine.o \
+	src/metac_internals.o \
+	src/memory_backend_interface.o \
+	src/backends/memory_backend_pointer.o \
+	src/backends/memory_backend_json.o
 
-metac_ut_libs = -ldl -lcheck -lm -lrt -ljson-c
-metac_ut_libs += -lsubunit
+metac_libs = -lm -lrt -ljson-c
+
+libmetac.a: $(metac_objs)
+	$(AR) $(ARFLAGS) $@ $^
 
 # tests
-metac_type_ut_001: LDFLAGS=-pthread -rdynamic
-metac_type_ut_001: $(metac_objs) metac_type_ut_001.o metac_type_ut_001.metac.o
-metac_type_ut_001: $(metac_ut_libs)
+metac_ut_libs = $(metac_libs) -ldl -lcheck
+metac_ut_libs += -lsubunit
 
-metac_internals_ut_001: LDFLAGS=-pthread
-metac_internals_ut_001: $(metac_objs) metac_internals_ut_001.o
-metac_internals_ut_001: $(metac_ut_libs)
+ut/metac_type_ut_001: LDFLAGS=-pthread -rdynamic
+ut/metac_type_ut_001: $(metac_objs) ut/metac_type_ut_001.o ut/metac_type_ut_001.metac.o libmetac.a
+ut/metac_type_ut_001: $(metac_ut_libs)
+
+ut/metac_internals_ut_001: LDFLAGS=-pthread
+ut/metac_internals_ut_001: $(metac_objs) ut/metac_internals_ut_001.o
+ut/metac_internals_ut_001: $(metac_ut_libs)
 
 
-all: metac_type_ut_001.run metac_type_ut_001.metac.c
+all: libmetac.a ut/metac_type_ut_001.run ut/metac_type_ut_001.metac.c
 #all: metac_internals_ut_001.run
 
 %.run: % _always_
@@ -58,6 +63,6 @@ doc: _always_
 	@doxygen Doxyfile
 
 clean:
-	rm -rf *.o *.metac.c
+	rm -rf src/*.o src/backends/*.o ut/*.o ut/*.metac.c *.a
 
 .PHONY: all clean _always_

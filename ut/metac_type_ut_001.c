@@ -13,7 +13,7 @@
 
 #include "check_ext.h"
 #include "metac_debug.h"	/* msg_stderr, ...*/
-#include "metac_type.h"
+#include "metac/metac_type.h"
 
 //#include "metac_json.h"
 
