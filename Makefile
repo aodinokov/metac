@@ -40,7 +40,7 @@ libmetac.a: $(metac_objs)
 # tests
 metac_ut_libs = -ldl
 metac_ut_libs += -lcheck
-#metac_ut_libs += -lsubunit
+metac_ut_libs += -lsubunit
 metac_ut_libs += $(metac_libs)
 
 ut/metac_type_ut_001: LDFLAGS=-pthread -rdynamic
