@@ -16,7 +16,6 @@
 struct element_type_hierarchy;
 struct element_type_hierarchy_member;
 struct element_hierarchy_member;
-struct array;
 /*****************************************************************************/
 struct condition {
 	struct discriminator *							p_discriminator;

@@ -3831,12 +3831,14 @@ int object_root_copy_ex(
 		struct memory_backend_interface_ops *		p_memory_backend_interface_ops,
 		struct object_root **						pp_object_root) {
 	/*TODO: implement*/
+
 	return -(EFAULT);
 }
 int object_root_equals(
 		struct object_root *						p_object_root0,
 		struct object_root *						p_object_root1) {
 	/*TODO: implement*/
+	/*p_object_root0 and their components are located in mem in order of mem-parsing - we're relying on that */
 	return -(EFAULT);
 }
 /*****************************************************************************/
