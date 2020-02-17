@@ -226,7 +226,7 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 }
 
 /*****************************************************************************/
-static inline struct metac_type * metac_type(
+static inline struct metac_type * metac_unknown_object_get_metac_type(
 		struct metac_unknown_object *				p_metac_unknown_object) {
 	return cds_list_entry(
 			p_metac_unknown_object,
@@ -236,7 +236,6 @@ static inline struct metac_type * metac_type(
 
 static int metac_type_free(
 		struct metac_type **						pp_metac_type) {
-	msg_stderr("metac_type_free\n");
 	_delete_(metac_type);
 	return 0;
 }
@@ -251,7 +250,7 @@ static int _metac_type_unknown_object_delete(
 		return -(EINVAL);
 	}
 
-	p_metac_type = metac_type(p_metac_unknown_object);
+	p_metac_type = metac_unknown_object_get_metac_type(p_metac_unknown_object);
 	if (p_metac_type == NULL) {
 		msg_stderr("p_metac_type is NULL\n");
 		return -(EINVAL);
@@ -286,6 +285,7 @@ struct metac_type * metac_type_create_pointer_for(
 
 	return p_metac_type;
 }
+
 struct metac_type * metac_type_get(struct metac_type * p_metac_type) {
 	if (p_metac_type != NULL &&
 		metac_refcounter_object_get(&p_metac_type->refcounter_object) != NULL) {
@@ -293,6 +293,7 @@ struct metac_type * metac_type_get(struct metac_type * p_metac_type) {
 	}
 	return NULL;
 }
+
 int metac_type_put(struct metac_type ** pp_metac_type) {
 	if (pp_metac_type != NULL &&
 		(*pp_metac_type) != NULL &&

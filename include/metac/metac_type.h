@@ -21,7 +21,7 @@ struct metac_type {
 
 	metac_type_id_t									id;									/* type id */
 	metac_name_t									name;								/* name of type (can be NULL) */
-	int												declaration;						/* =1 if type is incomplete */
+	metac_flag_t									declaration;						/* =1 if type is incomplete */
 
 	/* METAC specific data */
 	union {
