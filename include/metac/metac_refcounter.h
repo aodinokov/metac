@@ -29,6 +29,8 @@ int metac_unknown_object_init(
 		struct metac_unknown_object *				p_unknown_object,
 		struct metac_unknown_object_ops *			p_unknown_object_ops,
 		void *										p_private_data);
+int metac_unknown_object_supports_delete(
+		struct metac_unknown_object *				p_unknown_object);
 int metac_unknown_object_delete(
 		struct metac_unknown_object *				p_unknown_object);
 
