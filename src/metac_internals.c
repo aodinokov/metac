@@ -1662,7 +1662,7 @@ void element_type_top_clean(
 	if (p_element_type_top->p_element_type_for_pointer)
 		element_type_delete(&p_element_type_top->p_element_type_for_pointer);
 	if (p_element_type_top->p_pointer_type)
-		metac_type_free(&p_element_type_top->p_pointer_type);
+		metac_type_put(&p_element_type_top->p_pointer_type);
 }
 static int element_type_top_builder_finalize(
 		struct element_type_top_builder *			p_element_type_top_builder,

@@ -26,6 +26,7 @@ _always_:
 
 metac_objs = \
 	src/metac_type.o \
+	src/metac_refcounter.o \
 	src/metac_array_info.o \
 	src/traversing_engine.o \
 	src/metac_internals.o \

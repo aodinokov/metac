@@ -10,9 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>		/*uint64_t etc*/
+#include <stdint.h>			/*uint64_t etc*/
 #include <assert.h>
 #include <errno.h>
+#include <urcu/list.h>		/* struct cds_list_entry etc */
 
 #include "metac/metac_type.h"
 
@@ -224,19 +225,85 @@ int metac_type_array_member_location(struct metac_type *type, metac_num_t subran
 	return res;
 }
 
-struct metac_type * metac_type_create_pointer_for(
-		struct metac_type *							p_type) {
-	_create_(metac_type);
-	p_metac_type->id = DW_TAG_pointer_type;
-	p_metac_type->pointer_type_info.type = p_type;
-	return p_metac_type;
+/*****************************************************************************/
+static inline struct metac_type * metac_type(
+		struct metac_unknown_object *				p_metac_unknown_object) {
+	return cds_list_entry(
+			p_metac_unknown_object,
+			struct metac_type,
+			refcounter_object.unknown_object);
 }
-int metac_type_free(
+
+static int metac_type_free(
 		struct metac_type **						pp_metac_type) {
+	msg_stderr("metac_type_free\n");
 	_delete_(metac_type);
 	return 0;
 }
 
+static int _metac_type_unknown_object_delete(
+		struct metac_unknown_object *				p_metac_unknown_object) {
+
+	struct metac_type * p_metac_type;
+
+	if (p_metac_unknown_object == NULL) {
+		msg_stderr("p_metac_unknown_object is NULL\n");
+		return -(EINVAL);
+	}
+
+	p_metac_type = metac_type(p_metac_unknown_object);
+	if (p_metac_type == NULL) {
+		msg_stderr("p_metac_type is NULL\n");
+		return -(EINVAL);
+	}
+
+	return metac_type_free(&p_metac_type);
+}
+
+static metac_refcounter_object_ops_t _metac_type_refcounter_object_ops = {
+		.unknown_object_ops = {
+				.metac_unknown_object_delete = _metac_type_unknown_object_delete,
+		},
+};
+
+struct metac_type * metac_type_create_pointer_for(
+		struct metac_type *							p_type) {
+
+	_create_(metac_type);
+
+	if (metac_refcounter_object_init(
+			&p_metac_type->refcounter_object,
+			&_metac_type_refcounter_object_ops,
+			NULL) != 0) {
+		msg_stderr("metac_refcounter_object_init failed\n");
+
+		metac_type_free(&p_metac_type);
+		return NULL;
+	}
+
+	p_metac_type->id = DW_TAG_pointer_type;
+	p_metac_type->pointer_type_info.type = p_type;
+
+	return p_metac_type;
+}
+struct metac_type * metac_type_get(struct metac_type * p_metac_type) {
+	if (p_metac_type != NULL &&
+		metac_refcounter_object_get(&p_metac_type->refcounter_object) != NULL) {
+		return p_metac_type;
+	}
+	return NULL;
+}
+int metac_type_put(struct metac_type ** pp_metac_type) {
+	if (pp_metac_type != NULL &&
+		(*pp_metac_type) != NULL &&
+		metac_refcounter_object_put(&(*pp_metac_type)->refcounter_object) == 0) {
+		*pp_metac_type = NULL;
+		return 0;
+	}
+	return -(EFAULT);
+}
+
+/*****************************************************************************/
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
 	if (array == NULL || name == NULL)
 		return NULL;

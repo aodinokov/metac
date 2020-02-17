@@ -4,6 +4,7 @@
 #include <dwarf.h>
 //#include <libdwarf/dwarf.h> /*for bionic*/
 
+#include "metac/metac_refcounter.h"
 #include "metac/metac_attrtypes.h"
 
 #ifdef __cplusplus
@@ -16,6 +17,8 @@ typedef struct metac_type_annotation				metac_type_annotation_t;
 typedef struct metac_type_annotation_value			metac_type_annotation_value_t;
 
 struct metac_type {
+	metac_refcounter_object_t						refcounter_object;					/* needed to work with references if the object is dynamically allocated (see metac_type_create_pointer_for) */
+
 	metac_type_id_t									id;									/* type id */
 	metac_name_t									name;								/* name of type (can be NULL) */
 	int												declaration;						/* =1 if type is incomplete */
@@ -146,7 +149,9 @@ const metac_type_annotation_t *
 
 /* dynamic functions - for future */
 struct metac_type * 	metac_type_create_pointer_for(struct metac_type * p_type);
-int 					metac_type_free(struct metac_type ** pp_metac_type);
+//int 					metac_type_free(struct metac_type ** pp_metac_type);
+struct metac_type *		metac_type_get(struct metac_type * p_metac_type);
+int						metac_type_put(struct metac_type ** pp_metac_type);
 
 #define _METAC(x, name) metac__ ## x ## _ ## name
 #define METAC(x, name) _METAC(x, name)
