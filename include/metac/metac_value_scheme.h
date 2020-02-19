@@ -124,6 +124,8 @@ metac_flag_t metac_value_scheme_is_array(
 metac_flag_t metac_value_scheme_is_pointer(
 		struct metac_value_scheme *					p_metac_value_scheme);
 
+metac_flag_t metac_value_scheme_is_hierarchy_member(
+		struct metac_value_scheme *					p_metac_value_scheme);
 struct metac_value_scheme * metac_value_scheme_get_parent_value_scheme(
 		struct metac_value_scheme *					p_metac_value_scheme);
 
