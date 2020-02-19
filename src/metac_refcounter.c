@@ -28,6 +28,47 @@ int metac_unknown_object_init(
 	return 0;
 }
 
+int metac_unknown_object_supports_snprintf(
+		struct metac_unknown_object *				p_unknown_object) {
+
+	if (p_unknown_object == NULL) {
+		msg_stderr("Invalid argument\n");
+		return -(EINVAL);
+	}
+
+	if (p_unknown_object->p_unknown_object_ops == NULL ||
+		p_unknown_object->p_unknown_object_ops->metac_unknown_object_snprintf == NULL) {
+		msg_stddbg("Unsupported operation in ops: %p\n",
+				p_unknown_object->p_unknown_object_ops);
+		return 0;
+	}
+
+	return 1;
+}
+
+int metac_unknown_object_snprintf(
+		struct metac_unknown_object *				p_unknown_object,
+		char *										str,
+		size_t										size) {
+
+	int res = metac_unknown_object_supports_snprintf(p_unknown_object);
+
+	if (res < 0) {
+		msg_stderr("metac_unknown_object_supports_snprintf failed\n");
+		return res;
+	}
+
+	if (res == 0) {
+		msg_stderr("snprintf operation isn't supported\n");
+		return -(EPROTONOSUPPORT);
+	}
+
+	return p_unknown_object->p_unknown_object_ops->metac_unknown_object_snprintf(
+			p_unknown_object,
+			str,
+			size);
+}
+
 int metac_unknown_object_supports_delete(
 		struct metac_unknown_object *				p_unknown_object) {
 
