@@ -9,6 +9,7 @@
 #define INCLUDE_METAC_METAC_VALUE_SCHEME_H_
 
 #include "metac/metac_type.h"
+#include "metac/metac_refcounter.h"
 
 /*****************************************************************************/
 struct condition;
@@ -62,12 +63,10 @@ struct value_scheme_with_array {
 };
 
 struct value_scheme_with_hierarchy {													/* struct or union */
-	struct value_scheme_hierarchy *					p_parent_hierarchy;					/* parent hierarchy */
-
 	metac_count_t 									members_count;
 	struct metac_value_scheme **					members;
 
-	struct discriminator {
+	struct discriminator {																/* needed only if it's a union */
 		metac_count_t								id;									/* index in the region_element_type. needed to correlate with discriminator_values */
 		struct condition							precondition;						/* pre-condition for this discriminator: (copy of precondition from hierarchy_memeber) */
 
@@ -79,6 +78,8 @@ struct value_scheme_with_hierarchy {													/* struct or union */
 };
 
 struct metac_value_scheme {
+	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
+
 	/* info about link to the container */
 	struct value_scheme_with_hierarchy *			p_current_hierarchy;
 
