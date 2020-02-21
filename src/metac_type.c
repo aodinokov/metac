@@ -234,7 +234,7 @@ static inline struct metac_type * metac_unknown_object_get_metac_type(
 			refcounter_object.unknown_object);
 }
 
-static int metac_type_free(
+static int metac_type_delete(
 		struct metac_type **						pp_metac_type) {
 	_delete_(metac_type);
 	return 0;
@@ -256,7 +256,7 @@ static int _metac_type_unknown_object_delete(
 		return -(EINVAL);
 	}
 
-	return metac_type_free(&p_metac_type);
+	return metac_type_delete(&p_metac_type);
 }
 
 static metac_refcounter_object_ops_t _metac_type_refcounter_object_ops = {
@@ -276,7 +276,7 @@ struct metac_type * metac_type_create_pointer_for(
 			NULL) != 0) {
 		msg_stderr("metac_refcounter_object_init failed\n");
 
-		metac_type_free(&p_metac_type);
+		metac_type_delete(&p_metac_type);
 		return NULL;
 	}
 
