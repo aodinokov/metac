@@ -58,16 +58,12 @@ struct value_scheme_builder_hierarchy_member_task {
 	char * 											global_path;		/*local copy - keep track of it*/
 
 	struct metac_value_scheme *						p_value_scheme;
-	/*TODO: remove p_parent_hierarchy since it Sis part of p_value_scheme*/
-	struct value_scheme_with_hierarchy *			p_parent_hierarchy;
-
 };
 /*****************************************************************************/
 static int value_scheme_builder_schedule_hierarchy_member(
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme,
-		struct value_scheme_with_hierarchy *		p_parent_hierarchy);
+		struct metac_value_scheme *					p_value_scheme);
 
 static struct metac_value_scheme * metac_value_scheme_create_as_hierarchy_member(
 		struct metac_type *							p_root_type,
@@ -497,7 +493,7 @@ static int metac_value_scheme_init_as_hierarchy_member(
 	}
 
 	/*msg_stddbg("local path: %s\n", p_metac_value_scheme->path_within_hierarchy);*/
-	/*TODO: move this to a separate re-usable function */
+
 	if (p_metac_value_scheme->p_actual_type != NULL) {
 		int res = 0;
 
@@ -664,7 +660,13 @@ static int value_scheme_container_hierarchy_member_init(
 		return (-EINVAL);
 	}
 
-	p_value_scheme_container_hierarchy_member->p_value_scheme = p_value_scheme;
+	p_value_scheme_container_hierarchy_member->p_value_scheme = metac_value_scheme_get(p_value_scheme);
+	if (p_value_scheme_container_hierarchy_member->p_value_scheme == NULL) {
+
+		msg_stderr("metac_value_scheme_get failed\n");
+		return (-EINVAL);
+	}
+
 	return 0;
 }
 
@@ -672,8 +674,15 @@ static void value_scheme_container_hierarchy_member_clean(
 		struct value_scheme_container_hierarchy_member *
 													p_value_scheme_container_hierarchy_member) {
 
-	//TODO: value_scheme_put(&p_value_scheme_container_hierarchy_member->p_value_scheme);
-	p_value_scheme_container_hierarchy_member->p_value_scheme = NULL;
+	if (p_value_scheme_container_hierarchy_member == NULL) {
+
+		return;
+	}
+
+	if (p_value_scheme_container_hierarchy_member->p_value_scheme != NULL) {
+
+		metac_value_scheme_put(&p_value_scheme_container_hierarchy_member->p_value_scheme);
+	}
 }
 
 static int value_scheme_container_hierarchy_member_delete(
@@ -747,13 +756,28 @@ static int value_scheme_builder_process_structure(
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
 		char *										hirarchy_path,
-		struct discriminator *						p_discriminator,
-		metac_discriminator_value_t					expected_discriminator_value,
 		struct metac_type *							p_actual_type,
 		struct value_scheme_with_hierarchy *		p_hierarchy) {
 
 	metac_num_t i;
+	struct discriminator * p_discriminator = NULL;
+	metac_discriminator_value_t expected_discriminator_value = 0;
+	struct metac_value_scheme * p_metac_value_scheme = NULL;
+
 	assert(p_actual_type->id == DW_TAG_structure_type);
+
+	p_metac_value_scheme = value_scheme_with_hierarchy_get_value_scheme(p_hierarchy);
+	if (p_metac_value_scheme == NULL) {
+
+		msg_stderr("value_scheme_with_hierarchy_get_value_scheme failed %s\n", global_path);
+		return (-EFAULT);
+	}
+
+	if (metac_value_scheme_is_hierarchy_member(p_metac_value_scheme) == 1) {
+
+		p_discriminator = p_metac_value_scheme->hierarchy_member.precondition.p_discriminator;
+		expected_discriminator_value = p_metac_value_scheme->hierarchy_member.precondition.expected_discriminator_value;
+	}
 
 	for (i = p_actual_type->structure_type_info.members_count; i > 0; i--) {
 		int indx = i-1;
@@ -797,20 +821,36 @@ static int value_scheme_builder_process_structure(
 		res = value_scheme_builder_schedule_hierarchy_member(
 				p_value_scheme_builder,
 				member_global_path,
-				p_hierarchy->members[indx],
-				p_hierarchy);
+				p_hierarchy->members[indx]);
 		if (res != 0) {
 
 			msg_stderr("failed to schedule global_path for %s\n", member_global_path);
+			metac_value_scheme_put(&p_hierarchy->members[indx]);
+
 			free(member_hirarchy_path);
 			free(member_global_path);
-			metac_value_scheme_put(&p_hierarchy->members[indx]);
 			return res;
 		}
 
 		free(member_hirarchy_path);
 		free(member_global_path);
 	}
+
+	for (i = 0; i > p_actual_type->structure_type_info.members_count; i--) {
+
+		struct metac_type_member_info * p_member_info = &p_actual_type->structure_type_info.members[i];
+
+		if (value_scheme_builder_add_hierarchy_member(
+				p_value_scheme_builder,
+				p_hierarchy->members[i]) != 0) {
+
+			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+
+			metac_value_scheme_put(&p_hierarchy->members[i]);
+			return (-EFAULT);
+		}
+	}
+
 	return 0;
 }
 
@@ -818,8 +858,6 @@ static int value_scheme_builder_process_union(
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
 		char *										hirarchy_path,
-		struct discriminator *						p_previous_discriminator,
-		metac_discriminator_value_t					previous_expected_discriminator_value,
 		struct metac_type *							p_actual_type,
 		struct value_scheme_with_hierarchy *		p_hierarchy) {
 	metac_num_t i;
@@ -873,11 +911,22 @@ static int value_scheme_builder_process_union(
 			return (-EFAULT);
 		}
 
+		if (value_scheme_builder_add_hierarchy_member(
+				p_value_scheme_builder,
+				p_hierarchy->members[indx]) != 0) {
+
+			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+
+			metac_value_scheme_put(&p_hierarchy->members[indx]);
+			free(member_hirarchy_path);
+			free(member_global_path);
+			return (-EFAULT);
+		}
+
 		res = value_scheme_builder_schedule_hierarchy_member(
 				p_value_scheme_builder,
 				member_global_path,
-				p_hierarchy->members[indx],
-				p_hierarchy);
+				p_hierarchy->members[indx]);
 		if (res != 0) {
 
 			msg_stderr("failed to schedule global_path for %s\n", member_global_path);
@@ -890,19 +939,31 @@ static int value_scheme_builder_process_union(
 		free(member_hirarchy_path);
 		free(member_global_path);
 	}
+
+	for (i = 0; i > p_actual_type->union_type_info.members_count; i--) {
+
+		struct metac_type_member_info * p_member_info = &p_actual_type->union_type_info.members[i];
+
+		if (value_scheme_builder_add_hierarchy_member(
+				p_value_scheme_builder,
+				p_hierarchy->members[i]) != 0) {
+
+			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+
+			metac_value_scheme_put(&p_hierarchy->members[i]);
+			return (-EFAULT);
+		}
+	}
+
 	return 0;
 }
 
 static int value_scheme_builder_process_hierarchy(
-		/*TODO: rework arguments: p_discriminator, expected_discriminator_value, p_parent_hierarchy are the part of p_hierarchy*/
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
 		char *										hirarchy_path,
-		struct discriminator *						p_discriminator,
-		metac_discriminator_value_t					expected_discriminator_value,
 		struct metac_type *							p_actual_type,
-		struct value_scheme_with_hierarchy *		p_hierarchy,
-		struct value_scheme_with_hierarchy *		p_parent_hierarchy) {
+		struct value_scheme_with_hierarchy *		p_hierarchy) {
 	int res;
 	msg_stddbg("process global_path: %s, hirarchy_path: %s\n", global_path, hirarchy_path);
 
@@ -912,8 +973,6 @@ static int value_scheme_builder_process_hierarchy(
 				p_value_scheme_builder,
 				global_path,
 				hirarchy_path,
-				p_discriminator,
-				expected_discriminator_value,
 				p_actual_type,
 				p_hierarchy);
 		break;
@@ -922,8 +981,6 @@ static int value_scheme_builder_process_hierarchy(
 				p_value_scheme_builder,
 				global_path,
 				hirarchy_path,
-				p_discriminator,
-				expected_discriminator_value,
 				p_actual_type,
 				p_hierarchy);
 		break;
@@ -939,11 +996,9 @@ static int value_scheme_builder_process_hierarchy(
 }
 
 static int value_scheme_builder_process_hierarchy_member(
-		/*TODO: rework arguments: p_parent_hierarchy is the part of p_value_scheme*/
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme,
-		struct value_scheme_with_hierarchy *		p_parent_hierarchy) {
+		struct metac_value_scheme *					p_value_scheme) {
 
 	if (	metac_value_scheme_is_hierarchy_member(p_value_scheme) == 1 &&
 			p_value_scheme->p_actual_type && (
@@ -954,11 +1009,8 @@ static int value_scheme_builder_process_hierarchy_member(
 				p_value_scheme_builder,
 				global_path,
 				p_value_scheme->hierarchy_member.path_within_hierarchy,
-				p_value_scheme->hierarchy_member.precondition.p_discriminator,
-				p_value_scheme->hierarchy_member.precondition.expected_discriminator_value,
 				p_value_scheme->p_actual_type,
-				&p_value_scheme->hierarchy,
-				p_parent_hierarchy) != 0) {
+				&p_value_scheme->hierarchy) != 0) {
 
 			msg_stderr("failed to process global_path for %s\n", global_path);
 			return (-EFAULT);
@@ -978,28 +1030,18 @@ static int value_scheme_builder_process_hierarchy_member_fn(
 	struct value_scheme_builder_hierarchy_member_task * p_value_scheme_builder_hierarchy_member_task =
 		cds_list_entry(p_task, struct value_scheme_builder_hierarchy_member_task, task);
 
-	/*TODO: consider deletion of the task after execution */
+	/*TODO: consider deletion of the task after execution or adding them to the task pool */
 	cds_list_add_tail(&p_task->list, &p_value_scheme_builder->executed_tasks);
 
-	/* add the object anyway even though it's error happened */
-	/*TODO: move it to the process_struct and process_union  and remove from here. also use metac_value_scheme_get when assign to members */
-	if (value_scheme_builder_add_hierarchy_member(
-			p_value_scheme_builder,
-			p_value_scheme_builder_hierarchy_member_task->p_value_scheme) != 0) {
-
-		msg_stddbg("global_path: %s failed to add hierarchy_member\n", p_value_scheme_builder_hierarchy_member_task->global_path);
-		return (-EFAULT);
-	}
-
 	if (error_flag != 0) {
+
 		return (-EALREADY);
 	}
 
 	return value_scheme_builder_process_hierarchy_member(
 			p_value_scheme_builder,
 			p_value_scheme_builder_hierarchy_member_task->global_path,
-			p_value_scheme_builder_hierarchy_member_task->p_value_scheme,
-			p_value_scheme_builder_hierarchy_member_task->p_parent_hierarchy);
+			p_value_scheme_builder_hierarchy_member_task->p_value_scheme);
 }
 
 static int value_scheme_builder_hierarchy_member_task_delete(
@@ -1008,13 +1050,14 @@ static int value_scheme_builder_hierarchy_member_task_delete(
 	_delete_start_(value_scheme_builder_hierarchy_member_task);
 
 	if ((*pp_value_scheme_builder_hierarchy_member_task)->global_path) {
+
 		free((*pp_value_scheme_builder_hierarchy_member_task)->global_path);
 		(*pp_value_scheme_builder_hierarchy_member_task)->global_path = NULL;
 	}
 
 	if ((*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme == NULL) {
-		(*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme = NULL;
-		/*TODO: metac_value_scheme_put(&(*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme) */
+
+		metac_value_scheme_put(&(*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme);
 	}
 
 	_delete_finish(value_scheme_builder_hierarchy_member_task);
@@ -1024,14 +1067,12 @@ static int value_scheme_builder_hierarchy_member_task_delete(
 static struct value_scheme_builder_hierarchy_member_task * value_scheme_builder_hierarchy_member_task_create(
 		scheduler_task_fn_t 						fn,
 		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme,
-		struct value_scheme_with_hierarchy *		p_parent_hierarchy) {
+		struct metac_value_scheme *					p_value_scheme) {
 	_create_(value_scheme_builder_hierarchy_member_task);
 
 	p_value_scheme_builder_hierarchy_member_task->task.fn = fn;
 	p_value_scheme_builder_hierarchy_member_task->global_path = strdup(global_path);
-	p_value_scheme_builder_hierarchy_member_task->p_value_scheme = p_value_scheme;	/*TODO: metac_value_scheme_get(p_value_scheme)*/
-	p_value_scheme_builder_hierarchy_member_task->p_parent_hierarchy = p_parent_hierarchy;	/*TODO: remove*/
+	p_value_scheme_builder_hierarchy_member_task->p_value_scheme = metac_value_scheme_get(p_value_scheme);
 
 	if (p_value_scheme_builder_hierarchy_member_task->global_path == NULL) {
 
@@ -1045,14 +1086,12 @@ static struct value_scheme_builder_hierarchy_member_task * value_scheme_builder_
 static int value_scheme_builder_schedule_hierarchy_member(
 		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme,
-		struct value_scheme_with_hierarchy *		p_parent_hierarchy) {
+		struct metac_value_scheme *					p_value_scheme) {
 
 	struct value_scheme_builder_hierarchy_member_task * p_task = value_scheme_builder_hierarchy_member_task_create(
 		value_scheme_builder_process_hierarchy_member_fn,
 		global_path,
-		p_value_scheme,
-		p_parent_hierarchy);
+		p_value_scheme);
 
 	if (p_task == NULL) {
 		msg_stderr("wasn't able to create a task\n");
@@ -1090,6 +1129,7 @@ static void value_scheme_container_clean(
 
 static int value_scheme_container_init(
 		struct value_scheme_container *				p_value_scheme_container) {
+
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->discriminator_list);
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->hierarchy_member_list);
 	return 0;
@@ -1190,7 +1230,13 @@ static int metac_value_scheme_finalize_as_hierarchy_top(
 
 			assert(metac_value_scheme_is_hierarchy_member(p_member->p_value_scheme) == 1);
 
-			p_value_scheme->hierarchy_top.pp_members[i] = p_member->p_value_scheme;
+			p_value_scheme->hierarchy_top.pp_members[i] = metac_value_scheme_get(p_member->p_value_scheme);
+			if (p_value_scheme->hierarchy_top.pp_members[i] == NULL) {
+
+				msg_stderr("metac_value_scheme_get failed\n");
+				return (-ENOMEM);
+			}
+
 			p_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.id = i;
 
 			msg_stddbg("added member %s\n", p_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
@@ -1237,10 +1283,10 @@ static int metac_value_scheme_clean_as_hierarchy_top(
 	if (p_value_scheme->hierarchy_top.pp_members != NULL) {
 
 		for (i = 0 ; i < p_value_scheme->hierarchy_top.members_count; ++i) {
-			/*we want to avoid recursive call of put here, that's why it's important to cleanup object in a way, so this put would be the last put..
-			 * actually we just need to do it in the order from the top to bottom, which is the easiest case here. */
-			//metac_value_put(&p_value_scheme->hierarchy_top.pp_members[i]);
+
+			metac_value_scheme_put(&p_value_scheme->hierarchy_top.pp_members[i]);
 		}
+
 		free(p_value_scheme->hierarchy_top.pp_members);
 		p_value_scheme->hierarchy_top.pp_members = NULL;
 	}
@@ -1285,11 +1331,8 @@ static int metac_value_scheme_init_as_hierarchy_top(
 			&value_scheme_builder,
 			global_path,
 			"",
-			NULL,
-			0,
 			p_actual_type,
-			&p_metac_value_scheme->hierarchy,
-			NULL) != 0) {
+			&p_metac_value_scheme->hierarchy) != 0) {
 
 		msg_stddbg("wasn't able to schedule the first task\n");
 
@@ -1375,10 +1418,9 @@ static int _metac_value_scheme_unknown_object_delete(
 
 static metac_refcounter_object_ops_t _metac_value_scheme_refcounter_object_ops = {
 		.unknown_object_ops = {
-				.metac_unknown_object_delete = _metac_value_scheme_unknown_object_delete,
+				.metac_unknown_object_delete = 		_metac_value_scheme_unknown_object_delete,
 		},
 };
-
 
 static struct metac_value_scheme * metac_value_scheme_create_as_hierarchy_member(
 		struct metac_type *							p_root_type,
