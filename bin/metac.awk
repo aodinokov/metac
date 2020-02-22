@@ -311,7 +311,7 @@ BEGIN {
         while(( getline line < file ) > 0 ) {
             split(line, x, " ");
             switch (x[1]) {
-            case "type":
+            case "typegenerator":
                 task4types[x[2]] = x[1];
                 break;
             case "typeannotations":
@@ -319,6 +319,9 @@ BEGIN {
                 break;
             case "object":
                 task4objects[x[2]] = x[1];
+                break;
+            case "type":
+                # we ignore them
                 break;
             case "types":
                 # we ignore them

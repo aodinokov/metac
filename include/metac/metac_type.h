@@ -156,7 +156,12 @@ int						metac_type_put(struct metac_type ** pp_metac_type);
 #define METAC(x, name) _METAC(x, name)
 /* macroses to export C type definitions and their params in code*/
 #define METAC_TYPE_NAME(name) METAC(type, name)
-#define METAC_TYPE_GENERATE(name) extern struct metac_type METAC_TYPE_NAME(name)
+#define METAC_TYPE_GENERATOR_NAME(name) METAC(typegenerator, name)
+#define METAC_TYPE_GENERATE(name) size_t METAC_TYPE_GENERATOR_NAME(name)() { name * _pp_ = NULL; return sizeof(_pp_); }
+#define METAC_TYPE_IMPORT(name) extern struct metac_type METAC_TYPE_NAME(name)
+#define METAC_TYPE_GENERATE_AND_IMPORT(name) \
+	METAC_TYPE_GENERATE(name) \
+	METAC_TYPE_IMPORT(name)
 
 #define METAC_TYPE_ANNOTATION_NAME(name) METAC(typeannotations, name)
 #define METAC_TYPE_ANNOTATION_DECLARE(name) extern struct metac_type_annotation METAC_TYPE_ANNOTATION_NAME(name)[];
@@ -294,7 +299,8 @@ struct metac_object {
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
-	METAC_TYPE_GENERATE(_type_); \
+	size_t METAC_TYPE_GENERATOR_NAME(_type_)() { return sizeof(_type_); } \
+	METAC_TYPE_IMPORT(_type_); \
 	struct metac_object METAC_OBJECT_NAME(_name_) = {\
 			.type = &METAC_TYPE_NAME(_type_),\
 			.ptr = &_name_,\

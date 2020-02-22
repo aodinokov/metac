@@ -460,20 +460,20 @@ struct _member_info { metac_name_t name; metac_data_member_location_t location; 
 METAC_DECLARE_EXTERN_TYPES_ARRAY;
 METAC_DECLARE_EXTERN_OBJECTS_ARRAY;
 /*****************************************************************************/
-METAC_TYPE_GENERATE(char);
-METAC_TYPE_GENERATE(short);
-METAC_TYPE_GENERATE(int);
-METAC_TYPE_GENERATE(long);
-METAC_TYPE_GENERATE(float);
-METAC_TYPE_GENERATE(double);
+METAC_TYPE_GENERATE_AND_IMPORT(char);
+METAC_TYPE_GENERATE_AND_IMPORT(short);
+METAC_TYPE_GENERATE_AND_IMPORT(int);
+METAC_TYPE_GENERATE_AND_IMPORT(long);
+METAC_TYPE_GENERATE_AND_IMPORT(float);
+METAC_TYPE_GENERATE_AND_IMPORT(double);
 
 typedef char char_t;
 typedef signed char schar_t;
 typedef unsigned char uchar_t;
 
-METAC_TYPE_GENERATE(char_t);
-METAC_TYPE_GENERATE(schar_t);
-METAC_TYPE_GENERATE(uchar_t);
+METAC_TYPE_GENERATE_AND_IMPORT(char_t);
+METAC_TYPE_GENERATE_AND_IMPORT(schar_t);
+METAC_TYPE_GENERATE_AND_IMPORT(uchar_t);
 
 typedef short short_t;
 typedef short int shortint_t;
@@ -482,12 +482,12 @@ typedef signed short int sshortint_t;
 typedef unsigned short ushort_t;
 typedef unsigned short int ushortint_t;
 
-METAC_TYPE_GENERATE(short_t);
-METAC_TYPE_GENERATE(shortint_t);
-METAC_TYPE_GENERATE(sshort_t);
-METAC_TYPE_GENERATE(sshortint_t);
-METAC_TYPE_GENERATE(ushort_t);
-METAC_TYPE_GENERATE(ushortint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(short_t);
+METAC_TYPE_GENERATE_AND_IMPORT(shortint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(sshort_t);
+METAC_TYPE_GENERATE_AND_IMPORT(sshortint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ushort_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ushortint_t);
 
 typedef int int_t;
 typedef signed signed_t;
@@ -495,11 +495,11 @@ typedef signed int sint_t;
 typedef unsigned unsigned_t;
 typedef unsigned int uint_t;
 
-METAC_TYPE_GENERATE(int_t);
-METAC_TYPE_GENERATE(signed_t);
-METAC_TYPE_GENERATE(sint_t);
-METAC_TYPE_GENERATE(unsigned_t);
-METAC_TYPE_GENERATE(uint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(int_t);
+METAC_TYPE_GENERATE_AND_IMPORT(signed_t);
+METAC_TYPE_GENERATE_AND_IMPORT(sint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(unsigned_t);
+METAC_TYPE_GENERATE_AND_IMPORT(uint_t);
 
 typedef long long_t;
 typedef long int longint_t;
@@ -507,12 +507,12 @@ typedef signed long slong_t;
 typedef signed long int slongint_t;
 typedef unsigned long ulong_t;
 typedef unsigned long int ulongint_t;
-METAC_TYPE_GENERATE(long_t);
-METAC_TYPE_GENERATE(longint_t);
-METAC_TYPE_GENERATE(slong_t);
-METAC_TYPE_GENERATE(slongint_t);
-METAC_TYPE_GENERATE(ulong_t);
-METAC_TYPE_GENERATE(ulongint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(long_t);
+METAC_TYPE_GENERATE_AND_IMPORT(longint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(slong_t);
+METAC_TYPE_GENERATE_AND_IMPORT(slongint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ulong_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ulongint_t);
 
 typedef long long llong_t;
 typedef long long int llongint_t;
@@ -520,26 +520,26 @@ typedef signed long long sllong_t;
 typedef signed long long int sllongint_t;
 typedef unsigned long long ullong_t;
 typedef unsigned long long int ullongint_t;
-METAC_TYPE_GENERATE(llong_t);
-METAC_TYPE_GENERATE(llongint_t);
-METAC_TYPE_GENERATE(sllong_t);
-METAC_TYPE_GENERATE(sllongint_t);
-METAC_TYPE_GENERATE(ullong_t);
-METAC_TYPE_GENERATE(ullongint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(llong_t);
+METAC_TYPE_GENERATE_AND_IMPORT(llongint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(sllong_t);
+METAC_TYPE_GENERATE_AND_IMPORT(sllongint_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ullong_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ullongint_t);
 
 typedef float float_t;
-METAC_TYPE_GENERATE(float_t);
+METAC_TYPE_GENERATE_AND_IMPORT(float_t);
 typedef double double_t;
-METAC_TYPE_GENERATE(double_t);
+METAC_TYPE_GENERATE_AND_IMPORT(double_t);
 typedef long double ldouble_t;
-METAC_TYPE_GENERATE(ldouble_t);
+METAC_TYPE_GENERATE_AND_IMPORT(ldouble_t);
 typedef float complex floatcomplex_t;
-METAC_TYPE_GENERATE(floatcomplex_t);
+METAC_TYPE_GENERATE_AND_IMPORT(floatcomplex_t);
 typedef double complex doublecomplex_t;
-METAC_TYPE_GENERATE(doublecomplex_t);
+METAC_TYPE_GENERATE_AND_IMPORT(doublecomplex_t);
 /*commented because in gcc there is an issue with some garbage in memdump*/
 //typedef long double complex ldoublecomplex_t;
-//METAC_TYPE_GENERATE(ldoublecomplex_t);
+//METAC_TYPE_GENERATE_AND_IMPORT(ldoublecomplex_t);
 
 
 START_TEST(base_types_ut) {
@@ -599,19 +599,19 @@ START_TEST(base_types_ut) {
 
 /*****************************************************************************/
 typedef void* voidptr_t;
-METAC_TYPE_GENERATE(voidptr_t);
+METAC_TYPE_GENERATE_AND_IMPORT(voidptr_t);
 typedef void** voidptrptr_t;
-METAC_TYPE_GENERATE(voidptrptr_t);
+METAC_TYPE_GENERATE_AND_IMPORT(voidptrptr_t);
 typedef char* charptr_t;
-METAC_TYPE_GENERATE(charptr_t);
+METAC_TYPE_GENERATE_AND_IMPORT(charptr_t);
 struct _incomplete_;
 typedef struct _incomplete_ incomplete_t;
 typedef incomplete_t * p_incomplete_t;
-METAC_TYPE_GENERATE(p_incomplete_t);
+METAC_TYPE_GENERATE_AND_IMPORT(p_incomplete_t);
 typedef const char * cchar_t;
-METAC_TYPE_GENERATE(cchar_t);
+METAC_TYPE_GENERATE_AND_IMPORT(cchar_t);
 typedef int_t (*func_ptr_t)(doublecomplex_t *arg);
-METAC_TYPE_GENERATE(func_ptr_t);
+METAC_TYPE_GENERATE_AND_IMPORT(func_ptr_t);
 
 START_TEST(pointers_ut) {
 	POINTER_TYPE_CHECK(voidptr_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS);
@@ -630,7 +630,7 @@ typedef enum _enum_{
 	_eEleven,
 	_eTwelve,
 }enum_t;
-METAC_TYPE_GENERATE(enum_t);
+METAC_TYPE_GENERATE_AND_IMPORT(enum_t);
 typedef enum{
 	aeMinus = -1,
 	aeZero = 0,
@@ -639,7 +639,7 @@ typedef enum{
 	aeEleven,
 	aeTwelve,
 }anon_enum_t;
-METAC_TYPE_GENERATE(anon_enum_t);
+METAC_TYPE_GENERATE_AND_IMPORT(anon_enum_t);
 typedef enum __attribute__((packed, aligned(16)))_aligned_enum_{
 	al_eZero = 0,
 	al_eOne,
@@ -647,7 +647,7 @@ typedef enum __attribute__((packed, aligned(16)))_aligned_enum_{
 	al_eEleven,
 	al_eTwelve,
 }aligned_enum_t;
-METAC_TYPE_GENERATE(aligned_enum_t);
+METAC_TYPE_GENERATE_AND_IMPORT(aligned_enum_t);
 
 START_TEST(enums_ut) {
 	ENUM_TYPE_CHECK_BEGIN(enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, "enum_t", "_enum_") {
@@ -687,15 +687,15 @@ START_TEST(enums_ut) {
 }END_TEST
 /*****************************************************************************/
 typedef char_t char_array_t[0];
-METAC_TYPE_GENERATE(char_array_t);
+METAC_TYPE_GENERATE_AND_IMPORT(char_array_t);
 typedef char_t char_array5_t[5];
-METAC_TYPE_GENERATE(char_array5_t);
+METAC_TYPE_GENERATE_AND_IMPORT(char_array5_t);
 typedef char _2darray_t[2][3];
-METAC_TYPE_GENERATE(_2darray_t);
+METAC_TYPE_GENERATE_AND_IMPORT(_2darray_t);
 typedef char _3darray_t[5][4][3];
-METAC_TYPE_GENERATE(_3darray_t);
+METAC_TYPE_GENERATE_AND_IMPORT(_3darray_t);
 typedef char _3darray1_t[5][0][3];
-METAC_TYPE_GENERATE(_3darray1_t);
+METAC_TYPE_GENERATE_AND_IMPORT(_3darray1_t);
 
 START_TEST(arrays_ut) {
 	ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, {}) {
@@ -750,19 +750,19 @@ typedef struct _struct_ {
 	unsigned int widthValidated;
 	unsigned int heightValidated;
 }struct_t;
-METAC_TYPE_GENERATE(struct_t);
+METAC_TYPE_GENERATE_AND_IMPORT(struct_t);
 typedef struct _bit_fields_ {
 	unsigned int widthValidated : 9;
 	unsigned int heightValidated : 12;
 }bit_fields_t;
-METAC_TYPE_GENERATE(bit_fields_t);
+METAC_TYPE_GENERATE_AND_IMPORT(bit_fields_t);
 typedef struct _bit_fields_for_longer_than32_bit {
 	unsigned int widthValidated : 9;
 	unsigned int heightValidated : 12;
 	int heightValidated1 : 30;
 	llongint_t heightValidated2 : 63;
 }bit_fields_for_longer_than32_bit_t;
-METAC_TYPE_GENERATE(bit_fields_for_longer_than32_bit_t);
+METAC_TYPE_GENERATE_AND_IMPORT(bit_fields_for_longer_than32_bit_t);
 struct _struct_with_flexible_array_and_len {
 	int array_len;
 	char array[];
@@ -771,7 +771,7 @@ typedef struct _struct_with_struct_with_flexible_array_and_len {
 	int before_struct;
 	struct _struct_with_flexible_array_and_len str1;
 }struct_with_struct_with_flexible_array_and_len_t;
-METAC_TYPE_GENERATE(struct_with_struct_with_flexible_array_and_len_t);
+METAC_TYPE_GENERATE_AND_IMPORT(struct_with_struct_with_flexible_array_and_len_t);
 
 METAC_TYPE_ANNOTATION_BEGIN(struct_with_struct_with_flexible_array_and_len_t)
 METAC_TYPE_ANNOTATION("discrimitator_name", NULL),
@@ -798,7 +798,7 @@ typedef struct {
 	};
 	int e;
 }anon_struct_with_anon_elements;
-METAC_TYPE_GENERATE(anon_struct_with_anon_elements);
+METAC_TYPE_GENERATE_AND_IMPORT(anon_struct_with_anon_elements);
 METAC_TYPE_ANNOTATION_BEGIN(anon_struct_with_anon_elements)
 METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
 METAC_TYPE_ANNOTATION_END
@@ -812,7 +812,7 @@ typedef struct _struct_with_flexible_ND_array_and_len {
 	struct ___test___ x;
 	char array1[][3][3];	/*C doesn't allow to create char array[1][]. Also, C doesn't allow to create type with*/
 }struct_with_flexible_ND_array_and_len_t;
-METAC_TYPE_GENERATE(struct_with_flexible_ND_array_and_len_t);
+METAC_TYPE_GENERATE_AND_IMPORT(struct_with_flexible_ND_array_and_len_t);
 
 START_TEST(structs_ut) {
 	STRUCT_TYPE_CHECK_BEGIN(struct_t, DW_TAG_typedef, DW_TAG_structure_type, {}) {
@@ -884,7 +884,7 @@ typedef union _union_{
 	int d;
 	char f;
 }union_t;
-METAC_TYPE_GENERATE(union_t);
+METAC_TYPE_GENERATE_AND_IMPORT(union_t);
 METAC_TYPE_ANNOTATION_BEGIN(union_t)
 METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
 METAC_TYPE_ANNOTATION_END
@@ -900,7 +900,7 @@ typedef union _union_anon_{
 		char f;
 	};
 }union_anon_t;
-METAC_TYPE_GENERATE(union_anon_t);
+METAC_TYPE_GENERATE_AND_IMPORT(union_anon_t);
 METAC_TYPE_ANNOTATION_BEGIN(union_anon_t)
 METAC_TYPE_ANNOTATION("ptr[]", METAC_CALLBACK_DISCRIMINATOR(_dummy_discriminator, NULL)),
 METAC_TYPE_ANNOTATION_END
@@ -1098,7 +1098,7 @@ static int _metac_type_t_array_elements_count_funtion(
 	return res;
 }
 
-METAC_TYPE_GENERATE(metac_type_t);
+METAC_TYPE_GENERATE_AND_IMPORT(metac_type_t);
 METAC_TYPE_ANNOTATION_BEGIN(metac_type_t)
 METAC_TYPE_ANNOTATION("ptr[].typedef_info.type",
 		METAC_CALLBACK_DISCRIMINATOR(_metac_type_t_discriminator_funtion, NULL),
@@ -1186,10 +1186,16 @@ typedef struct _basic_tree {
 	int * data;
 	struct _basic_tree *desc[2];
 }basic_tree_t;
-METAC_TYPE_GENERATE(basic_tree_t);
+METAC_TYPE_GENERATE_AND_IMPORT(basic_tree_t);
 METAC_TYPE_ANNOTATION_BEGIN(basic_tree_t)
 //METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
 METAC_TYPE_ANNOTATION_END
+
+typedef struct _basic_tree_x {
+	int * data;
+	struct _basic_tree *desc[2];
+}basic_tree_x_t;
+METAC_TYPE_GENERATE(basic_tree_x_t);
 
 
 START_TEST(basic_tree_t_ut) {
