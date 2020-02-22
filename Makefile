@@ -51,12 +51,19 @@ ut/metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 ut/metac_type_ut_001: $(metac_objs) ut/metac_type_ut_001.o ut/metac_type_ut_001.metac.o libmetac.a
 ut/metac_type_ut_001: $(metac_ut_libs)
 
+ut/metac_value_scheme_ut_001: LDFLAGS=-pthread
+ut/metac_value_scheme_ut_001: $(metac_objs) ut/metac_value_scheme_ut_001.o ut/metac_value_scheme_ut_001.metac.o libmetac.a
+ut/metac_value_scheme_ut_001: $(metac_ut_libs)
+
+
 ut/metac_internals_ut_001: LDFLAGS=-pthread
 ut/metac_internals_ut_001: $(metac_objs) ut/metac_internals_ut_001.o
 ut/metac_internals_ut_001: $(metac_ut_libs)
 
 
-all: libmetac.a ut/metac_type_ut_001.run ut/metac_type_ut_001.metac.c
+all: libmetac.a
+all: ut/metac_type_ut_001.run ut/metac_type_ut_001.metac.c 
+all: ut/metac_value_scheme_ut_001.run ut/metac_value_scheme_ut_001.metac.c
 #all: metac_internals_ut_001.run
 
 %.run: % _always_

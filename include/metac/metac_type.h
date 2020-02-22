@@ -160,7 +160,7 @@ int						metac_type_put(struct metac_type ** pp_metac_type);
 #define METAC_TYPE_GENERATE(name) size_t METAC_TYPE_GENERATOR_NAME(name)() { name * _pp_ = NULL; return sizeof(_pp_); }
 #define METAC_TYPE_IMPORT(name) extern struct metac_type METAC_TYPE_NAME(name)
 #define METAC_TYPE_GENERATE_AND_IMPORT(name) \
-	METAC_TYPE_GENERATE(name) \
+	METAC_TYPE_GENERATE(name); \
 	METAC_TYPE_IMPORT(name)
 
 #define METAC_TYPE_ANNOTATION_NAME(name) METAC(typeannotations, name)
