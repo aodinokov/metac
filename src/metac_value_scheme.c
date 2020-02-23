@@ -1082,9 +1082,10 @@ static struct value_scheme_builder_hierarchy_member_task * value_scheme_builder_
 	p_value_scheme_builder_hierarchy_member_task->global_path = strdup(global_path);
 	p_value_scheme_builder_hierarchy_member_task->p_value_scheme = metac_value_scheme_get(p_value_scheme);
 
-	if (p_value_scheme_builder_hierarchy_member_task->global_path == NULL) {
+	if (p_value_scheme_builder_hierarchy_member_task->global_path == NULL ||
+		p_value_scheme_builder_hierarchy_member_task->p_value_scheme == NULL) {
 
-		msg_stderr("wasn't able to duplicate global_path\n");
+		msg_stderr("wasn't able to duplicate global_path or p_value_scheme\n");
 		value_scheme_builder_hierarchy_member_task_delete(&p_value_scheme_builder_hierarchy_member_task);
 		return NULL;
 	}
@@ -1140,6 +1141,7 @@ static int value_scheme_container_init(
 
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->discriminator_list);
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->hierarchy_member_list);
+
 	return 0;
 }
 
@@ -1566,7 +1568,7 @@ metac_flag_t metac_value_scheme_is_indexable(
 	return (p_metac_value_scheme->p_current_hierarchy == NULL)?1:0;
 }
 
-struct metac_value_scheme * metac_value_scheme_create_ex(
+static struct metac_value_scheme * metac_value_scheme_create_as_indexable(
 		struct metac_type *							p_type,
 		char * 										global_path,
 		struct metac_type *							p_root_type,
@@ -1601,9 +1603,579 @@ struct metac_value_scheme * metac_value_scheme_create_ex(
 	return p_metac_value_scheme;
 }
 
+
+/*****************************************************************************/
+struct top_array_scheme_container_value_scheme {
+	struct cds_list_head							list;
+	struct metac_value_scheme *						p_metac_value_scheme;
+};
+struct top_array_scheme_container {
+	struct cds_list_head							arrays;
+
+	struct cds_list_head							pointers;
+};
+struct top_array_scheme_builder {
+	struct metac_type *								p_root_type;
+	metac_type_annotation_t *						p_override_annotations;
+
+	struct top_array_scheme_container				container;
+
+	struct scheduler								scheduler;
+	struct cds_list_head							executed_tasks;
+};
+struct top_array_scheme_builder_value_scheme_task {
+	struct scheduler_task							task;
+	char * 											global_path;	/*local copy - keep track of it*/
+
+	struct metac_value_scheme *						p_metac_value_scheme;
+};
+
+/*****************************************************************************/
+
+static int top_array_scheme_builder_schedule_value_scheme(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme);
+
+/*****************************************************************************/
+
+static void top_array_scheme_container_value_scheme_clean(
+		struct top_array_scheme_container_value_scheme *
+													p_top_array_scheme_container_value_scheme) {
+
+	if (p_top_array_scheme_container_value_scheme == NULL) {
+
+		msg_stderr("p_top_array_scheme_container_value_scheme is invalid\n");
+		return;
+	}
+
+	metac_value_scheme_put(&p_top_array_scheme_container_value_scheme->p_metac_value_scheme);
+
+}
+static int top_array_scheme_container_value_scheme_init(
+		struct top_array_scheme_container_value_scheme *
+													p_top_array_scheme_container_value_scheme,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	if (p_top_array_scheme_container_value_scheme == NULL) {
+
+		msg_stderr("p_top_array_scheme_container_value_scheme is invalid\n");
+		return (-EINVAL);
+	}
+
+	if (p_metac_value_scheme == NULL) {
+
+		msg_stderr("Can't init top_array_scheme_container_value_scheme with NULL p_metac_value_scheme\n");
+		return (-EINVAL);
+	}
+
+	p_top_array_scheme_container_value_scheme->p_metac_value_scheme = metac_value_scheme_get(p_metac_value_scheme);
+	if (p_top_array_scheme_container_value_scheme->p_metac_value_scheme == NULL) {
+
+		msg_stderr("metac_value_scheme_get failed\n");
+		return (-EINVAL);
+	}
+
+	return 0;
+}
+
+static int top_array_scheme_container_value_scheme_delete(
+		struct top_array_scheme_container_value_scheme **
+													pp_top_array_scheme_container_value_scheme) {
+
+	_delete_start_(top_array_scheme_container_value_scheme);
+	top_array_scheme_container_value_scheme_clean(*pp_top_array_scheme_container_value_scheme);
+	_delete_finish(top_array_scheme_container_value_scheme);
+	return 0;
+}
+
+static struct top_array_scheme_container_value_scheme * top_array_scheme_container_value_scheme_create(
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	int res;
+
+	_create_(top_array_scheme_container_value_scheme);
+
+	if (top_array_scheme_container_value_scheme_init(
+			p_top_array_scheme_container_value_scheme,
+			p_metac_value_scheme) != 0) {
+
+		top_array_scheme_container_value_scheme_delete(&p_top_array_scheme_container_value_scheme);
+		return NULL;
+	}
+
+	return p_top_array_scheme_container_value_scheme;
+}
+
+static int top_array_scheme_builder_add_array (
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	struct top_array_scheme_container_value_scheme * p_top_array_scheme_container_value_scheme;
+
+	p_top_array_scheme_container_value_scheme = top_array_scheme_container_value_scheme_create(
+			p_metac_value_scheme);
+	if (p_top_array_scheme_container_value_scheme == NULL) {
+
+		msg_stddbg("wasn't able to create p_top_array_scheme_container_value_scheme\n");
+		return (-EFAULT);
+	}
+
+	cds_list_add_tail(
+		&p_top_array_scheme_container_value_scheme->list,
+		&p_top_array_scheme_builder->container.arrays);
+
+	return 0;
+}
+
+static int top_array_scheme_builder_add_pointer (
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	struct top_array_scheme_container_value_scheme * p_top_array_scheme_container_value_scheme;
+
+	p_top_array_scheme_container_value_scheme = top_array_scheme_container_value_scheme_create(
+			p_metac_value_scheme);
+	if (p_top_array_scheme_container_value_scheme == NULL) {
+
+		msg_stddbg("wasn't able to create p_top_array_scheme_container_value_scheme\n");
+		return (-EFAULT);
+	}
+
+	cds_list_add_tail(
+		&p_top_array_scheme_container_value_scheme->list,
+		&p_top_array_scheme_builder->container.pointers);
+
+	return 0;
+}
+
+static int top_array_scheme_builder_process_value_scheme_array(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	int res;
+	char * target_global_path;
+
+	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_array_type);
+	assert(p_metac_value_scheme->array.p_child_value_scheme == NULL);
+
+	if (top_array_scheme_builder_add_array(
+			p_top_array_scheme_builder,
+			p_metac_value_scheme) != 0) {
+
+		msg_stderr("top_array_scheme_builder_add_array failed %s\n", global_path);
+	}
+
+	if (p_metac_value_scheme->p_actual_type->array_type_info.type == NULL) {
+
+		return 0;
+	}
+
+	target_global_path = alloc_sptrinf("%s[]", global_path);
+
+	p_metac_value_scheme->array.p_child_value_scheme = metac_value_scheme_create_as_indexable(
+			p_metac_value_scheme->p_actual_type->array_type_info.type,
+			target_global_path,
+			p_top_array_scheme_builder->p_root_type,
+			p_top_array_scheme_builder->p_override_annotations);
+	if (p_metac_value_scheme->array.p_child_value_scheme == NULL) {
+
+		msg_stderr("metac_value_scheme_create_as_indexable failed %s\n", global_path);
+		res = -(EFAULT);
+
+	} else if (top_array_scheme_builder_schedule_value_scheme(
+			p_top_array_scheme_builder,
+			target_global_path,
+			p_metac_value_scheme->array.p_child_value_scheme) != 0) {
+
+		msg_stderr("top_array_scheme_builder_schedule_value_scheme failed %s\n", global_path);
+		res = -(EFAULT);
+	}
+
+	free(target_global_path);
+
+	return res;
+}
+
+static int top_array_scheme_builder_process_value_scheme_pointer(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type);
+
+	if (top_array_scheme_builder_add_pointer(
+			p_top_array_scheme_builder,
+			p_metac_value_scheme) != 0) {
+
+		msg_stderr("top_array_scheme_builder_add_pointer failed %s\n", global_path);
+	}
+
+	return 0;
+}
+static int top_array_scheme_builder_process_value_scheme_hierarchy_top(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+	int i = 0;
+
+	assert(metac_value_scheme_is_hierarchy_top(p_metac_value_scheme) == 1);
+
+	for (i = 0; i < p_metac_value_scheme->hierarchy_top.members_count; ++i) {
+
+		assert(p_metac_value_scheme->hierarchy_top.pp_members);
+		assert(metac_value_scheme_is_hierarchy_member(p_metac_value_scheme->hierarchy_top.pp_members[i]) == 1);
+
+		if (	p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type && (
+				p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_array_type ||
+				p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_pointer_type)) {
+
+			char * target_global_path = alloc_sptrinf(
+					"%s.%s",
+					global_path,
+					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+
+			if (target_global_path == NULL) {
+
+				msg_stderr("Can't build target_global_path for %s member %d\n", global_path, i);
+				return (-EFAULT);
+			}
+
+			switch(p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id){
+			case DW_TAG_array_type:
+
+				if (top_array_scheme_builder_process_value_scheme_array(
+						p_top_array_scheme_builder,
+						target_global_path,
+						p_metac_value_scheme->hierarchy_top.pp_members[i]) != 0){
+
+					msg_stderr("top_array_scheme_builder_process_value_scheme_array failed for %s\n", target_global_path);
+
+					free(target_global_path);
+					return (-EFAULT);
+				}
+				break;
+			case DW_TAG_pointer_type:
+
+				if (top_array_scheme_builder_process_value_scheme_pointer(
+						p_top_array_scheme_builder,
+						target_global_path,
+						p_metac_value_scheme->hierarchy_top.pp_members[i]) != 0){
+
+					msg_stderr("top_array_scheme_builder_process_value_scheme_pointer failed for %s\n", target_global_path);
+
+					free(target_global_path);
+					return (-EFAULT);
+				}
+				break;
+			}
+
+			free(target_global_path);
+		}
+	}
+	return 0;
+}
+
+static int top_array_scheme_builder_process_value_scheme(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+	int res = 0;
+
+	switch(p_metac_value_scheme->p_actual_type->id) {
+	case DW_TAG_array_type:
+		res = top_array_scheme_builder_process_value_scheme_array(
+				p_top_array_scheme_builder,
+				global_path,
+				p_metac_value_scheme);
+		break;
+	case DW_TAG_pointer_type:
+		res = top_array_scheme_builder_process_value_scheme_pointer(
+				p_top_array_scheme_builder,
+				global_path,
+				p_metac_value_scheme);
+		break;
+	case DW_TAG_structure_type:
+	case DW_TAG_union_type:
+		res = top_array_scheme_builder_process_value_scheme_hierarchy_top(
+				p_top_array_scheme_builder,
+				global_path,
+				p_metac_value_scheme);
+		break;
+	}
+
+	return res;
+}
+
+static int top_array_scheme_builder_process_hierarchy_member_fn(
+	struct scheduler * 								p_engine,
+	struct scheduler_task * 						p_task,
+	int 											error_flag) {
+
+	struct top_array_scheme_builder * p_top_array_scheme_builder =
+		cds_list_entry(p_engine, struct top_array_scheme_builder, scheduler);
+
+	struct top_array_scheme_builder_value_scheme_task * p_top_array_scheme_builder_value_scheme_task =
+		cds_list_entry(p_task, struct top_array_scheme_builder_value_scheme_task, task);
+
+	/*TODO: consider deletion of the task after execution or adding them to the task pool */
+	cds_list_add_tail(&p_task->list, &p_top_array_scheme_builder->executed_tasks);
+
+	if (error_flag != 0) {
+
+		return (-EALREADY);
+	}
+
+	return top_array_scheme_builder_process_value_scheme(
+			p_top_array_scheme_builder,
+			p_top_array_scheme_builder_value_scheme_task->global_path,
+			p_top_array_scheme_builder_value_scheme_task->p_metac_value_scheme);
+}
+
+static int top_array_scheme_builder_hierarchy_member_task_delete(
+		struct top_array_scheme_builder_value_scheme_task **
+													pp_top_array_scheme_builder_value_scheme_task) {
+	_delete_start_(top_array_scheme_builder_value_scheme_task);
+
+	if ((*pp_top_array_scheme_builder_value_scheme_task)->global_path) {
+
+		free((*pp_top_array_scheme_builder_value_scheme_task)->global_path);
+		(*pp_top_array_scheme_builder_value_scheme_task)->global_path = NULL;
+	}
+
+	if ((*pp_top_array_scheme_builder_value_scheme_task)->p_metac_value_scheme != NULL) {
+
+		metac_value_scheme_put(&(*pp_top_array_scheme_builder_value_scheme_task)->p_metac_value_scheme);
+	}
+
+	_delete_finish(top_array_scheme_builder_value_scheme_task);
+	return 0;
+}
+
+static struct top_array_scheme_builder_value_scheme_task * top_array_scheme_builder_hierarchy_member_task_create(
+		scheduler_task_fn_t 						fn,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+	_create_(top_array_scheme_builder_value_scheme_task);
+
+	p_top_array_scheme_builder_value_scheme_task->task.fn = fn;
+	p_top_array_scheme_builder_value_scheme_task->global_path = strdup(global_path);
+	p_top_array_scheme_builder_value_scheme_task->p_metac_value_scheme = metac_value_scheme_get(p_metac_value_scheme);
+
+	if (p_top_array_scheme_builder_value_scheme_task->global_path == NULL ||
+		p_top_array_scheme_builder_value_scheme_task->p_metac_value_scheme == NULL) {
+
+		msg_stderr("wasn't able to duplicate global_path or p_metac_value_scheme\n");
+		top_array_scheme_builder_hierarchy_member_task_delete(&p_top_array_scheme_builder_value_scheme_task);
+		return NULL;
+	}
+	return p_top_array_scheme_builder_value_scheme_task;
+}
+
+static int top_array_scheme_builder_schedule_value_scheme(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	struct top_array_scheme_builder_value_scheme_task * p_task = top_array_scheme_builder_hierarchy_member_task_create(
+		top_array_scheme_builder_process_hierarchy_member_fn,
+		global_path,
+		p_metac_value_scheme);
+	if (p_task == NULL) {
+
+		msg_stderr("wasn't able to create a task\n");
+		return -(EFAULT);
+	}
+
+	if (scheduler_add_task_to_front(
+		&p_top_array_scheme_builder->scheduler,
+		&p_task->task) != 0) {
+
+		msg_stderr("wasn't able to schedule task\n");
+		top_array_scheme_builder_hierarchy_member_task_delete(&p_task);
+		return -(EFAULT);
+	}
+
+	return 0;
+}
+
+static void top_array_scheme_container_clean(
+		struct top_array_scheme_container *			p_top_array_scheme_container) {
+
+	struct top_array_scheme_container_value_scheme * value_scheme, * _value_scheme;
+
+	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_top_array_scheme_container->pointers, list) {
+
+		cds_list_del(&value_scheme->list);
+		top_array_scheme_container_value_scheme_delete(&value_scheme);
+	}
+
+	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_top_array_scheme_container->arrays, list) {
+
+		cds_list_del(&value_scheme->list);
+		top_array_scheme_container_value_scheme_delete(&value_scheme);
+	}
+}
+
+static int top_array_scheme_container_init(
+		struct top_array_scheme_container *			p_top_array_scheme_container) {
+
+	CDS_INIT_LIST_HEAD(&p_top_array_scheme_container->arrays);
+	CDS_INIT_LIST_HEAD(&p_top_array_scheme_container->pointers);
+
+	return 0;
+}
+
+static void top_array_scheme_builder_clean(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder) {
+	struct top_array_scheme_builder_value_scheme_task * p_task, *_p_task;
+
+	scheduler_clean(&p_top_array_scheme_builder->scheduler);
+
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_top_array_scheme_builder->executed_tasks, task.list) {
+
+		cds_list_del(&p_task->task.list);
+		top_array_scheme_builder_hierarchy_member_task_delete(&p_task);
+	}
+
+	top_array_scheme_container_clean(&p_top_array_scheme_builder->container);
+
+	p_top_array_scheme_builder->p_root_type = NULL;
+	p_top_array_scheme_builder->p_override_annotations = NULL;
+}
+
+static int top_array_scheme_builder_init(
+		struct top_array_scheme_builder *			p_top_array_scheme_builder,
+		struct metac_type *							p_root_type,
+		metac_type_annotation_t *					p_override_annotations) {
+
+	p_top_array_scheme_builder->p_root_type = p_root_type;
+	p_top_array_scheme_builder->p_override_annotations = p_override_annotations;
+	top_array_scheme_container_init(&p_top_array_scheme_builder->container);
+
+	CDS_INIT_LIST_HEAD(&p_top_array_scheme_builder->executed_tasks);
+
+	scheduler_init(&p_top_array_scheme_builder->scheduler);
+
+	return 0;
+}
+
+#if 0
+/*****************************************************************************/
+void element_type_top_clean(
+		struct element_type_top *					p_element_type_top) {
+	metac_count_t i;
+
+	if (p_element_type_top->pp_element_types != NULL) {
+		for (i = 0 ; i < p_element_type_top->element_types_count; ++i) {
+			element_type_delete(&p_element_type_top->pp_element_types[i]);
+		}
+		free(p_element_type_top->pp_element_types);
+		p_element_type_top->pp_element_types = NULL;
+	}
+
+	if (p_element_type_top->p_element_type_for_pointer)
+		element_type_delete(&p_element_type_top->p_element_type_for_pointer);
+	if (p_element_type_top->p_pointer_type)
+		metac_type_put(&p_element_type_top->p_pointer_type);
+}
+static int element_type_top_builder_finalize(
+		struct element_type_top_builder *			p_element_type_top_builder,
+		struct element_type_top *					p_element_type_top) {
+
+	metac_count_t i;
+	struct element_type_top_container_element_type * _element_type;
+
+	p_element_type_top->element_types_count = 0;
+	p_element_type_top->pp_element_types = NULL;
+
+	/*get arrays lengths */
+	cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.pointers_element_type_list, list) {
+		++p_element_type_top->element_types_count;
+	}
+	cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.arrays_element_type_list, list) {
+		++p_element_type_top->element_types_count;
+	}
+
+	/*fill all the data*/
+	if (p_element_type_top->element_types_count > 0) {
+		p_element_type_top->pp_element_types = (struct element_type **)calloc(
+				p_element_type_top->element_types_count, sizeof(*p_element_type_top->pp_element_types));
+		if (p_element_type_top->pp_element_types == NULL) {
+			msg_stderr("can't allocate memory for element_types from pointers\n");
+			return (-ENOMEM);
+		}
+		i = 0;
+		cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.pointers_element_type_list, list) {
+			p_element_type_top->pp_element_types[i] = _element_type->p_element_type;
+			++i;
+		}
+		cds_list_for_each_entry(_element_type, &p_element_type_top_builder->container.arrays_element_type_list, list) {
+			p_element_type_top->pp_element_types[i] = _element_type->p_element_type;
+			++i;
+		}
+	}
+	return 0;
+}
+int element_type_top_init(
+		struct metac_type *							p_root_type,
+		char *										global_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct element_type_top *					p_element_type_top) {
+	struct element_type_top_builder element_type_top_builder;
+	element_type_top_builder_init(&element_type_top_builder, p_root_type, p_override_annotations);
+
+	p_element_type_top->p_pointer_type = metac_type_create_pointer_for(p_root_type);
+	if (p_element_type_top->p_pointer_type == NULL) {
+		msg_stderr("metac_type_create_pointer_for failed\n");
+		element_type_top_builder_clean(&element_type_top_builder, 0);
+		return (-EFAULT);
+	}
+
+	p_element_type_top->p_element_type_for_pointer = element_type_create(p_root_type, global_path, p_override_annotations, p_element_type_top->p_pointer_type);
+	if (p_element_type_top->p_element_type_for_pointer == NULL) {
+		msg_stderr("element_type_create failed\n");
+		element_type_top_clean(p_element_type_top);
+		element_type_top_builder_clean(&element_type_top_builder, 0);
+		return (-EFAULT);
+	}
+
+	if (element_type_top_builder_process_element_type_pointer(
+			&element_type_top_builder,
+			global_path,
+			p_element_type_top->p_element_type_for_pointer,
+			NULL) != 0) {
+		msg_stderr("wasn't able to schedule the first task\n");
+		element_type_top_clean(p_element_type_top);
+		element_type_top_builder_clean(&element_type_top_builder, 0);
+		return (-EFAULT);
+	}
+	if (traversing_engine_run(&element_type_top_builder.element_type_traversing_engine) != 0) {
+		msg_stderr("tasks execution finished with fail\n");
+		element_type_top_clean(p_element_type_top);
+		element_type_top_builder_clean(&element_type_top_builder, 0);
+		return (-EFAULT);
+	}
+	/*fill in */
+	if (element_type_top_builder_finalize(
+			&element_type_top_builder,
+			p_element_type_top) != 0) {
+		msg_stderr("object finalization failed\n");
+		element_type_top_clean(p_element_type_top);
+		element_type_top_builder_clean(&element_type_top_builder, 0);
+		return (-EFAULT);
+	}
+	/*clean builder objects*/
+	element_type_top_builder_clean(&element_type_top_builder, 1);
+	return 0;
+}
+#endif
+
+
 struct metac_value_scheme * metac_value_scheme_create(
 		struct metac_type *							p_type) {
-	return metac_value_scheme_create_ex(
+	return metac_value_scheme_create_as_indexable(
 			p_type,
 			"",
 			p_type,
