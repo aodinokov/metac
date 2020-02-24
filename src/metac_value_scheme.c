@@ -102,48 +102,6 @@ int metac_value_scheme_put(
 }
 
 /*****************************************************************************/
-struct value_scheme_container_discriminator {
-	struct cds_list_head							list;
-
-	struct discriminator *							p_discriminator;
-};
-
-struct value_scheme_container_hierarchy_member {
-	struct cds_list_head							list;
-
-	struct metac_value_scheme *						p_value_scheme;
-};
-
-struct value_scheme_container {
-	struct cds_list_head							discriminator_list;
-	struct cds_list_head							hierarchy_member_list;
-};
-
-struct value_scheme_builder {
-	struct metac_type *								p_root_type;
-	metac_type_annotation_t *						p_override_annotations;
-
-	struct value_scheme_container					container;
-
-	struct scheduler								scheduler;
-	struct cds_list_head							executed_tasks;
-};
-
-struct value_scheme_builder_hierarchy_member_task {
-	struct scheduler_task							task;
-
-	char * 											global_path;		/*local copy - keep track of it*/
-
-	struct metac_value_scheme *						p_value_scheme;
-};
-/*****************************************************************************/
-
-static int value_scheme_builder_schedule_hierarchy_member(
-		struct value_scheme_builder *				p_value_scheme_builder,
-		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme);
-
-/*****************************************************************************/
 static struct generic_cast_type * generic_cast_type_create(
 		struct metac_type **						types,
 		metac_count_t *								p_types_count) {
@@ -713,6 +671,49 @@ metac_flag_t metac_value_scheme_is_pointer(
 
 	return 0;
 }
+/*****************************************************************************/
+struct value_scheme_container_discriminator {
+	struct cds_list_head							list;
+
+	struct discriminator *							p_discriminator;
+};
+
+struct value_scheme_container_hierarchy_member {
+	struct cds_list_head							list;
+
+	struct metac_value_scheme *						p_value_scheme;
+};
+
+struct value_scheme_container {
+	struct cds_list_head							discriminator_list;
+	struct cds_list_head							hierarchy_member_list;
+};
+
+struct value_scheme_builder {
+	struct metac_type *								p_root_type;
+	metac_type_annotation_t *						p_override_annotations;
+
+	struct value_scheme_container					container;
+
+	struct scheduler								scheduler;
+	struct cds_list_head							executed_tasks;
+};
+
+struct value_scheme_builder_hierarchy_member_task {
+	struct scheduler_task							task;
+
+	char * 											global_path;		/*local copy - keep track of it*/
+
+	struct metac_value_scheme *						p_value_scheme;
+};
+/*****************************************************************************/
+
+static int value_scheme_builder_schedule_hierarchy_member(
+		struct value_scheme_builder *				p_value_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_value_scheme);
+
+/*****************************************************************************/
 
 static void value_scheme_container_discriminator_clean(
 		struct value_scheme_container_discriminator *	p_value_scheme_container_discriminator) {
