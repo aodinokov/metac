@@ -25,58 +25,6 @@
 })
 
 /*****************************************************************************/
-struct value_scheme_container_discriminator {
-	struct cds_list_head							list;
-
-	struct discriminator *							p_discriminator;
-};
-
-struct value_scheme_container_hierarchy_member {
-	struct cds_list_head							list;
-
-	struct metac_value_scheme *						p_value_scheme;
-};
-
-struct value_scheme_container {
-	struct cds_list_head							discriminator_list;
-	struct cds_list_head							hierarchy_member_list;
-};
-
-struct value_scheme_builder {
-	struct metac_type *								p_root_type;
-	metac_type_annotation_t *						p_override_annotations;
-
-	struct value_scheme_container					container;
-
-	struct scheduler								scheduler;
-	struct cds_list_head							executed_tasks;
-};
-
-struct value_scheme_builder_hierarchy_member_task {
-	struct scheduler_task							task;
-
-	char * 											global_path;		/*local copy - keep track of it*/
-
-	struct metac_value_scheme *						p_value_scheme;
-};
-/*****************************************************************************/
-static int value_scheme_builder_schedule_hierarchy_member(
-		struct value_scheme_builder *				p_value_scheme_builder,
-		char *										global_path,
-		struct metac_value_scheme *					p_value_scheme);
-
-static struct metac_value_scheme * metac_value_scheme_create_as_hierarchy_member(
-		struct metac_type *							p_root_type,
-		char *										global_path,
-		char *										hierarchy_path,
-		metac_type_annotation_t *					p_override_annotations,
-		struct value_scheme_with_hierarchy *		p_current_hierarchy,
-		struct discriminator *						p_discriminator,
-		metac_discriminator_value_t					expected_discriminator_value,
-		metac_count_t								member_id,
-		struct metac_type_member_info *				p_member_info);
-
-/*****************************************************************************/
 
 static int metac_value_scheme_clean(
 		struct metac_value_scheme *					p_value_scheme);
@@ -152,6 +100,48 @@ int metac_value_scheme_put(
 
 	return -(EFAULT);
 }
+
+/*****************************************************************************/
+struct value_scheme_container_discriminator {
+	struct cds_list_head							list;
+
+	struct discriminator *							p_discriminator;
+};
+
+struct value_scheme_container_hierarchy_member {
+	struct cds_list_head							list;
+
+	struct metac_value_scheme *						p_value_scheme;
+};
+
+struct value_scheme_container {
+	struct cds_list_head							discriminator_list;
+	struct cds_list_head							hierarchy_member_list;
+};
+
+struct value_scheme_builder {
+	struct metac_type *								p_root_type;
+	metac_type_annotation_t *						p_override_annotations;
+
+	struct value_scheme_container					container;
+
+	struct scheduler								scheduler;
+	struct cds_list_head							executed_tasks;
+};
+
+struct value_scheme_builder_hierarchy_member_task {
+	struct scheduler_task							task;
+
+	char * 											global_path;		/*local copy - keep track of it*/
+
+	struct metac_value_scheme *						p_value_scheme;
+};
+/*****************************************************************************/
+
+static int value_scheme_builder_schedule_hierarchy_member(
+		struct value_scheme_builder *				p_value_scheme_builder,
+		char *										global_path,
+		struct metac_value_scheme *					p_value_scheme);
 
 /*****************************************************************************/
 static struct generic_cast_type * generic_cast_type_create(
@@ -613,6 +603,51 @@ static int metac_value_scheme_init_as_hierarchy_member(
 	}
 
 	return 0;
+}
+
+static struct metac_value_scheme * metac_value_scheme_create_as_hierarchy_member(
+		struct metac_type *							p_root_type,
+		char *										global_path,
+		char *										hierarchy_path,
+		metac_type_annotation_t *					p_override_annotations,
+		struct value_scheme_with_hierarchy *		p_current_hierarchy,
+		struct discriminator *						p_discriminator,
+		metac_discriminator_value_t					expected_discriminator_value,
+		metac_count_t								member_id,
+		struct metac_type_member_info *				p_member_info) {
+
+	_create_(metac_value_scheme);
+
+	if (metac_refcounter_object_init(
+			&p_metac_value_scheme->refcounter_object,
+			&_metac_value_scheme_refcounter_object_ops,
+			NULL) != 0) {
+
+		msg_stderr("metac_refcounter_object_init failed\n");
+
+		metac_value_scheme_delete(&p_metac_value_scheme);
+		return NULL;
+	}
+
+	if (metac_value_scheme_init_as_hierarchy_member(
+			p_metac_value_scheme,
+			p_root_type,
+			global_path,
+			hierarchy_path,
+			p_override_annotations,
+			p_current_hierarchy,
+			p_discriminator,
+			expected_discriminator_value,
+			member_id,
+			p_member_info) != 0) {
+
+		msg_stderr("metac_value_scheme_init_as_hierarchy_member failed\n");
+
+		metac_value_scheme_delete(&p_metac_value_scheme);
+		return NULL;
+	}
+
+	return p_metac_value_scheme;
 }
 
 metac_flag_t metac_value_scheme_is_hierarchy_member(
@@ -1444,51 +1479,6 @@ static int metac_value_scheme_init_as_hierarchy_top(
 	value_scheme_builder_clean(&value_scheme_builder);
 
 	return 0;
-}
-
-static struct metac_value_scheme * metac_value_scheme_create_as_hierarchy_member(
-		struct metac_type *							p_root_type,
-		char *										global_path,
-		char *										hierarchy_path,
-		metac_type_annotation_t *					p_override_annotations,
-		struct value_scheme_with_hierarchy *		p_current_hierarchy,
-		struct discriminator *						p_discriminator,
-		metac_discriminator_value_t					expected_discriminator_value,
-		metac_count_t								member_id,
-		struct metac_type_member_info *				p_member_info) {
-
-	_create_(metac_value_scheme);
-
-	if (metac_refcounter_object_init(
-			&p_metac_value_scheme->refcounter_object,
-			&_metac_value_scheme_refcounter_object_ops,
-			NULL) != 0) {
-
-		msg_stderr("metac_refcounter_object_init failed\n");
-
-		metac_value_scheme_delete(&p_metac_value_scheme);
-		return NULL;
-	}
-
-	if (metac_value_scheme_init_as_hierarchy_member(
-			p_metac_value_scheme,
-			p_root_type,
-			global_path,
-			hierarchy_path,
-			p_override_annotations,
-			p_current_hierarchy,
-			p_discriminator,
-			expected_discriminator_value,
-			member_id,
-			p_member_info) != 0) {
-
-		msg_stderr("metac_value_scheme_init_as_hierarchy_member failed\n");
-
-		metac_value_scheme_delete(&p_metac_value_scheme);
-		return NULL;
-	}
-
-	return p_metac_value_scheme;
 }
 
 static int metac_value_scheme_init_as_indexable(
