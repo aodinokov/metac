@@ -81,8 +81,8 @@ struct metac_value_scheme {
 	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
 
 	struct top_array_scheme {
-		metac_count_t								elements_value_schemes_count;
-		struct metac_value_scheme **				pp_elements_value_schemes;
+		metac_count_t								arrays_value_schemes_count;
+		struct metac_value_scheme **				pp_arrays_value_schemes;
 
 		metac_count_t								pointers_value_schemes_count;
 		struct metac_value_scheme **				pp_pointers_value_schemes;
@@ -141,8 +141,8 @@ metac_flag_t metac_value_scheme_is_pointer(
 
 //metac_flag_t metac_value_scheme_is_top_object(
 //		struct metac_value_scheme *					p_metac_value_scheme);
-//metac_flag_t metac_value_scheme_is_top_array(
-//		struct metac_value_scheme *					p_metac_value_scheme);
+metac_flag_t metac_value_scheme_is_top_array(
+		struct metac_value_scheme *					p_metac_value_scheme);
 metac_flag_t metac_value_scheme_is_indexable(
 		struct metac_value_scheme *					p_metac_value_scheme);				/* can be used as element of array */
 metac_flag_t metac_value_scheme_is_hierarchy_top(
@@ -153,7 +153,8 @@ struct metac_value_scheme * metac_value_scheme_get_parent_value_scheme(
 		struct metac_value_scheme *					p_metac_value_scheme);
 
 struct metac_value_scheme * metac_value_scheme_create(
-		struct metac_type *							p_type);
+		struct metac_type *							p_type,
+		metac_type_annotation_t *					p_override_annotations);
 struct metac_value_scheme * metac_value_scheme_get(
 		struct metac_value_scheme *					p_metac_value_scheme);
 int metac_value_scheme_put(
