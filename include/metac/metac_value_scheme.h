@@ -17,10 +17,7 @@ struct discriminator;
 struct value_scheme_with_pointer;
 struct value_scheme_with_hierarchy;
 struct value_scheme_with_array;
-/*****************************************************************************/
 struct metac_value_scheme;
-struct metac_top_value_scheme;
-struct metac_object_scheme;
 /*****************************************************************************/
 
 struct condition {
@@ -80,21 +77,21 @@ struct value_scheme_with_hierarchy {													/* struct or union */
 struct metac_value_scheme {
 	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
 
-	struct top_array_scheme {
+	struct object_scheme {							/*value_scheme?*/
 		metac_count_t								arrays_value_schemes_count;
 		struct metac_value_scheme **				pp_arrays_value_schemes;
 
 		metac_count_t								pointers_value_schemes_count;
 		struct metac_value_scheme **				pp_pointers_value_schemes;
 
-		struct top_object_scheme {
+		struct top_object_scheme {					/*object_scheme?*/
 
-			metac_count_t							top_array_scheme_count;
-			struct metac_value_scheme **			pp_top_array_schemes;
+			metac_count_t							objects_value_schemes_count;
+			struct metac_value_scheme **			pp_objects_value_schemes;
 
-		} * 										top_object_scheme;
+		} * 										p_top_object_scheme;
 
-	} *												p_top_array_scheme;
+	} *												p_object_scheme;
 
 	struct value_scheme_with_hierarchy *			p_current_hierarchy;
 	union {
@@ -132,6 +129,15 @@ struct metac_value_scheme {
 	};
 };
 
+struct metac_value_scheme * metac_value_scheme_create(
+		struct metac_type *							p_type,
+		metac_type_annotation_t *					p_override_annotations,
+		metac_flag_t								follow_pointers);
+struct metac_value_scheme * metac_value_scheme_get(
+		struct metac_value_scheme *					p_metac_value_scheme);
+int metac_value_scheme_put(
+		struct metac_value_scheme **				pp_metac_value_scheme);
+
 metac_flag_t metac_value_scheme_is_hierachy(
 		struct metac_value_scheme *					p_metac_value_scheme);
 metac_flag_t metac_value_scheme_is_array(
@@ -139,10 +145,10 @@ metac_flag_t metac_value_scheme_is_array(
 metac_flag_t metac_value_scheme_is_pointer(
 		struct metac_value_scheme *					p_metac_value_scheme);
 
-//metac_flag_t metac_value_scheme_is_top_object(
-//		struct metac_value_scheme *					p_metac_value_scheme);
-metac_flag_t metac_value_scheme_is_top_array(
-		struct metac_value_scheme *					p_metac_value_scheme);
+metac_flag_t metac_value_scheme_is_top_object(											/* rename to object_initializer??? object_scheme... or value_with_pointers_applicable */
+		struct metac_value_scheme *					p_metac_value_scheme);				/* contains in addition to object data it contains info on how to parse all objects referenced by pointers*/
+metac_flag_t metac_value_scheme_is_object(												/* rename to value_initializer??? value_scheme/complete_value_scheme is value_applicable */
+		struct metac_value_scheme *					p_metac_value_scheme);				/* can be any type or consist of any combination of types. Can be applied to any block */
 metac_flag_t metac_value_scheme_is_indexable(
 		struct metac_value_scheme *					p_metac_value_scheme);				/* can be used as element of array */
 metac_flag_t metac_value_scheme_is_hierarchy_top(
@@ -151,23 +157,5 @@ metac_flag_t metac_value_scheme_is_hierarchy_member(
 		struct metac_value_scheme *					p_metac_value_scheme);
 struct metac_value_scheme * metac_value_scheme_get_parent_value_scheme(
 		struct metac_value_scheme *					p_metac_value_scheme);
-
-struct metac_value_scheme * metac_value_scheme_create(
-		struct metac_type *							p_type,
-		metac_type_annotation_t *					p_override_annotations);
-struct metac_value_scheme * metac_value_scheme_get(
-		struct metac_value_scheme *					p_metac_value_scheme);
-int metac_value_scheme_put(
-		struct metac_value_scheme **				pp_metac_value_scheme);
-
-/*****************************************************************************/
-struct metac_object_scheme {
-	struct metac_value_scheme *						p_value_scheme_for_pointer;			/* TODO: can it be element_top_scheme ?*/
-
-	struct metac_value_scheme						top_value_scheme;
-
-	metac_count_t									top_value_schemes_count;
-	struct metac_value_scheme **					pp_top_value_schemes;
-};
 
 #endif /* INCLUDE_METAC_METAC_VALUE_SCHEME_H_ */

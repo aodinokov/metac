@@ -25,7 +25,8 @@ START_TEST(metac_value_scheme_001) {
 
 	p_metac_value_scheme = metac_value_scheme_create(
 			&METAC_TYPE_NAME(basic_tree_t),
-			NULL);
+			NULL,
+			0);
 
 	fail_unless(p_metac_value_scheme != NULL, "Wasn't able to generate value_scheme for basic_tree_t");
 	fail_unless(metac_value_scheme_is_indexable(p_metac_value_scheme) == 1);
