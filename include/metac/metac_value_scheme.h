@@ -86,8 +86,15 @@ struct metac_value_scheme {
 
 		struct top_object_scheme {					/*object_scheme?*/
 
-			metac_count_t							objects_value_schemes_count;
-			struct metac_value_scheme **			pp_objects_value_schemes;
+			metac_count_t							objects_count;
+
+			struct top_object_scheme_object {
+				struct metac_value_scheme *			p_object;
+
+				metac_count_t						pointers_count;
+				struct metac_value_scheme **		pp_pointers;
+
+			} *										p_objects;
 
 		} * 										p_top_object_scheme;
 
@@ -121,6 +128,8 @@ struct metac_value_scheme {
 	struct metac_type *								p_type;
 	struct metac_type *								p_actual_type;						/* cache: metac_actual_type(p_type) */
 	metac_byte_size_t 								byte_size;							/* cache: bite size */
+
+	char *											path_within_object;					/* within_value? */
 
 	union {																				/* based on p_actual_type->id */
 		struct value_scheme_with_pointer			pointer;
