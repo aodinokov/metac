@@ -7,6 +7,7 @@
 
 #include <assert.h>			/* assert */
 #include <errno.h>			/* ENOMEM etc */
+#include <metac/metac_scheme.h>
 #include <stdlib.h>			/* calloc, free, NULL, qsort... */
 #include <string.h>			/* strdup */
 #include <urcu/list.h>		/* struct cds_list_head etc */
@@ -17,7 +18,6 @@
 #include "metac_oop.h"		/*_create, _delete, ...*/
 #include "scheduler.h"
 
-#include "metac/metac_value_scheme.h"
 
 #define alloc_sptrinf(...) ({\
 	int len = snprintf(NULL, 0, ##__VA_ARGS__); \

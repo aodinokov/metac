@@ -25,10 +25,10 @@ _always_:
 	@echo "-----------------------------------------------------------------------"
 
 metac_objs = \
+	src/scheduler.o \
 	src/metac_refcounter.o \
 	src/metac_type.o \
-	src/scheduler.o \
-	src/metac_value_scheme.o \
+	src/metac_scheme.o \
 	src/metac_array_info.o \
 	src/traversing_engine.o \
 	src/metac_internals.o \
@@ -51,9 +51,9 @@ ut/metac_type_ut_001: LDFLAGS=-pthread -rdynamic
 ut/metac_type_ut_001: $(metac_objs) ut/metac_type_ut_001.o ut/metac_type_ut_001.metac.o libmetac.a
 ut/metac_type_ut_001: $(metac_ut_libs)
 
-ut/metac_value_scheme_ut_001: LDFLAGS=-pthread
-ut/metac_value_scheme_ut_001: $(metac_objs) ut/metac_value_scheme_ut_001.o ut/metac_value_scheme_ut_001.metac.o libmetac.a
-ut/metac_value_scheme_ut_001: $(metac_ut_libs)
+ut/metac_scheme_ut_001: LDFLAGS=-pthread
+ut/metac_scheme_ut_001: $(metac_objs) ut/metac_scheme_ut_001.o ut/metac_scheme_ut_001.metac.o libmetac.a
+ut/metac_scheme_ut_001: $(metac_ut_libs)
 
 
 ut/metac_internals_ut_001: LDFLAGS=-pthread
