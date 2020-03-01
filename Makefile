@@ -63,7 +63,7 @@ ut/metac_internals_ut_001: $(metac_ut_libs)
 
 all: libmetac.a
 all: ut/metac_type_ut_001.run ut/metac_type_ut_001.metac.c 
-all: ut/metac_value_scheme_ut_001.run ut/metac_value_scheme_ut_001.metac.c
+all: ut/metac_scheme_ut_001.run ut/metac_scheme_ut_001.metac.c
 #all: metac_internals_ut_001.run
 
 %.run: % _always_
