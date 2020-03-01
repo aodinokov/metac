@@ -25,6 +25,16 @@
 	if (str != NULL)snprintf(str, len + 1, ##__VA_ARGS__); \
 	str; \
 })
+#define build_member_path(path, member_name) ({ \
+	char * member_path = NULL; \
+	if ((path) != NULL && strcmp((path), "") != 0 ) { \
+		member_path = alloc_sptrinf("%s.%s", (path), (member_name)); \
+	} else { \
+		member_path = alloc_sptrinf("%s", (member_name)); \
+	} \
+	member_path; \
+})
+
 
 /*****************************************************************************/
 
@@ -925,22 +935,14 @@ static int value_scheme_builder_process_structure(
 		char * member_object_path;
 		char * member_hirarchy_path;
 
-		if (global_path != NULL && strcmp(global_path, "") != 0 ) {
-			member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
-		} else {
-			member_global_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_global_path = build_member_path(global_path, p_member_info->name);
 		if (member_global_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
 			return (-EFAULT);
 		}
 
-		if (object_path != NULL && strcmp(object_path, "") != 0 ) {
-			member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
-		} else {
-			member_object_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_object_path = build_member_path(object_path, p_member_info->name);
 		if (member_object_path == NULL) {
 
 			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
@@ -948,14 +950,10 @@ static int value_scheme_builder_process_structure(
 			return (-EFAULT);
 		}
 
-		if (hirarchy_path != NULL && strcmp(hirarchy_path, "") != 0 ) {
-			member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
-		} else {
-			member_hirarchy_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_hirarchy_path = build_member_path(hirarchy_path, p_member_info->name);
 		if (member_hirarchy_path == NULL) {
 
-			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("wasn't able to build hirarchy_path for %s and %s\n", global_path, p_member_info->name);
 			free(member_object_path);
 			free(member_global_path);
 			return (-EFAULT);
@@ -1044,22 +1042,14 @@ static int value_scheme_builder_process_union(
 		char * member_object_path;
 		char * member_hirarchy_path;
 
-		if (global_path != NULL && strcmp(global_path, "") != 0 ) {
-			member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
-		} else {
-			member_global_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_global_path = build_member_path(global_path, p_member_info->name);
 		if (member_global_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
 			return (-EFAULT);
 		}
 
-		if (object_path != NULL && strcmp(object_path, "") != 0 ) {
-			member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
-		} else {
-			member_object_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_object_path = build_member_path(object_path, p_member_info->name);
 		if (member_object_path == NULL) {
 
 			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
@@ -1067,19 +1057,14 @@ static int value_scheme_builder_process_union(
 			return (-EFAULT);
 		}
 
-		if (hirarchy_path != NULL && strcmp(hirarchy_path, "") != 0 ) {
-			member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
-		} else {
-			member_hirarchy_path = alloc_sptrinf("%s", p_member_info->name);
-		}
+		member_hirarchy_path = build_member_path(hirarchy_path, p_member_info->name);
 		if (member_hirarchy_path == NULL) {
 
-			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("wasn't able to build hirarchy_path for %s and %s\n", global_path, p_member_info->name);
 			free(member_object_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
-
 
 		p_hierarchy->members[indx] = metac_value_scheme_create_as_hierarchy_member(
 				p_value_scheme_builder->p_root_type,
@@ -1931,36 +1916,18 @@ static int object_scheme_builder_process_value_scheme_hierarchy_top(
 			char * target_global_path;
 			char * target_object_path;
 
-			if (global_path != NULL &&
-				strcmp(global_path, "") != 0) {
-				target_global_path = alloc_sptrinf(
-						"%s.%s",
-						global_path,
-						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
-			} else {
-				target_global_path = alloc_sptrinf(
-						"%s",
-						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
-			}
-
+			target_global_path = build_member_path(
+					global_path,
+					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
 			if (target_global_path == NULL) {
 
 				msg_stderr("Can't build target_global_path for %s member %d\n", global_path, i);
 				return (-EFAULT);
 			}
 
-			if (object_path != NULL &&
-				strcmp(object_path, "") != 0) {
-				target_object_path = alloc_sptrinf(
-						"%s.%s",
-						object_path,
-						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
-			} else {
-				target_object_path = alloc_sptrinf(
-						"%s",
-						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
-			}
-
+			target_object_path = build_member_path(
+					object_path,
+					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
 			if (target_object_path == NULL) {
 
 				msg_stderr("Can't build target_object_path for %s member %d\n", global_path, i);
@@ -2951,25 +2918,18 @@ static int top_object_scheme_builder_process_object_scheme(
 	for (i = 0; i < p_metac_value_scheme->p_object_scheme->pointers_value_schemes_count; ++i) {
 
 		char * target_global_path;
-		if (global_path != NULL && strcmp (global_path, "") != 0) {
-			target_global_path = alloc_sptrinf(
-					"%s.%s",
-					global_path,
-					p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
-		} else {
-			target_global_path = alloc_sptrinf(
-					"%s",
-					p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
-		}
 
-		msg_stddbg("%s\n", target_global_path);
-
+		target_global_path = build_member_path(
+				global_path,
+				p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
 		if (target_global_path == NULL) {
 
 			msg_stderr("Can't build target_global_path for %s pointer %d\n", global_path, i);
 
 			return (-ENOMEM);
 		}
+
+		msg_stddbg("%s\n", target_global_path);
 
 		if (top_object_scheme_builder_process_pointer(
 				p_top_object_scheme_builder,
