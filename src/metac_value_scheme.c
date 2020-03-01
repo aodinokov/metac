@@ -11,7 +11,7 @@
 #include <string.h>			/* strdup */
 #include <urcu/list.h>		/* struct cds_list_head etc */
 
-#define METAC_DEBUG_ENABLE
+//#define METAC_DEBUG_ENABLE
 
 #include "metac_debug.h"	/* msg_stderr, ...*/
 #include "metac_oop.h"		/*_create, _delete, ...*/
@@ -925,14 +925,22 @@ static int value_scheme_builder_process_structure(
 		char * member_object_path;
 		char * member_hirarchy_path;
 
-		member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
+		if (global_path != NULL && strcmp(global_path, "") != 0 ) {
+			member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
+		} else {
+			member_global_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_global_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
 			return (-EFAULT);
 		}
 
-		member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
+		if (object_path != NULL && strcmp(object_path, "") != 0 ) {
+			member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
+		} else {
+			member_object_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_object_path == NULL) {
 
 			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
@@ -940,7 +948,11 @@ static int value_scheme_builder_process_structure(
 			return (-EFAULT);
 		}
 
-		member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
+		if (hirarchy_path != NULL && strcmp(hirarchy_path, "") != 0 ) {
+			member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
+		} else {
+			member_hirarchy_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_hirarchy_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
@@ -1032,14 +1044,22 @@ static int value_scheme_builder_process_union(
 		char * member_object_path;
 		char * member_hirarchy_path;
 
-		member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
+		if (global_path != NULL && strcmp(global_path, "") != 0 ) {
+			member_global_path = alloc_sptrinf("%s.%s", global_path, p_member_info->name);
+		} else {
+			member_global_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_global_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
 			return (-EFAULT);
 		}
 
-		member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
+		if (object_path != NULL && strcmp(object_path, "") != 0 ) {
+			member_object_path = alloc_sptrinf("%s.%s", object_path, p_member_info->name);
+		} else {
+			member_object_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_object_path == NULL) {
 
 			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
@@ -1047,7 +1067,11 @@ static int value_scheme_builder_process_union(
 			return (-EFAULT);
 		}
 
-		member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
+		if (hirarchy_path != NULL && strcmp(hirarchy_path, "") != 0 ) {
+			member_hirarchy_path = alloc_sptrinf("%s.%s", hirarchy_path, p_member_info->name);
+		} else {
+			member_hirarchy_path = alloc_sptrinf("%s", p_member_info->name);
+		}
 		if (member_hirarchy_path == NULL) {
 
 			msg_stderr("wasn't able to build global_path for %s and %s\n", global_path, p_member_info->name);
@@ -1055,6 +1079,7 @@ static int value_scheme_builder_process_union(
 			free(member_global_path);
 			return (-EFAULT);
 		}
+
 
 		p_hierarchy->members[indx] = metac_value_scheme_create_as_hierarchy_member(
 				p_value_scheme_builder->p_root_type,
@@ -1813,6 +1838,8 @@ static int object_scheme_builder_process_value_scheme_array(
 	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_array_type);
 	assert(p_metac_value_scheme->array.p_child_value_scheme == NULL);
 
+	msg_stddbg("object_path %s global_path %s\n", object_path, global_path);
+
 	if (object_scheme_builder_add_array(
 			p_object_scheme_builder,
 			p_metac_value_scheme) != 0) {
@@ -1838,8 +1865,6 @@ static int object_scheme_builder_process_value_scheme_array(
 		return -(EFAULT);
 	}
 
-
-
 	p_metac_value_scheme->array.p_child_value_scheme = metac_value_scheme_create_as_indexable(
 			p_metac_value_scheme->p_actual_type->array_type_info.type,
 			target_global_path,
@@ -1859,6 +1884,8 @@ static int object_scheme_builder_process_value_scheme_array(
 		msg_stderr("object_scheme_builder_schedule_value_scheme failed %s\n", global_path);
 		res = -(EFAULT);
 	}
+
+	msg_stddbg("added %s %s\n", target_object_path, target_global_path);
 
 	free(target_object_path);
 	free(target_global_path);
@@ -1904,10 +1931,17 @@ static int object_scheme_builder_process_value_scheme_hierarchy_top(
 			char * target_global_path;
 			char * target_object_path;
 
-			target_global_path = alloc_sptrinf(
-					"%s.%s",
-					global_path,
-					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			if (global_path != NULL &&
+				strcmp(global_path, "") != 0) {
+				target_global_path = alloc_sptrinf(
+						"%s.%s",
+						global_path,
+						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			} else {
+				target_global_path = alloc_sptrinf(
+						"%s",
+						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			}
 
 			if (target_global_path == NULL) {
 
@@ -1915,10 +1949,17 @@ static int object_scheme_builder_process_value_scheme_hierarchy_top(
 				return (-EFAULT);
 			}
 
-			target_object_path = alloc_sptrinf(
-					"%s.%s",
-					object_path,
-					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			if (object_path != NULL &&
+				strcmp(object_path, "") != 0) {
+				target_object_path = alloc_sptrinf(
+						"%s.%s",
+						object_path,
+						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			} else {
+				target_object_path = alloc_sptrinf(
+						"%s",
+						p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			}
 
 			if (target_object_path == NULL) {
 
@@ -1927,7 +1968,6 @@ static int object_scheme_builder_process_value_scheme_hierarchy_top(
 				free(target_global_path);
 				return (-EFAULT);
 			}
-
 
 			switch(p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id){
 			case DW_TAG_array_type:
@@ -2425,6 +2465,7 @@ static struct metac_value_scheme * metac_value_scheme_create_as_object(
 /*****************************************************************************/
 struct top_object_scheme_container_pointer_scheme {
 	struct cds_list_head							list;
+
 	struct metac_value_scheme *						p_pointer_metac_value_scheme;
 };
 
@@ -2833,7 +2874,7 @@ static int top_object_scheme_builder_process_pointer(
 				p_metac_value_scheme,
 				p_metac_value_scheme->p_actual_type->pointer_type_info.type);
 
-		if (p_metac_value_scheme->pointer.p_default_child_value_scheme = NULL) {
+		if (p_metac_value_scheme->pointer.p_default_child_value_scheme == NULL) {
 
 			msg_stderr("top_object_scheme_builder_update_record_or_create_new_and_schedule failed for %s\n", global_path);
 			free(target_global_path);
@@ -2876,6 +2917,26 @@ static int top_object_scheme_builder_process_pointer(
 	return 0;
 }
 
+static int top_object_scheme_unprocess_pointer(
+		struct metac_value_scheme *					p_metac_value_scheme) {
+
+	int i = 0;
+
+	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type);
+
+	for (i = 0; i < p_metac_value_scheme->pointer.generic_cast.types_count; ++i) {
+		if (p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme != NULL) {
+			metac_value_scheme_put(&p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme);
+		}
+	}
+
+	if (p_metac_value_scheme->pointer.p_default_child_value_scheme != NULL) {
+		metac_value_scheme_put(&p_metac_value_scheme->pointer.p_default_child_value_scheme);
+	}
+
+	return 0;
+}
+
 static int top_object_scheme_builder_process_object_scheme(
 		struct top_object_scheme_builder *			p_top_object_scheme_builder,
 		char *										global_path,
@@ -2889,10 +2950,19 @@ static int top_object_scheme_builder_process_object_scheme(
 
 	for (i = 0; i < p_metac_value_scheme->p_object_scheme->pointers_value_schemes_count; ++i) {
 
-		char * target_global_path = alloc_sptrinf(
-				"%s.%s",
-				global_path,
-				p_metac_value_scheme->path_within_object);
+		char * target_global_path;
+		if (global_path != NULL && strcmp (global_path, "") != 0) {
+			target_global_path = alloc_sptrinf(
+					"%s.%s",
+					global_path,
+					p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
+		} else {
+			target_global_path = alloc_sptrinf(
+					"%s",
+					p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
+		}
+
+		msg_stddbg("%s\n", target_global_path);
 
 		if (target_global_path == NULL) {
 
@@ -3081,6 +3151,8 @@ static void top_object_scheme_clean(
 				for (j = 0; j < p_top_object_scheme->p_objects[i].pointers_count; ++j) {
 
 					if (p_top_object_scheme->p_objects[i].pp_pointers[j] != NULL) {
+
+						top_object_scheme_unprocess_pointer(p_top_object_scheme->p_objects[i].pp_pointers[j]);
 						metac_value_scheme_put(&p_top_object_scheme->p_objects[i].pp_pointers[j]);
 					}
 				}
@@ -3090,10 +3162,15 @@ static void top_object_scheme_clean(
 				free(p_top_object_scheme->p_objects[i].pp_pointers);
 				p_top_object_scheme->p_objects[i].pp_pointers = NULL;
 			}
+		}
+
+		/*don't put it to the previous cycle, because it may cause long recursive calls and we want to avoid that for big data structures*/
+		for (i = 0; i < p_top_object_scheme->objects_count; ++i) {
 
 			if (p_top_object_scheme->p_objects[i].p_object != NULL) {
 				metac_value_scheme_put(&p_top_object_scheme->p_objects[i].p_object);
 			}
+
 		}
 
 		p_top_object_scheme->objects_count = 0;
