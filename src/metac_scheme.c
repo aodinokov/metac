@@ -1,5 +1,5 @@
 /*
- * metac_value_scheme.c
+ * metac_scheme.c
  *
  *  Created on: Feb 18, 2020
  *      Author: mralex
@@ -38,22 +38,22 @@
 
 /*****************************************************************************/
 
-static int metac_value_scheme_clean(
-		struct metac_scheme *					p_value_scheme);
+static int metac_scheme_clean(
+		struct metac_scheme *						p_value_scheme);
 
 /*****************************************************************************/
 
-static int metac_value_scheme_delete(
-		struct metac_scheme **				pp_metac_scheme) {
+static int metac_scheme_delete(
+		struct metac_scheme **						pp_metac_scheme) {
 
 	_delete_start_(metac_scheme);
-	metac_value_scheme_clean(*pp_metac_scheme);
+	metac_scheme_clean(*pp_metac_scheme);
 	_delete_finish(metac_scheme);
 	return 0;
 }
 
 
-static inline struct metac_scheme * metac_unknown_object_get_metac_value_scheme(
+static inline struct metac_scheme * metac_unknown_object_get_metac_scheme(
 		struct metac_unknown_object *				p_metac_unknown_object) {
 	return cds_list_entry(
 			p_metac_unknown_object,
@@ -61,52 +61,52 @@ static inline struct metac_scheme * metac_unknown_object_get_metac_value_scheme(
 			refcounter_object.unknown_object);
 }
 
-static int _metac_value_scheme_unknown_object_delete(
+static int _metac_scheme_unknown_object_delete(
 		struct metac_unknown_object *				p_metac_unknown_object) {
 
-	struct metac_scheme * p_metac_value_scheme;
+	struct metac_scheme * p_metac_scheme;
 
 	if (p_metac_unknown_object == NULL) {
 		msg_stderr("p_metac_unknown_object is NULL\n");
 		return -(EINVAL);
 	}
 
-	p_metac_value_scheme = metac_unknown_object_get_metac_value_scheme(p_metac_unknown_object);
-	if (p_metac_value_scheme == NULL) {
-		msg_stderr("p_metac_value_scheme is NULL\n");
+	p_metac_scheme = metac_unknown_object_get_metac_scheme(p_metac_unknown_object);
+	if (p_metac_scheme == NULL) {
+		msg_stderr("p_metac_scheme is NULL\n");
 		return -(EINVAL);
 	}
 
-	return metac_value_scheme_delete(&p_metac_value_scheme);
+	return metac_scheme_delete(&p_metac_scheme);
 }
 
-static metac_refcounter_object_ops_t _metac_value_scheme_refcounter_object_ops = {
+static metac_refcounter_object_ops_t _metac_scheme_refcounter_object_ops = {
 		.unknown_object_ops = {
-				.metac_unknown_object_delete = 		_metac_value_scheme_unknown_object_delete,
+				.metac_unknown_object_delete = 		_metac_scheme_unknown_object_delete,
 		},
 };
 
 /*****************************************************************************/
 
-struct metac_scheme * metac_value_scheme_get(
-		struct metac_scheme *					p_metac_value_scheme) {
+struct metac_scheme * metac_scheme_get(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme != NULL &&
-		metac_refcounter_object_get(&p_metac_value_scheme->refcounter_object) != NULL) {
-		return p_metac_value_scheme;
+	if (p_metac_scheme != NULL &&
+		metac_refcounter_object_get(&p_metac_scheme->refcounter_object) != NULL) {
+		return p_metac_scheme;
 	}
 
 	return NULL;
 }
 
-int metac_value_scheme_put(
-		struct metac_scheme **				pp_metac_value_scheme) {
+int metac_scheme_put(
+		struct metac_scheme **						pp_metac_scheme) {
 
-	if (pp_metac_value_scheme != NULL &&
-		(*pp_metac_value_scheme) != NULL &&
-		metac_refcounter_object_put(&(*pp_metac_value_scheme)->refcounter_object) == 0) {
+	if (pp_metac_scheme != NULL &&
+		(*pp_metac_scheme) != NULL &&
+		metac_refcounter_object_put(&(*pp_metac_scheme)->refcounter_object) == 0) {
 
-		*pp_metac_value_scheme = NULL;
+		*pp_metac_scheme = NULL;
 		return 0;
 	}
 
@@ -200,11 +200,11 @@ static int discriminator_init(
 	return 0;
 }
 
-static int value_scheme_with_array_init(
-		struct scheme_with_array *			p_value_scheme_with_array,
+static int scheme_with_array_init(
+		struct scheme_with_array *					p_scheme_with_array,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_actual_type) {
 
@@ -216,8 +216,8 @@ static int value_scheme_with_array_init(
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	/*keep global_path as annotation_key*/
-	p_value_scheme_with_array->annotation_key = strdup(global_path);
-	if (p_value_scheme_with_array->annotation_key == NULL) {
+	p_scheme_with_array->annotation_key = strdup(global_path);
+	if (p_scheme_with_array->annotation_key == NULL) {
 		msg_stderr("Can't keep annotation_key for %s\n", global_path);
 		return -ENOMEM;
 	}
@@ -234,15 +234,15 @@ static int value_scheme_with_array_init(
 				strcmp(p_target_actual_type->name, "char") == 0 ||
 				strcmp(p_target_actual_type->name, "unsigned char") == 0)){
 
-			p_value_scheme_with_array->array_elements_count.cb = metac_array_elements_1d_with_null;
+			p_scheme_with_array->array_elements_count.cb = metac_array_elements_1d_with_null;
 		}
 	}
 
 	if (p_annotation != NULL) {
 		if (p_actual_type->array_type_info.is_flexible != 0) {
 
-			p_value_scheme_with_array->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
-			p_value_scheme_with_array->array_elements_count.p_data = p_annotation->value->array_elements_count.data;
+			p_scheme_with_array->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
+			p_scheme_with_array->array_elements_count.p_data = p_annotation->value->array_elements_count.data;
 		} else {
 
 			if (p_annotation->value->array_elements_count.cb != NULL) {
@@ -262,27 +262,27 @@ static int value_scheme_with_array_init(
 	return 0;
 }
 
-static void value_scheme_with_array_clean(
-		struct scheme_with_array *			p_value_scheme_with_array) {
+static void scheme_with_array_clean(
+		struct scheme_with_array *					p_scheme_with_array) {
 
-	if (p_value_scheme_with_array->annotation_key != NULL) {
+	if (p_scheme_with_array->annotation_key != NULL) {
 
-		free(p_value_scheme_with_array->annotation_key);
-		p_value_scheme_with_array->annotation_key = NULL;
+		free(p_scheme_with_array->annotation_key);
+		p_scheme_with_array->annotation_key = NULL;
 	}
 
-	if (p_value_scheme_with_array->p_child_value_scheme != NULL) {
+	if (p_scheme_with_array->p_child_value_scheme != NULL) {
 
-		metac_value_scheme_put(&p_value_scheme_with_array->p_child_value_scheme);
+		metac_scheme_put(&p_scheme_with_array->p_child_value_scheme);
 	}
 
 }
 
-static int value_scheme_with_pointer_init(
-		struct scheme_with_pointer *			p_value_scheme_with_pointer,
+static int scheme_with_pointer_init(
+		struct scheme_with_pointer *				p_scheme_with_pointer,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_actual_type) {
 
@@ -294,14 +294,14 @@ static int value_scheme_with_pointer_init(
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
 	/*keep global_path as annotation_key*/
-	p_value_scheme_with_pointer->annotation_key = strdup(global_path);
-	if (p_value_scheme_with_pointer->annotation_key == NULL) {
+	p_scheme_with_pointer->annotation_key = strdup(global_path);
+	if (p_scheme_with_pointer->annotation_key == NULL) {
 		msg_stderr("Can't keep annotation_key for %s\n", global_path);
 		return -ENOMEM;
 	}
 
 	/*defaults is metac_array_elements_single */
-	p_value_scheme_with_pointer->array_elements_count.cb = metac_array_elements_single;
+	p_scheme_with_pointer->array_elements_count.cb = metac_array_elements_single;
 
 	/*default for char* is metac_array_elements_1d_with_null */
 	if (p_actual_type->pointer_type_info.type != NULL) {
@@ -315,19 +315,19 @@ static int value_scheme_with_pointer_init(
 				strcmp(p_target_actual_type->name, "char") == 0 ||
 				strcmp(p_target_actual_type->name, "unsigned char") == 0)) {
 
-			p_value_scheme_with_pointer->array_elements_count.cb = metac_array_elements_1d_with_null;
+			p_scheme_with_pointer->array_elements_count.cb = metac_array_elements_1d_with_null;
 		}
 	}
 
 	if (p_annotation != NULL) {
-		p_value_scheme_with_pointer->generic_cast.cb = p_annotation->value->generic_cast.cb;
-		p_value_scheme_with_pointer->generic_cast.p_data = p_annotation->value->generic_cast.data;
-		p_value_scheme_with_pointer->generic_cast.p_types = generic_cast_type_create(
+		p_scheme_with_pointer->generic_cast.cb = p_annotation->value->generic_cast.cb;
+		p_scheme_with_pointer->generic_cast.p_data = p_annotation->value->generic_cast.data;
+		p_scheme_with_pointer->generic_cast.p_types = generic_cast_type_create(
 				p_annotation->value->generic_cast.types,
-				&p_value_scheme_with_pointer->generic_cast.types_count);
+				&p_scheme_with_pointer->generic_cast.types_count);
 
-		p_value_scheme_with_pointer->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
-		p_value_scheme_with_pointer->array_elements_count.p_data = p_annotation->value->array_elements_count.data;
+		p_scheme_with_pointer->array_elements_count.cb = p_annotation->value->array_elements_count.cb;
+		p_scheme_with_pointer->array_elements_count.p_data = p_annotation->value->array_elements_count.data;
 
 		if (p_annotation->value->discriminator.cb != NULL) {
 			msg_stderr("Annotations for pointer with global path %s defines discriminator that won't be used\n", global_path);
@@ -336,48 +336,48 @@ static int value_scheme_with_pointer_init(
 	return 0;
 }
 
-static void value_scheme_with_pointer_clean(
-		struct scheme_with_pointer *			p_value_scheme_with_pointer) {
+static void scheme_with_pointer_clean(
+		struct scheme_with_pointer *				p_scheme_with_pointer) {
 
-	if (p_value_scheme_with_pointer->annotation_key != NULL) {
+	if (p_scheme_with_pointer->annotation_key != NULL) {
 
-		free(p_value_scheme_with_pointer->annotation_key);
-		p_value_scheme_with_pointer->annotation_key = NULL;
+		free(p_scheme_with_pointer->annotation_key);
+		p_scheme_with_pointer->annotation_key = NULL;
 	}
-	if (p_value_scheme_with_pointer->generic_cast.p_types != NULL) {
+	if (p_scheme_with_pointer->generic_cast.p_types != NULL) {
 		int i;
 
-		for (i = 0; i < p_value_scheme_with_pointer->generic_cast.types_count; ++i) {
+		for (i = 0; i < p_scheme_with_pointer->generic_cast.types_count; ++i) {
 
-			if (p_value_scheme_with_pointer->generic_cast.p_types[i].p_child_value_scheme != NULL) {
+			if (p_scheme_with_pointer->generic_cast.p_types[i].p_child_value_scheme != NULL) {
 
-				metac_value_scheme_put(&p_value_scheme_with_pointer->generic_cast.p_types[i].p_child_value_scheme);
+				metac_scheme_put(&p_scheme_with_pointer->generic_cast.p_types[i].p_child_value_scheme);
 			}
 		}
 
-		free(p_value_scheme_with_pointer->generic_cast.p_types);
-		p_value_scheme_with_pointer->generic_cast.p_types = NULL;
+		free(p_scheme_with_pointer->generic_cast.p_types);
+		p_scheme_with_pointer->generic_cast.p_types = NULL;
 	}
 
-	if (p_value_scheme_with_pointer->p_default_child_value_scheme != NULL) {
+	if (p_scheme_with_pointer->p_default_child_value_scheme != NULL) {
 
-		metac_value_scheme_put(&p_value_scheme_with_pointer->p_default_child_value_scheme);
+		metac_scheme_put(&p_scheme_with_pointer->p_default_child_value_scheme);
 	}
 }
 
-static struct metac_scheme * value_scheme_with_hierarchy_get_value_scheme(
-		struct scheme_with_hierarchy *		p_value_scheme_with_hierarchy) {
-	if (p_value_scheme_with_hierarchy == NULL) {
+static struct metac_scheme * scheme_with_hierarchy_get_value_scheme(
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy) {
+	if (p_scheme_with_hierarchy == NULL) {
 		return NULL;
 	}
-	return cds_list_entry(p_value_scheme_with_hierarchy, struct metac_scheme, hierarchy);
+	return cds_list_entry(p_scheme_with_hierarchy, struct metac_scheme, hierarchy);
 }
 
-static int value_scheme_with_hierarchy_init(
-		struct scheme_with_hierarchy *		p_value_scheme_with_hierarchy,
+static int scheme_with_hierarchy_init(
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_actual_type) {
 
@@ -387,33 +387,33 @@ static int value_scheme_with_hierarchy_init(
 
 	p_annotation = metac_type_annotation(p_root_type, global_path, p_override_annotations);
 
-	p_value_scheme_with_hierarchy->members_count = p_actual_type->structure_type_info.members_count;
-	if (p_value_scheme_with_hierarchy->members_count > 0) {
+	p_scheme_with_hierarchy->members_count = p_actual_type->structure_type_info.members_count;
+	if (p_scheme_with_hierarchy->members_count > 0) {
 
-		p_value_scheme_with_hierarchy->members =
+		p_scheme_with_hierarchy->members =
 				(struct metac_scheme **)calloc(
-						p_value_scheme_with_hierarchy->members_count,
-						sizeof(*p_value_scheme_with_hierarchy->members));
+						p_scheme_with_hierarchy->members_count,
+						sizeof(*p_scheme_with_hierarchy->members));
 
-		if (p_value_scheme_with_hierarchy->members == NULL) {
+		if (p_scheme_with_hierarchy->members == NULL) {
 
 			msg_stderr("Can't allocate memory for hierarchy\n");
-			p_value_scheme_with_hierarchy->members_count = 0;
+			p_scheme_with_hierarchy->members_count = 0;
 
 			return (-EFAULT);
 		}
 	}
 
 	if (p_actual_type->id == DW_TAG_union_type) {
-		struct metac_scheme * p_value_scheme = value_scheme_with_hierarchy_get_value_scheme(p_value_scheme_with_hierarchy);
+		struct metac_scheme * p_value_scheme = scheme_with_hierarchy_get_value_scheme(p_scheme_with_hierarchy);
 
 		if (discriminator_init(
-				&p_value_scheme_with_hierarchy->union_discriminator,
+				&p_scheme_with_hierarchy->union_discriminator,
 				p_root_type,
 				global_path,
 				p_override_annotations,
-				(metac_value_scheme_is_hierarchy_member(p_value_scheme) == 1)?p_value_scheme->hierarchy_member.precondition.p_discriminator:NULL,
-				(metac_value_scheme_is_hierarchy_member(p_value_scheme) == 1)?p_value_scheme->hierarchy_member.precondition.expected_discriminator_value:0) != 0) {
+				(metac_scheme_is_hierarchy_member(p_value_scheme) == 1)?p_value_scheme->hierarchy_member.precondition.p_discriminator:NULL,
+				(metac_scheme_is_hierarchy_member(p_value_scheme) == 1)?p_value_scheme->hierarchy_member.precondition.expected_discriminator_value:0) != 0) {
 
 			msg_stddbg("global_path: %s failed to init discriminator\n", global_path);
 			return (-EFAULT);
@@ -424,11 +424,11 @@ static int value_scheme_with_hierarchy_init(
 	return 0;
 }
 
-static void value_scheme_with_hierarchy_clean(
-		struct scheme_with_hierarchy *		p_value_scheme_with_hierarchy) {
-	struct metac_scheme * p_value_scheme = value_scheme_with_hierarchy_get_value_scheme(p_value_scheme_with_hierarchy);
+static void scheme_with_hierarchy_clean(
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy) {
+	struct metac_scheme * p_value_scheme = scheme_with_hierarchy_get_value_scheme(p_scheme_with_hierarchy);
 
-	if (p_value_scheme_with_hierarchy == NULL ||
+	if (p_scheme_with_hierarchy == NULL ||
 		p_value_scheme == NULL) {
 
 		msg_stderr("invalid argument\n");
@@ -437,148 +437,148 @@ static void value_scheme_with_hierarchy_clean(
 
 	if (p_value_scheme->p_actual_type->id == DW_TAG_union_type) {
 
-		discriminator_clean(&p_value_scheme_with_hierarchy->union_discriminator);
+		discriminator_clean(&p_scheme_with_hierarchy->union_discriminator);
 	}
 
-	if (p_value_scheme_with_hierarchy->members != NULL) {
+	if (p_scheme_with_hierarchy->members != NULL) {
 		int i;
 
-		for (i = 0; i < p_value_scheme_with_hierarchy->members_count; ++i ) {
+		for (i = 0; i < p_scheme_with_hierarchy->members_count; ++i ) {
 
-			if (p_value_scheme_with_hierarchy->members[i] != NULL){
-				metac_value_scheme_put(&p_value_scheme_with_hierarchy->members[i]);
+			if (p_scheme_with_hierarchy->members[i] != NULL){
+				metac_scheme_put(&p_scheme_with_hierarchy->members[i]);
 			}
 		}
 
-		free(p_value_scheme_with_hierarchy->members);
-		p_value_scheme_with_hierarchy->members = NULL;
+		free(p_scheme_with_hierarchy->members);
+		p_scheme_with_hierarchy->members = NULL;
 	}
 }
 
-static int metac_value_scheme_clean_as_hierarchy_member(
-		struct metac_scheme *					p_metac_value_scheme) {
+static int metac_scheme_clean_as_hierarchy_member(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (metac_value_scheme_is_hierarchy_member(p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_hierarchy_member(p_metac_scheme) != 1) {
 		msg_stderr("invalid argument: expected hierarchy_member\n");
 		return -(EINVAL);
 	}
 
-	if (p_metac_value_scheme->hierarchy_member.path_within_hierarchy) {
-		free(p_metac_value_scheme->hierarchy_member.path_within_hierarchy);
-		p_metac_value_scheme->hierarchy_member.path_within_hierarchy = NULL;
+	if (p_metac_scheme->hierarchy_member.path_within_hierarchy) {
+		free(p_metac_scheme->hierarchy_member.path_within_hierarchy);
+		p_metac_scheme->hierarchy_member.path_within_hierarchy = NULL;
 	}
 
-	if (p_metac_value_scheme->path_within_object != NULL) {
-		free(p_metac_value_scheme->path_within_object);
-		p_metac_value_scheme->path_within_object = NULL;
+	if (p_metac_scheme->path_within_value != NULL) {
+		free(p_metac_scheme->path_within_value);
+		p_metac_scheme->path_within_value = NULL;
 	}
 
-	if (p_metac_value_scheme->p_actual_type)
-		switch(p_metac_value_scheme->p_actual_type->id){
+	if (p_metac_scheme->p_actual_type)
+		switch(p_metac_scheme->p_actual_type->id){
 		case DW_TAG_structure_type:
 		case DW_TAG_union_type:
-			value_scheme_with_hierarchy_clean(&p_metac_value_scheme->hierarchy);
+			scheme_with_hierarchy_clean(&p_metac_scheme->hierarchy);
 			break;
 		case DW_TAG_array_type:
-			value_scheme_with_array_clean(&p_metac_value_scheme->array);
+			scheme_with_array_clean(&p_metac_scheme->array);
 			break;
 		case DW_TAG_pointer_type:
-			value_scheme_with_pointer_clean(&p_metac_value_scheme->pointer);
+			scheme_with_pointer_clean(&p_metac_scheme->pointer);
 			break;
 	}
 	return 0;
 }
 
-static int metac_value_scheme_init_as_hierarchy_member(
-		struct metac_scheme *					p_metac_value_scheme,
+static int metac_scheme_init_as_hierarchy_member(
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_root_type,
 		char *										global_path,
-		char *										object_path,
+		char *										value_path,
 		char *										hirarchy_path,
 		metac_type_annotation_t *					p_override_annotations,
-		struct scheme_with_hierarchy *		p_current_hierarchy,
+		struct scheme_with_hierarchy *				p_current_hierarchy,
 		struct discriminator *						p_discriminator,
 		metac_discriminator_value_t					expected_discriminator_value,
 		metac_count_t								member_id,
 		struct metac_type_member_info *				p_member_info) {
-	struct metac_scheme * p_parent_metac_value_scheme;
+	struct metac_scheme * p_parent_metac_scheme;
 
-	if (p_metac_value_scheme == NULL ||
+	if (p_metac_scheme == NULL ||
 		p_current_hierarchy == NULL) {
 		msg_stderr("invalid argument for %s\n", hirarchy_path);
 		return -(EINVAL);
 	}
 
-	p_metac_value_scheme->hierarchy_member.member_id = member_id;
-	p_metac_value_scheme->hierarchy_member.p_member_info = p_member_info;
+	p_metac_scheme->hierarchy_member.member_id = member_id;
+	p_metac_scheme->hierarchy_member.p_member_info = p_member_info;
 
-	p_metac_value_scheme->hierarchy_member.precondition.p_discriminator = p_discriminator;
-	p_metac_value_scheme->hierarchy_member.precondition.expected_discriminator_value = expected_discriminator_value;
-	p_metac_value_scheme->p_current_hierarchy = p_current_hierarchy;
+	p_metac_scheme->hierarchy_member.precondition.p_discriminator = p_discriminator;
+	p_metac_scheme->hierarchy_member.precondition.expected_discriminator_value = expected_discriminator_value;
+	p_metac_scheme->p_current_hierarchy = p_current_hierarchy;
 
-	p_metac_value_scheme->hierarchy_member.offset = p_member_info->data_member_location;
+	p_metac_scheme->hierarchy_member.offset = p_member_info->data_member_location;
 
-	p_parent_metac_value_scheme = metac_value_scheme_get_parent_value_scheme(p_metac_value_scheme);
-	if (p_parent_metac_value_scheme != NULL) {
+	p_parent_metac_scheme = metac_scheme_get_parent_value_scheme(p_metac_scheme);
+	if (p_parent_metac_scheme != NULL) {
 
-		assert(metac_value_scheme_is_hierachy(p_parent_metac_value_scheme));
+		assert(metac_scheme_is_hierachy(p_parent_metac_scheme));
 
-		p_metac_value_scheme->hierarchy_member.offset += p_parent_metac_value_scheme->hierarchy_member.offset;
+		p_metac_scheme->hierarchy_member.offset += p_parent_metac_scheme->hierarchy_member.offset;
 	}
 
-	p_metac_value_scheme->p_type = p_member_info->type;
-	if (p_metac_value_scheme->p_type != NULL) {
-		p_metac_value_scheme->p_actual_type = metac_type_actual_type(p_member_info->type);
-		p_metac_value_scheme->byte_size = metac_type_byte_size(p_member_info->type);
+	p_metac_scheme->p_type = p_member_info->type;
+	if (p_metac_scheme->p_type != NULL) {
+		p_metac_scheme->p_actual_type = metac_type_actual_type(p_member_info->type);
+		p_metac_scheme->byte_size = metac_type_byte_size(p_member_info->type);
 	}
 
-	p_metac_value_scheme->path_within_object = strdup(object_path);
-	if (p_metac_value_scheme->path_within_object == NULL) {
-		msg_stderr("wasn't able to build object_path for %s\n", object_path);
-		metac_value_scheme_clean_as_hierarchy_member(p_metac_value_scheme);
+	p_metac_scheme->path_within_value = strdup(value_path);
+	if (p_metac_scheme->path_within_value == NULL) {
+		msg_stderr("wasn't able to build value_path for %s\n", value_path);
+		metac_scheme_clean_as_hierarchy_member(p_metac_scheme);
 		return -(ENOMEM);
 	}
 
-	p_metac_value_scheme->hierarchy_member.path_within_hierarchy = strdup(hirarchy_path);
-	if (p_metac_value_scheme->hierarchy_member.path_within_hierarchy == NULL) {
+	p_metac_scheme->hierarchy_member.path_within_hierarchy = strdup(hirarchy_path);
+	if (p_metac_scheme->hierarchy_member.path_within_hierarchy == NULL) {
 		msg_stderr("wasn't able to build hirarchy_path for %s\n", hirarchy_path);
-		metac_value_scheme_clean_as_hierarchy_member(p_metac_value_scheme);
+		metac_scheme_clean_as_hierarchy_member(p_metac_scheme);
 		return -(ENOMEM);
 	}
 
-	/*msg_stddbg("local path: %s\n", p_metac_value_scheme->path_within_hierarchy);*/
+	/*msg_stddbg("local path: %s\n", p_metac_scheme->path_within_hierarchy);*/
 
-	if (p_metac_value_scheme->p_actual_type != NULL) {
+	if (p_metac_scheme->p_actual_type != NULL) {
 		int res = 0;
 
-		switch(p_metac_value_scheme->p_actual_type->id) {
+		switch(p_metac_scheme->p_actual_type->id) {
 		case DW_TAG_structure_type:
 		case DW_TAG_union_type:
-			res = value_scheme_with_hierarchy_init(
-					&p_metac_value_scheme->hierarchy,
+			res = scheme_with_hierarchy_init(
+					&p_metac_scheme->hierarchy,
 					p_root_type,
 					global_path,
-					object_path,
+					value_path,
 					p_override_annotations,
-					p_metac_value_scheme->p_actual_type);
+					p_metac_scheme->p_actual_type);
 			break;
 		case DW_TAG_array_type:
-			res = value_scheme_with_array_init(
-					&p_metac_value_scheme->array,
+			res = scheme_with_array_init(
+					&p_metac_scheme->array,
 					p_root_type,
 					global_path,
-					object_path,
+					value_path,
 					p_override_annotations,
-					p_metac_value_scheme->p_actual_type);
+					p_metac_scheme->p_actual_type);
 			break;
 		case DW_TAG_pointer_type:
-			res = value_scheme_with_pointer_init(
-					&p_metac_value_scheme->pointer,
+			res = scheme_with_pointer_init(
+					&p_metac_scheme->pointer,
 					p_root_type,
 					global_path,
-					object_path,
+					value_path,
 					p_override_annotations,
-					p_metac_value_scheme->p_actual_type);
+					p_metac_scheme->p_actual_type);
 			break;
 		}
 
@@ -586,7 +586,7 @@ static int metac_value_scheme_init_as_hierarchy_member(
 
 			msg_stddbg("initialization failed\n");
 
-			metac_value_scheme_clean_as_hierarchy_member(p_metac_value_scheme);
+			metac_scheme_clean_as_hierarchy_member(p_metac_scheme);
 			return -(EFAULT);
 		}
 	}
@@ -594,13 +594,13 @@ static int metac_value_scheme_init_as_hierarchy_member(
 	return 0;
 }
 
-static struct metac_scheme * metac_value_scheme_create_as_hierarchy_member(
+static struct metac_scheme * metac_scheme_create_as_hierarchy_member(
 		struct metac_type *							p_root_type,
 		char *										global_path,
-		char *										object_path,
+		char *										value_path,
 		char *										hierarchy_path,
 		metac_type_annotation_t *					p_override_annotations,
-		struct scheme_with_hierarchy *		p_current_hierarchy,
+		struct scheme_with_hierarchy *				p_current_hierarchy,
 		struct discriminator *						p_discriminator,
 		metac_discriminator_value_t					expected_discriminator_value,
 		metac_count_t								member_id,
@@ -610,20 +610,20 @@ static struct metac_scheme * metac_value_scheme_create_as_hierarchy_member(
 
 	if (metac_refcounter_object_init(
 			&p_metac_scheme->refcounter_object,
-			&_metac_value_scheme_refcounter_object_ops,
+			&_metac_scheme_refcounter_object_ops,
 			NULL) != 0) {
 
 		msg_stderr("metac_refcounter_object_init failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
-	if (metac_value_scheme_init_as_hierarchy_member(
+	if (metac_scheme_init_as_hierarchy_member(
 			p_metac_scheme,
 			p_root_type,
 			global_path,
-			object_path,
+			value_path,
 			hierarchy_path,
 			p_override_annotations,
 			p_current_hierarchy,
@@ -632,46 +632,46 @@ static struct metac_scheme * metac_value_scheme_create_as_hierarchy_member(
 			member_id,
 			p_member_info) != 0) {
 
-		msg_stderr("metac_value_scheme_init_as_hierarchy_member failed\n");
+		msg_stderr("metac_scheme_init_as_hierarchy_member failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
 	return p_metac_scheme;
 }
 
-metac_flag_t metac_value_scheme_is_hierarchy_member(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_hierarchy_member(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("invalid argument\n");
 		return -(EINVAL);
 	}
 
-	return (p_metac_value_scheme->p_current_hierarchy == NULL)?0:1;
+	return (p_metac_scheme->p_current_hierarchy == NULL)?0:1;
 }
 
-struct metac_scheme * metac_value_scheme_get_parent_value_scheme(
-		struct metac_scheme *					p_metac_value_scheme) {
+struct metac_scheme * metac_scheme_get_parent_value_scheme(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (metac_value_scheme_is_hierarchy_member(
-			p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_hierarchy_member(
+			p_metac_scheme) != 1) {
 
 		return NULL;
 	}
 
-	return value_scheme_with_hierarchy_get_value_scheme(p_metac_value_scheme->p_current_hierarchy);
+	return scheme_with_hierarchy_get_value_scheme(p_metac_scheme->p_current_hierarchy);
 }
 
-metac_flag_t metac_value_scheme_is_hierachy(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_hierachy(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme != NULL &&
-		p_metac_value_scheme->p_actual_type != NULL && (
-			p_metac_value_scheme->p_actual_type->id == DW_TAG_structure_type ||
-			p_metac_value_scheme->p_actual_type->id == DW_TAG_union_type)) {
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_structure_type ||
+			p_metac_scheme->p_actual_type->id == DW_TAG_union_type)) {
 
 		return 1;
 	}
@@ -679,12 +679,12 @@ metac_flag_t metac_value_scheme_is_hierachy(
 	return 0;
 }
 
-metac_flag_t metac_value_scheme_is_array(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_array(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme != NULL &&
-		p_metac_value_scheme->p_actual_type != NULL && (
-			p_metac_value_scheme->p_actual_type->id == DW_TAG_array_type)) {
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_array_type)) {
 
 		return 1;
 	}
@@ -692,12 +692,12 @@ metac_flag_t metac_value_scheme_is_array(
 	return 0;
 }
 
-metac_flag_t metac_value_scheme_is_pointer(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_pointer(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme != NULL &&
-		p_metac_value_scheme->p_actual_type != NULL && (
-			p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_pointer_type
 		)) {
 		return 1;
 	}
@@ -705,57 +705,57 @@ metac_flag_t metac_value_scheme_is_pointer(
 	return 0;
 }
 /*****************************************************************************/
-struct value_scheme_container_discriminator {
+struct hierarchy_top_container_discriminator {
 	struct cds_list_head							list;
 
 	struct discriminator *							p_discriminator;
 };
 
-struct value_scheme_container_hierarchy_member {
+struct hierarchy_top_container_hierarchy_member {
 	struct cds_list_head							list;
 
-	struct metac_scheme *						p_value_scheme;
+	struct metac_scheme *							p_value_scheme;
 };
 
-struct value_scheme_container {
+struct hierarchy_top_container {
 	struct cds_list_head							discriminator_list;
 	struct cds_list_head							hierarchy_member_list;
 };
 
-struct value_scheme_builder {
+struct hierarchy_top_builder {
 	struct metac_type *								p_root_type;
 	metac_type_annotation_t *						p_override_annotations;
 
-	struct value_scheme_container					container;
+	struct hierarchy_top_container					container;
 
 	struct scheduler								scheduler;
 	struct cds_list_head							executed_tasks;
 };
 
-struct value_scheme_builder_hierarchy_member_task {
+struct hierarchy_top_builder_hierarchy_member_task {
 	struct scheduler_task							task;
 
 	char * 											global_path;		/*local copy - keep track of it*/
 
-	struct metac_scheme *						p_value_scheme;
+	struct metac_scheme *							p_value_scheme;
 };
 /*****************************************************************************/
 
-static int value_scheme_builder_schedule_hierarchy_member(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_schedule_hierarchy_member(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		struct metac_scheme *					p_value_scheme);
+		struct metac_scheme *						p_value_scheme);
 
 /*****************************************************************************/
 
-static void value_scheme_container_discriminator_clean(
-		struct value_scheme_container_discriminator *	p_value_scheme_container_discriminator) {
+static void hierarchy_top_container_discriminator_clean(
+		struct hierarchy_top_container_discriminator *	p_value_scheme_container_discriminator) {
 
 	p_value_scheme_container_discriminator->p_discriminator = NULL;
 }
 
-static int value_scheme_container_discriminator_init(
-	struct value_scheme_container_discriminator *	p_value_scheme_container_discriminator,
+static int hierarchy_top_container_discriminator_init(
+	struct hierarchy_top_container_discriminator *	p_value_scheme_container_discriminator,
 	struct discriminator *							p_discriminator) {
 
 	if (p_discriminator == NULL) {
@@ -769,37 +769,37 @@ static int value_scheme_container_discriminator_init(
 	return 0;
 }
 
-static int value_scheme_container_discriminator_delete(
-		struct value_scheme_container_discriminator **	pp_value_scheme_container_discriminator) {
+static int hierarchy_top_container_discriminator_delete(
+		struct hierarchy_top_container_discriminator **	pp_value_scheme_container_discriminator) {
 
 	_delete_start_(value_scheme_container_discriminator);
-	value_scheme_container_discriminator_clean(*pp_value_scheme_container_discriminator);
+	hierarchy_top_container_discriminator_clean(*pp_value_scheme_container_discriminator);
 	_delete_finish(value_scheme_container_discriminator);
 	return 0;
 }
 
-static struct value_scheme_container_discriminator * value_scheme_container_discriminator_create(
+static struct hierarchy_top_container_discriminator * hierarchy_top_container_discriminator_create(
 		struct discriminator *						p_discriminator) {
 
 	int res;
 
-	_create_(value_scheme_container_discriminator);
+	_create_(hierarchy_top_container_discriminator);
 
-	if (value_scheme_container_discriminator_init(
-			p_value_scheme_container_discriminator,
+	if (hierarchy_top_container_discriminator_init(
+			p_hierarchy_top_container_discriminator,
 			p_discriminator) != 0) {
 
-		value_scheme_container_discriminator_delete(&p_value_scheme_container_discriminator);
+		hierarchy_top_container_discriminator_delete(&p_hierarchy_top_container_discriminator);
 		return NULL;
 	}
 
-	return p_value_scheme_container_discriminator;
+	return p_hierarchy_top_container_discriminator;
 }
 
-static int value_scheme_container_hierarchy_member_init(
-		struct value_scheme_container_hierarchy_member *
+static int hierarchy_top_container_hierarchy_member_init(
+		struct hierarchy_top_container_hierarchy_member *
 													p_value_scheme_container_hierarchy_member,
-		struct metac_scheme *					p_value_scheme) {
+		struct metac_scheme *						p_value_scheme) {
 
 	if (p_value_scheme_container_hierarchy_member == NULL) {
 
@@ -807,18 +807,18 @@ static int value_scheme_container_hierarchy_member_init(
 		return (-EINVAL);
 	}
 
-	p_value_scheme_container_hierarchy_member->p_value_scheme = metac_value_scheme_get(p_value_scheme);
+	p_value_scheme_container_hierarchy_member->p_value_scheme = metac_scheme_get(p_value_scheme);
 	if (p_value_scheme_container_hierarchy_member->p_value_scheme == NULL) {
 
-		msg_stderr("metac_value_scheme_get failed\n");
+		msg_stderr("metac_scheme_get failed\n");
 		return (-EINVAL);
 	}
 
 	return 0;
 }
 
-static void value_scheme_container_hierarchy_member_clean(
-		struct value_scheme_container_hierarchy_member *
+static void hierarchy_top_container_hierarchy_member_clean(
+		struct hierarchy_top_container_hierarchy_member *
 													p_value_scheme_container_hierarchy_member) {
 
 	if (p_value_scheme_container_hierarchy_member == NULL) {
@@ -828,45 +828,45 @@ static void value_scheme_container_hierarchy_member_clean(
 
 	if (p_value_scheme_container_hierarchy_member->p_value_scheme != NULL) {
 
-		metac_value_scheme_put(&p_value_scheme_container_hierarchy_member->p_value_scheme);
+		metac_scheme_put(&p_value_scheme_container_hierarchy_member->p_value_scheme);
 	}
 }
 
-static int value_scheme_container_hierarchy_member_delete(
-		struct value_scheme_container_hierarchy_member **
+static int hierarchy_top_container_hierarchy_member_delete(
+		struct hierarchy_top_container_hierarchy_member **
 													pp_value_scheme_container_hierarchy_member) {
 
 	_delete_start_(value_scheme_container_hierarchy_member);
-	value_scheme_container_hierarchy_member_clean(*pp_value_scheme_container_hierarchy_member);
+	hierarchy_top_container_hierarchy_member_clean(*pp_value_scheme_container_hierarchy_member);
 	_delete_finish(value_scheme_container_hierarchy_member);
 	return 0;
 }
 
-static struct value_scheme_container_hierarchy_member * value_scheme_container_hierarchy_member_create(
+static struct hierarchy_top_container_hierarchy_member * hierarchy_top_container_hierarchy_member_create(
 		struct metac_scheme *						p_value_scheme) {
 
 	int res;
 
-	_create_(value_scheme_container_hierarchy_member);
+	_create_(hierarchy_top_container_hierarchy_member);
 
-	if (value_scheme_container_hierarchy_member_init(
-			p_value_scheme_container_hierarchy_member,
+	if (hierarchy_top_container_hierarchy_member_init(
+			p_hierarchy_top_container_hierarchy_member,
 			p_value_scheme) != 0) {
 
-		value_scheme_container_hierarchy_member_delete(&p_value_scheme_container_hierarchy_member);
+		hierarchy_top_container_hierarchy_member_delete(&p_hierarchy_top_container_hierarchy_member);
 		return NULL;
 	}
 
-	return p_value_scheme_container_hierarchy_member;
+	return p_hierarchy_top_container_hierarchy_member;
 }
 
-static int value_scheme_builder_add_discriminator (
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_add_discriminator (
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		struct discriminator *						p_discriminator) {
 
-	struct value_scheme_container_discriminator * p_value_scheme_container_discriminator;
+	struct hierarchy_top_container_discriminator * p_value_scheme_container_discriminator;
 
-	p_value_scheme_container_discriminator = value_scheme_container_discriminator_create(p_discriminator);
+	p_value_scheme_container_discriminator = hierarchy_top_container_discriminator_create(p_discriminator);
 	if (p_value_scheme_container_discriminator == NULL) {
 
 		msg_stddbg("wasn't able to create p_value_scheme_container_discriminator\n");
@@ -875,17 +875,17 @@ static int value_scheme_builder_add_discriminator (
 
 	cds_list_add_tail(
 		&p_value_scheme_container_discriminator->list,
-		&p_value_scheme_builder->container.discriminator_list);
+		&p_hierarchy_top_builder->container.discriminator_list);
 	return 0;
 }
 
-static int value_scheme_builder_add_hierarchy_member (
-		struct value_scheme_builder *				p_value_scheme_builder,
-		struct metac_scheme *					p_value_scheme) {
+static int hierarchy_top_builder_add_hierarchy_member (
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
+		struct metac_scheme *						p_value_scheme) {
 
-	struct value_scheme_container_hierarchy_member * p_value_scheme_container_hierarchy_member;
+	struct hierarchy_top_container_hierarchy_member * p_value_scheme_container_hierarchy_member;
 
-	p_value_scheme_container_hierarchy_member = value_scheme_container_hierarchy_member_create(
+	p_value_scheme_container_hierarchy_member = hierarchy_top_container_hierarchy_member_create(
 			p_value_scheme);
 	if (p_value_scheme_container_hierarchy_member == NULL) {
 
@@ -895,36 +895,36 @@ static int value_scheme_builder_add_hierarchy_member (
 
 	cds_list_add_tail(
 		&p_value_scheme_container_hierarchy_member->list,
-		&p_value_scheme_builder->container.hierarchy_member_list);
+		&p_hierarchy_top_builder->container.hierarchy_member_list);
 	return 0;
 }
 
-static int value_scheme_builder_process_structure(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_process_structure(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		char *										object_path,
+		char *										value_path,
 		char *										hirarchy_path,
 		struct metac_type *							p_actual_type,
-		struct scheme_with_hierarchy *		p_hierarchy) {
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy) {
 
 	metac_num_t i;
 	struct discriminator * p_discriminator = NULL;
 	metac_discriminator_value_t expected_discriminator_value = 0;
-	struct metac_scheme * p_metac_value_scheme = NULL;
+	struct metac_scheme * p_metac_scheme = NULL;
 
 	assert(p_actual_type->id == DW_TAG_structure_type);
 
-	p_metac_value_scheme = value_scheme_with_hierarchy_get_value_scheme(p_hierarchy);
-	if (p_metac_value_scheme == NULL) {
+	p_metac_scheme = scheme_with_hierarchy_get_value_scheme(p_scheme_with_hierarchy);
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("value_scheme_with_hierarchy_get_value_scheme failed %s\n", global_path);
 		return (-EFAULT);
 	}
 
-	if (metac_value_scheme_is_hierarchy_member(p_metac_value_scheme) == 1) {
+	if (metac_scheme_is_hierarchy_member(p_metac_scheme) == 1) {
 
-		p_discriminator = p_metac_value_scheme->hierarchy_member.precondition.p_discriminator;
-		expected_discriminator_value = p_metac_value_scheme->hierarchy_member.precondition.expected_discriminator_value;
+		p_discriminator = p_metac_scheme->hierarchy_member.precondition.p_discriminator;
+		expected_discriminator_value = p_metac_scheme->hierarchy_member.precondition.expected_discriminator_value;
 	}
 
 	for (i = p_actual_type->structure_type_info.members_count; i > 0; i--) {
@@ -932,7 +932,7 @@ static int value_scheme_builder_process_structure(
 		struct metac_type_member_info * p_member_info = &p_actual_type->structure_type_info.members[indx];
 		int res;
 		char * member_global_path;
-		char * member_object_path;
+		char * member_value_path;
 		char * member_hirarchy_path;
 
 		member_global_path = build_member_path(global_path, p_member_info->name);
@@ -942,10 +942,10 @@ static int value_scheme_builder_process_structure(
 			return (-EFAULT);
 		}
 
-		member_object_path = build_member_path(object_path, p_member_info->name);
-		if (member_object_path == NULL) {
+		member_value_path = build_member_path(value_path, p_member_info->name);
+		if (member_value_path == NULL) {
 
-			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("wasn't able to build value_path for %s and %s\n", global_path, p_member_info->name);
 			free(member_global_path);
 			return (-EFAULT);
 		}
@@ -954,47 +954,47 @@ static int value_scheme_builder_process_structure(
 		if (member_hirarchy_path == NULL) {
 
 			msg_stderr("wasn't able to build hirarchy_path for %s and %s\n", global_path, p_member_info->name);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
 
-		p_hierarchy->members[indx] = metac_value_scheme_create_as_hierarchy_member(
-				p_value_scheme_builder->p_root_type,
+		p_scheme_with_hierarchy->members[indx] = metac_scheme_create_as_hierarchy_member(
+				p_hierarchy_top_builder->p_root_type,
 				member_global_path,
-				member_object_path,
+				member_value_path,
 				member_hirarchy_path,
-				p_value_scheme_builder->p_override_annotations,
-				p_hierarchy,
+				p_hierarchy_top_builder->p_override_annotations,
+				p_scheme_with_hierarchy,
 				p_discriminator,
 				expected_discriminator_value,
 				indx,
 				p_member_info);
-		if (p_hierarchy->members[indx] == NULL) {
-			msg_stddbg("global_path: %s failed because metac_value_scheme_create_as_hierarchy_member failed\n", global_path);
+		if (p_scheme_with_hierarchy->members[indx] == NULL) {
+			msg_stddbg("global_path: %s failed because metac_scheme_create_as_hierarchy_member failed\n", global_path);
 			free(member_hirarchy_path);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
 
-		res = value_scheme_builder_schedule_hierarchy_member(
-				p_value_scheme_builder,
+		res = hierarchy_top_builder_schedule_hierarchy_member(
+				p_hierarchy_top_builder,
 				member_global_path,
-				p_hierarchy->members[indx]);
+				p_scheme_with_hierarchy->members[indx]);
 		if (res != 0) {
 
 			msg_stderr("failed to schedule global_path for %s\n", member_global_path);
-			metac_value_scheme_put(&p_hierarchy->members[indx]);
+			metac_scheme_put(&p_scheme_with_hierarchy->members[indx]);
 
 			free(member_hirarchy_path);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return res;
 		}
 
 		free(member_hirarchy_path);
-		free(member_object_path);
+		free(member_value_path);
 		free(member_global_path);
 	}
 
@@ -1002,13 +1002,13 @@ static int value_scheme_builder_process_structure(
 
 		struct metac_type_member_info * p_member_info = &p_actual_type->structure_type_info.members[i];
 
-		if (value_scheme_builder_add_hierarchy_member(
-				p_value_scheme_builder,
-				p_hierarchy->members[i]) != 0) {
+		if (hierarchy_top_builder_add_hierarchy_member(
+				p_hierarchy_top_builder,
+				p_scheme_with_hierarchy->members[i]) != 0) {
 
-			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("hierarchy_top_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
 
-			metac_value_scheme_put(&p_hierarchy->members[i]);
+			metac_scheme_put(&p_scheme_with_hierarchy->members[i]);
 			return (-EFAULT);
 		}
 	}
@@ -1016,19 +1016,19 @@ static int value_scheme_builder_process_structure(
 	return 0;
 }
 
-static int value_scheme_builder_process_union(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_process_union(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		char *										object_path,
+		char *										value_path,
 		char *										hirarchy_path,
 		struct metac_type *							p_actual_type,
-		struct scheme_with_hierarchy *		p_hierarchy) {
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy) {
 	metac_num_t i;
 	struct discriminator * p_discriminator;
 	assert(p_actual_type->id == DW_TAG_union_type);
 
-	p_discriminator = &p_hierarchy->union_discriminator;
-	if (value_scheme_builder_add_discriminator(p_value_scheme_builder, p_discriminator) != 0) {
+	p_discriminator = &p_scheme_with_hierarchy->union_discriminator;
+	if (hierarchy_top_builder_add_discriminator(p_hierarchy_top_builder, p_discriminator) != 0) {
 
 		msg_stddbg("global_path: %s failed to add discriminator\n", global_path);
 		return (-EFAULT);
@@ -1039,7 +1039,7 @@ static int value_scheme_builder_process_union(
 		struct metac_type_member_info * p_member_info = &p_actual_type->union_type_info.members[indx];
 		int res;
 		char * member_global_path;
-		char * member_object_path;
+		char * member_value_path;
 		char * member_hirarchy_path;
 
 		member_global_path = build_member_path(global_path, p_member_info->name);
@@ -1049,10 +1049,10 @@ static int value_scheme_builder_process_union(
 			return (-EFAULT);
 		}
 
-		member_object_path = build_member_path(object_path, p_member_info->name);
-		if (member_object_path == NULL) {
+		member_value_path = build_member_path(value_path, p_member_info->name);
+		if (member_value_path == NULL) {
 
-			msg_stderr("wasn't able to build object_path for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("wasn't able to build value_path for %s and %s\n", global_path, p_member_info->name);
 			free(member_global_path);
 			return (-EFAULT);
 		}
@@ -1061,60 +1061,60 @@ static int value_scheme_builder_process_union(
 		if (member_hirarchy_path == NULL) {
 
 			msg_stderr("wasn't able to build hirarchy_path for %s and %s\n", global_path, p_member_info->name);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
 
-		p_hierarchy->members[indx] = metac_value_scheme_create_as_hierarchy_member(
-				p_value_scheme_builder->p_root_type,
+		p_scheme_with_hierarchy->members[indx] = metac_scheme_create_as_hierarchy_member(
+				p_hierarchy_top_builder->p_root_type,
 				member_global_path,
-				member_object_path,
+				member_value_path,
 				member_hirarchy_path,
-				p_value_scheme_builder->p_override_annotations,
-				p_hierarchy,
+				p_hierarchy_top_builder->p_override_annotations,
+				p_scheme_with_hierarchy,
 				p_discriminator,
 				indx,
 				indx,
 				p_member_info);
-		if (p_hierarchy->members[indx] == NULL) {
+		if (p_scheme_with_hierarchy->members[indx] == NULL) {
 
 			msg_stddbg("global_path: %s failed because element_type_hierarchy_member_create failed\n", global_path);
 			free(member_hirarchy_path);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
 
-		if (value_scheme_builder_add_hierarchy_member(
-				p_value_scheme_builder,
-				p_hierarchy->members[indx]) != 0) {
+		if (hierarchy_top_builder_add_hierarchy_member(
+				p_hierarchy_top_builder,
+				p_scheme_with_hierarchy->members[indx]) != 0) {
 
-			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("hierarchy_top_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
 
-			metac_value_scheme_put(&p_hierarchy->members[indx]);
+			metac_scheme_put(&p_scheme_with_hierarchy->members[indx]);
 			free(member_hirarchy_path);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return (-EFAULT);
 		}
 
-		res = value_scheme_builder_schedule_hierarchy_member(
-				p_value_scheme_builder,
+		res = hierarchy_top_builder_schedule_hierarchy_member(
+				p_hierarchy_top_builder,
 				member_global_path,
-				p_hierarchy->members[indx]);
+				p_scheme_with_hierarchy->members[indx]);
 		if (res != 0) {
 
 			msg_stderr("failed to schedule global_path for %s\n", member_global_path);
-			metac_value_scheme_put(&p_hierarchy->members[indx]);
+			metac_scheme_put(&p_scheme_with_hierarchy->members[indx]);
 			free(member_hirarchy_path);
-			free(member_object_path);
+			free(member_value_path);
 			free(member_global_path);
 			return res;
 		}
 
 		free(member_hirarchy_path);
-		free(member_object_path);
+		free(member_value_path);
 		free(member_global_path);
 	}
 
@@ -1122,13 +1122,13 @@ static int value_scheme_builder_process_union(
 
 		struct metac_type_member_info * p_member_info = &p_actual_type->union_type_info.members[i];
 
-		if (value_scheme_builder_add_hierarchy_member(
-				p_value_scheme_builder,
-				p_hierarchy->members[i]) != 0) {
+		if (hierarchy_top_builder_add_hierarchy_member(
+				p_hierarchy_top_builder,
+				p_scheme_with_hierarchy->members[i]) != 0) {
 
-			msg_stderr("value_scheme_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
+			msg_stderr("hierarchy_top_builder_add_hierarchy_member failed for for %s and %s\n", global_path, p_member_info->name);
 
-			metac_value_scheme_put(&p_hierarchy->members[i]);
+			metac_scheme_put(&p_scheme_with_hierarchy->members[i]);
 			return (-EFAULT);
 		}
 	}
@@ -1136,37 +1136,37 @@ static int value_scheme_builder_process_union(
 	return 0;
 }
 
-static int value_scheme_builder_process_hierarchy(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_process_hierarchy(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		char *										object_path,
+		char *										value_path,
 		char *										hirarchy_path,
 		struct metac_type *							p_actual_type,
-		struct scheme_with_hierarchy *		p_hierarchy) {
+		struct scheme_with_hierarchy *				p_scheme_with_hierarchy) {
 	int res;
-	msg_stddbg("process global_path: %s, object_path: %s, hirarchy_path: %s\n",
+	msg_stddbg("process global_path: %s, value_path: %s, hirarchy_path: %s\n",
 			global_path,
-			object_path,
+			value_path,
 			hirarchy_path);
 
 	switch (p_actual_type->id) {
 	case DW_TAG_structure_type:
-		res = value_scheme_builder_process_structure(
-				p_value_scheme_builder,
+		res = hierarchy_top_builder_process_structure(
+				p_hierarchy_top_builder,
 				global_path,
-				object_path,
+				value_path,
 				hirarchy_path,
 				p_actual_type,
-				p_hierarchy);
+				p_scheme_with_hierarchy);
 		break;
 	case DW_TAG_union_type:
-		res = value_scheme_builder_process_union(
-				p_value_scheme_builder,
+		res = hierarchy_top_builder_process_union(
+				p_hierarchy_top_builder,
 				global_path,
-				object_path,
+				value_path,
 				hirarchy_path,
 				p_actual_type,
-				p_hierarchy);
+				p_scheme_with_hierarchy);
 		break;
 	default:
 		res = (-EINVAL);
@@ -1179,20 +1179,20 @@ static int value_scheme_builder_process_hierarchy(
 	return res;
 }
 
-static int value_scheme_builder_process_hierarchy_member(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_process_hierarchy_member(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		struct metac_scheme *					p_value_scheme) {
+		struct metac_scheme *						p_value_scheme) {
 
-	if (	metac_value_scheme_is_hierarchy_member(p_value_scheme) == 1 &&
+	if (	metac_scheme_is_hierarchy_member(p_value_scheme) == 1 &&
 			p_value_scheme->p_actual_type && (
 			p_value_scheme->p_actual_type->id == DW_TAG_structure_type||
 			p_value_scheme->p_actual_type->id == DW_TAG_union_type)) {
 
-		if (value_scheme_builder_process_hierarchy(
-				p_value_scheme_builder,
+		if (hierarchy_top_builder_process_hierarchy(
+				p_hierarchy_top_builder,
 				global_path,
-				p_value_scheme->path_within_object,
+				p_value_scheme->path_within_value,
 				p_value_scheme->hierarchy_member.path_within_hierarchy,
 				p_value_scheme->p_actual_type,
 				&p_value_scheme->hierarchy) != 0) {
@@ -1204,78 +1204,78 @@ static int value_scheme_builder_process_hierarchy_member(
 	return 0;
 }
 
-static int value_scheme_builder_process_hierarchy_member_fn(
+static int hierarchy_top_builder_process_hierarchy_member_fn(
 	struct scheduler * 								p_engine,
 	struct scheduler_task * 						p_task,
 	int 											error_flag) {
 
-	struct value_scheme_builder * p_value_scheme_builder =
-		cds_list_entry(p_engine, struct value_scheme_builder, scheduler);
+	struct hierarchy_top_builder * p_hierarchy_top_builder =
+		cds_list_entry(p_engine, struct hierarchy_top_builder, scheduler);
 
-	struct value_scheme_builder_hierarchy_member_task * p_value_scheme_builder_hierarchy_member_task =
-		cds_list_entry(p_task, struct value_scheme_builder_hierarchy_member_task, task);
+	struct hierarchy_top_builder_hierarchy_member_task * p_hierarchy_top_builder_hierarchy_member_task =
+		cds_list_entry(p_task, struct hierarchy_top_builder_hierarchy_member_task, task);
 
 	/*TODO: consider deletion of the task after execution or adding them to the task pool */
-	cds_list_add_tail(&p_task->list, &p_value_scheme_builder->executed_tasks);
+	cds_list_add_tail(&p_task->list, &p_hierarchy_top_builder->executed_tasks);
 
 	if (error_flag != 0) {
 
 		return (-EALREADY);
 	}
 
-	return value_scheme_builder_process_hierarchy_member(
-			p_value_scheme_builder,
-			p_value_scheme_builder_hierarchy_member_task->global_path,
-			p_value_scheme_builder_hierarchy_member_task->p_value_scheme);
+	return hierarchy_top_builder_process_hierarchy_member(
+			p_hierarchy_top_builder,
+			p_hierarchy_top_builder_hierarchy_member_task->global_path,
+			p_hierarchy_top_builder_hierarchy_member_task->p_value_scheme);
 }
 
-static int value_scheme_builder_hierarchy_member_task_delete(
-		struct value_scheme_builder_hierarchy_member_task **
-													pp_value_scheme_builder_hierarchy_member_task) {
-	_delete_start_(value_scheme_builder_hierarchy_member_task);
+static int hierarchy_top_builder_hierarchy_member_task_delete(
+		struct hierarchy_top_builder_hierarchy_member_task **
+													pp_hierarchy_top_builder_hierarchy_member_task) {
+	_delete_start_(hierarchy_top_builder_hierarchy_member_task);
 
-	if ((*pp_value_scheme_builder_hierarchy_member_task)->global_path) {
+	if ((*pp_hierarchy_top_builder_hierarchy_member_task)->global_path) {
 
-		free((*pp_value_scheme_builder_hierarchy_member_task)->global_path);
-		(*pp_value_scheme_builder_hierarchy_member_task)->global_path = NULL;
+		free((*pp_hierarchy_top_builder_hierarchy_member_task)->global_path);
+		(*pp_hierarchy_top_builder_hierarchy_member_task)->global_path = NULL;
 	}
 
-	if ((*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme != NULL) {
+	if ((*pp_hierarchy_top_builder_hierarchy_member_task)->p_value_scheme != NULL) {
 
-		metac_value_scheme_put(&(*pp_value_scheme_builder_hierarchy_member_task)->p_value_scheme);
+		metac_scheme_put(&(*pp_hierarchy_top_builder_hierarchy_member_task)->p_value_scheme);
 	}
 
-	_delete_finish(value_scheme_builder_hierarchy_member_task);
+	_delete_finish(hierarchy_top_builder_hierarchy_member_task);
 	return 0;
 }
 
-static struct value_scheme_builder_hierarchy_member_task * value_scheme_builder_hierarchy_member_task_create(
+static struct hierarchy_top_builder_hierarchy_member_task * hierarchy_top_builder_hierarchy_member_task_create(
 		scheduler_task_fn_t 						fn,
 		char *										global_path,
-		struct metac_scheme *					p_value_scheme) {
-	_create_(value_scheme_builder_hierarchy_member_task);
+		struct metac_scheme *						p_value_scheme) {
+	_create_(hierarchy_top_builder_hierarchy_member_task);
 
-	p_value_scheme_builder_hierarchy_member_task->task.fn = fn;
-	p_value_scheme_builder_hierarchy_member_task->global_path = strdup(global_path);
-	p_value_scheme_builder_hierarchy_member_task->p_value_scheme = metac_value_scheme_get(p_value_scheme);
+	p_hierarchy_top_builder_hierarchy_member_task->task.fn = fn;
+	p_hierarchy_top_builder_hierarchy_member_task->global_path = strdup(global_path);
+	p_hierarchy_top_builder_hierarchy_member_task->p_value_scheme = metac_scheme_get(p_value_scheme);
 
-	if (p_value_scheme_builder_hierarchy_member_task->global_path == NULL ||
-		p_value_scheme_builder_hierarchy_member_task->p_value_scheme == NULL) {
+	if (p_hierarchy_top_builder_hierarchy_member_task->global_path == NULL ||
+		p_hierarchy_top_builder_hierarchy_member_task->p_value_scheme == NULL) {
 
 		msg_stderr("wasn't able to duplicate global_path or p_value_scheme\n");
-		value_scheme_builder_hierarchy_member_task_delete(&p_value_scheme_builder_hierarchy_member_task);
+		hierarchy_top_builder_hierarchy_member_task_delete(&p_hierarchy_top_builder_hierarchy_member_task);
 		return NULL;
 	}
-	return p_value_scheme_builder_hierarchy_member_task;
+	return p_hierarchy_top_builder_hierarchy_member_task;
 }
 
-static int value_scheme_builder_schedule_hierarchy_member(
-		struct value_scheme_builder *				p_value_scheme_builder,
+static int hierarchy_top_builder_schedule_hierarchy_member(
+		struct hierarchy_top_builder *				p_hierarchy_top_builder,
 		char *										global_path,
-		struct metac_scheme *					p_value_scheme) {
+		struct metac_scheme *						p_value_scheme) {
 
-	struct value_scheme_builder_hierarchy_member_task * p_task = value_scheme_builder_hierarchy_member_task_create(
-		value_scheme_builder_process_hierarchy_member_fn,
+	struct hierarchy_top_builder_hierarchy_member_task * p_task = hierarchy_top_builder_hierarchy_member_task_create(
+		hierarchy_top_builder_process_hierarchy_member_fn,
 		global_path,
 		p_value_scheme);
 
@@ -1285,36 +1285,36 @@ static int value_scheme_builder_schedule_hierarchy_member(
 	}
 
 	if (scheduler_add_task_to_front(
-		&p_value_scheme_builder->scheduler,
+		&p_hierarchy_top_builder->scheduler,
 		&p_task->task) != 0) {
 
 		msg_stderr("wasn't able to schedule task\n");
-		value_scheme_builder_hierarchy_member_task_delete(&p_task);
+		hierarchy_top_builder_hierarchy_member_task_delete(&p_task);
 		return -(EFAULT);
 	}
 
 	return 0;
 }
 
-static void value_scheme_container_clean(
-		struct value_scheme_container *				p_value_scheme_container) {
+static void hierarchy_top_container_clean(
+		struct hierarchy_top_container *			p_value_scheme_container) {
 
-	struct value_scheme_container_discriminator * p_discriminator, * _p_discriminator;
-	struct value_scheme_container_hierarchy_member * p_member, * _p_member;
+	struct hierarchy_top_container_discriminator * p_discriminator, * _p_discriminator;
+	struct hierarchy_top_container_hierarchy_member * p_member, * _p_member;
 
 	cds_list_for_each_entry_safe(p_discriminator, _p_discriminator, &p_value_scheme_container->discriminator_list, list) {
 		cds_list_del(&p_discriminator->list);
-		value_scheme_container_discriminator_delete(&p_discriminator);
+		hierarchy_top_container_discriminator_delete(&p_discriminator);
 	}
 
 	cds_list_for_each_entry_safe(p_member, _p_member, &p_value_scheme_container->hierarchy_member_list, list) {
 		cds_list_del(&p_member->list);
-		value_scheme_container_hierarchy_member_delete(&p_member);
+		hierarchy_top_container_hierarchy_member_delete(&p_member);
 	}
 }
 
-static int value_scheme_container_init(
-		struct value_scheme_container *				p_value_scheme_container) {
+static int hierarchy_top_container_init(
+		struct hierarchy_top_container *			p_value_scheme_container) {
 
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->discriminator_list);
 	CDS_INIT_LIST_HEAD(&p_value_scheme_container->hierarchy_member_list);
@@ -1322,48 +1322,48 @@ static int value_scheme_container_init(
 	return 0;
 }
 
-static int value_scheme_builder_init(
-		struct value_scheme_builder * 				p_value_scheme_builder,
+static int hierarchy_top_builder_init(
+		struct hierarchy_top_builder * 				p_hierarchy_top_builder,
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
 
-	p_value_scheme_builder->p_root_type = p_root_type;
-	p_value_scheme_builder->p_override_annotations = p_override_annotations;
-	value_scheme_container_init(&p_value_scheme_builder->container);
+	p_hierarchy_top_builder->p_root_type = p_root_type;
+	p_hierarchy_top_builder->p_override_annotations = p_override_annotations;
+	hierarchy_top_container_init(&p_hierarchy_top_builder->container);
 
-	CDS_INIT_LIST_HEAD(&p_value_scheme_builder->executed_tasks);
+	CDS_INIT_LIST_HEAD(&p_hierarchy_top_builder->executed_tasks);
 
-	scheduler_init(&p_value_scheme_builder->scheduler);
+	scheduler_init(&p_hierarchy_top_builder->scheduler);
 
 	return 0;
 }
 
-static void value_scheme_builder_clean(
-		struct value_scheme_builder * 				p_value_scheme_builder) {
+static void hierarchy_top_builder_clean(
+		struct hierarchy_top_builder * 				p_hierarchy_top_builder) {
 
-	struct value_scheme_builder_hierarchy_member_task * p_hierarchy_member_task, *_p_hierarchy_member_task;
+	struct hierarchy_top_builder_hierarchy_member_task * p_hierarchy_member_task, *_p_hierarchy_member_task;
 
-	scheduler_clean(&p_value_scheme_builder->scheduler);
+	scheduler_clean(&p_hierarchy_top_builder->scheduler);
 
-	cds_list_for_each_entry_safe(p_hierarchy_member_task, _p_hierarchy_member_task, &p_value_scheme_builder->executed_tasks, task.list) {
+	cds_list_for_each_entry_safe(p_hierarchy_member_task, _p_hierarchy_member_task, &p_hierarchy_top_builder->executed_tasks, task.list) {
 
 		cds_list_del(&p_hierarchy_member_task->task.list);
-		value_scheme_builder_hierarchy_member_task_delete(&p_hierarchy_member_task);
+		hierarchy_top_builder_hierarchy_member_task_delete(&p_hierarchy_member_task);
 	}
 
-	value_scheme_container_clean(&p_value_scheme_builder->container);
+	hierarchy_top_container_clean(&p_hierarchy_top_builder->container);
 
-	p_value_scheme_builder->p_root_type = NULL;
-	p_value_scheme_builder->p_override_annotations = NULL;
+	p_hierarchy_top_builder->p_root_type = NULL;
+	p_hierarchy_top_builder->p_override_annotations = NULL;
 }
 
-static int metac_value_scheme_finalize_as_hierarchy_top(
-		struct value_scheme_builder * 				p_value_scheme_builder,
-		struct metac_scheme *					p_value_scheme) {
+static int metac_scheme_finalize_as_hierarchy_top(
+		struct hierarchy_top_builder * 				p_hierarchy_top_builder,
+		struct metac_scheme *						p_value_scheme) {
 	metac_count_t i;
 
-	struct value_scheme_container_discriminator * p_discriminator, * _p_discriminator;
-	struct value_scheme_container_hierarchy_member * p_member, * _p_member;
+	struct hierarchy_top_container_discriminator * p_discriminator, * _p_discriminator;
+	struct hierarchy_top_container_hierarchy_member * p_member, * _p_member;
 
 	p_value_scheme->p_current_hierarchy = NULL;
 
@@ -1373,10 +1373,10 @@ static int metac_value_scheme_finalize_as_hierarchy_top(
 	p_value_scheme->hierarchy_top.pp_members = NULL;
 
 	/*get arrays lengths */
-	cds_list_for_each_entry(p_discriminator, &p_value_scheme_builder->container.discriminator_list, list) {
+	cds_list_for_each_entry(p_discriminator, &p_hierarchy_top_builder->container.discriminator_list, list) {
 		++p_value_scheme->hierarchy_top.discriminators_count;
 	}
-	cds_list_for_each_entry(p_member, &p_value_scheme_builder->container.hierarchy_member_list, list) {
+	cds_list_for_each_entry(p_member, &p_hierarchy_top_builder->container.hierarchy_member_list, list) {
 		++p_value_scheme->hierarchy_top.members_count;
 	}
 
@@ -1391,7 +1391,7 @@ static int metac_value_scheme_finalize_as_hierarchy_top(
 		}
 
 		i = 0;
-		cds_list_for_each_entry(p_discriminator, &p_value_scheme_builder->container.discriminator_list, list) {
+		cds_list_for_each_entry(p_discriminator, &p_hierarchy_top_builder->container.discriminator_list, list) {
 
 			p_value_scheme->hierarchy_top.pp_discriminators[i] = p_discriminator->p_discriminator;
 			p_value_scheme->hierarchy_top.pp_discriminators[i]->id = i;
@@ -1413,14 +1413,14 @@ static int metac_value_scheme_finalize_as_hierarchy_top(
 		}
 
 		i = 0;
-		cds_list_for_each_entry(p_member, &p_value_scheme_builder->container.hierarchy_member_list, list) {
+		cds_list_for_each_entry(p_member, &p_hierarchy_top_builder->container.hierarchy_member_list, list) {
 
-			assert(metac_value_scheme_is_hierarchy_member(p_member->p_value_scheme) == 1);
+			assert(metac_scheme_is_hierarchy_member(p_member->p_value_scheme) == 1);
 
-			p_value_scheme->hierarchy_top.pp_members[i] = metac_value_scheme_get(p_member->p_value_scheme);
+			p_value_scheme->hierarchy_top.pp_members[i] = metac_scheme_get(p_member->p_value_scheme);
 			if (p_value_scheme->hierarchy_top.pp_members[i] == NULL) {
 
-				msg_stderr("metac_value_scheme_get failed\n");
+				msg_stderr("metac_scheme_get failed\n");
 				return (-ENOMEM);
 			}
 
@@ -1434,24 +1434,24 @@ static int metac_value_scheme_finalize_as_hierarchy_top(
 	return 0;
 }
 
-metac_flag_t metac_value_scheme_is_hierarchy_top(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_hierarchy_top(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("invalid argument\n");
 		return -(EINVAL);
 	}
 
-	return (p_metac_value_scheme->p_current_hierarchy == NULL &&
-			metac_value_scheme_is_hierachy(p_metac_value_scheme) == 1)?1:0;
+	return (p_metac_scheme->p_current_hierarchy == NULL &&
+			metac_scheme_is_hierachy(p_metac_scheme) == 1)?1:0;
 }
 
-static int metac_value_scheme_clean_as_hierarchy_top(
-		struct metac_scheme *					p_value_scheme) {
+static int metac_scheme_clean_as_hierarchy_top(
+		struct metac_scheme *						p_value_scheme) {
 	metac_count_t i;
 
-	if (metac_value_scheme_is_hierarchy_top(p_value_scheme) != 1) {
+	if (metac_scheme_is_hierarchy_top(p_value_scheme) != 1) {
 		msg_stderr("invalid argument: expected hierarchy_top\n");
 		return -(EINVAL);
 	}
@@ -1471,167 +1471,167 @@ static int metac_value_scheme_clean_as_hierarchy_top(
 
 		for (i = 0 ; i < p_value_scheme->hierarchy_top.members_count; ++i) {
 
-			metac_value_scheme_put(&p_value_scheme->hierarchy_top.pp_members[i]);
+			metac_scheme_put(&p_value_scheme->hierarchy_top.pp_members[i]);
 		}
 
 		free(p_value_scheme->hierarchy_top.pp_members);
 		p_value_scheme->hierarchy_top.pp_members = NULL;
 	}
 
-	value_scheme_with_hierarchy_clean(&p_value_scheme->hierarchy);
+	scheme_with_hierarchy_clean(&p_value_scheme->hierarchy);
 
 	return 0;
 }
 
-static int metac_value_scheme_init_as_hierarchy_top(
-		struct metac_scheme *					p_metac_value_scheme,
+static int metac_scheme_init_as_hierarchy_top(
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		metac_type_annotation_t *					p_override_annotations) {
-	struct value_scheme_builder value_scheme_builder;
+	struct hierarchy_top_builder hierarchy_top_builder;
 
-	if (p_metac_value_scheme->p_actual_type->id != DW_TAG_structure_type &&
-		p_metac_value_scheme->p_actual_type->id != DW_TAG_union_type) {
+	if (p_metac_scheme->p_actual_type->id != DW_TAG_structure_type &&
+		p_metac_scheme->p_actual_type->id != DW_TAG_union_type) {
 
 		msg_stderr("Invalid argument p_actual_type\n");
 		return -(EINVAL);
 	}
 
-	value_scheme_builder_init(&value_scheme_builder, p_root_type, p_override_annotations);
+	hierarchy_top_builder_init(&hierarchy_top_builder, p_root_type, p_override_annotations);
 
-	p_metac_value_scheme->p_current_hierarchy = NULL;
+	p_metac_scheme->p_current_hierarchy = NULL;
 
-	if (value_scheme_with_hierarchy_init(
-			&p_metac_value_scheme->hierarchy,
+	if (scheme_with_hierarchy_init(
+			&p_metac_scheme->hierarchy,
 			p_root_type,
 			global_path,
-			object_path,
+			value_path,
 			p_override_annotations,
-			p_metac_value_scheme->p_actual_type) != 0) {
+			p_metac_scheme->p_actual_type) != 0) {
 		msg_stderr("value_scheme_with_hierarchy_init failed\n");
 
-		value_scheme_builder_clean(&value_scheme_builder);
+		hierarchy_top_builder_clean(&hierarchy_top_builder);
 		return (-EFAULT);
 	}
 
-	if (value_scheme_builder_process_hierarchy(
-			&value_scheme_builder,
+	if (hierarchy_top_builder_process_hierarchy(
+			&hierarchy_top_builder,
 			global_path,
-			object_path,
+			value_path,
 			"",
-			p_metac_value_scheme->p_actual_type,
-			&p_metac_value_scheme->hierarchy) != 0) {
+			p_metac_scheme->p_actual_type,
+			&p_metac_scheme->hierarchy) != 0) {
 
 		msg_stddbg("wasn't able to schedule the first task\n");
 
-		value_scheme_with_hierarchy_clean(&p_metac_value_scheme->hierarchy);
-		value_scheme_builder_clean(&value_scheme_builder);
+		scheme_with_hierarchy_clean(&p_metac_scheme->hierarchy);
+		hierarchy_top_builder_clean(&hierarchy_top_builder);
 		return (-EFAULT);
 	}
 
-	if (scheduler_run(&value_scheme_builder.scheduler) != 0) {
+	if (scheduler_run(&hierarchy_top_builder.scheduler) != 0) {
 
 		msg_stddbg("tasks execution finished with fail\n");
 
-		value_scheme_with_hierarchy_clean(&p_metac_value_scheme->hierarchy);
-		value_scheme_builder_clean(&value_scheme_builder);
+		scheme_with_hierarchy_clean(&p_metac_scheme->hierarchy);
+		hierarchy_top_builder_clean(&hierarchy_top_builder);
 		return (-EFAULT);
 	}
 
-	if (metac_value_scheme_finalize_as_hierarchy_top(
-			&value_scheme_builder,
-			p_metac_value_scheme) != 0) {
+	if (metac_scheme_finalize_as_hierarchy_top(
+			&hierarchy_top_builder,
+			p_metac_scheme) != 0) {
 
 		msg_stddbg("value_scheme finalization failed\n");
 
-		metac_value_scheme_clean_as_hierarchy_top(p_metac_value_scheme);
-		value_scheme_builder_clean(&value_scheme_builder);
+		metac_scheme_clean_as_hierarchy_top(p_metac_scheme);
+		hierarchy_top_builder_clean(&hierarchy_top_builder);
 		return (-EFAULT);
 	}
 
-	value_scheme_builder_clean(&value_scheme_builder);
+	hierarchy_top_builder_clean(&hierarchy_top_builder);
 
 	return 0;
 }
 
-static int metac_value_scheme_init_as_indexable(
-		struct metac_scheme *					p_metac_value_scheme,
+static int metac_scheme_init_as_indexable(
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_type) {
 
 	int res = 0;
 
-	p_metac_value_scheme->p_current_hierarchy = NULL;
-	p_metac_value_scheme->p_type = p_type;
-	p_metac_value_scheme->p_actual_type = metac_type_actual_type(p_type);
-	p_metac_value_scheme->byte_size = metac_type_byte_size(p_type);
+	p_metac_scheme->p_current_hierarchy = NULL;
+	p_metac_scheme->p_type = p_type;
+	p_metac_scheme->p_actual_type = metac_type_actual_type(p_type);
+	p_metac_scheme->byte_size = metac_type_byte_size(p_type);
 
-	p_metac_value_scheme->path_within_object = strdup(object_path);
-	if (p_metac_value_scheme->path_within_object == NULL) {
+	p_metac_scheme->path_within_value = strdup(value_path);
+	if (p_metac_scheme->path_within_value == NULL) {
 
-		msg_stderr("wasn't able to build object_path for %s\n", object_path);
-		metac_value_scheme_clean(p_metac_value_scheme);
+		msg_stderr("wasn't able to build value_path for %s\n", value_path);
+		metac_scheme_clean(p_metac_scheme);
 		return -(ENOMEM);
 	}
 
-	switch(p_metac_value_scheme->p_actual_type->id) {
+	switch(p_metac_scheme->p_actual_type->id) {
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		res = metac_value_scheme_init_as_hierarchy_top(
-				p_metac_value_scheme,
+		res = metac_scheme_init_as_hierarchy_top(
+				p_metac_scheme,
 				p_root_type,
 				global_path,
-				object_path,
+				value_path,
 				p_override_annotations);
 		break;
 	case DW_TAG_array_type:
-		res = value_scheme_with_array_init(
-				&p_metac_value_scheme->array,
+		res = scheme_with_array_init(
+				&p_metac_scheme->array,
 				p_root_type,
 				global_path,
-				object_path,
+				value_path,
 				p_override_annotations,
-				p_metac_value_scheme->p_actual_type);
+				p_metac_scheme->p_actual_type);
 		break;
 	case DW_TAG_pointer_type:
-		res = value_scheme_with_pointer_init(
-				&p_metac_value_scheme->pointer,
+		res = scheme_with_pointer_init(
+				&p_metac_scheme->pointer,
 				p_root_type,
 				global_path,
-				object_path,
+				value_path,
 				p_override_annotations,
-				p_metac_value_scheme->p_actual_type);
+				p_metac_scheme->p_actual_type);
 		break;
 	}
 
 	if (res != 0) {
 
-		metac_value_scheme_clean(p_metac_value_scheme);
+		metac_scheme_clean(p_metac_scheme);
 	}
 
 	return res;
 }
 
-metac_flag_t metac_value_scheme_is_indexable(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_indexable(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("invalid argument\n");
 		return -(EINVAL);
 	}
 
-	return (p_metac_value_scheme->p_current_hierarchy == NULL)?1:0;
+	return (p_metac_scheme->p_current_hierarchy == NULL)?1:0;
 }
 
-static struct metac_scheme * metac_value_scheme_create_as_indexable(
+static struct metac_scheme * metac_scheme_create_as_indexable(
 		struct metac_type *							p_type,
 		char * 										global_path,
-		char *										object_path,
+		char *										value_path,
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
 
@@ -1639,26 +1639,26 @@ static struct metac_scheme * metac_value_scheme_create_as_indexable(
 
 	if (metac_refcounter_object_init(
 			&p_metac_scheme->refcounter_object,
-			&_metac_value_scheme_refcounter_object_ops,
+			&_metac_scheme_refcounter_object_ops,
 			NULL) != 0) {
 
 		msg_stderr("metac_refcounter_object_init failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
-	if (metac_value_scheme_init_as_indexable(
+	if (metac_scheme_init_as_indexable(
 			p_metac_scheme,
 			p_root_type,
 			global_path,
-			object_path,
+			value_path,
 			p_override_annotations,
 			p_type) != 0) {
 
-		msg_stderr("metac_value_scheme_init failed\n");
+		msg_stderr("metac_scheme_init failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
@@ -1666,173 +1666,173 @@ static struct metac_scheme * metac_value_scheme_create_as_indexable(
 }
 
 /*****************************************************************************/
-struct object_scheme_container_value_scheme {
+struct value_scheme_container_value_scheme {
 	struct cds_list_head							list;
-	struct metac_scheme *						p_metac_value_scheme;
+	struct metac_scheme *							p_metac_scheme;
 };
-struct object_scheme_container {
+struct value_scheme_container {
 	struct cds_list_head							arrays;
 
 	struct cds_list_head							pointers;
 };
-struct object_scheme_builder {
+struct value_scheme_builder {
 	struct metac_type *								p_root_type;
 	metac_type_annotation_t *						p_override_annotations;
 
-	struct object_scheme_container					container;
+	struct value_scheme_container					container;
 
 	struct scheduler								scheduler;
 	struct cds_list_head							executed_tasks;
 };
-struct object_scheme_builder_value_scheme_task {
+struct value_scheme_builder_value_scheme_task {
 	struct scheduler_task							task;
 	char * 											global_path;	/*local copy - keep track of it*/
 
-	struct metac_scheme *						p_metac_value_scheme;
+	struct metac_scheme *							p_metac_scheme;
 };
 
 /*****************************************************************************/
 
-static int object_scheme_builder_schedule_value_scheme(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_schedule_value_scheme(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme);
+		struct metac_scheme *						p_metac_scheme);
 
 /*****************************************************************************/
 
-static void object_scheme_container_value_scheme_clean(
-		struct object_scheme_container_value_scheme *
-													p_object_scheme_container_value_scheme) {
+static void value_scheme_container_value_scheme_clean(
+		struct value_scheme_container_value_scheme *
+													p_value_scheme_container_value_scheme) {
 
-	if (p_object_scheme_container_value_scheme == NULL) {
+	if (p_value_scheme_container_value_scheme == NULL) {
 
-		msg_stderr("p_object_scheme_container_value_scheme is invalid\n");
+		msg_stderr("p_value_scheme_container_value_scheme is invalid\n");
 		return;
 	}
 
-	metac_value_scheme_put(&p_object_scheme_container_value_scheme->p_metac_value_scheme);
+	metac_scheme_put(&p_value_scheme_container_value_scheme->p_metac_scheme);
 
 }
-static int object_scheme_container_value_scheme_init(
-		struct object_scheme_container_value_scheme *
-													p_object_scheme_container_value_scheme,
-		struct metac_scheme *					p_metac_value_scheme) {
+static int value_scheme_container_value_scheme_init(
+		struct value_scheme_container_value_scheme *
+													p_value_scheme_container_value_scheme,
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_object_scheme_container_value_scheme == NULL) {
+	if (p_value_scheme_container_value_scheme == NULL) {
 
-		msg_stderr("p_object_scheme_container_value_scheme is invalid\n");
+		msg_stderr("p_value_scheme_container_value_scheme is invalid\n");
 		return (-EINVAL);
 	}
 
-	if (p_metac_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
-		msg_stderr("Can't init object_scheme_container_value_scheme with NULL p_metac_value_scheme\n");
+		msg_stderr("Can't init value_scheme_container_value_scheme with NULL p_metac_scheme\n");
 		return (-EINVAL);
 	}
 
-	p_object_scheme_container_value_scheme->p_metac_value_scheme = metac_value_scheme_get(p_metac_value_scheme);
-	if (p_object_scheme_container_value_scheme->p_metac_value_scheme == NULL) {
+	p_value_scheme_container_value_scheme->p_metac_scheme = metac_scheme_get(p_metac_scheme);
+	if (p_value_scheme_container_value_scheme->p_metac_scheme == NULL) {
 
-		msg_stderr("metac_value_scheme_get failed\n");
+		msg_stderr("metac_scheme_get failed\n");
 		return (-EINVAL);
 	}
 
 	return 0;
 }
 
-static int object_scheme_container_value_scheme_delete(
-		struct object_scheme_container_value_scheme **
-													pp_object_scheme_container_value_scheme) {
+static int value_scheme_container_value_scheme_delete(
+		struct value_scheme_container_value_scheme **
+													pp_value_scheme_container_value_scheme) {
 
-	_delete_start_(object_scheme_container_value_scheme);
-	object_scheme_container_value_scheme_clean(*pp_object_scheme_container_value_scheme);
-	_delete_finish(object_scheme_container_value_scheme);
+	_delete_start_(value_scheme_container_value_scheme);
+	value_scheme_container_value_scheme_clean(*pp_value_scheme_container_value_scheme);
+	_delete_finish(value_scheme_container_value_scheme);
 	return 0;
 }
 
-static struct object_scheme_container_value_scheme * object_scheme_container_value_scheme_create(
-		struct metac_scheme *					p_metac_value_scheme) {
+static struct value_scheme_container_value_scheme * value_scheme_container_value_scheme_create(
+		struct metac_scheme *						p_metac_scheme) {
 
 	int res;
 
-	_create_(object_scheme_container_value_scheme);
+	_create_(value_scheme_container_value_scheme);
 
-	if (object_scheme_container_value_scheme_init(
-			p_object_scheme_container_value_scheme,
-			p_metac_value_scheme) != 0) {
+	if (value_scheme_container_value_scheme_init(
+			p_value_scheme_container_value_scheme,
+			p_metac_scheme) != 0) {
 
-		object_scheme_container_value_scheme_delete(&p_object_scheme_container_value_scheme);
+		value_scheme_container_value_scheme_delete(&p_value_scheme_container_value_scheme);
 		return NULL;
 	}
 
-	return p_object_scheme_container_value_scheme;
+	return p_value_scheme_container_value_scheme;
 }
 
-static int object_scheme_builder_add_array (
-		struct object_scheme_builder *				p_object_scheme_builder,
-		struct metac_scheme *					p_metac_value_scheme) {
+static int value_scheme_builder_add_array (
+		struct value_scheme_builder *				p_value_scheme_builder,
+		struct metac_scheme *						p_metac_scheme) {
 
-	struct object_scheme_container_value_scheme * p_object_scheme_container_value_scheme;
+	struct value_scheme_container_value_scheme * p_value_scheme_container_value_scheme;
 
-	p_object_scheme_container_value_scheme = object_scheme_container_value_scheme_create(
-			p_metac_value_scheme);
-	if (p_object_scheme_container_value_scheme == NULL) {
+	p_value_scheme_container_value_scheme = value_scheme_container_value_scheme_create(
+			p_metac_scheme);
+	if (p_value_scheme_container_value_scheme == NULL) {
 
-		msg_stddbg("wasn't able to create p_object_scheme_container_value_scheme\n");
+		msg_stddbg("wasn't able to create p_value_scheme_container_value_scheme\n");
 		return (-EFAULT);
 	}
 
 	cds_list_add_tail(
-		&p_object_scheme_container_value_scheme->list,
-		&p_object_scheme_builder->container.arrays);
+		&p_value_scheme_container_value_scheme->list,
+		&p_value_scheme_builder->container.arrays);
 
 	return 0;
 }
 
-static int object_scheme_builder_add_pointer (
-		struct object_scheme_builder *				p_object_scheme_builder,
-		struct metac_scheme *					p_metac_value_scheme) {
+static int value_scheme_builder_add_pointer (
+		struct value_scheme_builder *				p_value_scheme_builder,
+		struct metac_scheme *						p_metac_scheme) {
 
-	struct object_scheme_container_value_scheme * p_object_scheme_container_value_scheme;
+	struct value_scheme_container_value_scheme * p_value_scheme_container_value_scheme;
 
-	p_object_scheme_container_value_scheme = object_scheme_container_value_scheme_create(
-			p_metac_value_scheme);
-	if (p_object_scheme_container_value_scheme == NULL) {
+	p_value_scheme_container_value_scheme = value_scheme_container_value_scheme_create(
+			p_metac_scheme);
+	if (p_value_scheme_container_value_scheme == NULL) {
 
-		msg_stddbg("wasn't able to create p_object_scheme_container_value_scheme\n");
+		msg_stddbg("wasn't able to create p_value_scheme_container_value_scheme\n");
 		return (-EFAULT);
 	}
 
 	cds_list_add_tail(
-		&p_object_scheme_container_value_scheme->list,
-		&p_object_scheme_builder->container.pointers);
+		&p_value_scheme_container_value_scheme->list,
+		&p_value_scheme_builder->container.pointers);
 
 	return 0;
 }
 
-static int object_scheme_builder_process_value_scheme_array(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_process_value_scheme_array(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		char *										object_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		char *										value_path,
+		struct metac_scheme *						p_metac_scheme) {
 
 	int res = 0;
 	char * target_global_path;
-	char * target_object_path;
+	char * target_value_path;
 
-	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_array_type);
-	assert(p_metac_value_scheme->array.p_child_value_scheme == NULL);
+	assert(p_metac_scheme->p_actual_type->id == DW_TAG_array_type);
+	assert(p_metac_scheme->array.p_child_value_scheme == NULL);
 
-	msg_stddbg("object_path %s global_path %s\n", object_path, global_path);
+	msg_stddbg("value_path %s global_path %s\n", value_path, global_path);
 
-	if (object_scheme_builder_add_array(
-			p_object_scheme_builder,
-			p_metac_value_scheme) != 0) {
+	if (value_scheme_builder_add_array(
+			p_value_scheme_builder,
+			p_metac_scheme) != 0) {
 
-		msg_stderr("object_scheme_builder_add_array failed %s\n", global_path);
+		msg_stderr("value_scheme_builder_add_array failed %s\n", global_path);
 	}
 
-	if (p_metac_value_scheme->p_actual_type->array_type_info.type == NULL) {
+	if (p_metac_scheme->p_actual_type->array_type_info.type == NULL) {
 
 		return 0;
 	}
@@ -1843,247 +1843,247 @@ static int object_scheme_builder_process_value_scheme_array(
 		return -(EFAULT);
 	}
 
-	target_object_path = alloc_sptrinf("%s[]", object_path);
-	if (target_object_path == NULL) {
+	target_value_path = alloc_sptrinf("%s[]", value_path);
+	if (target_value_path == NULL) {
 
 		free(target_global_path);
 		return -(EFAULT);
 	}
 
-	p_metac_value_scheme->array.p_child_value_scheme = metac_value_scheme_create_as_indexable(
-			p_metac_value_scheme->p_actual_type->array_type_info.type,
+	p_metac_scheme->array.p_child_value_scheme = metac_scheme_create_as_indexable(
+			p_metac_scheme->p_actual_type->array_type_info.type,
 			target_global_path,
-			target_object_path,
-			p_object_scheme_builder->p_root_type,
-			p_object_scheme_builder->p_override_annotations);
-	if (p_metac_value_scheme->array.p_child_value_scheme == NULL) {
+			target_value_path,
+			p_value_scheme_builder->p_root_type,
+			p_value_scheme_builder->p_override_annotations);
+	if (p_metac_scheme->array.p_child_value_scheme == NULL) {
 
-		msg_stderr("metac_value_scheme_create_as_indexable failed %s\n", global_path);
+		msg_stderr("metac_scheme_create_as_indexable failed %s\n", global_path);
 		res = -(EFAULT);
 
-	} else if (object_scheme_builder_schedule_value_scheme(
-			p_object_scheme_builder,
+	} else if (value_scheme_builder_schedule_value_scheme(
+			p_value_scheme_builder,
 			target_global_path,
-			p_metac_value_scheme->array.p_child_value_scheme) != 0) {
+			p_metac_scheme->array.p_child_value_scheme) != 0) {
 
-		msg_stderr("object_scheme_builder_schedule_value_scheme failed %s\n", global_path);
+		msg_stderr("value_scheme_builder_schedule_value_scheme failed %s\n", global_path);
 		res = -(EFAULT);
 	}
 
-	msg_stddbg("added %s %s\n", target_object_path, target_global_path);
+	msg_stddbg("added %s %s\n", target_value_path, target_global_path);
 
-	free(target_object_path);
+	free(target_value_path);
 	free(target_global_path);
 
 	return res;
 }
 
-static int object_scheme_builder_process_value_scheme_pointer(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_process_value_scheme_pointer(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		char *										object_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		char *										value_path,
+		struct metac_scheme *						p_metac_scheme) {
 
-	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type);
+	assert(p_metac_scheme->p_actual_type->id == DW_TAG_pointer_type);
 
-	if (object_scheme_builder_add_pointer(
-			p_object_scheme_builder,
-			p_metac_value_scheme) != 0) {
+	if (value_scheme_builder_add_pointer(
+			p_value_scheme_builder,
+			p_metac_scheme) != 0) {
 
-		msg_stderr("object_scheme_builder_add_pointer failed %s\n", global_path);
+		msg_stderr("value_scheme_builder_add_pointer failed %s\n", global_path);
 	}
 
 	return 0;
 }
-static int object_scheme_builder_process_value_scheme_hierarchy_top(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_process_value_scheme_hierarchy_top(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		char *										object_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		char *										value_path,
+		struct metac_scheme *						p_metac_scheme) {
 	int i = 0;
 
-	assert(metac_value_scheme_is_hierarchy_top(p_metac_value_scheme) == 1);
+	assert(metac_scheme_is_hierarchy_top(p_metac_scheme) == 1);
 
-	for (i = 0; i < p_metac_value_scheme->hierarchy_top.members_count; ++i) {
+	for (i = 0; i < p_metac_scheme->hierarchy_top.members_count; ++i) {
 
-		assert(p_metac_value_scheme->hierarchy_top.pp_members);
-		assert(metac_value_scheme_is_hierarchy_member(p_metac_value_scheme->hierarchy_top.pp_members[i]) == 1);
+		assert(p_metac_scheme->hierarchy_top.pp_members);
+		assert(metac_scheme_is_hierarchy_member(p_metac_scheme->hierarchy_top.pp_members[i]) == 1);
 
-		if (	p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type != NULL && (
-				p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_array_type ||
-				p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_pointer_type)) {
+		if (	p_metac_scheme->hierarchy_top.pp_members[i]->p_actual_type != NULL && (
+				p_metac_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_array_type ||
+				p_metac_scheme->hierarchy_top.pp_members[i]->p_actual_type->id == DW_TAG_pointer_type)) {
 
 			char * target_global_path;
-			char * target_object_path;
+			char * target_value_path;
 
 			target_global_path = build_member_path(
 					global_path,
-					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+					p_metac_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
 			if (target_global_path == NULL) {
 
 				msg_stderr("Can't build target_global_path for %s member %d\n", global_path, i);
 				return (-EFAULT);
 			}
 
-			target_object_path = build_member_path(
-					object_path,
-					p_metac_value_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
-			if (target_object_path == NULL) {
+			target_value_path = build_member_path(
+					value_path,
+					p_metac_scheme->hierarchy_top.pp_members[i]->hierarchy_member.path_within_hierarchy);
+			if (target_value_path == NULL) {
 
-				msg_stderr("Can't build target_object_path for %s member %d\n", global_path, i);
+				msg_stderr("Can't build target_value_path for %s member %d\n", global_path, i);
 
 				free(target_global_path);
 				return (-EFAULT);
 			}
 
-			switch(p_metac_value_scheme->hierarchy_top.pp_members[i]->p_actual_type->id){
+			switch(p_metac_scheme->hierarchy_top.pp_members[i]->p_actual_type->id){
 			case DW_TAG_array_type:
 
-				if (object_scheme_builder_process_value_scheme_array(
-						p_object_scheme_builder,
+				if (value_scheme_builder_process_value_scheme_array(
+						p_value_scheme_builder,
 						target_global_path,
-						target_object_path,
-						p_metac_value_scheme->hierarchy_top.pp_members[i]) != 0) {
+						target_value_path,
+						p_metac_scheme->hierarchy_top.pp_members[i]) != 0) {
 
-					msg_stderr("object_scheme_builder_process_value_scheme_array failed for %s\n", target_global_path);
+					msg_stderr("value_scheme_builder_process_value_scheme_array failed for %s\n", target_global_path);
 
-					free(target_object_path);
+					free(target_value_path);
 					free(target_global_path);
 					return (-EFAULT);
 				}
 				break;
 			case DW_TAG_pointer_type:
 
-				if (object_scheme_builder_process_value_scheme_pointer(
-						p_object_scheme_builder,
+				if (value_scheme_builder_process_value_scheme_pointer(
+						p_value_scheme_builder,
 						target_global_path,
-						target_object_path,
-						p_metac_value_scheme->hierarchy_top.pp_members[i]) != 0){
+						target_value_path,
+						p_metac_scheme->hierarchy_top.pp_members[i]) != 0){
 
-					msg_stderr("object_scheme_builder_process_value_scheme_pointer failed for %s\n", target_global_path);
+					msg_stderr("value_scheme_builder_process_value_scheme_pointer failed for %s\n", target_global_path);
 
-					free(target_object_path);
+					free(target_value_path);
 					free(target_global_path);
 					return (-EFAULT);
 				}
 				break;
 			}
 
-			free(target_object_path);
+			free(target_value_path);
 			free(target_global_path);
 		}
 	}
 	return 0;
 }
 
-static int object_scheme_builder_process_value_scheme(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_process_value_scheme(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 	int res = 0;
 
-	switch(p_metac_value_scheme->p_actual_type->id) {
+	switch(p_metac_scheme->p_actual_type->id) {
 	case DW_TAG_array_type:
-		res = object_scheme_builder_process_value_scheme_array(
-				p_object_scheme_builder,
+		res = value_scheme_builder_process_value_scheme_array(
+				p_value_scheme_builder,
 				global_path,
-				p_metac_value_scheme->path_within_object,
-				p_metac_value_scheme);
+				p_metac_scheme->path_within_value,
+				p_metac_scheme);
 		break;
 	case DW_TAG_pointer_type:
-		res = object_scheme_builder_process_value_scheme_pointer(
-				p_object_scheme_builder,
+		res = value_scheme_builder_process_value_scheme_pointer(
+				p_value_scheme_builder,
 				global_path,
-				p_metac_value_scheme->path_within_object,
-				p_metac_value_scheme);
+				p_metac_scheme->path_within_value,
+				p_metac_scheme);
 		break;
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		res = object_scheme_builder_process_value_scheme_hierarchy_top(
-				p_object_scheme_builder,
+		res = value_scheme_builder_process_value_scheme_hierarchy_top(
+				p_value_scheme_builder,
 				global_path,
-				p_metac_value_scheme->path_within_object,
-				p_metac_value_scheme);
+				p_metac_scheme->path_within_value,
+				p_metac_scheme);
 		break;
 	}
 
 	return res;
 }
 
-static int object_scheme_builder_process_value_scheme_fn(
+static int value_scheme_builder_process_value_scheme_fn(
 	struct scheduler * 								p_engine,
 	struct scheduler_task * 						p_task,
 	int 											error_flag) {
 
-	struct object_scheme_builder * p_object_scheme_builder =
-		cds_list_entry(p_engine, struct object_scheme_builder, scheduler);
+	struct value_scheme_builder * p_value_scheme_builder =
+		cds_list_entry(p_engine, struct value_scheme_builder, scheduler);
 
-	struct object_scheme_builder_value_scheme_task * p_object_scheme_builder_value_scheme_task =
-		cds_list_entry(p_task, struct object_scheme_builder_value_scheme_task, task);
+	struct value_scheme_builder_value_scheme_task * p_value_scheme_builder_value_scheme_task =
+		cds_list_entry(p_task, struct value_scheme_builder_value_scheme_task, task);
 
 	/*TODO: consider deletion of the task after execution or adding them to the task pool */
-	cds_list_add_tail(&p_task->list, &p_object_scheme_builder->executed_tasks);
+	cds_list_add_tail(&p_task->list, &p_value_scheme_builder->executed_tasks);
 
 	if (error_flag != 0) {
 
 		return (-EALREADY);
 	}
 
-	return object_scheme_builder_process_value_scheme(
-			p_object_scheme_builder,
-			p_object_scheme_builder_value_scheme_task->global_path,
-			p_object_scheme_builder_value_scheme_task->p_metac_value_scheme);
+	return value_scheme_builder_process_value_scheme(
+			p_value_scheme_builder,
+			p_value_scheme_builder_value_scheme_task->global_path,
+			p_value_scheme_builder_value_scheme_task->p_metac_scheme);
 }
 
-static int object_scheme_builder_value_scheme_task_delete(
-		struct object_scheme_builder_value_scheme_task **
-													pp_object_scheme_builder_value_scheme_task) {
-	_delete_start_(object_scheme_builder_value_scheme_task);
+static int value_scheme_builder_value_scheme_task_delete(
+		struct value_scheme_builder_value_scheme_task **
+													pp_value_scheme_builder_value_scheme_task) {
+	_delete_start_(value_scheme_builder_value_scheme_task);
 
-	if ((*pp_object_scheme_builder_value_scheme_task)->global_path) {
+	if ((*pp_value_scheme_builder_value_scheme_task)->global_path) {
 
-		free((*pp_object_scheme_builder_value_scheme_task)->global_path);
-		(*pp_object_scheme_builder_value_scheme_task)->global_path = NULL;
+		free((*pp_value_scheme_builder_value_scheme_task)->global_path);
+		(*pp_value_scheme_builder_value_scheme_task)->global_path = NULL;
 	}
 
-	if ((*pp_object_scheme_builder_value_scheme_task)->p_metac_value_scheme != NULL) {
+	if ((*pp_value_scheme_builder_value_scheme_task)->p_metac_scheme != NULL) {
 
-		metac_value_scheme_put(&(*pp_object_scheme_builder_value_scheme_task)->p_metac_value_scheme);
+		metac_scheme_put(&(*pp_value_scheme_builder_value_scheme_task)->p_metac_scheme);
 	}
 
-	_delete_finish(object_scheme_builder_value_scheme_task);
+	_delete_finish(value_scheme_builder_value_scheme_task);
 	return 0;
 }
 
-static struct object_scheme_builder_value_scheme_task * object_scheme_builder_value_scheme_task_create(
+static struct value_scheme_builder_value_scheme_task * value_scheme_builder_value_scheme_task_create(
 		scheduler_task_fn_t 						fn,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
-	_create_(object_scheme_builder_value_scheme_task);
+		struct metac_scheme *						p_metac_scheme) {
+	_create_(value_scheme_builder_value_scheme_task);
 
-	p_object_scheme_builder_value_scheme_task->task.fn = fn;
-	p_object_scheme_builder_value_scheme_task->global_path = strdup(global_path);
-	p_object_scheme_builder_value_scheme_task->p_metac_value_scheme = metac_value_scheme_get(p_metac_value_scheme);
+	p_value_scheme_builder_value_scheme_task->task.fn = fn;
+	p_value_scheme_builder_value_scheme_task->global_path = strdup(global_path);
+	p_value_scheme_builder_value_scheme_task->p_metac_scheme = metac_scheme_get(p_metac_scheme);
 
-	if (p_object_scheme_builder_value_scheme_task->global_path == NULL ||
-		p_object_scheme_builder_value_scheme_task->p_metac_value_scheme == NULL) {
+	if (p_value_scheme_builder_value_scheme_task->global_path == NULL ||
+		p_value_scheme_builder_value_scheme_task->p_metac_scheme == NULL) {
 
-		msg_stderr("wasn't able to duplicate global_path or p_metac_value_scheme\n");
-		object_scheme_builder_value_scheme_task_delete(&p_object_scheme_builder_value_scheme_task);
+		msg_stderr("wasn't able to duplicate global_path or p_metac_scheme\n");
+		value_scheme_builder_value_scheme_task_delete(&p_value_scheme_builder_value_scheme_task);
 		return NULL;
 	}
-	return p_object_scheme_builder_value_scheme_task;
+	return p_value_scheme_builder_value_scheme_task;
 }
 
-static int object_scheme_builder_schedule_value_scheme(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_schedule_value_scheme(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 
-	struct object_scheme_builder_value_scheme_task * p_task = object_scheme_builder_value_scheme_task_create(
-		object_scheme_builder_process_value_scheme_fn,
+	struct value_scheme_builder_value_scheme_task * p_task = value_scheme_builder_value_scheme_task_create(
+		value_scheme_builder_process_value_scheme_fn,
 		global_path,
-		p_metac_value_scheme);
+		p_metac_scheme);
 	if (p_task == NULL) {
 
 		msg_stderr("wasn't able to create a task\n");
@@ -2091,148 +2091,148 @@ static int object_scheme_builder_schedule_value_scheme(
 	}
 
 	if (scheduler_add_task_to_front(
-		&p_object_scheme_builder->scheduler,
+		&p_value_scheme_builder->scheduler,
 		&p_task->task) != 0) {
 
 		msg_stderr("wasn't able to schedule task\n");
-		object_scheme_builder_value_scheme_task_delete(&p_task);
+		value_scheme_builder_value_scheme_task_delete(&p_task);
 		return -(EFAULT);
 	}
 
 	return 0;
 }
 
-static void object_scheme_container_clean(
-		struct object_scheme_container *			p_object_scheme_container) {
+static void value_scheme_container_clean(
+		struct value_scheme_container *				p_value_scheme_container) {
 
-	struct object_scheme_container_value_scheme * value_scheme, * _value_scheme;
+	struct value_scheme_container_value_scheme * value_scheme, * _value_scheme;
 
-	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_object_scheme_container->pointers, list) {
+	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_value_scheme_container->pointers, list) {
 
 		cds_list_del(&value_scheme->list);
-		object_scheme_container_value_scheme_delete(&value_scheme);
+		value_scheme_container_value_scheme_delete(&value_scheme);
 	}
 
-	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_object_scheme_container->arrays, list) {
+	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_value_scheme_container->arrays, list) {
 
 		cds_list_del(&value_scheme->list);
-		object_scheme_container_value_scheme_delete(&value_scheme);
+		value_scheme_container_value_scheme_delete(&value_scheme);
 	}
 }
 
-static int object_scheme_container_init(
-		struct object_scheme_container *			p_object_scheme_container) {
+static int value_scheme_container_init(
+		struct value_scheme_container *				p_value_scheme_container) {
 
-	CDS_INIT_LIST_HEAD(&p_object_scheme_container->arrays);
-	CDS_INIT_LIST_HEAD(&p_object_scheme_container->pointers);
+	CDS_INIT_LIST_HEAD(&p_value_scheme_container->arrays);
+	CDS_INIT_LIST_HEAD(&p_value_scheme_container->pointers);
 
 	return 0;
 }
 
-static void object_scheme_builder_clean(
-		struct object_scheme_builder *				p_object_scheme_builder) {
-	struct object_scheme_builder_value_scheme_task * p_task, *_p_task;
+static void value_scheme_builder_clean(
+		struct value_scheme_builder *				p_value_scheme_builder) {
+	struct value_scheme_builder_value_scheme_task * p_task, *_p_task;
 
-	scheduler_clean(&p_object_scheme_builder->scheduler);
+	scheduler_clean(&p_value_scheme_builder->scheduler);
 
-	cds_list_for_each_entry_safe(p_task, _p_task, &p_object_scheme_builder->executed_tasks, task.list) {
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_value_scheme_builder->executed_tasks, task.list) {
 
 		cds_list_del(&p_task->task.list);
-		object_scheme_builder_value_scheme_task_delete(&p_task);
+		value_scheme_builder_value_scheme_task_delete(&p_task);
 	}
 
-	object_scheme_container_clean(&p_object_scheme_builder->container);
+	value_scheme_container_clean(&p_value_scheme_builder->container);
 
-	p_object_scheme_builder->p_root_type = NULL;
-	p_object_scheme_builder->p_override_annotations = NULL;
+	p_value_scheme_builder->p_root_type = NULL;
+	p_value_scheme_builder->p_override_annotations = NULL;
 }
 
-static int object_scheme_builder_init(
-		struct object_scheme_builder *				p_object_scheme_builder,
+static int value_scheme_builder_init(
+		struct value_scheme_builder *				p_value_scheme_builder,
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
 
-	p_object_scheme_builder->p_root_type = p_root_type;
-	p_object_scheme_builder->p_override_annotations = p_override_annotations;
-	object_scheme_container_init(&p_object_scheme_builder->container);
+	p_value_scheme_builder->p_root_type = p_root_type;
+	p_value_scheme_builder->p_override_annotations = p_override_annotations;
+	value_scheme_container_init(&p_value_scheme_builder->container);
 
-	CDS_INIT_LIST_HEAD(&p_object_scheme_builder->executed_tasks);
+	CDS_INIT_LIST_HEAD(&p_value_scheme_builder->executed_tasks);
 
-	scheduler_init(&p_object_scheme_builder->scheduler);
+	scheduler_init(&p_value_scheme_builder->scheduler);
 
 	return 0;
 }
 
-static void object_scheme_clean(
-		struct object_scheme *						p_object_scheme) {
+static void value_scheme_clean(
+		struct value_scheme *						p_value_scheme) {
 
-	if (p_object_scheme->pp_pointers_value_schemes != NULL) {
+	if (p_value_scheme->pp_pointers_value_schemes != NULL) {
 
 		metac_count_t i = 0;
 
-		for (i = 0; i < p_object_scheme->pointers_value_schemes_count; ++i) {
+		for (i = 0; i < p_value_scheme->pointers_value_schemes_count; ++i) {
 
-			metac_value_scheme_put(&p_object_scheme->pp_pointers_value_schemes[i]);
+			metac_scheme_put(&p_value_scheme->pp_pointers_value_schemes[i]);
 		}
 
-		p_object_scheme->pointers_value_schemes_count = 0;
+		p_value_scheme->pointers_value_schemes_count = 0;
 
-		free(p_object_scheme->pp_pointers_value_schemes);
-		p_object_scheme->pp_pointers_value_schemes = NULL;
+		free(p_value_scheme->pp_pointers_value_schemes);
+		p_value_scheme->pp_pointers_value_schemes = NULL;
 	}
 
-	if (p_object_scheme->pp_arrays_value_schemes != NULL) {
+	if (p_value_scheme->pp_arrays_value_schemes != NULL) {
 
 		metac_count_t i = 0;
 
-		for (i = 0; i < p_object_scheme->arrays_value_schemes_count; ++i) {
+		for (i = 0; i < p_value_scheme->arrays_value_schemes_count; ++i) {
 
-			metac_value_scheme_put(&p_object_scheme->pp_arrays_value_schemes[i]);
+			metac_scheme_put(&p_value_scheme->pp_arrays_value_schemes[i]);
 		}
 
-		p_object_scheme->arrays_value_schemes_count = 0;
+		p_value_scheme->arrays_value_schemes_count = 0;
 
-		free(p_object_scheme->pp_arrays_value_schemes);
-		p_object_scheme->pp_arrays_value_schemes = NULL;
+		free(p_value_scheme->pp_arrays_value_schemes);
+		p_value_scheme->pp_arrays_value_schemes = NULL;
 	}
 }
 
-static int object_scheme_init(
-		struct object_scheme *						p_object_scheme,
-		struct object_scheme_builder *				p_object_scheme_builder) {
+static int value_scheme_init(
+		struct value_scheme *						p_value_scheme,
+		struct value_scheme_builder *				p_value_scheme_builder) {
 
-	struct object_scheme_container_value_scheme * _value_scheme;
+	struct value_scheme_container_value_scheme * _value_scheme;
 
-	p_object_scheme->arrays_value_schemes_count = 0;
-	p_object_scheme->pointers_value_schemes_count = 0;
+	p_value_scheme->arrays_value_schemes_count = 0;
+	p_value_scheme->pointers_value_schemes_count = 0;
 
 	/*get arrays lengths */
-	cds_list_for_each_entry(_value_scheme, &p_object_scheme_builder->container.arrays, list) {
-		++p_object_scheme->arrays_value_schemes_count;
+	cds_list_for_each_entry(_value_scheme, &p_value_scheme_builder->container.arrays, list) {
+		++p_value_scheme->arrays_value_schemes_count;
 	}
-	cds_list_for_each_entry(_value_scheme, &p_object_scheme_builder->container.pointers, list) {
-		++p_object_scheme->pointers_value_schemes_count;
+	cds_list_for_each_entry(_value_scheme, &p_value_scheme_builder->container.pointers, list) {
+		++p_value_scheme->pointers_value_schemes_count;
 	}
 
 	/*fill all the data*/
-	if (p_object_scheme->arrays_value_schemes_count > 0) {
+	if (p_value_scheme->arrays_value_schemes_count > 0) {
 
 		metac_count_t i = 0;
 
-		p_object_scheme->pp_arrays_value_schemes = (struct metac_scheme **)calloc(
-				p_object_scheme->arrays_value_schemes_count, sizeof(*p_object_scheme->pp_arrays_value_schemes));
-		if (p_object_scheme->pp_arrays_value_schemes == NULL) {
+		p_value_scheme->pp_arrays_value_schemes = (struct metac_scheme **)calloc(
+				p_value_scheme->arrays_value_schemes_count, sizeof(*p_value_scheme->pp_arrays_value_schemes));
+		if (p_value_scheme->pp_arrays_value_schemes == NULL) {
 
 			msg_stderr("pp_arrays_value_schemes is NULL\n");
 			return (-ENOMEM);
 		}
 
-		cds_list_for_each_entry(_value_scheme, &p_object_scheme_builder->container.arrays, list) {
+		cds_list_for_each_entry(_value_scheme, &p_value_scheme_builder->container.arrays, list) {
 
-			p_object_scheme->pp_arrays_value_schemes[i] = metac_value_scheme_get(_value_scheme->p_metac_value_scheme);
-			if (p_object_scheme->pp_arrays_value_schemes[i] == NULL) {
+			p_value_scheme->pp_arrays_value_schemes[i] = metac_scheme_get(_value_scheme->p_metac_scheme);
+			if (p_value_scheme->pp_arrays_value_schemes[i] == NULL) {
 
-				msg_stderr("metac_value_scheme_get failed\n");
+				msg_stderr("metac_scheme_get failed\n");
 				return (-ENOMEM);
 			}
 
@@ -2240,24 +2240,24 @@ static int object_scheme_init(
 		}
 	}
 
-	if (p_object_scheme->pointers_value_schemes_count > 0) {
+	if (p_value_scheme->pointers_value_schemes_count > 0) {
 
 		metac_count_t i = 0;
 
-		p_object_scheme->pp_pointers_value_schemes = (struct metac_scheme **)calloc(
-				p_object_scheme->pointers_value_schemes_count, sizeof(*p_object_scheme->pp_pointers_value_schemes));
-		if (p_object_scheme->pp_pointers_value_schemes == NULL) {
+		p_value_scheme->pp_pointers_value_schemes = (struct metac_scheme **)calloc(
+				p_value_scheme->pointers_value_schemes_count, sizeof(*p_value_scheme->pp_pointers_value_schemes));
+		if (p_value_scheme->pp_pointers_value_schemes == NULL) {
 
 			msg_stderr("pp_pointers_value_schemes is NULL\n");
 			return (-ENOMEM);
 		}
 
-		cds_list_for_each_entry(_value_scheme, &p_object_scheme_builder->container.pointers, list) {
+		cds_list_for_each_entry(_value_scheme, &p_value_scheme_builder->container.pointers, list) {
 
-			p_object_scheme->pp_pointers_value_schemes[i] = metac_value_scheme_get(_value_scheme->p_metac_value_scheme);
-			if (p_object_scheme->pp_pointers_value_schemes[i] == NULL) {
+			p_value_scheme->pp_pointers_value_schemes[i] = metac_scheme_get(_value_scheme->p_metac_scheme);
+			if (p_value_scheme->pp_pointers_value_schemes[i] == NULL) {
 
-				msg_stderr("metac_value_scheme_get failed\n");
+				msg_stderr("metac_scheme_get failed\n");
 				return (-ENOMEM);
 			}
 
@@ -2268,133 +2268,133 @@ static int object_scheme_init(
 	return 0;
 }
 
-static int object_scheme_delete(
-		struct object_scheme **						pp_object_scheme) {
-	_delete_start_(object_scheme);
-	object_scheme_clean(*pp_object_scheme);
-	_delete_finish(object_scheme);
+static int value_scheme_delete(
+		struct value_scheme **						pp_value_scheme) {
+	_delete_start_(value_scheme);
+	value_scheme_clean(*pp_value_scheme);
+	_delete_finish(value_scheme);
 	return 0;
 }
 
-static struct object_scheme * object_scheme_create(
-		struct object_scheme_builder *				p_object_scheme_builder) {
-	_create_(object_scheme);
+static struct value_scheme * value_scheme_create(
+		struct value_scheme_builder *				p_value_scheme_builder) {
+	_create_(value_scheme);
 
-	if (object_scheme_init(
-			p_object_scheme,
-			p_object_scheme_builder) != 0){
+	if (value_scheme_init(
+			p_value_scheme,
+			p_value_scheme_builder) != 0){
 
-		msg_stderr("object_scheme_init failed\n");
+		msg_stderr("value_scheme_init failed\n");
 
-		object_scheme_delete(&p_object_scheme);
+		value_scheme_delete(&p_value_scheme);
 		return NULL;
 	}
 
-	return p_object_scheme;
+	return p_value_scheme;
 }
 
-metac_flag_t metac_value_scheme_is_object(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_value_scheme(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (p_metac_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("invalid argument\n");
 		return -(EINVAL);
 	}
 
-	return (p_metac_value_scheme->p_object_scheme != NULL)?1:0;
+	return (p_metac_scheme->p_value_scheme != NULL)?1:0;
 }
 
-static int metac_value_scheme_clean_as_object(
-		struct metac_scheme *					p_metac_value_scheme) {
+static int metac_scheme_clean_as_value_scheme(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (metac_value_scheme_is_object(p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_value_scheme(p_metac_scheme) != 1) {
 
 		return -(EFAULT);
 	}
 
-	return object_scheme_delete(&p_metac_value_scheme->p_object_scheme);
+	return value_scheme_delete(&p_metac_scheme->p_value_scheme);
 }
 
-static int object_scheme_builder_finalize(
-		struct object_scheme_builder *				p_object_scheme_builder,
-		struct metac_scheme *					p_metac_value_scheme) {
+static int value_scheme_builder_finalize(
+		struct value_scheme_builder *				p_value_scheme_builder,
+		struct metac_scheme *						p_metac_scheme) {
 
-	p_metac_value_scheme->p_object_scheme = object_scheme_create(p_object_scheme_builder);
-	if (p_metac_value_scheme->p_object_scheme == NULL) {
+	p_metac_scheme->p_value_scheme = value_scheme_create(p_value_scheme_builder);
+	if (p_metac_scheme->p_value_scheme == NULL) {
 
-		msg_stderr("object_scheme_create failed\n");
+		msg_stderr("value_scheme_create failed\n");
 		return -(EFAULT);
 	}
 
 	return 0;
 }
 
-static int metac_value_scheme_init_as_object(
-		struct metac_scheme *					p_metac_value_scheme,
+static int metac_scheme_init_as_value_scheme(
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_type) {
 
 
-	struct object_scheme_builder object_scheme_builder;
+	struct value_scheme_builder value_scheme_builder;
 
-	object_scheme_builder_init(&object_scheme_builder, p_root_type, p_override_annotations);
+	value_scheme_builder_init(&value_scheme_builder, p_root_type, p_override_annotations);
 
-	if (metac_value_scheme_init_as_indexable(
-			p_metac_value_scheme,
+	if (metac_scheme_init_as_indexable(
+			p_metac_scheme,
 			p_root_type,
 			global_path,
 			"",
 			p_override_annotations,
 			p_type) != 0) {
 
-		msg_stderr("metac_value_scheme_init_as_indexable failed\n");
+		msg_stderr("metac_scheme_init_as_indexable failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		object_scheme_builder_clean(&object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		value_scheme_builder_clean(&value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (object_scheme_builder_process_value_scheme(
-			&object_scheme_builder,
+	if (value_scheme_builder_process_value_scheme(
+			&value_scheme_builder,
 			global_path,
-			p_metac_value_scheme) != 0) {
+			p_metac_scheme) != 0) {
 
-		msg_stddbg("object_scheme_builder_process_value_scheme failed\n");
+		msg_stddbg("value_scheme_builder_process_value_scheme failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		object_scheme_builder_clean(&object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		value_scheme_builder_clean(&value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (scheduler_run(&object_scheme_builder.scheduler) != 0) {
+	if (scheduler_run(&value_scheme_builder.scheduler) != 0) {
 
 		msg_stddbg("tasks execution finished with fail\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		object_scheme_builder_clean(&object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		value_scheme_builder_clean(&value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (object_scheme_builder_finalize(
-			&object_scheme_builder,
-			p_metac_value_scheme) != 0) {
+	if (value_scheme_builder_finalize(
+			&value_scheme_builder,
+			p_metac_scheme) != 0) {
 
-		msg_stddbg("object_scheme_builder_finalize failed\n");
+		msg_stddbg("value_scheme_builder_finalize failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		object_scheme_builder_clean(&object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		value_scheme_builder_clean(&value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	object_scheme_builder_clean(&object_scheme_builder);
+	value_scheme_builder_clean(&value_scheme_builder);
 
 	return 0;
 }
 
-static struct metac_scheme * metac_value_scheme_create_as_object(
+static struct metac_scheme * metac_scheme_create_as_value_scheme(
 		struct metac_type *							p_type,
 		char * 										global_path,
 		struct metac_type *							p_root_type,
@@ -2404,25 +2404,25 @@ static struct metac_scheme * metac_value_scheme_create_as_object(
 
 	if (metac_refcounter_object_init(
 			&p_metac_scheme->refcounter_object,
-			&_metac_value_scheme_refcounter_object_ops,
+			&_metac_scheme_refcounter_object_ops,
 			NULL) != 0) {
 
 		msg_stderr("metac_refcounter_object_init failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
-	if (metac_value_scheme_init_as_object(
+	if (metac_scheme_init_as_value_scheme(
 			p_metac_scheme,
 			p_root_type,
 			global_path,
 			p_override_annotations,
 			p_type) != 0) {
 
-		msg_stderr("metac_value_scheme_init_as_object failed\n");
+		msg_stderr("metac_scheme_init_as_value_scheme failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
@@ -2430,263 +2430,263 @@ static struct metac_scheme * metac_value_scheme_create_as_object(
 }
 
 /*****************************************************************************/
-struct top_object_scheme_container_pointer_scheme {
+struct deep_value_scheme_container_pointer_scheme {
 	struct cds_list_head							list;
 
-	struct metac_scheme *						p_pointer_metac_value_scheme;
+	struct metac_scheme *							p_pointer_metac_scheme;
 };
 
-struct top_object_scheme_container_object_scheme {
+struct deep_value_scheme_container_value_scheme {
 	struct cds_list_head							list;
 
-	struct metac_scheme *						p_object_metac_value_scheme;
+	struct metac_scheme *							p_object_metac_scheme;
 
 	struct cds_list_head							pointers;
 };
 
-struct top_object_scheme_container {
+struct deep_value_scheme_container {
 	struct cds_list_head							objects;
 };
 
-struct top_object_scheme_builder {
+struct deep_value_scheme_builder {
 	struct metac_type *								p_root_type;
 	metac_type_annotation_t *						p_override_annotations;
 
-	struct top_object_scheme_container				container;
+	struct deep_value_scheme_container				container;
 
 	struct scheduler								scheduler;
 	struct cds_list_head							executed_tasks;
 };
 
-struct top_object_scheme_builder_value_scheme_task {
+struct deep_value_scheme_builder_value_scheme_task {
 	struct scheduler_task							task;
 	char * 											global_path;	/*local copy - keep track of it*/
 
-	struct metac_scheme *						p_metac_value_scheme;
+	struct metac_scheme *							p_metac_scheme;
 };
 
 /*****************************************************************************/
-static int top_object_scheme_builder_schedule_object_scheme(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static int deep_value_scheme_builder_schedule_value_scheme(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme);
+		struct metac_scheme *						p_metac_scheme);
 /*****************************************************************************/
 
-static void top_object_scheme_container_pointer_scheme_clean(
-		struct top_object_scheme_container_pointer_scheme *
-													p_top_object_scheme_container_pointer_scheme) {
+static void deep_value_scheme_container_pointer_scheme_clean(
+		struct deep_value_scheme_container_pointer_scheme *
+													p_deep_value_scheme_container_pointer_scheme) {
 
-	if (p_top_object_scheme_container_pointer_scheme == NULL) {
+	if (p_deep_value_scheme_container_pointer_scheme == NULL) {
 
-		msg_stderr("p_top_object_scheme_container_pointer_scheme is invalid\n");
+		msg_stderr("p_deep_value_scheme_container_pointer_scheme is invalid\n");
 		return;
 	}
 
-	if (p_top_object_scheme_container_pointer_scheme->p_pointer_metac_value_scheme) {
+	if (p_deep_value_scheme_container_pointer_scheme->p_pointer_metac_scheme) {
 
-		metac_value_scheme_put(&p_top_object_scheme_container_pointer_scheme->p_pointer_metac_value_scheme);
+		metac_scheme_put(&p_deep_value_scheme_container_pointer_scheme->p_pointer_metac_scheme);
 	}
 }
 
-static int top_object_scheme_container_pointer_scheme_init(
-		struct top_object_scheme_container_pointer_scheme *
-													p_top_object_scheme_container_pointer_scheme,
-		struct metac_scheme *					p_pointer_metac_value_scheme) {
+static int deep_value_scheme_container_pointer_scheme_init(
+		struct deep_value_scheme_container_pointer_scheme *
+													p_deep_value_scheme_container_pointer_scheme,
+		struct metac_scheme *						p_pointer_metac_scheme) {
 
-	if (p_top_object_scheme_container_pointer_scheme == NULL) {
+	if (p_deep_value_scheme_container_pointer_scheme == NULL) {
 
-		msg_stderr("p_top_object_scheme_container_pointer_scheme is invalid\n");
+		msg_stderr("p_deep_value_scheme_container_pointer_scheme is invalid\n");
 		return (-EINVAL);
 	}
 
-	if (p_pointer_metac_value_scheme == NULL) {
+	if (p_pointer_metac_scheme == NULL) {
 
-		msg_stderr("Can't init top_object_scheme_container_pointer_scheme with NULL\n");
+		msg_stderr("Can't init deep_value_scheme_container_pointer_scheme with NULL\n");
 		return (-EINVAL);
 	}
 
 
-	p_top_object_scheme_container_pointer_scheme->p_pointer_metac_value_scheme = metac_value_scheme_get(p_pointer_metac_value_scheme);
-	if (p_top_object_scheme_container_pointer_scheme->p_pointer_metac_value_scheme == NULL) {
+	p_deep_value_scheme_container_pointer_scheme->p_pointer_metac_scheme = metac_scheme_get(p_pointer_metac_scheme);
+	if (p_deep_value_scheme_container_pointer_scheme->p_pointer_metac_scheme == NULL) {
 
-		msg_stderr("metac_value_scheme_get failed\n");
-		top_object_scheme_container_pointer_scheme_clean(p_top_object_scheme_container_pointer_scheme);
+		msg_stderr("metac_scheme_get failed\n");
+		deep_value_scheme_container_pointer_scheme_clean(p_deep_value_scheme_container_pointer_scheme);
 		return (-EINVAL);
 	}
 
 	return 0;
 }
 
-static int top_object_scheme_container_pointer_scheme_delete(
-		struct top_object_scheme_container_pointer_scheme **
-													pp_top_object_scheme_container_pointer_scheme) {
+static int deep_value_scheme_container_pointer_scheme_delete(
+		struct deep_value_scheme_container_pointer_scheme **
+													pp_deep_value_scheme_container_pointer_scheme) {
 
-	_delete_start_(top_object_scheme_container_pointer_scheme);
-	top_object_scheme_container_pointer_scheme_clean(*pp_top_object_scheme_container_pointer_scheme);
-	_delete_finish(top_object_scheme_container_pointer_scheme);
+	_delete_start_(deep_value_scheme_container_pointer_scheme);
+	deep_value_scheme_container_pointer_scheme_clean(*pp_deep_value_scheme_container_pointer_scheme);
+	_delete_finish(deep_value_scheme_container_pointer_scheme);
 	return 0;
 }
 
-static struct top_object_scheme_container_pointer_scheme * top_object_scheme_container_pointer_scheme_create(
-		struct metac_scheme *					p_pointer_metac_value_scheme) {
+static struct deep_value_scheme_container_pointer_scheme * deep_value_scheme_container_pointer_scheme_create(
+		struct metac_scheme *						p_pointer_metac_scheme) {
 
-	_create_(top_object_scheme_container_pointer_scheme);
+	_create_(deep_value_scheme_container_pointer_scheme);
 
-	if (top_object_scheme_container_pointer_scheme_init(
-			p_top_object_scheme_container_pointer_scheme,
-			p_pointer_metac_value_scheme) != 0) {
+	if (deep_value_scheme_container_pointer_scheme_init(
+			p_deep_value_scheme_container_pointer_scheme,
+			p_pointer_metac_scheme) != 0) {
 
-		top_object_scheme_container_pointer_scheme_delete(&p_top_object_scheme_container_pointer_scheme);
+		deep_value_scheme_container_pointer_scheme_delete(&p_deep_value_scheme_container_pointer_scheme);
 		return NULL;
 	}
 
-	return p_top_object_scheme_container_pointer_scheme;
+	return p_deep_value_scheme_container_pointer_scheme;
 }
 
 /*****************************************************************************/
 
-static void top_object_scheme_container_object_scheme_clean(
-		struct top_object_scheme_container_object_scheme *
-													p_top_object_scheme_container_object_scheme) {
+static void deep_value_scheme_container_value_scheme_clean(
+		struct deep_value_scheme_container_value_scheme *
+													p_deep_value_scheme_container_value_scheme) {
 
-	struct top_object_scheme_container_pointer_scheme * p_container_pointer_scheme, * _p_container_pointer_scheme;
+	struct deep_value_scheme_container_pointer_scheme * p_container_pointer_scheme, * _p_container_pointer_scheme;
 
-	if (p_top_object_scheme_container_object_scheme == NULL) {
+	if (p_deep_value_scheme_container_value_scheme == NULL) {
 
-		msg_stderr("p_top_object_scheme_container_object_scheme is invalid\n");
+		msg_stderr("p_deep_value_scheme_container_value_scheme is invalid\n");
 		return;
 	}
 
-	if (p_top_object_scheme_container_object_scheme->p_object_metac_value_scheme) {
+	if (p_deep_value_scheme_container_value_scheme->p_object_metac_scheme) {
 
-		metac_value_scheme_put(&p_top_object_scheme_container_object_scheme->p_object_metac_value_scheme);
+		metac_scheme_put(&p_deep_value_scheme_container_value_scheme->p_object_metac_scheme);
 	}
 
-	cds_list_for_each_entry_safe(p_container_pointer_scheme, _p_container_pointer_scheme, &p_top_object_scheme_container_object_scheme->pointers, list) {
+	cds_list_for_each_entry_safe(p_container_pointer_scheme, _p_container_pointer_scheme, &p_deep_value_scheme_container_value_scheme->pointers, list) {
 
 		cds_list_del(&p_container_pointer_scheme->list);
-		top_object_scheme_container_pointer_scheme_delete(&p_container_pointer_scheme);
+		deep_value_scheme_container_pointer_scheme_delete(&p_container_pointer_scheme);
 	}
 }
 
-static int top_object_scheme_container_object_scheme_add_pointer(
-		struct top_object_scheme_container_object_scheme *
-													p_top_object_scheme_container_object_scheme,
-		struct metac_scheme *					p_pointer_metac_value_scheme) {
+static int deep_value_scheme_container_value_scheme_add_pointer(
+		struct deep_value_scheme_container_value_scheme *
+													p_deep_value_scheme_container_value_scheme,
+		struct metac_scheme *						p_pointer_metac_scheme) {
 
-	struct top_object_scheme_container_pointer_scheme * p_container_pointer_scheme;
+	struct deep_value_scheme_container_pointer_scheme * p_container_pointer_scheme;
 
-	if (p_top_object_scheme_container_object_scheme == NULL) {
+	if (p_deep_value_scheme_container_value_scheme == NULL) {
 
-		msg_stderr("p_top_object_scheme_container_object_scheme is invalid\n");
+		msg_stderr("p_deep_value_scheme_container_value_scheme is invalid\n");
 		return (-EINVAL);
 	}
 
-	if (p_pointer_metac_value_scheme == NULL) {
+	if (p_pointer_metac_scheme == NULL) {
 
 		msg_stderr("Invalid arguments\n");
 		return (-EINVAL);
 	}
 
-	p_container_pointer_scheme = top_object_scheme_container_pointer_scheme_create(p_pointer_metac_value_scheme);
+	p_container_pointer_scheme = deep_value_scheme_container_pointer_scheme_create(p_pointer_metac_scheme);
 	if (p_container_pointer_scheme == NULL) {
 
-		msg_stderr("top_object_scheme_container_pointer_scheme_create failed\n");
+		msg_stderr("deep_value_scheme_container_pointer_scheme_create failed\n");
 		return (-EINVAL);
 	}
 
 	cds_list_add_tail(
 		&p_container_pointer_scheme->list,
-		&p_top_object_scheme_container_object_scheme->pointers);
+		&p_deep_value_scheme_container_value_scheme->pointers);
 
 	return 0;
 }
 
-static int top_object_scheme_container_object_scheme_init(
-		struct top_object_scheme_container_object_scheme *
-													p_top_object_scheme_container_object_scheme,
-		struct metac_scheme *					p_pointer_metac_value_scheme,
-		struct metac_scheme *					p_object_metac_value_scheme) {
+static int deep_value_scheme_container_value_scheme_init(
+		struct deep_value_scheme_container_value_scheme *
+													p_deep_value_scheme_container_value_scheme,
+		struct metac_scheme *						p_pointer_metac_scheme,
+		struct metac_scheme *						p_object_metac_scheme) {
 
 
-	if (p_top_object_scheme_container_object_scheme == NULL) {
+	if (p_deep_value_scheme_container_value_scheme == NULL) {
 
-		msg_stderr("p_top_object_scheme_container_object_scheme is invalid\n");
+		msg_stderr("p_deep_value_scheme_container_value_scheme is invalid\n");
 		return (-EINVAL);
 	}
 
-	if (p_pointer_metac_value_scheme == NULL ||
-		p_object_metac_value_scheme == NULL) {
+	if (p_pointer_metac_scheme == NULL ||
+		p_object_metac_scheme == NULL) {
 
 		msg_stderr("Invalid arguments\n");
 		return (-EINVAL);
 	}
 
-	CDS_INIT_LIST_HEAD(&p_top_object_scheme_container_object_scheme->pointers);
+	CDS_INIT_LIST_HEAD(&p_deep_value_scheme_container_value_scheme->pointers);
 
-	p_top_object_scheme_container_object_scheme->p_object_metac_value_scheme = metac_value_scheme_get(p_object_metac_value_scheme);
-	if (p_top_object_scheme_container_object_scheme->p_object_metac_value_scheme == NULL) {
+	p_deep_value_scheme_container_value_scheme->p_object_metac_scheme = metac_scheme_get(p_object_metac_scheme);
+	if (p_deep_value_scheme_container_value_scheme->p_object_metac_scheme == NULL) {
 
-		msg_stderr("metac_value_scheme_get failed\n");
-		top_object_scheme_container_object_scheme_clean(p_top_object_scheme_container_object_scheme);
+		msg_stderr("metac_scheme_get failed\n");
+		deep_value_scheme_container_value_scheme_clean(p_deep_value_scheme_container_value_scheme);
 		return (-EINVAL);
 	}
 
-	if (top_object_scheme_container_object_scheme_add_pointer(
-			p_top_object_scheme_container_object_scheme,
-			p_pointer_metac_value_scheme) != 0) {
+	if (deep_value_scheme_container_value_scheme_add_pointer(
+			p_deep_value_scheme_container_value_scheme,
+			p_pointer_metac_scheme) != 0) {
 
-		msg_stderr("top_object_scheme_container_object_scheme_add_pointer failed\n");
-		top_object_scheme_container_object_scheme_clean(p_top_object_scheme_container_object_scheme);
+		msg_stderr("deep_value_scheme_container_value_scheme_add_pointer failed\n");
+		deep_value_scheme_container_value_scheme_clean(p_deep_value_scheme_container_value_scheme);
 		return (-EINVAL);
 	}
 
 	return 0;
 }
 
-static int top_object_scheme_container_object_scheme_delete(
-		struct top_object_scheme_container_object_scheme **
-													pp_top_object_scheme_container_object_scheme) {
+static int deep_value_scheme_container_value_scheme_delete(
+		struct deep_value_scheme_container_value_scheme **
+													pp_deep_value_scheme_container_value_scheme) {
 
-	_delete_start_(top_object_scheme_container_object_scheme);
-	top_object_scheme_container_object_scheme_clean(*pp_top_object_scheme_container_object_scheme);
-	_delete_finish(top_object_scheme_container_object_scheme);
+	_delete_start_(deep_value_scheme_container_value_scheme);
+	deep_value_scheme_container_value_scheme_clean(*pp_deep_value_scheme_container_value_scheme);
+	_delete_finish(deep_value_scheme_container_value_scheme);
 	return 0;
 }
 
-static struct top_object_scheme_container_object_scheme * top_object_scheme_container_object_scheme_create(
-		struct metac_scheme *					p_pointer_metac_value_scheme,
-		struct metac_scheme *					p_object_metac_value_scheme) {
+static struct deep_value_scheme_container_value_scheme * deep_value_scheme_container_value_scheme_create(
+		struct metac_scheme *						p_pointer_metac_scheme,
+		struct metac_scheme *						p_object_metac_scheme) {
 
-	_create_(top_object_scheme_container_object_scheme);
+	_create_(deep_value_scheme_container_value_scheme);
 
-	if (top_object_scheme_container_object_scheme_init(
-			p_top_object_scheme_container_object_scheme,
-			p_pointer_metac_value_scheme,
-			p_object_metac_value_scheme) != 0) {
+	if (deep_value_scheme_container_value_scheme_init(
+			p_deep_value_scheme_container_value_scheme,
+			p_pointer_metac_scheme,
+			p_object_metac_scheme) != 0) {
 
-		top_object_scheme_container_object_scheme_delete(&p_top_object_scheme_container_object_scheme);
+		deep_value_scheme_container_value_scheme_delete(&p_deep_value_scheme_container_value_scheme);
 		return NULL;
 	}
 
-	return p_top_object_scheme_container_object_scheme;
+	return p_deep_value_scheme_container_value_scheme;
 }
 
-static struct top_object_scheme_container_object_scheme * top_object_scheme_builder_find_object(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
-		struct metac_scheme *					p_pointer_metac_value_scheme,
+static struct deep_value_scheme_container_value_scheme * deep_value_scheme_builder_find_object(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
+		struct metac_scheme *						p_pointer_metac_scheme,
 		struct metac_type *							p_new_object_type) {
 
-	struct top_object_scheme_container_object_scheme * _value_scheme;
-	struct metac_type *	p_new_pointer_type = p_pointer_metac_value_scheme->p_type;
+	struct deep_value_scheme_container_value_scheme * _value_scheme;
+	struct metac_type *	p_new_pointer_type = p_pointer_metac_scheme->p_type;
 	struct metac_type_member_info * p_new_pointer_member_info = NULL;
 
-	if (metac_value_scheme_is_hierarchy_member(p_pointer_metac_value_scheme) == 1) {
+	if (metac_scheme_is_hierarchy_member(p_pointer_metac_scheme) == 1) {
 
-		p_new_pointer_member_info = p_pointer_metac_value_scheme->hierarchy_member.p_member_info;
+		p_new_pointer_member_info = p_pointer_metac_scheme->hierarchy_member.p_member_info;
 	}
 
-	cds_list_for_each_entry(_value_scheme, &p_top_object_scheme_builder->container.objects, list) {
+	cds_list_for_each_entry(_value_scheme, &p_deep_value_scheme_builder->container.objects, list) {
 
 		assert(cds_list_empty(&_value_scheme->pointers) == 0);
 		if (cds_list_empty(&_value_scheme->pointers)) {
@@ -2694,15 +2694,15 @@ static struct top_object_scheme_container_object_scheme * top_object_scheme_buil
 			continue;
 		}
 
-		struct metac_scheme *	p_entry_pointer_metac_value_scheme = cds_list_first_entry(
-				&_value_scheme->pointers, struct top_object_scheme_container_pointer_scheme, list)->p_pointer_metac_value_scheme;
-		struct metac_type *	p_entry_object_type = _value_scheme->p_object_metac_value_scheme->p_type;
-		struct metac_type *	p_entry_pointer_type = p_entry_pointer_metac_value_scheme->p_type;
+		struct metac_scheme *	p_entry_pointer_metac_scheme = cds_list_first_entry(
+				&_value_scheme->pointers, struct deep_value_scheme_container_pointer_scheme, list)->p_pointer_metac_scheme;
+		struct metac_type *	p_entry_object_type = _value_scheme->p_object_metac_scheme->p_type;
+		struct metac_type *	p_entry_pointer_type = p_entry_pointer_metac_scheme->p_type;
 		struct metac_type_member_info * p_entry_pointer_member_info = NULL;
 
-		if (metac_value_scheme_is_hierarchy_member(p_pointer_metac_value_scheme) == 1) {
+		if (metac_scheme_is_hierarchy_member(p_pointer_metac_scheme) == 1) {
 
-			p_new_pointer_member_info = p_entry_pointer_metac_value_scheme->hierarchy_member.p_member_info;
+			p_new_pointer_member_info = p_entry_pointer_metac_scheme->hierarchy_member.p_member_info;
 		}
 
 		 if (	p_new_object_type == p_entry_object_type &&
@@ -2716,47 +2716,47 @@ static struct top_object_scheme_container_object_scheme * top_object_scheme_buil
 	return NULL;
 }
 
-static int top_object_scheme_builder_add_value_scheme (
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
-		struct metac_scheme *					p_pointer_metac_value_scheme,
-		struct metac_scheme *					p_object_metac_value_scheme) {
+static int deep_value_scheme_builder_add_value_scheme (
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
+		struct metac_scheme *						p_pointer_metac_scheme,
+		struct metac_scheme *						p_object_metac_scheme) {
 
-	struct top_object_scheme_container_object_scheme * p_top_object_scheme_container_object_scheme;
+	struct deep_value_scheme_container_value_scheme * p_deep_value_scheme_container_value_scheme;
 
-	p_top_object_scheme_container_object_scheme = top_object_scheme_container_object_scheme_create(
-			p_pointer_metac_value_scheme,
-			p_object_metac_value_scheme);
-	if (p_top_object_scheme_container_object_scheme == NULL) {
+	p_deep_value_scheme_container_value_scheme = deep_value_scheme_container_value_scheme_create(
+			p_pointer_metac_scheme,
+			p_object_metac_scheme);
+	if (p_deep_value_scheme_container_value_scheme == NULL) {
 
-		msg_stddbg("wasn't able to create p_top_object_scheme_container_object_scheme\n");
+		msg_stddbg("wasn't able to create p_deep_value_scheme_container_value_scheme\n");
 		return (-EFAULT);
 	}
 
 	cds_list_add_tail(
-		&p_top_object_scheme_container_object_scheme->list,
-		&p_top_object_scheme_builder->container.objects);
+		&p_deep_value_scheme_container_value_scheme->list,
+		&p_deep_value_scheme_builder->container.objects);
 
 	return 0;
 }
 
-static struct metac_scheme * top_object_scheme_builder_update_record_or_create_new_and_schedule(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static struct metac_scheme * deep_value_scheme_builder_update_record_or_create_new_and_schedule(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme,
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_type) {
 
 	struct metac_scheme * p_result;
-	struct top_object_scheme_container_object_scheme * p_container_object_scheme;
+	struct deep_value_scheme_container_value_scheme * p_container_value_scheme;
 
-	p_container_object_scheme = top_object_scheme_builder_find_object(
-			p_top_object_scheme_builder,
-			p_metac_value_scheme,
+	p_container_value_scheme = deep_value_scheme_builder_find_object(
+			p_deep_value_scheme_builder,
+			p_metac_scheme,
 			p_type);
 
-	if (p_container_object_scheme != NULL) {
+	if (p_container_value_scheme != NULL) {
 
-		p_result = metac_value_scheme_get(
-				p_container_object_scheme->p_object_metac_value_scheme);
+		p_result = metac_scheme_get(
+				p_container_value_scheme->p_object_metac_scheme);
 
 		if (p_result == NULL) {
 
@@ -2765,47 +2765,47 @@ static struct metac_scheme * top_object_scheme_builder_update_record_or_create_n
 		}
 
 		/* update list of pointers for this object */
-		if (top_object_scheme_container_object_scheme_add_pointer (
-				p_container_object_scheme,
-				p_metac_value_scheme) != 0) {
+		if (deep_value_scheme_container_value_scheme_add_pointer (
+				p_container_value_scheme,
+				p_metac_scheme) != 0) {
 
 			msg_stderr("Can't build target_global_path for %s\n", global_path);
 
-			metac_value_scheme_put(&p_result);
+			metac_scheme_put(&p_result);
 			return NULL;
 		}
 
 		return p_result;
 	}
 
-	p_result = metac_value_scheme_create_as_object(
+	p_result = metac_scheme_create_as_value_scheme(
 			p_type,
 			global_path,
-			p_top_object_scheme_builder->p_root_type,
-			p_top_object_scheme_builder->p_override_annotations);
+			p_deep_value_scheme_builder->p_root_type,
+			p_deep_value_scheme_builder->p_override_annotations);
 	if (p_result == NULL) {
 
-		msg_stderr("metac_value_scheme_create_as_object failed for %s\n", global_path);
+		msg_stderr("metac_scheme_create_as_value_scheme failed for %s\n", global_path);
 		return NULL;
 	}
 
-	if (top_object_scheme_builder_add_value_scheme(
-			p_top_object_scheme_builder,
-			p_metac_value_scheme,
+	if (deep_value_scheme_builder_add_value_scheme(
+			p_deep_value_scheme_builder,
+			p_metac_scheme,
 			p_result) != 0) {
 
-		msg_stderr("top_object_scheme_builder_add_value_scheme failed for %s\n", global_path);
-		metac_value_scheme_put(&p_result);
+		msg_stderr("deep_value_scheme_builder_add_value_scheme failed for %s\n", global_path);
+		metac_scheme_put(&p_result);
 		return NULL;
 	}
 
-	if (top_object_scheme_builder_schedule_object_scheme(
-			p_top_object_scheme_builder,
+	if (deep_value_scheme_builder_schedule_value_scheme(
+			p_deep_value_scheme_builder,
 			global_path,
 			p_result) != 0) {
 
-		msg_stderr("top_object_scheme_builder_schedule_object_scheme failed %s\n", global_path);
-		metac_value_scheme_put(&p_result);
+		msg_stderr("deep_value_scheme_builder_schedule_value_scheme failed %s\n", global_path);
+		metac_scheme_put(&p_result);
 		return NULL;
 	}
 
@@ -2813,19 +2813,19 @@ static struct metac_scheme * top_object_scheme_builder_update_record_or_create_n
 
 }
 
-static int top_object_scheme_builder_process_pointer(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static int deep_value_scheme_builder_process_pointer(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 
 	int i = 0;
-	struct top_object_scheme_container_object_scheme * p_value_scheme;
+	struct deep_value_scheme_container_value_scheme * p_value_scheme;
 
-	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type);
+	assert(p_metac_scheme->p_actual_type->id == DW_TAG_pointer_type);
 
 	/* main pointer */
-	if (p_metac_value_scheme->p_actual_type->pointer_type_info.type != NULL /*&&
-		metac_type_actual_type(p_metac_value_scheme->p_actual_type->pointer_type_info.type) != DW_TAG_subprogram*/) {
+	if (p_metac_scheme->p_actual_type->pointer_type_info.type != NULL /*&&
+		metac_type_actual_type(p_metac_scheme->p_actual_type->pointer_type_info.type) != DW_TAG_subprogram*/) {
 
 		char * target_global_path = alloc_sptrinf("%s[]", global_path);
 
@@ -2835,15 +2835,15 @@ static int top_object_scheme_builder_process_pointer(
 			return (-EFAULT);
 		}
 
-		p_metac_value_scheme->pointer.p_default_child_value_scheme = top_object_scheme_builder_update_record_or_create_new_and_schedule(
-				p_top_object_scheme_builder,
+		p_metac_scheme->pointer.p_default_child_value_scheme = deep_value_scheme_builder_update_record_or_create_new_and_schedule(
+				p_deep_value_scheme_builder,
 				target_global_path,
-				p_metac_value_scheme,
-				p_metac_value_scheme->p_actual_type->pointer_type_info.type);
+				p_metac_scheme,
+				p_metac_scheme->p_actual_type->pointer_type_info.type);
 
-		if (p_metac_value_scheme->pointer.p_default_child_value_scheme == NULL) {
+		if (p_metac_scheme->pointer.p_default_child_value_scheme == NULL) {
 
-			msg_stderr("top_object_scheme_builder_update_record_or_create_new_and_schedule failed for %s\n", global_path);
+			msg_stderr("deep_value_scheme_builder_update_record_or_create_new_and_schedule failed for %s\n", global_path);
 			free(target_global_path);
 			return (-EFAULT);
 		}
@@ -2851,11 +2851,11 @@ static int top_object_scheme_builder_process_pointer(
 		free(target_global_path);
 	}
 
-	for (i = 0; i < p_metac_value_scheme->pointer.generic_cast.types_count; ++i) {
+	for (i = 0; i < p_metac_scheme->pointer.generic_cast.types_count; ++i) {
 
 		char * target_global_path = alloc_sptrinf(
 				"generic_cast<*%s>(%s)[]",
-				p_metac_value_scheme->pointer.generic_cast.p_types[i].p_type->name,
+				p_metac_scheme->pointer.generic_cast.p_types[i].p_type->name,
 				global_path);
 
 		if (target_global_path == NULL) {
@@ -2864,15 +2864,15 @@ static int top_object_scheme_builder_process_pointer(
 			return (-EFAULT);
 		}
 
-		p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme = top_object_scheme_builder_update_record_or_create_new_and_schedule(
-				p_top_object_scheme_builder,
+		p_metac_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme = deep_value_scheme_builder_update_record_or_create_new_and_schedule(
+				p_deep_value_scheme_builder,
 				target_global_path,
-				p_metac_value_scheme,
-				p_metac_value_scheme->pointer.generic_cast.p_types[i].p_type);
+				p_metac_scheme,
+				p_metac_scheme->pointer.generic_cast.p_types[i].p_type);
 
-		if (p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme == NULL) {
+		if (p_metac_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme == NULL) {
 
-			msg_stderr("top_object_scheme_builder_schedule_object_scheme failed for %s generic_cast %d\n", global_path, i);
+			msg_stderr("deep_value_scheme_builder_schedule_value_scheme failed for %s generic_cast %d\n", global_path, i);
 
 			free(target_global_path);
 			return (-EFAULT);
@@ -2884,44 +2884,44 @@ static int top_object_scheme_builder_process_pointer(
 	return 0;
 }
 
-static int top_object_scheme_unprocess_pointer(
-		struct metac_scheme *					p_metac_value_scheme) {
+static int deep_value_scheme_unprocess_pointer(
+		struct metac_scheme *						p_metac_scheme) {
 
 	int i = 0;
 
-	assert(p_metac_value_scheme->p_actual_type->id == DW_TAG_pointer_type);
+	assert(p_metac_scheme->p_actual_type->id == DW_TAG_pointer_type);
 
-	for (i = 0; i < p_metac_value_scheme->pointer.generic_cast.types_count; ++i) {
-		if (p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme != NULL) {
-			metac_value_scheme_put(&p_metac_value_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme);
+	for (i = 0; i < p_metac_scheme->pointer.generic_cast.types_count; ++i) {
+		if (p_metac_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme != NULL) {
+			metac_scheme_put(&p_metac_scheme->pointer.generic_cast.p_types[i].p_child_value_scheme);
 		}
 	}
 
-	if (p_metac_value_scheme->pointer.p_default_child_value_scheme != NULL) {
-		metac_value_scheme_put(&p_metac_value_scheme->pointer.p_default_child_value_scheme);
+	if (p_metac_scheme->pointer.p_default_child_value_scheme != NULL) {
+		metac_scheme_put(&p_metac_scheme->pointer.p_default_child_value_scheme);
 	}
 
 	return 0;
 }
 
-static int top_object_scheme_builder_process_object_scheme(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static int deep_value_scheme_builder_process_value_scheme(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 
 	metac_count_t i;
 
-	if (metac_value_scheme_is_object(p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_value_scheme(p_metac_scheme) != 1) {
 		return 0;
 	}
 
-	for (i = 0; i < p_metac_value_scheme->p_object_scheme->pointers_value_schemes_count; ++i) {
+	for (i = 0; i < p_metac_scheme->p_value_scheme->pointers_value_schemes_count; ++i) {
 
 		char * target_global_path;
 
 		target_global_path = build_member_path(
 				global_path,
-				p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]->path_within_object);
+				p_metac_scheme->p_value_scheme->pp_pointers_value_schemes[i]->path_within_value);
 		if (target_global_path == NULL) {
 
 			msg_stderr("Can't build target_global_path for %s pointer %d\n", global_path, i);
@@ -2931,12 +2931,12 @@ static int top_object_scheme_builder_process_object_scheme(
 
 		msg_stddbg("%s\n", target_global_path);
 
-		if (top_object_scheme_builder_process_pointer(
-				p_top_object_scheme_builder,
+		if (deep_value_scheme_builder_process_pointer(
+				p_deep_value_scheme_builder,
 				target_global_path,
-				p_metac_value_scheme->p_object_scheme->pp_pointers_value_schemes[i]) != 0) {
+				p_metac_scheme->p_value_scheme->pp_pointers_value_schemes[i]) != 0) {
 
-			msg_stderr("top_object_scheme_builder_process_pointer failed for %s pointer %d\n", global_path, i);
+			msg_stderr("deep_value_scheme_builder_process_pointer failed for %s pointer %d\n", global_path, i);
 
 			free(target_global_path);
 			return (-EFAULT);
@@ -2948,81 +2948,83 @@ static int top_object_scheme_builder_process_object_scheme(
 	return 0;
 }
 
-static int top_object_scheme_builder_process_object_scheme_fn(
+static int deep_value_scheme_builder_process_value_scheme_fn(
 	struct scheduler * 								p_engine,
 	struct scheduler_task * 						p_task,
 	int 											error_flag) {
 
-	struct top_object_scheme_builder * p_top_object_scheme_builder =
-		cds_list_entry(p_engine, struct top_object_scheme_builder, scheduler);
+	struct deep_value_scheme_builder * p_deep_value_scheme_builder =
+		cds_list_entry(p_engine, struct deep_value_scheme_builder, scheduler);
 
-	struct top_object_scheme_builder_value_scheme_task * p_top_object_scheme_builder_value_scheme_task =
-		cds_list_entry(p_task, struct top_object_scheme_builder_value_scheme_task, task);
+	struct deep_value_scheme_builder_value_scheme_task * p_deep_value_scheme_builder_value_scheme_task =
+		cds_list_entry(p_task, struct deep_value_scheme_builder_value_scheme_task, task);
 
 	/*TODO: consider deletion of the task after execution or adding them to the task pool */
-	cds_list_add_tail(&p_task->list, &p_top_object_scheme_builder->executed_tasks);
+	cds_list_add_tail(&p_task->list, &p_deep_value_scheme_builder->executed_tasks);
 
 	if (error_flag != 0) {
 
 		return (-EALREADY);
 	}
 
-	return top_object_scheme_builder_process_object_scheme(
-			p_top_object_scheme_builder,
-			p_top_object_scheme_builder_value_scheme_task->global_path,
-			p_top_object_scheme_builder_value_scheme_task->p_metac_value_scheme);
+	return deep_value_scheme_builder_process_value_scheme(
+			p_deep_value_scheme_builder,
+			p_deep_value_scheme_builder_value_scheme_task->global_path,
+			p_deep_value_scheme_builder_value_scheme_task->p_metac_scheme);
 }
 
 
-static int top_object_scheme_builder_value_scheme_task_delete(
-		struct top_object_scheme_builder_value_scheme_task **
-													pp_top_object_scheme_builder_value_scheme_task) {
-	_delete_start_(top_object_scheme_builder_value_scheme_task);
+static int deep_value_scheme_builder_value_scheme_task_delete(
+		struct deep_value_scheme_builder_value_scheme_task **
+													pp_deep_value_scheme_builder_value_scheme_task) {
 
-	if ((*pp_top_object_scheme_builder_value_scheme_task)->global_path) {
+	_delete_start_(deep_value_scheme_builder_value_scheme_task);
 
-		free((*pp_top_object_scheme_builder_value_scheme_task)->global_path);
-		(*pp_top_object_scheme_builder_value_scheme_task)->global_path = NULL;
+	if ((*pp_deep_value_scheme_builder_value_scheme_task)->global_path) {
+
+		free((*pp_deep_value_scheme_builder_value_scheme_task)->global_path);
+		(*pp_deep_value_scheme_builder_value_scheme_task)->global_path = NULL;
 	}
 
-	if ((*pp_top_object_scheme_builder_value_scheme_task)->p_metac_value_scheme != NULL) {
+	if ((*pp_deep_value_scheme_builder_value_scheme_task)->p_metac_scheme != NULL) {
 
-		metac_value_scheme_put(&(*pp_top_object_scheme_builder_value_scheme_task)->p_metac_value_scheme);
+		metac_scheme_put(&(*pp_deep_value_scheme_builder_value_scheme_task)->p_metac_scheme);
 	}
 
-	_delete_finish(top_object_scheme_builder_value_scheme_task);
+	_delete_finish(deep_value_scheme_builder_value_scheme_task);
 	return 0;
 }
 
-static struct top_object_scheme_builder_value_scheme_task * top_object_scheme_builder_value_scheme_task_create(
+static struct deep_value_scheme_builder_value_scheme_task * deep_value_scheme_builder_value_scheme_task_create(
 		scheduler_task_fn_t 						fn,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
-	_create_(top_object_scheme_builder_value_scheme_task);
+		struct metac_scheme *						p_metac_scheme) {
 
-	p_top_object_scheme_builder_value_scheme_task->task.fn = fn;
-	p_top_object_scheme_builder_value_scheme_task->global_path = strdup(global_path);
-	p_top_object_scheme_builder_value_scheme_task->p_metac_value_scheme = metac_value_scheme_get(p_metac_value_scheme);
+	_create_(deep_value_scheme_builder_value_scheme_task);
 
-	if (p_top_object_scheme_builder_value_scheme_task->global_path == NULL ||
-		p_top_object_scheme_builder_value_scheme_task->p_metac_value_scheme == NULL) {
+	p_deep_value_scheme_builder_value_scheme_task->task.fn = fn;
+	p_deep_value_scheme_builder_value_scheme_task->global_path = strdup(global_path);
+	p_deep_value_scheme_builder_value_scheme_task->p_metac_scheme = metac_scheme_get(p_metac_scheme);
 
-		msg_stderr("wasn't able to duplicate global_path or p_metac_value_scheme\n");
-		top_object_scheme_builder_value_scheme_task_delete(&p_top_object_scheme_builder_value_scheme_task);
+	if (p_deep_value_scheme_builder_value_scheme_task->global_path == NULL ||
+		p_deep_value_scheme_builder_value_scheme_task->p_metac_scheme == NULL) {
+
+		msg_stderr("wasn't able to duplicate global_path or p_metac_scheme\n");
+		deep_value_scheme_builder_value_scheme_task_delete(&p_deep_value_scheme_builder_value_scheme_task);
 		return NULL;
 	}
-	return p_top_object_scheme_builder_value_scheme_task;
+	return p_deep_value_scheme_builder_value_scheme_task;
 }
 
-static int top_object_scheme_builder_schedule_object_scheme(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static int deep_value_scheme_builder_schedule_value_scheme(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		char *										global_path,
-		struct metac_scheme *					p_metac_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 
-	struct top_object_scheme_builder_value_scheme_task * p_task = top_object_scheme_builder_value_scheme_task_create(
-		top_object_scheme_builder_process_object_scheme_fn,
+	struct deep_value_scheme_builder_value_scheme_task * p_task = deep_value_scheme_builder_value_scheme_task_create(
+		deep_value_scheme_builder_process_value_scheme_fn,
 		global_path,
-		p_metac_value_scheme);
+		p_metac_scheme);
 	if (p_task == NULL) {
 
 		msg_stderr("wasn't able to create a task\n");
@@ -3030,168 +3032,168 @@ static int top_object_scheme_builder_schedule_object_scheme(
 	}
 
 	if (scheduler_add_task_to_front(
-		&p_top_object_scheme_builder->scheduler,
+		&p_deep_value_scheme_builder->scheduler,
 		&p_task->task) != 0) {
 
 		msg_stderr("wasn't able to schedule task\n");
-		top_object_scheme_builder_value_scheme_task_delete(&p_task);
+		deep_value_scheme_builder_value_scheme_task_delete(&p_task);
 		return -(EFAULT);
 	}
 
 	return 0;
 }
 
-static void top_object_scheme_container_clean(
-		struct top_object_scheme_container *		p_top_object_scheme_container) {
+static void deep_value_scheme_container_clean(
+		struct deep_value_scheme_container *		p_deep_value_scheme_container) {
 
-	struct top_object_scheme_container_object_scheme * value_scheme, * _value_scheme;
+	struct deep_value_scheme_container_value_scheme * value_scheme, * _value_scheme;
 
-	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_top_object_scheme_container->objects, list) {
+	cds_list_for_each_entry_safe(value_scheme, _value_scheme, &p_deep_value_scheme_container->objects, list) {
 
 		cds_list_del(&value_scheme->list);
-		top_object_scheme_container_object_scheme_delete(&value_scheme);
+		deep_value_scheme_container_value_scheme_delete(&value_scheme);
 	}
 }
 
-static int top_object_scheme_container_init(
-		struct top_object_scheme_container *		p_top_object_scheme_container) {
+static int deep_value_scheme_container_init(
+		struct deep_value_scheme_container *		p_deep_value_scheme_container) {
 
-	CDS_INIT_LIST_HEAD(&p_top_object_scheme_container->objects);
+	CDS_INIT_LIST_HEAD(&p_deep_value_scheme_container->objects);
 
 	return 0;
 }
 
-static void top_object_scheme_builder_clean(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder) {
-	struct top_object_scheme_builder_value_scheme_task * p_task, *_p_task;
+static void deep_value_scheme_builder_clean(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder) {
+	struct deep_value_scheme_builder_value_scheme_task * p_task, *_p_task;
 
-	scheduler_clean(&p_top_object_scheme_builder->scheduler);
+	scheduler_clean(&p_deep_value_scheme_builder->scheduler);
 
-	cds_list_for_each_entry_safe(p_task, _p_task, &p_top_object_scheme_builder->executed_tasks, task.list) {
+	cds_list_for_each_entry_safe(p_task, _p_task, &p_deep_value_scheme_builder->executed_tasks, task.list) {
 
 		cds_list_del(&p_task->task.list);
-		top_object_scheme_builder_value_scheme_task_delete(&p_task);
+		deep_value_scheme_builder_value_scheme_task_delete(&p_task);
 	}
 
-	top_object_scheme_container_clean(&p_top_object_scheme_builder->container);
+	deep_value_scheme_container_clean(&p_deep_value_scheme_builder->container);
 
-	p_top_object_scheme_builder->p_root_type = NULL;
-	p_top_object_scheme_builder->p_override_annotations = NULL;
+	p_deep_value_scheme_builder->p_root_type = NULL;
+	p_deep_value_scheme_builder->p_override_annotations = NULL;
 }
 
-static int top_object_scheme_builder_init(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
+static int deep_value_scheme_builder_init(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
 		struct metac_type *							p_root_type,
 		metac_type_annotation_t *					p_override_annotations) {
 
-	p_top_object_scheme_builder->p_root_type = p_root_type;
-	p_top_object_scheme_builder->p_override_annotations = p_override_annotations;
-	top_object_scheme_container_init(&p_top_object_scheme_builder->container);
+	p_deep_value_scheme_builder->p_root_type = p_root_type;
+	p_deep_value_scheme_builder->p_override_annotations = p_override_annotations;
+	deep_value_scheme_container_init(&p_deep_value_scheme_builder->container);
 
-	CDS_INIT_LIST_HEAD(&p_top_object_scheme_builder->executed_tasks);
+	CDS_INIT_LIST_HEAD(&p_deep_value_scheme_builder->executed_tasks);
 
-	scheduler_init(&p_top_object_scheme_builder->scheduler);
+	scheduler_init(&p_deep_value_scheme_builder->scheduler);
 
 	return 0;
 }
 
-static void top_object_scheme_clean(
-		struct top_object_scheme *					p_top_object_scheme) {
+static void deep_value_scheme_clean(
+		struct deep_value_scheme *					p_deep_value_scheme) {
 
-	if (p_top_object_scheme->p_objects != NULL) {
+	if (p_deep_value_scheme->p_objects != NULL) {
 
 		metac_count_t i = 0;
 
-		for (i = 0; i < p_top_object_scheme->objects_count; ++i) {
+		for (i = 0; i < p_deep_value_scheme->objects_count; ++i) {
 
-			if (p_top_object_scheme->p_objects[i].pp_pointers != NULL) {
+			if (p_deep_value_scheme->p_objects[i].pp_pointers != NULL) {
 
 				metac_count_t j = 0;
 
-				for (j = 0; j < p_top_object_scheme->p_objects[i].pointers_count; ++j) {
+				for (j = 0; j < p_deep_value_scheme->p_objects[i].pointers_count; ++j) {
 
-					if (p_top_object_scheme->p_objects[i].pp_pointers[j] != NULL) {
+					if (p_deep_value_scheme->p_objects[i].pp_pointers[j] != NULL) {
 
-						top_object_scheme_unprocess_pointer(p_top_object_scheme->p_objects[i].pp_pointers[j]);
-						metac_value_scheme_put(&p_top_object_scheme->p_objects[i].pp_pointers[j]);
+						deep_value_scheme_unprocess_pointer(p_deep_value_scheme->p_objects[i].pp_pointers[j]);
+						metac_scheme_put(&p_deep_value_scheme->p_objects[i].pp_pointers[j]);
 					}
 				}
 
-				p_top_object_scheme->p_objects[i].pointers_count = 0;
+				p_deep_value_scheme->p_objects[i].pointers_count = 0;
 
-				free(p_top_object_scheme->p_objects[i].pp_pointers);
-				p_top_object_scheme->p_objects[i].pp_pointers = NULL;
+				free(p_deep_value_scheme->p_objects[i].pp_pointers);
+				p_deep_value_scheme->p_objects[i].pp_pointers = NULL;
 			}
 		}
 
 		/*don't put it to the previous cycle, because it may cause long recursive calls and we want to avoid that for big data structures*/
-		for (i = 0; i < p_top_object_scheme->objects_count; ++i) {
+		for (i = 0; i < p_deep_value_scheme->objects_count; ++i) {
 
-			if (p_top_object_scheme->p_objects[i].p_object != NULL) {
-				metac_value_scheme_put(&p_top_object_scheme->p_objects[i].p_object);
+			if (p_deep_value_scheme->p_objects[i].p_object != NULL) {
+				metac_scheme_put(&p_deep_value_scheme->p_objects[i].p_object);
 			}
 
 		}
 
-		p_top_object_scheme->objects_count = 0;
+		p_deep_value_scheme->objects_count = 0;
 
-		free(p_top_object_scheme->p_objects);
-		p_top_object_scheme->p_objects = NULL;
+		free(p_deep_value_scheme->p_objects);
+		p_deep_value_scheme->p_objects = NULL;
 	}
 }
 
-static int top_object_scheme_init(
-		struct top_object_scheme *					p_top_object_scheme,
-		struct top_object_scheme_builder *			p_top_object_scheme_builder) {
+static int deep_value_scheme_init(
+		struct deep_value_scheme *					p_deep_value_scheme,
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder) {
 
-	struct top_object_scheme_container_object_scheme * _value_scheme;
-	struct top_object_scheme_container_pointer_scheme * _pointer_scheme;
+	struct deep_value_scheme_container_value_scheme * _value_scheme;
+	struct deep_value_scheme_container_pointer_scheme * _pointer_scheme;
 
-	p_top_object_scheme->objects_count = 0;
+	p_deep_value_scheme->objects_count = 0;
 
 	/*get arrays lengths */
-	cds_list_for_each_entry(_value_scheme, &p_top_object_scheme_builder->container.objects, list) {
-		++p_top_object_scheme->objects_count;
+	cds_list_for_each_entry(_value_scheme, &p_deep_value_scheme_builder->container.objects, list) {
+		++p_deep_value_scheme->objects_count;
 	}
 
 	/*fill all the data*/
-	if (p_top_object_scheme->objects_count > 0) {
+	if (p_deep_value_scheme->objects_count > 0) {
 
 		metac_count_t i = 0;
 		metac_count_t j = 0;
 
-		p_top_object_scheme->p_objects = (struct top_object_scheme_object *)calloc(
-				p_top_object_scheme->objects_count, sizeof(*p_top_object_scheme->p_objects));
-		if (p_top_object_scheme->p_objects == NULL) {
+		p_deep_value_scheme->p_objects = (struct deep_value_scheme_object *)calloc(
+				p_deep_value_scheme->objects_count, sizeof(*p_deep_value_scheme->p_objects));
+		if (p_deep_value_scheme->p_objects == NULL) {
 
 			msg_stderr("p_objects is NULL\n");
 			return (-ENOMEM);
 		}
 
-		cds_list_for_each_entry(_value_scheme, &p_top_object_scheme_builder->container.objects, list) {
+		cds_list_for_each_entry(_value_scheme, &p_deep_value_scheme_builder->container.objects, list) {
 
-			p_top_object_scheme->p_objects[i].p_object = metac_value_scheme_get(_value_scheme->p_object_metac_value_scheme);
-			if (p_top_object_scheme->p_objects[i].p_object == NULL) {
+			p_deep_value_scheme->p_objects[i].p_object = metac_scheme_get(_value_scheme->p_object_metac_scheme);
+			if (p_deep_value_scheme->p_objects[i].p_object == NULL) {
 
-				msg_stderr("metac_value_scheme_get failed\n");
+				msg_stderr("metac_scheme_get failed\n");
 				return (-ENOMEM);
 			}
 
 			/* init pointers */
-			p_top_object_scheme->p_objects[i].pointers_count = 0;
+			p_deep_value_scheme->p_objects[i].pointers_count = 0;
 
 			/*get arrays lengths */
 			cds_list_for_each_entry(_pointer_scheme, &_value_scheme->pointers, list) {
-				++p_top_object_scheme->p_objects[i].pointers_count;
+				++p_deep_value_scheme->p_objects[i].pointers_count;
 			}
 
-			assert(p_top_object_scheme->p_objects[i].pointers_count > 0);
+			assert(p_deep_value_scheme->p_objects[i].pointers_count > 0);
 
-			if (p_top_object_scheme->p_objects[i].pointers_count > 0) {
+			if (p_deep_value_scheme->p_objects[i].pointers_count > 0) {
 
-				p_top_object_scheme->p_objects[i].pp_pointers = (struct metac_scheme **)calloc(
-						p_top_object_scheme->p_objects[i].pointers_count, sizeof(*p_top_object_scheme->p_objects[i].pp_pointers));
-				if (p_top_object_scheme->p_objects[i].pp_pointers == NULL) {
+				p_deep_value_scheme->p_objects[i].pp_pointers = (struct metac_scheme **)calloc(
+						p_deep_value_scheme->p_objects[i].pointers_count, sizeof(*p_deep_value_scheme->p_objects[i].pp_pointers));
+				if (p_deep_value_scheme->p_objects[i].pp_pointers == NULL) {
 
 					msg_stderr("p_pointers is NULL\n");
 					return (-ENOMEM);
@@ -3199,11 +3201,11 @@ static int top_object_scheme_init(
 
 				j = 0;
 				cds_list_for_each_entry(_pointer_scheme, &_value_scheme->pointers, list) {
-					p_top_object_scheme->p_objects[i].pp_pointers[j] = metac_value_scheme_get(_pointer_scheme->p_pointer_metac_value_scheme);
+					p_deep_value_scheme->p_objects[i].pp_pointers[j] = metac_scheme_get(_pointer_scheme->p_pointer_metac_scheme);
 
-					if (p_top_object_scheme->p_objects[i].pp_pointers[j] == NULL) {
+					if (p_deep_value_scheme->p_objects[i].pp_pointers[j] == NULL) {
 
-						msg_stderr("metac_value_scheme_get failed\n");
+						msg_stderr("metac_scheme_get failed\n");
 						return (-ENOMEM);
 					}
 
@@ -3218,137 +3220,137 @@ static int top_object_scheme_init(
 	return 0;
 }
 
-static int top_object_scheme_delete(
-		struct top_object_scheme **					pp_top_object_scheme) {
-	_delete_start_(top_object_scheme);
-	top_object_scheme_clean(*pp_top_object_scheme);
-	_delete_finish(top_object_scheme);
+static int deep_value_scheme_delete(
+		struct deep_value_scheme **					pp_deep_value_scheme) {
+	_delete_start_(deep_value_scheme);
+	deep_value_scheme_clean(*pp_deep_value_scheme);
+	_delete_finish(deep_value_scheme);
 	return 0;
 }
 
-static struct top_object_scheme * top_object_scheme_create(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder) {
-	_create_(top_object_scheme);
+static struct deep_value_scheme * deep_value_scheme_create(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder) {
+	_create_(deep_value_scheme);
 
-	if (top_object_scheme_init(
-			p_top_object_scheme,
-			p_top_object_scheme_builder) != 0){
+	if (deep_value_scheme_init(
+			p_deep_value_scheme,
+			p_deep_value_scheme_builder) != 0){
 
-		msg_stderr("top_object_scheme_init failed\n");
+		msg_stderr("deep_value_scheme_init failed\n");
 
-		top_object_scheme_delete(&p_top_object_scheme);
+		deep_value_scheme_delete(&p_deep_value_scheme);
 		return NULL;
 	}
 
-	return p_top_object_scheme;
+	return p_deep_value_scheme;
 }
 
-metac_flag_t metac_value_scheme_is_top_object(
-		struct metac_scheme *					p_metac_value_scheme) {
+metac_flag_t metac_scheme_is_deep_value(
+		struct metac_scheme *						p_metac_scheme) {
 
-	if (metac_value_scheme_is_object(p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_value_scheme(p_metac_scheme) != 1) {
 
-		msg_stderr("metac_value_scheme_is_object isn't true\n");
+		msg_stderr("metac_scheme_is_value_scheme isn't true\n");
 		return -(EINVAL);
 	}
 
-	return (p_metac_value_scheme->p_object_scheme->p_top_object_scheme != NULL)?1:0;
+	return (p_metac_scheme->p_value_scheme->p_deep_value_scheme != NULL)?1:0;
 }
 
 
-static int metac_value_scheme_clean_as_top_object(
-		struct metac_scheme *					p_metac_value_scheme) {
+static int metac_scheme_clean_as_deep_value_scheme(
+		struct metac_scheme *						p_metac_scheme) {
 
 
-	if (metac_value_scheme_is_top_object(p_metac_value_scheme) != 1) {
+	if (metac_scheme_is_deep_value(p_metac_scheme) != 1) {
 
 		return -(EFAULT);
 	}
 
-	return top_object_scheme_delete(&p_metac_value_scheme->p_object_scheme->p_top_object_scheme);
+	return deep_value_scheme_delete(&p_metac_scheme->p_value_scheme->p_deep_value_scheme);
 }
 
-static int top_object_scheme_builder_finalize(
-		struct top_object_scheme_builder *			p_top_object_scheme_builder,
-		struct metac_scheme *					p_metac_value_scheme) {
+static int deep_value_scheme_builder_finalize(
+		struct deep_value_scheme_builder *			p_deep_value_scheme_builder,
+		struct metac_scheme *						p_metac_scheme) {
 
-	assert(p_metac_value_scheme);
-	assert(p_metac_value_scheme->p_object_scheme);
+	assert(p_metac_scheme);
+	assert(p_metac_scheme->p_value_scheme);
 
-	p_metac_value_scheme->p_object_scheme->p_top_object_scheme = top_object_scheme_create(p_top_object_scheme_builder);
-	if (p_metac_value_scheme->p_object_scheme->p_top_object_scheme == NULL) {
+	p_metac_scheme->p_value_scheme->p_deep_value_scheme = deep_value_scheme_create(p_deep_value_scheme_builder);
+	if (p_metac_scheme->p_value_scheme->p_deep_value_scheme == NULL) {
 
-		msg_stderr("object_scheme_create failed\n");
+		msg_stderr("value_scheme_create failed\n");
 		return -(EFAULT);
 	}
 
 	return 0;
 }
 
-static int metac_value_scheme_init_as_top_object(
-		struct metac_scheme *					p_metac_value_scheme,
+static int metac_scheme_init_as_deep_value_scheme(
+		struct metac_scheme *						p_metac_scheme,
 		struct metac_type *							p_root_type,
 		char * 										global_path,
 		metac_type_annotation_t *					p_override_annotations,
 		struct metac_type *							p_type) {
 
 
-	struct top_object_scheme_builder top_object_scheme_builder;
+	struct deep_value_scheme_builder deep_value_scheme_builder;
 
-	top_object_scheme_builder_init(&top_object_scheme_builder, p_root_type, p_override_annotations);
+	deep_value_scheme_builder_init(&deep_value_scheme_builder, p_root_type, p_override_annotations);
 
-	if (metac_value_scheme_init_as_object(
-			p_metac_value_scheme,
+	if (metac_scheme_init_as_value_scheme(
+			p_metac_scheme,
 			p_root_type,
 			global_path,
 			p_override_annotations,
 			p_type) != 0) {
 
-		msg_stderr("metac_value_scheme_init_as_object failed\n");
+		msg_stderr("metac_scheme_init_as_value_scheme failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		top_object_scheme_builder_clean(&top_object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		deep_value_scheme_builder_clean(&deep_value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (top_object_scheme_builder_process_object_scheme(
-			&top_object_scheme_builder,
+	if (deep_value_scheme_builder_process_value_scheme(
+			&deep_value_scheme_builder,
 			global_path,
-			p_metac_value_scheme) != 0) {
+			p_metac_scheme) != 0) {
 
-		msg_stddbg("top_object_scheme_builder_process_object_scheme failed\n");
+		msg_stddbg("deep_value_scheme_builder_process_value_scheme failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		top_object_scheme_builder_clean(&top_object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		deep_value_scheme_builder_clean(&deep_value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (scheduler_run(&top_object_scheme_builder.scheduler) != 0) {
+	if (scheduler_run(&deep_value_scheme_builder.scheduler) != 0) {
 
 		msg_stddbg("tasks execution finished with fail\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		top_object_scheme_builder_clean(&top_object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		deep_value_scheme_builder_clean(&deep_value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	if (top_object_scheme_builder_finalize(
-			&top_object_scheme_builder,
-			p_metac_value_scheme) != 0) {
+	if (deep_value_scheme_builder_finalize(
+			&deep_value_scheme_builder,
+			p_metac_scheme) != 0) {
 
-		msg_stddbg("top_object_scheme_builder_finalize failed\n");
+		msg_stddbg("deep_value_scheme_builder_finalize failed\n");
 
-		metac_value_scheme_clean(p_metac_value_scheme);
-		top_object_scheme_builder_clean(&top_object_scheme_builder);
+		metac_scheme_clean(p_metac_scheme);
+		deep_value_scheme_builder_clean(&deep_value_scheme_builder);
 		return (-EFAULT);
 	}
 
-	top_object_scheme_builder_clean(&top_object_scheme_builder);
+	deep_value_scheme_builder_clean(&deep_value_scheme_builder);
 
 	return 0;
 }
 
-static struct metac_scheme * metac_value_scheme_create_as_top_object(
+static struct metac_scheme * metac_scheme_create_as_deep_value_scheme(
 		struct metac_type *							p_type,
 		char * 										global_path,
 		struct metac_type *							p_root_type,
@@ -3358,33 +3360,33 @@ static struct metac_scheme * metac_value_scheme_create_as_top_object(
 
 	if (metac_refcounter_object_init(
 			&p_metac_scheme->refcounter_object,
-			&_metac_value_scheme_refcounter_object_ops,
+			&_metac_scheme_refcounter_object_ops,
 			NULL) != 0) {
 
 		msg_stderr("metac_refcounter_object_init failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
-	if (metac_value_scheme_init_as_top_object(
+	if (metac_scheme_init_as_deep_value_scheme(
 			p_metac_scheme,
 			p_root_type,
 			global_path,
 			p_override_annotations,
 			p_type) != 0) {
 
-		msg_stderr("metac_value_scheme_init_as_top_object failed\n");
+		msg_stderr("metac_scheme_init_as_deep_value_scheme failed\n");
 
-		metac_value_scheme_delete(&p_metac_scheme);
+		metac_scheme_delete(&p_metac_scheme);
 		return NULL;
 	}
 
 	return p_metac_scheme;
 }
 /*****************************************************************************/
-static int metac_value_scheme_clean(
-		struct metac_scheme *					p_value_scheme) {
+static int metac_scheme_clean(
+		struct metac_scheme *						p_value_scheme) {
 
 	int res = 0;
 
@@ -3394,49 +3396,49 @@ static int metac_value_scheme_clean(
 		return -EINVAL;
 	}
 
-	if (metac_value_scheme_is_object(p_value_scheme) == 1) {
+	if (metac_scheme_is_value_scheme(p_value_scheme) == 1) {
 
-		if (metac_value_scheme_is_top_object(p_value_scheme) == 1) {
+		if (metac_scheme_is_deep_value(p_value_scheme) == 1) {
 
-			res = metac_value_scheme_clean_as_top_object(p_value_scheme);
+			res = metac_scheme_clean_as_deep_value_scheme(p_value_scheme);
 		}
 
-		res = metac_value_scheme_clean_as_object(p_value_scheme);
+		res = metac_scheme_clean_as_value_scheme(p_value_scheme);
 
 	}
 
-	if (metac_value_scheme_is_hierarchy_member(p_value_scheme) == 1) {
+	if (metac_scheme_is_hierarchy_member(p_value_scheme) == 1) {
 
-		res = metac_value_scheme_clean_as_hierarchy_member(p_value_scheme);
+		res = metac_scheme_clean_as_hierarchy_member(p_value_scheme);
 
-	} else if (metac_value_scheme_is_hierarchy_top(p_value_scheme) == 1) {
+	} else if (metac_scheme_is_hierarchy_top(p_value_scheme) == 1) {
 
-		res = metac_value_scheme_clean_as_hierarchy_top(p_value_scheme);
+		res = metac_scheme_clean_as_hierarchy_top(p_value_scheme);
 
 	} else {
 
-		assert(metac_value_scheme_is_indexable(p_value_scheme) == 1);
+		assert(metac_scheme_is_indexable(p_value_scheme) == 1);
 
 		if (p_value_scheme->p_actual_type != NULL) {
 
 			switch(p_value_scheme->p_actual_type->id) {
 			case DW_TAG_structure_type:
 			case DW_TAG_union_type:
-				res = metac_value_scheme_clean_as_hierarchy_top(p_value_scheme);
+				res = metac_scheme_clean_as_hierarchy_top(p_value_scheme);
 				break;
 			case DW_TAG_array_type:
-				value_scheme_with_array_clean(&p_value_scheme->array);
+				scheme_with_array_clean(&p_value_scheme->array);
 				break;
 			case DW_TAG_pointer_type:
-				value_scheme_with_pointer_clean(&p_value_scheme->pointer);
+				scheme_with_pointer_clean(&p_value_scheme->pointer);
 				break;
 			}
 		}
 	}
 
-	if (p_value_scheme->path_within_object != NULL) {
-		free(p_value_scheme->path_within_object);
-		p_value_scheme->path_within_object = NULL;
+	if (p_value_scheme->path_within_value != NULL) {
+		free(p_value_scheme->path_within_value);
+		p_value_scheme->path_within_value = NULL;
 	}
 	p_value_scheme->byte_size = 0;
 	p_value_scheme->p_actual_type = NULL;
@@ -3445,20 +3447,20 @@ static int metac_value_scheme_clean(
 	return res;
 }
 
-struct metac_scheme * metac_value_scheme_create(
+struct metac_scheme * metac_scheme_create(
 		struct metac_type *							p_type,
 		metac_type_annotation_t *					p_override_annotations,
-		metac_flag_t								follow_pointers) {
+		metac_flag_t								go_deep) {
 
-	if (follow_pointers == 0) {
-		return metac_value_scheme_create_as_object(
+	if (go_deep == 0) {
+		return metac_scheme_create_as_value_scheme(
 				p_type,
 				"",
 				p_type,
 				p_override_annotations);
 	}
 
-	return metac_value_scheme_create_as_top_object(
+	return metac_scheme_create_as_deep_value_scheme(
 			p_type,
 			"",
 			p_type,
