@@ -20,8 +20,8 @@ typedef struct _basic_tree {
 METAC_TYPE_GENERATE_AND_IMPORT(basic_tree_t);
 
 START_TEST(metac_value_scheme_001) {
-	struct metac_value_scheme * p_metac_value_scheme;
-	struct metac_value_scheme * p_metac_value_scheme_copy;
+	struct metac_scheme * p_metac_value_scheme;
+	struct metac_scheme * p_metac_value_scheme_copy;
 
 	p_metac_value_scheme = metac_value_scheme_create(
 			&METAC_TYPE_NAME(basic_tree_t),
