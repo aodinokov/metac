@@ -30,12 +30,12 @@ START_TEST(metac_scheme_001) {
 
 	fail_unless(p_metac_scheme != NULL, "Wasn't able to generate value_scheme for basic_tree_t");
 	fail_unless(metac_scheme_is_indexable(p_metac_scheme) == 1);
-	fail_unless(metac_scheme_is_hierarchy_top(p_metac_scheme) == 1);
-	fail_unless(metac_scheme_is_hierarchy_member(p_metac_scheme) == 0);
-	fail_unless(metac_scheme_get_parent_value_scheme(p_metac_scheme) == NULL);
-	fail_unless(metac_scheme_is_hierachy(p_metac_scheme) == 1);
-	fail_unless(metac_scheme_is_pointer(p_metac_scheme) == 0);
-	fail_unless(metac_scheme_is_array(p_metac_scheme) == 0);
+	fail_unless(metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) == 1);
+	fail_unless(metac_scheme_is_hierarchy_member_scheme(p_metac_scheme) == 0);
+	fail_unless(metac_hierarchy_member_scheme_get_parent_scheme(p_metac_scheme) == NULL);
+	fail_unless(metac_scheme_is_hierachy_scheme(p_metac_scheme) == 1);
+	fail_unless(metac_scheme_is_pointer_scheme(p_metac_scheme) == 0);
+	fail_unless(metac_scheme_is_array_scheme(p_metac_scheme) == 0);
 
 	p_metac_scheme_copy = metac_scheme_get(p_metac_scheme);
 	fail_unless(p_metac_scheme_copy != NULL);

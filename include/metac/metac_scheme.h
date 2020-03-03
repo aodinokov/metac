@@ -147,11 +147,11 @@ struct metac_scheme * metac_scheme_get(
 int metac_scheme_put(
 		struct metac_scheme **						pp_metac_scheme);
 
-metac_flag_t metac_scheme_is_hierachy(
+metac_flag_t metac_scheme_is_hierachy_scheme(
 		struct metac_scheme *						p_metac_scheme);
-metac_flag_t metac_scheme_is_array(
+metac_flag_t metac_scheme_is_array_scheme(
 		struct metac_scheme *						p_metac_scheme);
-metac_flag_t metac_scheme_is_pointer(
+metac_flag_t metac_scheme_is_pointer_scheme(
 		struct metac_scheme *						p_metac_scheme);
 
 metac_flag_t metac_scheme_is_deep_value_scheme(										/* rename to object_initializer??? object_scheme... or value_with_pointers_applicable */
@@ -160,11 +160,11 @@ metac_flag_t metac_scheme_is_value_scheme(											/* rename to value_initiali
 		struct metac_scheme *						p_metac_scheme);				/* can be any type or consist of any combination of types. Can be applied to any block */
 metac_flag_t metac_scheme_is_indexable(
 		struct metac_scheme *						p_metac_scheme);				/* can be used as element of array */
-metac_flag_t metac_scheme_is_hierarchy_top(
+metac_flag_t metac_scheme_is_hierarchy_top_scheme(
 		struct metac_scheme *						p_metac_scheme);
-metac_flag_t metac_scheme_is_hierarchy_member(
+metac_flag_t metac_scheme_is_hierarchy_member_scheme(
 		struct metac_scheme *						p_metac_scheme);
-struct metac_scheme * metac_scheme_get_parent_value_scheme(
+struct metac_scheme * metac_hierarchy_member_scheme_get_parent_scheme(
 		struct metac_scheme *						p_metac_scheme);
 
 #endif /* INCLUDE_METAC_METAC_SCHEME_H_ */
