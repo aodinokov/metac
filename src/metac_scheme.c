@@ -114,6 +114,34 @@ int metac_scheme_put(
 }
 
 /*****************************************************************************/
+static int generic_cast_type_delete(
+		struct generic_cast_type **					pp_generic_cast_type,
+		metac_count_t								types_count) {
+
+	metac_count_t i = 0;
+
+	if (pp_generic_cast_type == NULL) {
+		return -EINVAL;
+	}
+
+	if ((*pp_generic_cast_type) == NULL) {
+		return -EALREADY;
+	}
+
+	for (i = 0; i < types_count; ++i) {
+		if ((*pp_generic_cast_type)[i].p_type != NULL) {
+
+			metac_type_put(&(*pp_generic_cast_type)[i].p_type);
+		}
+	}
+
+	free((*pp_generic_cast_type));
+	(*pp_generic_cast_type) = NULL;
+
+	return 0;
+}
+
+
 static struct generic_cast_type * generic_cast_type_create(
 		struct metac_type **						types,
 		metac_count_t *								p_types_count) {
@@ -132,6 +160,7 @@ static struct generic_cast_type * generic_cast_type_create(
 
 	p_generic_cast_type = calloc(i, sizeof(*p_generic_cast_type));
 	if (p_generic_cast_type == NULL) {
+
 		msg_stderr("Wasn't able to allocate memory for p_generic_cast_type\n");
 		return NULL;
 	}
@@ -139,7 +168,14 @@ static struct generic_cast_type * generic_cast_type_create(
 	*p_types_count = i;
 	for (i = 0 ; i < *p_types_count; ++i) {
 
-		p_generic_cast_type[i].p_type = types[i];
+		p_generic_cast_type[i].p_type = metac_type_get(types[i]);
+		if (p_generic_cast_type[i].p_type == NULL) {
+
+			msg_stderr("metac_type_get failed\n");
+			generic_cast_type_delete(&p_generic_cast_type, *p_types_count);
+
+			return NULL;
+		}
 	}
 
 	return p_generic_cast_type;
@@ -225,7 +261,7 @@ static int scheme_with_array_init(
 	/* defaults for char[] */
 	if (p_actual_type->array_type_info.is_flexible != 0) {
 
-		p_target_actual_type = metac_type_actual_type(p_actual_type->array_type_info.type);
+		p_target_actual_type = metac_type_get_actual_type(p_actual_type->array_type_info.type);
 		if (p_target_actual_type != NULL &&
 			p_target_actual_type->id == DW_TAG_base_type && (
 				p_target_actual_type->base_type_info.encoding == DW_ATE_signed_char ||
@@ -306,7 +342,7 @@ static int scheme_with_pointer_init(
 	/*default for char* is metac_array_elements_1d_with_null */
 	if (p_actual_type->pointer_type_info.type != NULL) {
 
-		p_target_actual_type = metac_type_actual_type(p_actual_type->pointer_type_info.type);
+		p_target_actual_type = metac_type_get_actual_type(p_actual_type->pointer_type_info.type);
 		if (p_target_actual_type != NULL &&
 			p_target_actual_type->id == DW_TAG_base_type && (
 				p_target_actual_type->base_type_info.encoding == DW_ATE_signed_char ||
@@ -355,8 +391,9 @@ static void scheme_with_pointer_clean(
 			}
 		}
 
-		free(p_scheme_with_pointer->generic_cast.p_types);
-		p_scheme_with_pointer->generic_cast.p_types = NULL;
+		generic_cast_type_delete(
+				&p_scheme_with_pointer->generic_cast.p_types,
+				p_scheme_with_pointer->generic_cast.types_count);
 	}
 
 	if (p_scheme_with_pointer->p_default_child_value_scheme != NULL) {
@@ -526,9 +563,16 @@ static int metac_scheme_init_as_hierarchy_member_scheme(
 		p_metac_scheme->hierarchy_member.offset += p_parent_metac_scheme->hierarchy_member.offset;
 	}
 
-	p_metac_scheme->p_type = p_member_info->type;
-	if (p_metac_scheme->p_type != NULL) {
-		p_metac_scheme->p_actual_type = metac_type_actual_type(p_member_info->type);
+	if (p_member_info->type != NULL) {
+
+		p_metac_scheme->p_type = metac_type_get(p_member_info->type);
+		if (p_metac_scheme->p_type == NULL) {
+
+			msg_stderr("metac_type_get failed for %s\n", value_path);
+			return -(EFAULT);
+		}
+
+		p_metac_scheme->p_actual_type = metac_type_get_actual_type(p_member_info->type);
 		p_metac_scheme->byte_size = metac_type_byte_size(p_member_info->type);
 	}
 
@@ -1568,9 +1612,30 @@ static int metac_scheme_init_as_indexable(
 
 	int res = 0;
 
+	if (p_type == NULL) {
+
+		msg_stderr("invalid argument for %s\n", value_path);
+		return -(EINVAL);
+	}
+
 	p_metac_scheme->p_current_hierarchy = NULL;
-	p_metac_scheme->p_type = p_type;
-	p_metac_scheme->p_actual_type = metac_type_actual_type(p_type);
+
+	p_metac_scheme->p_type = metac_type_get(p_type);
+	if (p_metac_scheme->p_type == NULL) {
+
+		msg_stderr("metac_type_get failed for %s\n", value_path);
+		metac_scheme_clean(p_metac_scheme);
+		return -(EFAULT);
+	}
+
+	p_metac_scheme->p_actual_type = metac_type_get_actual_type(p_type);
+	if (p_metac_scheme->p_actual_type == NULL) {
+
+		msg_stderr("p_actual_type is NULL for %s\n", value_path);
+		metac_scheme_clean(p_metac_scheme);
+		return -(EFAULT);
+	}
+
 	p_metac_scheme->byte_size = metac_type_byte_size(p_type);
 
 	p_metac_scheme->path_within_value = strdup(value_path);
@@ -2828,7 +2893,7 @@ static int deep_value_scheme_builder_process_pointer(
 
 	/* main pointer */
 	if (p_metac_scheme->p_actual_type->pointer_type_info.type != NULL /*&&
-		metac_type_actual_type(p_metac_scheme->p_actual_type->pointer_type_info.type) != DW_TAG_subprogram*/) {
+		metac_type_get_actual_type(p_metac_scheme->p_actual_type->pointer_type_info.type) != DW_TAG_subprogram*/) {
 
 		char * target_global_path = alloc_sptrinf("%s[]", global_path);
 
@@ -3444,8 +3509,16 @@ static int metac_scheme_clean(
 		p_value_scheme->path_within_value = NULL;
 	}
 	p_value_scheme->byte_size = 0;
-	p_value_scheme->p_actual_type = NULL;
-	p_value_scheme->p_type = NULL;
+
+	if (p_value_scheme->p_actual_type != NULL) {
+
+		metac_type_put(&p_value_scheme->p_actual_type);
+	}
+
+	if (p_value_scheme->p_type != NULL) {
+
+		metac_type_put(&p_value_scheme->p_type);
+	}
 
 	return res;
 }

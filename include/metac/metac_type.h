@@ -149,6 +149,7 @@ const metac_type_annotation_t *
 
 /* dynamic functions - for future */
 struct metac_type * 	metac_type_create_pointer_for(struct metac_type * p_type);
+struct metac_type *		metac_type_get_actual_type(struct metac_type * p_metac_type);
 struct metac_type *		metac_type_get(struct metac_type * p_metac_type);
 int						metac_type_put(struct metac_type ** pp_metac_type);
 

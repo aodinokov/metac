@@ -35,7 +35,7 @@ struct scheme_with_pointer {
 		metac_cb_generic_cast_t						cb;
 		void *										p_data;
 		metac_count_t								types_count;
-		struct generic_cast_type{
+		struct generic_cast_type {
 			struct metac_type *						p_type;
 			struct metac_scheme *					p_child_value_scheme;
 		}*											p_types;
@@ -154,9 +154,9 @@ metac_flag_t metac_scheme_is_array_scheme(
 metac_flag_t metac_scheme_is_pointer_scheme(
 		struct metac_scheme *						p_metac_scheme);
 
-metac_flag_t metac_scheme_is_deep_value_scheme(										/* rename to object_initializer??? object_scheme... or value_with_pointers_applicable */
+metac_flag_t metac_scheme_is_deep_value_scheme(
 		struct metac_scheme *						p_metac_scheme);				/* contains in addition to object data it contains info on how to parse all objects referenced by pointers*/
-metac_flag_t metac_scheme_is_value_scheme(											/* rename to value_initializer??? value_scheme/complete_value_scheme is value_applicable */
+metac_flag_t metac_scheme_is_value_scheme(
 		struct metac_scheme *						p_metac_scheme);				/* can be any type or consist of any combination of types. Can be applied to any block */
 metac_flag_t metac_scheme_is_indexable(
 		struct metac_scheme *						p_metac_scheme);				/* can be used as element of array */

@@ -304,6 +304,18 @@ int metac_type_put(struct metac_type ** pp_metac_type) {
 	return -(EFAULT);
 }
 
+struct metac_type *metac_type_get_actual_type(struct metac_type * p_metac_type) {
+
+	struct metac_type * p_metac_type_actual = metac_type_actual_type(p_metac_type);
+
+	if (p_metac_type_actual != NULL) {
+
+		return metac_type_get(p_metac_type_actual);
+	}
+
+	return NULL;
+}
+
 /*****************************************************************************/
 struct metac_type * metac_type_by_name(struct metac_type_sorted_array * array, metac_name_t name) {
 	if (array == NULL || name == NULL)
