@@ -59,7 +59,7 @@ struct scheme_with_array {
 	}array_elements_count;
 };
 
-struct scheme_with_hierarchy {													/* struct or union */
+struct scheme_with_hierarchy {															/* struct or union */
 	metac_count_t 									members_count;
 	struct metac_scheme **							members;
 
@@ -155,11 +155,11 @@ metac_flag_t metac_scheme_is_pointer_scheme(
 		struct metac_scheme *						p_metac_scheme);
 
 metac_flag_t metac_scheme_is_deep_value_scheme(
-		struct metac_scheme *						p_metac_scheme);				/* contains in addition to object data it contains info on how to parse all objects referenced by pointers*/
+		struct metac_scheme *						p_metac_scheme);					/* contains in addition to object data it contains info on how to parse all objects referenced by pointers*/
 metac_flag_t metac_scheme_is_value_scheme(
-		struct metac_scheme *						p_metac_scheme);				/* can be any type or consist of any combination of types. Can be applied to any block */
+		struct metac_scheme *						p_metac_scheme);					/* can be any type or consist of any combination of types. Can be applied to any block */
 metac_flag_t metac_scheme_is_indexable(
-		struct metac_scheme *						p_metac_scheme);				/* can be used as element of array */
+		struct metac_scheme *						p_metac_scheme);					/* can be used as element of array */
 metac_flag_t metac_scheme_is_hierarchy_top_scheme(
 		struct metac_scheme *						p_metac_scheme);
 metac_flag_t metac_scheme_is_hierarchy_member_scheme(
