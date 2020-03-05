@@ -59,7 +59,7 @@ struct scheme_with_array {
 	}array_elements_count;
 };
 
-struct scheme_with_hierarchy {															/* struct or union */
+struct scheme_with_hierarchy {															/* structure or union */
 	metac_count_t 									members_count;
 	struct metac_scheme **							members;
 
@@ -147,8 +147,16 @@ struct metac_scheme * metac_scheme_get(
 int metac_scheme_put(
 		struct metac_scheme **						pp_metac_scheme);
 
-metac_flag_t metac_scheme_is_hierachy_scheme(
+metac_flag_t metac_scheme_is_base_scheme(
 		struct metac_scheme *						p_metac_scheme);
+metac_flag_t metac_scheme_is_enumeration_scheme(
+		struct metac_scheme *						p_metac_scheme);
+metac_flag_t metac_scheme_is_structure_scheme(
+		struct metac_scheme *						p_metac_scheme);
+metac_flag_t metac_scheme_is_union_scheme(
+		struct metac_scheme *						p_metac_scheme);
+metac_flag_t metac_scheme_is_hierachy_scheme(
+		struct metac_scheme *						p_metac_scheme);					/* structure or union */
 metac_flag_t metac_scheme_is_array_scheme(
 		struct metac_scheme *						p_metac_scheme);
 metac_flag_t metac_scheme_is_pointer_scheme(
@@ -160,8 +168,15 @@ metac_flag_t metac_scheme_is_value_scheme(
 		struct metac_scheme *						p_metac_scheme);					/* can be any type or consist of any combination of types. Can be applied to any block */
 metac_flag_t metac_scheme_is_indexable(
 		struct metac_scheme *						p_metac_scheme);					/* can be used as element of array */
+
 metac_flag_t metac_scheme_is_hierarchy_top_scheme(
 		struct metac_scheme *						p_metac_scheme);
+int metac_hierarchy_top_scheme_get_members_count(
+		struct metac_scheme *						p_metac_scheme);
+struct metac_scheme * metac_hierarchy_top_scheme_get_hierarchy_member_scheme(
+		struct metac_scheme *						p_metac_scheme,
+		metac_count_t								i);
+
 metac_flag_t metac_scheme_is_hierarchy_member_scheme(
 		struct metac_scheme *						p_metac_scheme);
 struct metac_scheme * metac_hierarchy_member_scheme_get_parent_scheme(

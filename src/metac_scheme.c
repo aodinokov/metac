@@ -723,6 +723,58 @@ metac_flag_t metac_scheme_is_hierachy_scheme(
 	return 0;
 }
 
+metac_flag_t metac_scheme_is_structure_scheme(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_structure_type)) {
+
+		return 1;
+	}
+
+	return 0;
+}
+
+metac_flag_t metac_scheme_is_union_scheme(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_union_type)) {
+
+		return 1;
+	}
+
+	return 0;
+}
+
+metac_flag_t metac_scheme_is_base_scheme(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_base_type)) {
+
+		return 1;
+	}
+
+	return 0;
+}
+
+metac_flag_t metac_scheme_is_enumeration_scheme(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (p_metac_scheme != NULL &&
+		p_metac_scheme->p_actual_type != NULL && (
+			p_metac_scheme->p_actual_type->id == DW_TAG_enumeration_type)) {
+
+		return 1;
+	}
+
+	return 0;
+}
+
 metac_flag_t metac_scheme_is_array_scheme(
 		struct metac_scheme *						p_metac_scheme) {
 
@@ -1492,6 +1544,42 @@ metac_flag_t metac_scheme_is_hierarchy_top_scheme(
 
 	return (p_metac_scheme->p_current_hierarchy == NULL &&
 			metac_scheme_is_hierachy_scheme(p_metac_scheme) == 1)?1:0;
+}
+
+int metac_hierarchy_top_scheme_get_members_count(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) != 1) {
+
+		msg_stderr("invalid argument\n");
+		return -(EINVAL);
+	}
+
+	return p_metac_scheme->hierarchy_top.members_count;
+}
+
+struct metac_scheme * metac_hierarchy_top_scheme_get_hierarchy_member_scheme(
+		struct metac_scheme *						p_metac_scheme,
+		metac_count_t								i) {
+
+	if (metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) != 1) {
+
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	if (i >= p_metac_scheme->hierarchy_top.members_count) {
+
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	if (p_metac_scheme->hierarchy_top.pp_members[i] == NULL) {
+
+		return NULL;
+	}
+
+	return metac_scheme_get(p_metac_scheme->hierarchy_top.pp_members[i]);
 }
 
 static int metac_scheme_clean_as_hierarchy_top_scheme(
