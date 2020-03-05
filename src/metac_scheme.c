@@ -2878,7 +2878,53 @@ static struct metac_scheme * deep_value_scheme_builder_update_record_or_create_n
 	}
 
 	return p_result;
+}
 
+static int _filter_pointer(
+		struct metac_type *							p_metac_type) {
+
+	int res = 0;
+
+	struct metac_type * p_actual_metac_type;
+	struct metac_type * p_actual_target_metac_type;
+
+	if (p_metac_type == NULL) {
+
+		return -EINVAL;
+	}
+
+	p_actual_metac_type = metac_type_get_actual_type(p_metac_type);
+
+	if (p_actual_metac_type == NULL) {
+
+		return -EFAULT;
+	}
+
+	if (p_actual_metac_type->id != DW_TAG_pointer_type) {
+		res = 1;
+	} else if (p_actual_metac_type->declaration == 1) {
+		res = 1;
+	} else if (p_actual_metac_type->pointer_type_info.type == NULL) {
+		res = 1;
+	} else if (p_actual_metac_type->pointer_type_info.type->declaration == 1) {
+		res = 1;
+	} else {
+		p_actual_target_metac_type = metac_type_get_actual_type(p_actual_metac_type->pointer_type_info.type);
+	}
+	if (p_actual_target_metac_type == NULL) {
+		res = 1;
+	} else if (p_actual_target_metac_type->id == DW_TAG_subprogram) {
+		res = 1;
+	}
+
+	if (p_actual_target_metac_type != NULL) {
+		metac_type_put(&p_actual_target_metac_type);
+	}
+	if (p_actual_metac_type != NULL) {
+		metac_type_put(&p_actual_metac_type);
+	}
+
+	return res;
 }
 
 static int deep_value_scheme_builder_process_pointer(
@@ -2892,8 +2938,8 @@ static int deep_value_scheme_builder_process_pointer(
 	assert(p_metac_scheme->p_actual_type->id == DW_TAG_pointer_type);
 
 	/* main pointer */
-	if (p_metac_scheme->p_actual_type->pointer_type_info.type != NULL /*&&
-		metac_type_get_actual_type(p_metac_scheme->p_actual_type->pointer_type_info.type) != DW_TAG_subprogram*/) {
+	if (p_metac_scheme->p_actual_type->pointer_type_info.type != NULL &&
+		_filter_pointer(p_metac_scheme->p_actual_type) == 0) {
 
 		char * target_global_path = alloc_sptrinf("%s[]", global_path);
 
@@ -2921,11 +2967,16 @@ static int deep_value_scheme_builder_process_pointer(
 
 	for (i = 0; i < p_metac_scheme->pointer.generic_cast.types_count; ++i) {
 
-		char * target_global_path = alloc_sptrinf(
-				"generic_cast<*%s>(%s)[]",
-				p_metac_scheme->pointer.generic_cast.p_types[i].p_type->name,
-				global_path);
+		char * target_global_path;
 
+		if (_filter_pointer(p_metac_scheme->p_actual_type) != 0) {
+			continue;
+		}
+
+		target_global_path = alloc_sptrinf(
+						"generic_cast<*%s>(%s)[]",
+						p_metac_scheme->pointer.generic_cast.p_types[i].p_type->name,
+						global_path);
 		if (target_global_path == NULL) {
 
 			msg_stderr("Can't build target_global_path for %s generic_cast %d\n", global_path, i);
