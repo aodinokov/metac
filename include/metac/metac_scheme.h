@@ -86,15 +86,15 @@ struct metac_scheme {
 
 		struct deep_value_scheme {
 
-			metac_count_t							objects_count;
+			metac_count_t							value_schemes_count;
 
-			struct deep_value_scheme_object {		/* I don't like the name*/
-				struct metac_scheme *				p_object;
+			struct deep_value_scheme_value_scheme {
+				struct metac_scheme *				p_value_scheme;
 
 				metac_count_t						pointers_count;
 				struct metac_scheme **				pp_pointers;
 
-			} *										p_objects;
+			} *										p_value_schemes;
 
 		} * 										p_deep_value_scheme;
 

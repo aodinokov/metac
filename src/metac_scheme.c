@@ -3219,45 +3219,45 @@ static int deep_value_scheme_builder_init(
 static void deep_value_scheme_clean(
 		struct deep_value_scheme *					p_deep_value_scheme) {
 
-	if (p_deep_value_scheme->p_objects != NULL) {
+	if (p_deep_value_scheme->p_value_schemes != NULL) {
 
 		metac_count_t i = 0;
 
-		for (i = 0; i < p_deep_value_scheme->objects_count; ++i) {
+		for (i = 0; i < p_deep_value_scheme->value_schemes_count; ++i) {
 
-			if (p_deep_value_scheme->p_objects[i].pp_pointers != NULL) {
+			if (p_deep_value_scheme->p_value_schemes[i].pp_pointers != NULL) {
 
 				metac_count_t j = 0;
 
-				for (j = 0; j < p_deep_value_scheme->p_objects[i].pointers_count; ++j) {
+				for (j = 0; j < p_deep_value_scheme->p_value_schemes[i].pointers_count; ++j) {
 
-					if (p_deep_value_scheme->p_objects[i].pp_pointers[j] != NULL) {
+					if (p_deep_value_scheme->p_value_schemes[i].pp_pointers[j] != NULL) {
 
-						deep_value_scheme_unprocess_pointer(p_deep_value_scheme->p_objects[i].pp_pointers[j]);
-						metac_scheme_put(&p_deep_value_scheme->p_objects[i].pp_pointers[j]);
+						deep_value_scheme_unprocess_pointer(p_deep_value_scheme->p_value_schemes[i].pp_pointers[j]);
+						metac_scheme_put(&p_deep_value_scheme->p_value_schemes[i].pp_pointers[j]);
 					}
 				}
 
-				p_deep_value_scheme->p_objects[i].pointers_count = 0;
+				p_deep_value_scheme->p_value_schemes[i].pointers_count = 0;
 
-				free(p_deep_value_scheme->p_objects[i].pp_pointers);
-				p_deep_value_scheme->p_objects[i].pp_pointers = NULL;
+				free(p_deep_value_scheme->p_value_schemes[i].pp_pointers);
+				p_deep_value_scheme->p_value_schemes[i].pp_pointers = NULL;
 			}
 		}
 
 		/*don't put it to the previous cycle, because it may cause long recursive calls and we want to avoid that for big data structures*/
-		for (i = 0; i < p_deep_value_scheme->objects_count; ++i) {
+		for (i = 0; i < p_deep_value_scheme->value_schemes_count; ++i) {
 
-			if (p_deep_value_scheme->p_objects[i].p_object != NULL) {
-				metac_scheme_put(&p_deep_value_scheme->p_objects[i].p_object);
+			if (p_deep_value_scheme->p_value_schemes[i].p_value_scheme != NULL) {
+				metac_scheme_put(&p_deep_value_scheme->p_value_schemes[i].p_value_scheme);
 			}
 
 		}
 
-		p_deep_value_scheme->objects_count = 0;
+		p_deep_value_scheme->value_schemes_count = 0;
 
-		free(p_deep_value_scheme->p_objects);
-		p_deep_value_scheme->p_objects = NULL;
+		free(p_deep_value_scheme->p_value_schemes);
+		p_deep_value_scheme->p_value_schemes = NULL;
 	}
 }
 
@@ -3268,22 +3268,22 @@ static int deep_value_scheme_init(
 	struct deep_value_scheme_container_value_scheme * _value_scheme;
 	struct deep_value_scheme_container_pointer_scheme * _pointer_scheme;
 
-	p_deep_value_scheme->objects_count = 0;
+	p_deep_value_scheme->value_schemes_count = 0;
 
 	/*get arrays lengths */
 	cds_list_for_each_entry(_value_scheme, &p_deep_value_scheme_builder->container.objects, list) {
-		++p_deep_value_scheme->objects_count;
+		++p_deep_value_scheme->value_schemes_count;
 	}
 
 	/*fill all the data*/
-	if (p_deep_value_scheme->objects_count > 0) {
+	if (p_deep_value_scheme->value_schemes_count > 0) {
 
 		metac_count_t i = 0;
 		metac_count_t j = 0;
 
-		p_deep_value_scheme->p_objects = (struct deep_value_scheme_object *)calloc(
-				p_deep_value_scheme->objects_count, sizeof(*p_deep_value_scheme->p_objects));
-		if (p_deep_value_scheme->p_objects == NULL) {
+		p_deep_value_scheme->p_value_schemes = (struct deep_value_scheme_value_scheme *)calloc(
+				p_deep_value_scheme->value_schemes_count, sizeof(*p_deep_value_scheme->p_value_schemes));
+		if (p_deep_value_scheme->p_value_schemes == NULL) {
 
 			msg_stderr("p_objects is NULL\n");
 			return (-ENOMEM);
@@ -3291,28 +3291,28 @@ static int deep_value_scheme_init(
 
 		cds_list_for_each_entry(_value_scheme, &p_deep_value_scheme_builder->container.objects, list) {
 
-			p_deep_value_scheme->p_objects[i].p_object = metac_scheme_get(_value_scheme->p_object_metac_scheme);
-			if (p_deep_value_scheme->p_objects[i].p_object == NULL) {
+			p_deep_value_scheme->p_value_schemes[i].p_value_scheme = metac_scheme_get(_value_scheme->p_object_metac_scheme);
+			if (p_deep_value_scheme->p_value_schemes[i].p_value_scheme == NULL) {
 
 				msg_stderr("metac_scheme_get failed\n");
 				return (-ENOMEM);
 			}
 
 			/* init pointers */
-			p_deep_value_scheme->p_objects[i].pointers_count = 0;
+			p_deep_value_scheme->p_value_schemes[i].pointers_count = 0;
 
 			/*get arrays lengths */
 			cds_list_for_each_entry(_pointer_scheme, &_value_scheme->pointers, list) {
-				++p_deep_value_scheme->p_objects[i].pointers_count;
+				++p_deep_value_scheme->p_value_schemes[i].pointers_count;
 			}
 
-			assert(p_deep_value_scheme->p_objects[i].pointers_count > 0);
+			assert(p_deep_value_scheme->p_value_schemes[i].pointers_count > 0);
 
-			if (p_deep_value_scheme->p_objects[i].pointers_count > 0) {
+			if (p_deep_value_scheme->p_value_schemes[i].pointers_count > 0) {
 
-				p_deep_value_scheme->p_objects[i].pp_pointers = (struct metac_scheme **)calloc(
-						p_deep_value_scheme->p_objects[i].pointers_count, sizeof(*p_deep_value_scheme->p_objects[i].pp_pointers));
-				if (p_deep_value_scheme->p_objects[i].pp_pointers == NULL) {
+				p_deep_value_scheme->p_value_schemes[i].pp_pointers = (struct metac_scheme **)calloc(
+						p_deep_value_scheme->p_value_schemes[i].pointers_count, sizeof(*p_deep_value_scheme->p_value_schemes[i].pp_pointers));
+				if (p_deep_value_scheme->p_value_schemes[i].pp_pointers == NULL) {
 
 					msg_stderr("p_pointers is NULL\n");
 					return (-ENOMEM);
@@ -3320,9 +3320,9 @@ static int deep_value_scheme_init(
 
 				j = 0;
 				cds_list_for_each_entry(_pointer_scheme, &_value_scheme->pointers, list) {
-					p_deep_value_scheme->p_objects[i].pp_pointers[j] = metac_scheme_get(_pointer_scheme->p_pointer_metac_scheme);
+					p_deep_value_scheme->p_value_schemes[i].pp_pointers[j] = metac_scheme_get(_pointer_scheme->p_pointer_metac_scheme);
 
-					if (p_deep_value_scheme->p_objects[i].pp_pointers[j] == NULL) {
+					if (p_deep_value_scheme->p_value_schemes[i].pp_pointers[j] == NULL) {
 
 						msg_stderr("metac_scheme_get failed\n");
 						return (-ENOMEM);
