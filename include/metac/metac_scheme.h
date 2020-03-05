@@ -11,6 +11,10 @@
 #include "metac/metac_type.h"
 #include "metac/metac_refcounter.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*****************************************************************************/
 struct condition;
 struct discriminator;
@@ -182,4 +186,7 @@ metac_flag_t metac_scheme_is_hierarchy_member_scheme(
 struct metac_scheme * metac_hierarchy_member_scheme_get_parent_scheme(
 		struct metac_scheme *						p_metac_scheme);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* INCLUDE_METAC_METAC_SCHEME_H_ */
