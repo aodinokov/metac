@@ -10,6 +10,11 @@
 
 #include "metac/metac_value.h"
 
+//#define METAC_DEBUG_ENABLE
+
+#include "metac_debug.h"	/* msg_stderr, ...*/
+
+
 /*****************************************************************************/
 
 struct metac_value_backend * metac_value_backend_get(
