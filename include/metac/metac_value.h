@@ -18,12 +18,15 @@ extern "C" {
 /*****************************************************************************/
 struct value_with_pointer;
 struct value_with_array;
+struct metac_value_backend_ops;
 struct metac_value_backend;																/* abstract substitution for pointers */
 struct metac_value;
 /*****************************************************************************/
 
 struct metac_value_backend {
 	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
+
+	struct metac_value_backend_ops *				p_ops;
 };
 
 struct metac_value_backend_ops {
@@ -36,6 +39,11 @@ struct metac_value_backend_ops {
 	int												(*value_read_value_backend)(
 			struct metac_value *						p_value,
 			struct metac_value_backend **				pp_memory_value_backend);
+
+	int												(*value_calculate_hierarchy_top_discriminator_value)(
+			struct metac_value *						p_value,
+			int											id);
+
 
 };
 int metac_value_backend_init(
@@ -70,6 +78,10 @@ struct value_with_array {
 
 	struct metac_value	*							p_memory_block;
 };
+struct value_with_hierarchy {															/* structure or union */
+	metac_count_t 									members_count;
+	struct metac_value **							members;
+};
 
 struct metac_value {
 	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
@@ -78,17 +90,13 @@ struct metac_value {
 //	struct top_memory_block * 						p_top_memory_block;
 //	metac_data_member_location_t					top_memory_block_offset;
 
-	struct metac_value *							p_parent_value;
-	metac_data_member_location_t					parent_memory_block_offset;
-
-	struct metac_value_backend *					p_value_backend;					/* abstract memory access (e.g. pointer) */
-
-	/* info about link to the container */
-	//struct memory_block_scheme *					p_memory_block_scheme;
-	char *											path_within_memory_block_top;		/* path relevant to the memory_block_top */
-
+	struct value_with_hierarchy *					p_current_hierarchy;
 	union {
-		struct _hierarchy_top {															/* if p_memory_block_scheme->p_current_hierarchy == NULL */
+		struct _hierarchy_member {														/* if p_current_hierarchy != NULL*/
+			metac_count_t							id;
+			/*TODO:*/
+		}											hierarchy_member;
+		struct _hierarchy_top {															/* if p_current_hierarchy == NULL */
 			struct discriminator_value {
 				metac_discriminator_value_t			value;
 			} **									pp_discriminator_values;			/* we use callback to get this */
@@ -97,10 +105,14 @@ struct metac_value {
 		}											hierarchy_top;
 	};
 
+	struct metac_value_backend *					p_value_backend;					/* abstract memory access (e.g. pointer) */
+	struct metac_scheme *							p_scheme;
+
 	/* content */
 	union {																				/* based on p_memory_block_scheme->p_actual_type->id */
 		struct value_with_pointer					pointer;
 		struct value_with_array						array;
+		struct value_with_hierarchy					hierarchy;
 	};
 };
 

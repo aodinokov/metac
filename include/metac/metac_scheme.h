@@ -180,6 +180,11 @@ int metac_hierarchy_top_scheme_get_members_count(
 struct metac_scheme * metac_hierarchy_top_scheme_get_hierarchy_member_scheme(
 		struct metac_scheme *						p_metac_scheme,
 		metac_count_t								i);
+int metac_hierarchy_top_scheme_get_discriminators_count(
+		struct metac_scheme *						p_metac_scheme);
+struct discriminator * metac_hierarchy_top_scheme_get_discriminator(
+		struct metac_scheme *						p_metac_scheme,
+		metac_count_t								i);
 
 metac_flag_t metac_scheme_is_hierarchy_member_scheme(
 		struct metac_scheme *						p_metac_scheme);

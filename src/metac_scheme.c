@@ -1582,6 +1582,37 @@ struct metac_scheme * metac_hierarchy_top_scheme_get_hierarchy_member_scheme(
 	return metac_scheme_get(p_metac_scheme->hierarchy_top.pp_members[i]);
 }
 
+int metac_hierarchy_top_scheme_get_discriminators_count(
+		struct metac_scheme *						p_metac_scheme) {
+
+	if (metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) != 1) {
+
+		msg_stderr("invalid argument\n");
+		return -(EINVAL);
+	}
+
+	return p_metac_scheme->hierarchy_top.discriminators_count;
+}
+
+struct discriminator * metac_hierarchy_top_scheme_get_discriminator(
+		struct metac_scheme *						p_metac_scheme,
+		metac_count_t								i) {
+
+	if (metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) != 1) {
+
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	if (i >= p_metac_scheme->hierarchy_top.discriminators_count) {
+
+		msg_stderr("invalid argument\n");
+		return NULL;
+	}
+
+	return p_metac_scheme->hierarchy_top.pp_discriminators[i];
+}
+
 static int metac_scheme_clean_as_hierarchy_top_scheme(
 		struct metac_scheme *						p_value_scheme) {
 	metac_count_t i;
