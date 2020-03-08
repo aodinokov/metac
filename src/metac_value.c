@@ -253,6 +253,13 @@ static int metac_value_init_as_hierarchy_member_value(
 	//element_get_memory_backend_interface
 	metac_value_get_value_backend_based_on_parent(p_metac_value);
 
+	switch (p_metac_value->p_scheme->p_actual_type->id) {
+	case DW_TAG_pointer_type:
+		break;
+	case DW_TAG_array_type:
+		break;
+	}
+
 	return 0;
 }
 
