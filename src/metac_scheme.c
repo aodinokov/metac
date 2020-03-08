@@ -39,7 +39,7 @@
 /*****************************************************************************/
 
 static int metac_scheme_clean(
-		struct metac_scheme *						p_value_scheme);
+		struct metac_scheme *						p_metac_scheme);
 
 /*****************************************************************************/
 
@@ -3624,70 +3624,70 @@ static struct metac_scheme * metac_scheme_create_as_deep_value_scheme(
 }
 /*****************************************************************************/
 static int metac_scheme_clean(
-		struct metac_scheme *						p_value_scheme) {
+		struct metac_scheme *						p_metac_scheme) {
 
 	int res = 0;
 
-	if (p_value_scheme == NULL) {
+	if (p_metac_scheme == NULL) {
 
 		msg_stderr("Invalid argument\n");
 		return -EINVAL;
 	}
 
-	if (metac_scheme_is_value_scheme(p_value_scheme) == 1) {
+	if (metac_scheme_is_value_scheme(p_metac_scheme) == 1) {
 
-		if (metac_scheme_is_deep_value_scheme(p_value_scheme) == 1) {
+		if (metac_scheme_is_deep_value_scheme(p_metac_scheme) == 1) {
 
-			res = metac_scheme_clean_as_deep_value_scheme(p_value_scheme);
+			res = metac_scheme_clean_as_deep_value_scheme(p_metac_scheme);
 		}
 
-		res = metac_scheme_clean_as_value_scheme(p_value_scheme);
+		res = metac_scheme_clean_as_value_scheme(p_metac_scheme);
 
 	}
 
-	if (metac_scheme_is_hierarchy_member_scheme(p_value_scheme) == 1) {
+	if (metac_scheme_is_hierarchy_member_scheme(p_metac_scheme) == 1) {
 
-		res = metac_scheme_clean_as_hierarchy_member_scheme(p_value_scheme);
+		res = metac_scheme_clean_as_hierarchy_member_scheme(p_metac_scheme);
 
-	} else if (metac_scheme_is_hierarchy_top_scheme(p_value_scheme) == 1) {
+	} else if (metac_scheme_is_hierarchy_top_scheme(p_metac_scheme) == 1) {
 
-		res = metac_scheme_clean_as_hierarchy_top_scheme(p_value_scheme);
+		res = metac_scheme_clean_as_hierarchy_top_scheme(p_metac_scheme);
 
 	} else {
 
-		assert(metac_scheme_is_indexable(p_value_scheme) == 1);
+		assert(metac_scheme_is_indexable(p_metac_scheme) == 1);
 
-		if (p_value_scheme->p_actual_type != NULL) {
+		if (p_metac_scheme->p_actual_type != NULL) {
 
-			switch(p_value_scheme->p_actual_type->id) {
+			switch(p_metac_scheme->p_actual_type->id) {
 			case DW_TAG_structure_type:
 			case DW_TAG_union_type:
-				res = metac_scheme_clean_as_hierarchy_top_scheme(p_value_scheme);
+				res = metac_scheme_clean_as_hierarchy_top_scheme(p_metac_scheme);
 				break;
 			case DW_TAG_array_type:
-				scheme_with_array_clean(&p_value_scheme->array);
+				scheme_with_array_clean(&p_metac_scheme->array);
 				break;
 			case DW_TAG_pointer_type:
-				scheme_with_pointer_clean(&p_value_scheme->pointer);
+				scheme_with_pointer_clean(&p_metac_scheme->pointer);
 				break;
 			}
 		}
 	}
 
-	if (p_value_scheme->path_within_value != NULL) {
-		free(p_value_scheme->path_within_value);
-		p_value_scheme->path_within_value = NULL;
+	if (p_metac_scheme->path_within_value != NULL) {
+		free(p_metac_scheme->path_within_value);
+		p_metac_scheme->path_within_value = NULL;
 	}
-	p_value_scheme->byte_size = 0;
+	p_metac_scheme->byte_size = 0;
 
-	if (p_value_scheme->p_actual_type != NULL) {
+	if (p_metac_scheme->p_actual_type != NULL) {
 
-		metac_type_put(&p_value_scheme->p_actual_type);
+		metac_type_put(&p_metac_scheme->p_actual_type);
 	}
 
-	if (p_value_scheme->p_type != NULL) {
+	if (p_metac_scheme->p_type != NULL) {
 
-		metac_type_put(&p_value_scheme->p_type);
+		metac_type_put(&p_metac_scheme->p_type);
 	}
 
 	return res;

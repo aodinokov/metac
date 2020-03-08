@@ -108,6 +108,8 @@ struct metac_value {
 	struct metac_value_backend *					p_value_backend;					/* abstract memory access (e.g. pointer) */
 	struct metac_scheme *							p_scheme;
 
+	char *											path_within_value;
+
 	/* content */
 	union {																				/* based on p_memory_block_scheme->p_actual_type->id */
 		struct value_with_pointer					pointer;
@@ -153,6 +155,14 @@ struct metac_value {
 //	metac_count_t									top_memory_blocks_count;			/*only memory_blocks without parents*/
 //	struct top_memory_block	**						pp_top_memory_blocks;
 //};
+
+struct metac_value * metac_value_get(
+		struct metac_value *						p_metac_value);
+int metac_value_put(
+		struct metac_value **						pp_metac_value);
+
+metac_flag_t metac_value_is_hierarchy_top_value(
+		struct metac_value *						p_metac_value);
 
 #ifdef __cplusplus
 }

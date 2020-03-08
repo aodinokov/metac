@@ -20,9 +20,23 @@
 #include "scheduler.h"
 
 
+#define alloc_sptrinf(...) ({\
+	int len = snprintf(NULL, 0, ##__VA_ARGS__); \
+	char *str = calloc(len + 1, sizeof(*str)); \
+	if (str != NULL)snprintf(str, len + 1, ##__VA_ARGS__); \
+	str; \
+})
+#define build_member_path(path, member_name) ({ \
+	char * member_path = NULL; \
+	if ((path) != NULL && strcmp((path), "") != 0 ) { \
+		member_path = alloc_sptrinf("%s.%s", (path), (member_name)); \
+	} else { \
+		member_path = alloc_sptrinf("%s", (member_name)); \
+	} \
+	member_path; \
+})
 
 /*****************************************************************************/
-
 struct metac_value_backend * metac_value_backend_get(
 		struct metac_value_backend *				p_metac_value_backend) {
 
@@ -120,45 +134,169 @@ static struct discriminator_value * discriminator_value_create(
 	p_discriminator_value->value = value;
 	return p_discriminator_value;
 }
+/*****************************************************************************/
 
-static void metac_value_clean_as_hierarchy_top(
-		struct metac_value *						p_metac_value) {
-	metac_count_t i;
-//	struct element_hierarchy_top * p_element_hierarchy_top;
-//	struct element_type_hierarchy_top * p_element_type_hierarchy_top;
-//
-//	assert(p_element);
-//	if (element_type_is_hierachy(p_element->p_element_type) == 0) {
-//		msg_stderr("element isn't hierarchy\n");
-//		return;
-//	}
-//
-//	p_element_hierarchy_top = &p_element->hierarchy_top;
-//	p_element_type_hierarchy_top = &p_element->p_element_type->hierarchy_top;
-//
-//
-//	if (p_element_hierarchy_top->pp_members) {
-//		for (i = 0; i < p_element_type_hierarchy_top->members_count; ++i) {
-//			if (p_element_hierarchy_top->pp_members[i] != NULL) {
-//				element_hierarchy_member_delete(
-//						&p_element_hierarchy_top->pp_members[i]);
-//			}
-//		}
-//		free(p_element_hierarchy_top->pp_members);
-//		p_element_hierarchy_top->pp_members = NULL;
-//	}
-//	if (p_element_hierarchy_top->pp_discriminator_values) {
-//		for (i = 0; i < p_element_type_hierarchy_top->discriminators_count; ++i) {
-//			if (p_element_hierarchy_top->pp_discriminator_values[i] != NULL) {
-//				discriminator_value_delete(&p_element_hierarchy_top->pp_discriminator_values[i]);
-//			}
-//		}
-//		free(p_element_hierarchy_top->pp_discriminator_values);
-//		p_element_hierarchy_top->pp_discriminator_values = NULL;
-//	}
+static int metac_value_clean(
+		struct metac_value *						p_metac_value);
+
+/*****************************************************************************/
+static int metac_value_delete(
+		struct metac_value **						pp_metac_value) {
+
+	_delete_start_(metac_value);
+	metac_value_clean(*pp_metac_value);
+	_delete_finish(metac_value);
+	return 0;
 }
 
-static int metac_value_init_as_hierarchy_top(
+static inline struct metac_value * metac_unknown_object_get_metac_value(
+		struct metac_unknown_object *				p_metac_unknown_object) {
+	return cds_list_entry(
+			p_metac_unknown_object,
+			struct metac_value,
+			refcounter_object.unknown_object);
+}
+
+static int _metac_value_unknown_object_delete(
+		struct metac_unknown_object *				p_metac_unknown_object) {
+
+	struct metac_value * p_metac_value;
+
+	if (p_metac_unknown_object == NULL) {
+		msg_stderr("p_metac_unknown_object is NULL\n");
+		return -(EINVAL);
+	}
+
+	p_metac_value = metac_unknown_object_get_metac_value(p_metac_unknown_object);
+	if (p_metac_value == NULL) {
+		msg_stderr("p_metac_value is NULL\n");
+		return -(EINVAL);
+	}
+
+	return metac_value_delete(&p_metac_value);
+}
+
+static metac_refcounter_object_ops_t _metac_value_refcounter_object_ops = {
+		.unknown_object_ops = {
+				.metac_unknown_object_delete = 		_metac_value_unknown_object_delete,
+		},
+};
+
+/*****************************************************************************/
+struct metac_value * metac_value_get(
+		struct metac_value *						p_metac_value) {
+
+	if (p_metac_value != NULL &&
+		metac_refcounter_object_get(&p_metac_value->refcounter_object) != NULL) {
+
+		return p_metac_value;
+	}
+
+	return NULL;
+}
+
+int metac_value_put(
+		struct metac_value **						pp_metac_value) {
+
+	if (pp_metac_value != NULL &&
+		(*pp_metac_value) != NULL &&
+		metac_refcounter_object_put(&(*pp_metac_value)->refcounter_object) == 0) {
+
+		*pp_metac_value = NULL;
+		return 0;
+	}
+
+	return -(EFAULT);
+}
+/*****************************************************************************/
+static int metac_value_init_as_hierarchy_member_value(
+		struct metac_value *						p_metac_value,
+		char * 										global_path,
+		char *										value_path,
+		struct metac_scheme *						p_metac_scheme) {
+
+	return 0;
+}
+
+static struct metac_value * metac_value_create_as_hierarchy_member_value(
+		char * 										global_path,
+		char *										value_path,
+		struct metac_scheme *						p_metac_scheme) {
+
+	_create_(metac_value);
+
+	if (metac_refcounter_object_init(
+			&p_metac_value->refcounter_object,
+			&_metac_value_refcounter_object_ops,
+			NULL) != 0) {
+
+		msg_stderr("metac_refcounter_object_init failed\n");
+
+		metac_value_delete(&p_metac_value);
+		return NULL;
+	}
+
+	if (metac_value_init_as_hierarchy_member_value(
+			p_metac_value,
+			global_path,
+			value_path,
+			p_metac_scheme) != 0) {
+
+		msg_stderr("metac_value_init_as_hierarchy_member_value failed\n");
+
+		metac_value_delete(&p_metac_value);
+		return NULL;
+	}
+
+	return p_metac_value;
+}
+
+static void metac_value_clean_as_hierarchy_top_value(
+		struct metac_value *						p_metac_value) {
+
+	metac_count_t i;
+
+	if (p_metac_value == NULL) {
+
+		msg_stderr("invalid argument\n");
+		return;
+	}
+
+	if (metac_value_is_hierarchy_top_value(p_metac_value) != 1) {
+
+		msg_stderr("invalid argument\n");
+		return;
+	}
+
+	if (p_metac_value->hierarchy_top.pp_members) {
+
+		for (i = 0; i < metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme); ++i) {
+
+			if (p_metac_value->hierarchy_top.pp_members[i] != NULL) {
+
+				metac_value_put(&p_metac_value->hierarchy_top.pp_members[i]);
+			}
+		}
+		free(p_metac_value->hierarchy_top.pp_members);
+		p_metac_value->hierarchy_top.pp_members = NULL;
+	}
+
+	if (p_metac_value->hierarchy_top.pp_discriminator_values) {
+
+		for (i = 0; i < metac_hierarchy_top_scheme_get_discriminators_count(p_metac_value->p_scheme); ++i) {
+
+			if (p_metac_value->hierarchy_top.pp_discriminator_values[i] != NULL) {
+
+				discriminator_value_delete(&p_metac_value->hierarchy_top.pp_discriminator_values[i]);
+			}
+		}
+		free(p_metac_value->hierarchy_top.pp_discriminator_values);
+		p_metac_value->hierarchy_top.pp_discriminator_values = NULL;
+	}
+
+	/**/
+}
+static int metac_value_init_as_hierarchy_top_value(
 		struct metac_value *						p_metac_value,
 		char * 										global_path,
 		char *										value_path,
@@ -187,7 +325,7 @@ static int metac_value_init_as_hierarchy_top(
 		if (p_metac_value->hierarchy_top.pp_discriminator_values != NULL) {
 
 			msg_stderr("wasn't able to get memory for pp_discriminator_values\n");
-			metac_value_clean_as_hierarchy_top(p_metac_value);
+			metac_value_clean_as_hierarchy_top_value(p_metac_value);
 			return (-EFAULT);
 		}
 
@@ -210,7 +348,7 @@ static int metac_value_init_as_hierarchy_top(
 			if (p_discriminator->cb == NULL) {
 
 				msg_stderr("discriminator %d for path %s is NULL\n", (int)i, value_path);
-				metac_value_clean_as_hierarchy_top(p_metac_value);
+				metac_value_clean_as_hierarchy_top_value(p_metac_value);
 				return (-EFAULT);
 			}
 
@@ -237,22 +375,25 @@ static int metac_value_init_as_hierarchy_top(
 				if (p_metac_value->hierarchy_top.pp_discriminator_values[i] == NULL) {
 
 					msg_stderr("can't allocated pp_discriminator_values %d for path %s\n", (int)i, value_path);
-					metac_value_clean_as_hierarchy_top(p_metac_value);
+					metac_value_clean_as_hierarchy_top_value(p_metac_value);
 					return (-EFAULT);
 				}
-			}
 
-			if (metac_value_calculate_hierarchy_top_discriminator_value(p_metac_value, i) != 0){
+				if (metac_value_calculate_hierarchy_top_discriminator_value(p_metac_value, i) != 0){
 
-				msg_stderr("metac_value_calculate_hierarchy_top_discriminator_value failed for path %s\n", value_path);
-				metac_value_clean_as_hierarchy_top(p_metac_value);
-				return (-EFAULT);
+					msg_stderr("metac_value_calculate_hierarchy_top_discriminator_value failed for path %s\n", value_path);
+					metac_value_clean_as_hierarchy_top_value(p_metac_value);
+					return (-EFAULT);
+				}
+
 			}
 
 		}
 	}
 
 	if (metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme) > 0) {
+
+		int i;
 
 		p_metac_value->hierarchy_top.pp_members =
 				(struct metac_value **)calloc(
@@ -261,15 +402,111 @@ static int metac_value_init_as_hierarchy_top(
 		if (p_metac_value->hierarchy_top.pp_members == NULL) {
 
 			msg_stderr("wasn't able to get memory for pp_hierarchy_members\n");
-			metac_value_clean_as_hierarchy_top(p_metac_value);
+			metac_value_clean_as_hierarchy_top_value(p_metac_value);
 			return (-EFAULT);
 		}
+
+		/* create members based on discriminators */
+		for (i = 0; i < metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme); ++i) {
+			metac_flag_t allocate;
+			struct metac_scheme * p_member_scheme;
+
+			p_member_scheme = metac_hierarchy_top_scheme_get_hierarchy_member_scheme(
+					p_metac_value->p_scheme,
+					i);
+
+			assert(p_member_scheme != NULL);
+
+			allocate = 0;
+			if (	allocate == 0 &&
+					p_member_scheme->hierarchy_member.precondition.p_discriminator == NULL) {
+
+				allocate = 1;
+			}
+
+			if (	allocate == 0 &&
+					p_member_scheme->hierarchy_member.precondition.p_discriminator != NULL) {
+
+				struct discriminator_value * p_value = p_metac_value->hierarchy_top.pp_discriminator_values[p_member_scheme->hierarchy_member.precondition.p_discriminator->id];
+				if (	p_value != NULL &&
+						p_value->value == p_member_scheme->hierarchy_member.precondition.expected_discriminator_value) {
+
+					allocate = 1;
+				}
+			}
+
+			if (allocate != 0) {
+
+				char * target_global_path;
+				char * target_value_path;
+
+				target_global_path = build_member_path(
+						global_path,
+						p_member_scheme->hierarchy_member.path_within_hierarchy);
+				if (target_global_path == NULL) {
+
+					msg_stderr("Can't build target_global_path for %s member %d\n", global_path, i);
+					return (-EFAULT);
+				}
+
+				target_value_path = build_member_path(
+						value_path,
+						p_member_scheme->hierarchy_member.path_within_hierarchy);
+				if (target_value_path == NULL) {
+
+					msg_stderr("Can't build target_value_path for %s member %d\n", global_path, i);
+
+					free(target_global_path);
+					return (-EFAULT);
+				}
+
+				p_metac_value->hierarchy_top.pp_members[i] = metac_value_create_as_hierarchy_member_value(
+						target_global_path,
+						target_value_path,
+						p_member_scheme);
+
+				free(target_value_path);
+				free(target_global_path);
+
+				if (p_metac_value->hierarchy_top.pp_members[i] == NULL) {
+
+					msg_stderr("metac_value_create_as_hierarchy_member failed for member %d for path %s\n", (int)i, value_path);
+					metac_scheme_put(&p_member_scheme);
+					metac_value_clean_as_hierarchy_top_value(p_metac_value);
+					return (-EFAULT);
+				}
+			}
+			metac_scheme_put(&p_member_scheme);
+		}
 	}
+
+	/*TODO: restore hierarchy members on each level*/
 
 	return 0;
 }
 
-static int metac_value_init_as_indexable(
+metac_flag_t metac_value_is_hierarchy_top_value(
+		struct metac_value *						p_metac_value) {
+
+	if (p_metac_value == NULL) {
+
+		msg_stderr("invalid argument\n");
+		return -(EINVAL);
+	}
+
+	if (p_metac_value->p_scheme == NULL) {
+
+		msg_stderr("p_scheme is NULL\n");
+		return -(EFAULT);
+	}
+
+	/* TODO: rework in future.. actually may be we should not put scheme inside value.. may be just copy scheme to value??? */
+	return metac_scheme_is_hierarchy_top_scheme(p_metac_value->p_scheme);
+}
+
+
+
+static int metac_value_init_as_indexable_value(
 		struct metac_value *						p_metac_value,
 		char * 										global_path,
 		char *										value_path,
@@ -288,7 +525,7 @@ static int metac_value_init_as_indexable(
 	switch (p_metac_value->p_scheme->p_actual_type->id) {
 	case DW_TAG_structure_type:
 	case DW_TAG_union_type:
-		return metac_value_init_as_hierarchy_top(
+		return metac_value_init_as_hierarchy_top_value(
 				p_metac_value,
 				global_path,
 				value_path,
@@ -305,4 +542,11 @@ static int metac_value_init_as_indexable(
 
 }
 
+
 /*****************************************************************************/
+static int metac_value_clean(
+		struct metac_value *						p_metac_value) {
+	/*TODO: clean metac_value*/
+	return 0;
+}
+
