@@ -87,6 +87,33 @@ int metac_value_backend_init(
 }
 
 /*****************************************************************************/
+int metac_value_get_value_backend_based_on_parent(
+		struct metac_value *						p_metac_value) {
+
+	struct metac_value_backend * p_metac_value_backend;
+
+	if (p_metac_value == NULL) {
+
+		msg_stderr("invalid argument\n");
+		return -(EINVAL);
+	}
+
+//	assert(p_metac_value->p_scheme);
+//	assert(p_metac_value->p_scheme->p_actual_type);
+//
+//	if (metac_scheme_is_hierarchy_top_scheme(p_metac_value->p_scheme) != 1) {
+//
+//		msg_stderr("p_metac_value isn't hierarchy(structure or union)\n");
+//		return -(EINVAL);
+//	}
+//
+//	assert(p_metac_value->p_value_backend);
+//
+//	p_metac_value_backend = p_metac_value->p_value_backend;
+
+	return 0;
+}
+
 int metac_value_calculate_hierarchy_top_discriminator_value(
 		struct metac_value *						p_metac_value,
 		int											id) {
@@ -213,7 +240,18 @@ static int metac_value_init_as_hierarchy_member_value(
 		struct metac_value *						p_metac_value,
 		char * 										global_path,
 		char *										value_path,
+		struct value_with_hierarchy *				p_current_hierarchy,
 		struct metac_scheme *						p_metac_scheme) {
+
+	p_metac_value->p_scheme = metac_scheme_get(p_metac_scheme);
+	p_metac_value->path_within_value = strdup(value_path);
+	p_metac_value->p_current_hierarchy = p_current_hierarchy;
+
+	p_metac_value->hierarchy_member.id = p_metac_scheme->hierarchy_member.id;
+
+	//p_metac_value->p_value_backend = metac_value_backend_get(p_metac_value_backend);
+	//element_get_memory_backend_interface
+	metac_value_get_value_backend_based_on_parent(p_metac_value);
 
 	return 0;
 }
@@ -221,6 +259,7 @@ static int metac_value_init_as_hierarchy_member_value(
 static struct metac_value * metac_value_create_as_hierarchy_member_value(
 		char * 										global_path,
 		char *										value_path,
+		struct value_with_hierarchy *				p_current_hierarchy,
 		struct metac_scheme *						p_metac_scheme) {
 
 	_create_(metac_value);
@@ -240,6 +279,7 @@ static struct metac_value * metac_value_create_as_hierarchy_member_value(
 			p_metac_value,
 			global_path,
 			value_path,
+			p_current_hierarchy,
 			p_metac_scheme) != 0) {
 
 		msg_stderr("metac_value_init_as_hierarchy_member_value failed\n");
@@ -437,6 +477,8 @@ static int metac_value_init_as_hierarchy_top_value(
 
 			if (allocate != 0) {
 
+				struct metac_scheme * p_member_parent_scheme;
+				struct value_with_hierarchy * p_current_hierarchy;
 				char * target_global_path;
 				char * target_value_path;
 
@@ -460,9 +502,25 @@ static int metac_value_init_as_hierarchy_top_value(
 					return (-EFAULT);
 				}
 
+				p_member_parent_scheme = metac_hierarchy_member_scheme_get_parent_scheme(p_member_scheme);
+				if (p_member_parent_scheme == p_metac_value->p_scheme) {
+
+					p_current_hierarchy = &p_metac_value->hierarchy;
+					++p_current_hierarchy->members;
+				} else {
+
+					assert(metac_scheme_is_hierarchy_member_scheme(p_member_parent_scheme) == 1);
+					assert(i > p_member_parent_scheme->hierarchy_member.id);
+
+					p_current_hierarchy = &p_metac_value->hierarchy_top.pp_members[p_member_parent_scheme->hierarchy_member.id]->hierarchy;
+					++p_current_hierarchy->members;
+				}
+				metac_scheme_put(&p_member_parent_scheme);
+
 				p_metac_value->hierarchy_top.pp_members[i] = metac_value_create_as_hierarchy_member_value(
 						target_global_path,
 						target_value_path,
+						p_current_hierarchy,
 						p_member_scheme);
 
 				free(target_value_path);
@@ -480,7 +538,67 @@ static int metac_value_init_as_hierarchy_top_value(
 		}
 	}
 
-	/*TODO: restore hierarchy members on each level*/
+	if (p_metac_value->hierarchy.members_count > 0) {
+
+		int i, j, k;
+
+		p_metac_value->hierarchy.members = (struct metac_value **)calloc(
+				p_metac_value->hierarchy.members_count,
+				sizeof(*p_metac_value->hierarchy.members));
+		if (p_metac_value->hierarchy.members == NULL) {
+
+			msg_stderr("can't allocate memory for members for path %s\n", value_path);
+			return (-ENOMEM);
+		}
+
+		j = 0;
+		for (i = 0; i < metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme); ++i) {
+
+			if (	p_metac_value->hierarchy_top.pp_members[i] != NULL &&
+					p_metac_value->hierarchy_top.pp_members[i]->p_current_hierarchy == &p_metac_value->hierarchy) {
+
+				assert( j < p_metac_value->hierarchy.members_count);
+
+				p_metac_value->hierarchy.members[j] = metac_value_get(p_metac_value->hierarchy_top.pp_members[i]);
+				++j;
+			}
+		}
+
+
+		for (k = 0; k < metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme); ++k) {
+
+			if (p_metac_value->hierarchy_top.pp_members[k] == NULL &&
+				metac_scheme_is_hierachy_scheme(p_metac_value->hierarchy_top.pp_members[k]->p_scheme) != 1) {
+				continue;
+			}
+
+			if (p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members_count > 0) {
+
+				p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members = (struct metac_value **)calloc(
+						p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members_count,
+						sizeof(*p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members));
+				if (p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members == NULL) {
+
+					msg_stderr("can't allocate memory for members for path %s\n", value_path);
+					return (-ENOMEM);
+				}
+
+				j = 0;
+				for (i = 0; i < metac_hierarchy_top_scheme_get_members_count(p_metac_value->p_scheme); ++i) {
+
+					if (	p_metac_value->hierarchy_top.pp_members[i] != NULL &&
+							p_metac_value->hierarchy_top.pp_members[i]->p_current_hierarchy == &p_metac_value->hierarchy_top.pp_members[k]->hierarchy) {
+
+						assert(j < p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members_count);
+
+						p_metac_value->hierarchy_top.pp_members[k]->hierarchy.members[j] = metac_value_get(p_metac_value->hierarchy_top.pp_members[i]);
+						++j;
+					}
+				}
+			}
+		}
+
+	}
 
 	return 0;
 }

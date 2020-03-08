@@ -110,7 +110,7 @@ struct metac_scheme {
 			metac_count_t							id;									/* index in the element_type_hierarhy_top. needed to find parents quickier */
 			struct condition 						precondition;						/* precondition for this region element */
 
-			metac_data_member_location_t			offset;								/* offset within element */
+			metac_data_member_location_t			offset;								/* offset within current_value_sheme_hierarchy */
 
 			metac_count_t							member_id;							/* member id within parent hierarchy */
 			struct metac_type_member_info *			p_member_info;

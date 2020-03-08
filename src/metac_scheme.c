@@ -561,6 +561,8 @@ static int metac_scheme_init_as_hierarchy_member_scheme(
 		assert(metac_scheme_is_hierachy_scheme(p_parent_metac_scheme));
 
 		p_metac_scheme->hierarchy_member.offset += p_parent_metac_scheme->hierarchy_member.offset;
+
+		metac_scheme_put(&p_parent_metac_scheme);
 	}
 
 	if (p_member_info->type != NULL) {
@@ -706,7 +708,7 @@ struct metac_scheme * metac_hierarchy_member_scheme_get_parent_scheme(
 		return NULL;
 	}
 
-	return scheme_with_hierarchy_get_value_scheme(p_metac_scheme->p_current_hierarchy);
+	return metac_scheme_get(scheme_with_hierarchy_get_value_scheme(p_metac_scheme->p_current_hierarchy));
 }
 
 metac_flag_t metac_scheme_is_hierachy_scheme(
