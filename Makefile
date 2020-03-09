@@ -34,6 +34,7 @@ metac_objs = \
 	src/traversing_engine.o \
 	src/metac_internals.o \
 	src/memory_backend_interface.o \
+	src/backends/value_backend_pointer.o \
 	src/backends/memory_backend_pointer.o \
 	src/backends/memory_backend_json.o
 

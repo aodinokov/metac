@@ -98,18 +98,43 @@ int metac_value_get_value_backend_based_on_parent(
 		return -(EINVAL);
 	}
 
-//	assert(p_metac_value->p_scheme);
-//	assert(p_metac_value->p_scheme->p_actual_type);
-//
-//	if (metac_scheme_is_hierarchy_top_scheme(p_metac_value->p_scheme) != 1) {
-//
-//		msg_stderr("p_metac_value isn't hierarchy(structure or union)\n");
-//		return -(EINVAL);
-//	}
-//
-//	assert(p_metac_value->p_value_backend);
-//
-//	p_metac_value_backend = p_metac_value->p_value_backend;
+	if (p_metac_value->p_value_backend != NULL) {
+
+		msg_stderr("value_backend is already initialized\n");
+		return -(EALREADY);
+	}
+
+	if (p_metac_value->p_current_container_value == NULL) {
+
+		msg_stderr("parent is NULL\n");
+		return -(EFAULT);
+	}
+
+	if (p_metac_value->p_current_container_value->p_value_backend == NULL) {
+
+		msg_stderr("parent value backend is NULL\n");
+		return -(EFAULT);
+	}
+
+	if (p_metac_value->p_current_container_value->p_value_backend->p_ops == NULL ||
+		p_metac_value->p_current_container_value->p_value_backend->p_ops->value_get_value_backend_based_on_parent == NULL) {
+
+		msg_stderr("operation value_get_value_backend_based_on_parent isn't defined\n");
+		return -(EFAULT);
+	}
+
+	if (p_metac_value->p_current_container_value->p_value_backend->p_ops->value_get_value_backend_based_on_parent(
+			p_metac_value) != 0) {
+
+		msg_stderr("operation value_get_value_backend_based_on_parent has failed\n");
+		return -(EFAULT);
+	}
+
+	if (p_metac_value->p_value_backend == NULL) {
+
+		msg_stderr("value_backend hasn't been initialized after value_get_value_backend_based_on_parent call\n");
+		return -(EFAULT);
+	}
 
 	return 0;
 }
@@ -247,9 +272,11 @@ static int metac_value_init_as_hierarchy_member_value(
 	p_metac_value->path_within_value = strdup(value_path);
 	p_metac_value->p_current_container_value = metac_value_get(p_current_container_value);
 
-	//p_metac_value->p_value_backend = metac_value_backend_get(p_metac_value_backend);
-	//element_get_memory_backend_interface
-	metac_value_get_value_backend_based_on_parent(p_metac_value);
+	if (metac_value_get_value_backend_based_on_parent(p_metac_value) != 0) {
+
+		msg_stderr("metac_value_get_value_backend_based_on_parent failed\n");
+		return -(EFAULT);
+	}
 
 	switch (p_metac_value->p_scheme->p_actual_type->id) {
 	case DW_TAG_pointer_type:

@@ -16,10 +16,11 @@ extern "C" {
 #endif
 
 /*****************************************************************************/
-struct value_with_pointer;
-struct value_with_array;
 struct metac_value_backend_ops;
 struct metac_value_backend;																/* abstract substitution for pointers */
+
+struct value_with_pointer;
+struct value_with_array;
 struct metac_value;
 /*****************************************************************************/
 
@@ -30,11 +31,11 @@ struct metac_value_backend {
 };
 
 struct metac_value_backend_ops {
+
 	struct metac_refcounter_object_ops				refcounter_object_ops;
 
-	int												(*value_get_value_backend)(
-			struct metac_value *						p_value,
-			struct metac_value_backend **				pp_memory_value_backend);
+	int												(*value_get_value_backend_based_on_parent)(
+			struct metac_value *						p_value);
 
 	int												(*value_read_value_backend)(
 			struct metac_value *						p_value,
@@ -44,8 +45,8 @@ struct metac_value_backend_ops {
 			struct metac_value *						p_value,
 			int											id);
 
-
 };
+
 int metac_value_backend_init(
 		struct metac_value_backend *				p_metac_value_backend,
 		struct metac_value_backend_ops *			p_metac_value_backend_ops,
