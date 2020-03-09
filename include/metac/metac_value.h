@@ -62,47 +62,42 @@ struct value_with_pointer {
 
 	metac_flag_t									use_cast;
 	metac_count_t									generic_cast_type_id;				/* we use callback to get this */
-	//struct memory_block_scheme *					p_casted_memory_block_scheme;		/* after generic_cast */
+
 	struct metac_value_backend *					p_casted_value_backend;				/* the interface what was read */
 	metac_data_member_location_t					casted_based_original_offset;		/* the delta between original and casted offsets */
 
 	metac_num_t										subrange0_count;					/* we use callback to get this */
-
-	//struct memory_block_top_reference				memory_block_top_reference;
 };
 struct value_with_array {
 	struct metac_value_backend *					p_value_backend;					/* the interface what was read */
 
 	metac_flag_t									is_flexible;
 	metac_num_t										subrange0_count;					/*we use callback to get this*/
-
-	struct metac_value	*							p_memory_block;
 };
 struct value_with_hierarchy {															/* structure or union */
 	metac_count_t 									members_count;
 	struct metac_value **							members;
 };
-
 struct metac_value {
 	metac_refcounter_object_t						refcounter_object;					/* we want to make this object refcountable */
 
-//	/* calculate based on p_parent_memory_block */
-//	struct top_memory_block * 						p_top_memory_block;
-//	metac_data_member_location_t					top_memory_block_offset;
-
-	struct value_with_hierarchy *					p_current_hierarchy;
+	struct metac_value *							p_current_container_value;
 	union {
-		struct _hierarchy_member {														/* if p_current_hierarchy != NULL*/
-			metac_count_t							id;
-			/*TODO:*/
-		}											hierarchy_member;
-		struct _hierarchy_top {															/* if p_current_hierarchy == NULL */
+		struct _hierarchy_top {															/* metac_value_is_hierarchy_top_value is true */
+
 			struct discriminator_value {
 				metac_discriminator_value_t			value;
 			} **									pp_discriminator_values;			/* we use callback to get this */
 
 			struct metac_value **					pp_members;
 		}											hierarchy_top;
+
+		struct _array_top {																/* if array_value or pointer_value */
+
+			metac_num_t								members_count;
+			struct metac_value **					pp_members;
+
+		}											array_top;
 	};
 
 	struct metac_value_backend *					p_value_backend;					/* abstract memory access (e.g. pointer) */
