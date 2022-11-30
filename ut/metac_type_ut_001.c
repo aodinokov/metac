@@ -68,12 +68,16 @@
 #endif
 
 /* 3. Some compilers generate dwarf data without count/upper/lower_bound for arrays with len=0. It's a bug.
- * gcc and clang 3.5.0 has this issue, but 3.9.0 - doesn't
+ * gcc before 9.0 and clang 3.5.0 has this issue, but 3.9.0 - doesn't
  */
 #if defined(__clang__) && (( __clang_major__ > 3 ) || ( __clang_major__ == 3 && __clang_minor__ >= 9 && __clang_patchlevel__ >=0 ))
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
 #else
+#if defined(__GNUC__) && (__GNUC_PREREQ(9,0))
+#define _BUG_ZERO_LEN_IS_FLEXIBLE_ 0
+#else
 #define _BUG_ZERO_LEN_IS_FLEXIBLE_ 1
+#endif
 #endif
 /*
  * TBD: autodetection issue:
