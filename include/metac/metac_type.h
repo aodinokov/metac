@@ -1,7 +1,7 @@
 #ifndef METAC_H_
 #define METAC_H_
 
-#include <dwarf.h>
+#include <libdwarf/dwarf.h>
 //#include <libdwarf/dwarf.h> /*for bionic*/
 
 #include "metac/metac_refcounter.h"
@@ -47,6 +47,7 @@ struct metac_type {
 		struct enumeration_type_info {
 			metac_type_t *							type;								/* universal field (can be NULL in some compliers) */
 			metac_byte_size_t						byte_size;							/* mandatory field */
+			metac_encoding_t						encoding;
 			metac_num_t								enumerators_count;					/* mandatory field */
 			struct metac_type_enumerator_info {
 				metac_name_t						name;								/* enumerator name */
