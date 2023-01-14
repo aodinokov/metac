@@ -35,5 +35,4 @@
 	_delete_start_(_type_) \
 	_delete_finish(_type_)
 
-
 #endif /* SRC_METAC_OOP_H_ */

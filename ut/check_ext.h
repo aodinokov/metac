@@ -5,40 +5,40 @@
 #include <stdlib.h> /* getenv */
 
 /* 	redefine env
-	CK_DEFAULT_TIMEOUT=<sec> to set timeout
-	CK_TIMEOUT_MULTIPLIER=<n> to multiply all timeouts
-	CK_FORK=no|yes(default)
-	CK_VERBOSITY={silent|minimal|normal(default)|verbose}
-	added here:
-	CK_ONLY_CASE=X
-	CK_ONLY_TEST=X
-*/
+ CK_DEFAULT_TIMEOUT=<sec> to set timeout
+ CK_TIMEOUT_MULTIPLIER=<n> to multiply all timeouts
+ CK_FORK=no|yes(default)
+ CK_VERBOSITY={silent|minimal|normal(default)|verbose}
+ added here:
+ CK_ONLY_CASE=X
+ CK_ONLY_TEST=X
+ */
 
 /*
  * Example of suite declaration:
-int main(void){
-	return RUN_SUITE(
-		START_SUITE(test1){
-			ADD_CASE(
-				START_CASE(smoke){
-					FIXTURE(_setup1, _teardown1, 1);
-					TIMEOUT(10);
-					ADD_TEST(test_xxx);
-					ADD_TEST(test_yyy);
-				}END_CASE
-			);
-			ADD_CASE(
-				START_CASE(core){
-					FIXTURE(_setup2, _teardown2, 1);
-					TIMEOUT(5);
-					ADD_TEST(test_div_by_zero);
-					ADD_TEST(test_div_by_zero1);
-				}END_CASE
-			);
-		}END_SUITE
-	);
-}
-*/
+ int main(void){
+ return RUN_SUITE(
+ START_SUITE(test1){
+ ADD_CASE(
+ START_CASE(smoke){
+ FIXTURE(_setup1, _teardown1, 1);
+ TIMEOUT(10);
+ ADD_TEST(test_xxx);
+ ADD_TEST(test_yyy);
+ }END_CASE
+ );
+ ADD_CASE(
+ START_CASE(core){
+ FIXTURE(_setup2, _teardown2, 1);
+ TIMEOUT(5);
+ ADD_TEST(test_div_by_zero);
+ ADD_TEST(test_div_by_zero1);
+ }END_CASE
+ );
+ }END_SUITE
+ );
+ }
+ */
 
 #ifndef CHECK_EXT_NO_RE
 #include <stdio.h>
@@ -50,14 +50,13 @@ int main(void){
  * Sometimes it's necessary to generate errors
  * (to show that it's error inside check library)
  */
-void eprintf(const char *fmt, const char *file, int line,...);
+void eprintf(const char *fmt, const char *file, int line, ...);
 
 #define ck_error(message, args...) \
 do { \
 	mark_point(); \
 	eprintf(message,__FILE__,__LINE__, ##args); \
 }while(0)
-
 
 #define START_SUITE(_suite_) \
 	({ \
@@ -108,27 +107,25 @@ do { \
 #define ADD_TEST(_test_) \
 		_ADD_TEST(_test_, (0), (0), 0, 1)
 
-
 #define END_CASE \
 		} \
 		tcase; \
 	})
 
 int static inline run_suite(Suite *suite) {
-	int nr_failed = 0;
-	SRunner *sr = srunner_create(suite);
-	srunner_set_fork_status(sr, CK_FORK_GETENV);
-	srunner_run_all(sr, CK_ENV);
-	nr_failed = srunner_ntests_failed (sr);
-	srunner_free (sr);
-	return nr_failed;
+    int nr_failed = 0;
+    SRunner *sr = srunner_create(suite);
+    srunner_set_fork_status(sr, CK_FORK_GETENV);
+    srunner_run_all(sr, CK_ENV);
+    nr_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return nr_failed;
 }
 
 #ifndef CHECK_EXT_NO_RE
 
 static inline
-int regex_match(const char *regex, const char *string)
-{
+int regex_match(const char *regex, const char *string) {
     regex_t r;
 
     int result;
@@ -144,7 +141,7 @@ int regex_match(const char *regex, const char *string)
     regfree(&r);
 
     if (result == REG_ESPACE) {
-    	ck_error("Regex matching ran out of memory");
+        ck_error("Regex matching ran out of memory");
     }
 
     if (result == REG_NOMATCH)
