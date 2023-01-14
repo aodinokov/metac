@@ -1363,8 +1363,7 @@ typedef struct _basic_tree {
 METAC_TYPE_GENERATE_AND_IMPORT(basic_tree_t);
 METAC_TYPE_ANNOTATION_BEGIN(basic_tree_t)
 //METAC_ARRAY_ELEMENTS_COUNT_FUNCTION("<ptr>.data", metac_array_elements_single)
-METAC_TYPE_ANNOTATION_END
-
+METAC_TYPE_ANNOTATION_END;
 START_TEST( basic_tree_t_ut) {
 //	STRUCT_TYPE_CHECK_BEGIN(basic_tree_t, DW_TAG_typedef, DW_TAG_structure_type, NULL, NULL, {}) {
 //		_STRUCT_TYPE_CHECK_BYTESIZE;
