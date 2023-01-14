@@ -377,58 +377,65 @@ END {
         print "METAC_TYPE_ANNOTATION_DECLARE(" i ");";
     }
     
-    print "\n\n/* early declaration */"
-    
-    for (i in obj) {
-        i = obj[i];
-        print static_if_needed(i) "struct metac_type " type_variable_name(i) "; /* " i " */";
-    }
-    
-    print "\n/* real data */"
-    
-    for (i in obj) {
-        i = obj[i];
-        at = "";
-        p_at = "";
-        
-        print "/* --" i "--*/"
-        
-        print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
-        if ("type" in data[i]) {
-            print "\t.id = " data[i]["type"] ","
-            if ("DW_AT_name" in data[i])
-                print "\t.name = \"" data[i]["DW_AT_name"] "\",";
-            if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")
-                print "\t.declaration = 1,";
-            else {
-                # special logic to print everything about the type and its parts
-                if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
-                    print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
-                }
-            }
-            #specifications
-            if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
-                print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
-            }
-            #dwarf data 
-            at_text = dump_dwarf_at_data(arr0[1], i) 
-            child_text = dump_dwarf_child_data(arr0[1], i);
-            if (length(at_text) > 0 || length(child_text) > 0) {
-                print "\t.dwarf_info = {"
-                if (length(at_text) > 0)print at_text;
-                if (length(child_text) > 0)print child_text;
-                print "\t},"
-            }
+    if(stubs_only) {
+        print "\n\n/* stubs-only declaration */"
+        for (i in task4types) {
+            print "struct metac_type METAC_TYPE_NAME(" i ");"
         }
-        print "};"
-        
-        # move type from task4types to types_array to print the whole list of types
-        if ("DW_AT_name" in data[i] && type_name(data[i]["DW_AT_name"]) in task4types) {
-            types_array[type_name(data[i]["DW_AT_name"])] = type_variable_name(i);
-            delete task4types[type_name(data[i]["DW_AT_name"])];
-        }
-        print;
-    }
+    } else {
+	    print "\n\n/* early declaration */"
+
+	    for (i in obj) {
+	        i = obj[i];
+	        print static_if_needed(i) "struct metac_type " type_variable_name(i) "; /* " i " */";
+	    }
+
+	    print "\n/* actual data */"
+
+	    for (i in obj) {
+	        i = obj[i];
+	        at = "";
+	        p_at = "";
+
+	        print "/* --" i "--*/"
+
+	        print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
+	        if ("type" in data[i]) {
+	            print "\t.kind = " data[i]["type"] ","
+	            if ("DW_AT_name" in data[i])
+	                print "\t.name = \"" data[i]["DW_AT_name"] "\",";
+	            if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")
+	                print "\t.declaration = 1,";
+	            else {
+	                # special logic to print everything about the type and its parts
+	                if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
+	                    print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
+	                }
+	            }
+	            #specifications
+	            if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
+	                print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
+	            }
+	            #dwarf data
+	            at_text = dump_dwarf_at_data(arr0[1], i)
+	            child_text = dump_dwarf_child_data(arr0[1], i);
+	            if (length(at_text) > 0 || length(child_text) > 0) {
+	                print "\t.dwarf_info = {"
+	                if (length(at_text) > 0)print at_text;
+	                if (length(child_text) > 0)print child_text;
+	                print "\t},"
+	            }
+	        }
+	        print "};"
+
+	        # move type from task4types to types_array to print the whole list of types
+	        if ("DW_AT_name" in data[i] && type_name(data[i]["DW_AT_name"]) in task4types) {
+	            types_array[type_name(data[i]["DW_AT_name"])] = type_variable_name(i);
+	            delete task4types[type_name(data[i]["DW_AT_name"])];
+	        }
+	        print;
+	    }
+	}
     
     #print whole list of types
     print "struct metac_type_sorted_array METAC_TYPES_ARRAY = {"

@@ -1,3 +1,4 @@
+UNAME_S := $(shell uname -s)
 CFLAGS+=-g3 -o0 -D_GNU_SOURCE -Iinclude -Isrc
 
 all:
@@ -20,13 +21,16 @@ _always_:
 	@echo "-----------------------------------------------------------------------"
 .PRECIOUS: %.metac.task
 
-# this rule is only for linux
+# OS-dependent part
+ifeq ($(UNAME_S),Linux)
 %.metac.c: %.dbg.o %.dbg.o.dwarfdump %.dbg.o.metac.task
 	-awk --version
 	cat $<.dwarfdump | ./bin/metac.awk -v file=$<.metac.task > $@
 .PRECIOUS: %.metac.c
 %.dbg.o: %.c
 	$(CC) -c $< -g3 $(CFLAGS) -o $@
+endif
+
 
 metac_objs = \
 	src/type.o \
@@ -61,6 +65,6 @@ doc: _always_
 	@doxygen Doxyfile
 
 clean:
-	rm -rf src/*.o src/backends/*.o ut/*.o ut/*.metac.c *.a
+	rm -rf src/*.o src/backends/*.o ut/*.o ut/*.metac.c ut/*.task ut/*.dwarfdump *.a
 
 .PHONY: all clean _always_

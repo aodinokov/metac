@@ -23,15 +23,15 @@ metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
     metac_num_t i;
     metac_num_t subranges_count;
     metac_array_info_t *p_array_info;
-    metac_type_id_t id;
+    metac_type_kind_t kind;
 
     if (type == NULL) {
         msg_stderr("invalid argument value: type\n");
         return NULL;
     }
 
-    id = metac_type_actual_type(type)->id;
-    switch (id) {
+    kind = metac_type_actual_type(type)->kind;
+    switch (kind) {
     case DW_TAG_pointer_type:
         subranges_count = 1;
         break;
@@ -40,7 +40,7 @@ metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
         break;
     default:
         msg_stderr("metac_array_info_t can't be created from type(0x%x)\n",
-                (int )id);
+                (int )kind);
         return NULL;
     }
 
@@ -55,7 +55,7 @@ metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
     p_array_info->subranges_count = subranges_count;
     p_array_info->subranges[0].count = default_subrange0_count;
 
-    if (id == DW_TAG_array_type) {
+    if (kind == DW_TAG_array_type) {
         for (i = 0; i < subranges_count; ++i) {
             metac_type_array_subrange_count(type, i,
                     &p_array_info->subranges[i].count);
@@ -114,7 +114,7 @@ metac_array_info_t* metac_array_info_copy(metac_array_info_t *p_array_info_orig)
     metac_num_t i;
     metac_num_t subranges_count;
     metac_array_info_t *p_array_info;
-    metac_type_id_t id;
+    metac_type_kind_t id;
 
     if (p_array_info_orig == NULL) {
         msg_stderr("invalid argument value: p_array_info\n");
@@ -188,7 +188,7 @@ metac_array_info_t* metac_array_info_create_counter(
     metac_num_t i;
     metac_num_t subranges_count;
     metac_array_info_t *p_array_info_counter;
-    metac_type_id_t id;
+    metac_type_kind_t id;
 
     if (p_array_info == NULL) {
         msg_stderr("invalid argument value: p_array_info\n");

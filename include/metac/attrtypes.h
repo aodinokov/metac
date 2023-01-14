@@ -24,7 +24,7 @@ typedef unsigned int metac_count_t;
 typedef unsigned long metac_const_value_t;
 typedef int metac_flag_t;
 
-typedef int metac_type_id_t;
+typedef int metac_type_kind_t;
 typedef int metac_type_at_id_t;
 typedef unsigned int metac_num_t;
 

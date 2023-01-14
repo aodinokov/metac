@@ -8,6 +8,8 @@
 #ifndef SRC_METAC_OOP_H_
 #define SRC_METAC_OOP_H_
 
+#include <stddef.h> /* for offsetof */
+
 #define _create_with_error_result_(_type_, _error_result_) \
 	struct _type_ * p_##_type_; \
 	p_##_type_ = calloc(1, sizeof(*(p_##_type_))); \
@@ -34,5 +36,18 @@
 #define _delete_(_type_) \
 	_delete_start_(_type_) \
 	_delete_finish(_type_)
+
+/*
+ * _container_of - Get the address of an object containing a field.
+ *
+ * @ptr: pointer to the field.
+ * @type: type of the object.
+ * @member: name of the field within the object.
+ */
+#define _container_of(ptr, type, member) \
+    ({ \
+        const __typeof__(((type *) NULL)->member) * __ptr = (ptr); \
+        (type *)((char *)__ptr - offsetof(type, member));   \
+    })
 
 #endif /* SRC_METAC_OOP_H_ */

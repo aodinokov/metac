@@ -120,11 +120,11 @@ metac_discriminator_value_t *p_discriminator_val, void *data) {
 			struct metac_type *type_by_name = metac_type_by_name(&METAC_TYPES_ARRAY, _type_name);\
 			fail_unless(type_by_name == type, "metac_type_by_name returned incorrect value %p", type_by_name);\
 		}while(0)
-#define GENERAL_TYPE_CHECK_ID(_id_) do { \
-			fail_unless(type->id == _id_, "ID: must be " #_id_ ", but it's 0x%x", (int)type->id); \
+#define GENERAL_TYPE_CHECK_KIND(_kind_) do { \
+			fail_unless(type->kind == _kind_, "ID: must be " #_kind_ ", but it's 0x%x", (int)type->kind); \
 		}while(0)
-#define GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_id_) do { \
-			fail_unless(actual_type->id == _id_, "NOT_TYPEDEF_ID: must be " #_id_ ", but it's 0x%x", (int)actual_type->id); \
+#define GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_kind_) do { \
+			fail_unless(actual_type->kind == _kind_, "NOT_TYPEDEF_ID: must be " #_kind_ ", but it's 0x%x", (int)actual_type->kind); \
 		}while(0)
 void _check_annotations(struct metac_type *type,
         metac_type_annotation_t *override_annotations,
@@ -378,8 +378,8 @@ struct _member_info {
 		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_); \
 		GENERAL_TYPE_CHECK_ANNOTATIONS(_annotation_params_); \
 		GENERAL_TYPE_CHECK_PRECOMILED(); \
 	}GENERAL_TYPE_CHECK_END
@@ -392,8 +392,8 @@ struct _member_info {
 		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_); \
 		GENERAL_TYPE_CHECK_PRECOMILED(); \
 		ENUM_TYPE_CHECK_NAME(_expected_name_, _expected_name_skip_typedef_);
 #define ENUM_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
@@ -406,8 +406,8 @@ struct _member_info {
 		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_); \
 		GENERAL_TYPE_CHECK_PRECOMILED();
 #define ARRAY_TYPE_CHECK_ANNOTATIONS GENERAL_TYPE_CHECK_ANNOTATIONS
 #define ARRAY_TYPE_CHECK_END }GENERAL_TYPE_CHECK_END
@@ -419,8 +419,8 @@ struct _member_info {
 		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_); \
 		GENERAL_TYPE_CHECK_PRECOMILED();
 #define STRUCT_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(structure_type_info)
@@ -439,8 +439,8 @@ struct _member_info {
 		GENERAL_TYPE_CHECK_BYTE_SIZE(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_); \
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_); \
 		GENERAL_TYPE_CHECK_PRECOMILED();
 #define UNION_TYPE_CHECK_BYTESIZE \
 	STRUCT_UNION_TYPE_CHECK_BYTESIZE(union_type_info)
@@ -460,8 +460,8 @@ struct _member_info {
 		mark_point(); \
 		GENERAL_TYPE_CHECK_NAME(); \
 		GENERAL_TYPE_CHECK_ACCESS_BY_NAME(); \
-		GENERAL_TYPE_CHECK_ID(_id_); \
-		GENERAL_TYPE_CHECK_NOT_TYPEDEF_ID(_n_td_id_);
+		GENERAL_TYPE_CHECK_KIND(_id_); \
+		GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_n_td_id_);
 #define FUNCTION_TYPE_CHECK_END \
 	}GENERAL_TYPE_CHECK_END
 /*****************************************************************************/
@@ -1074,7 +1074,7 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
     if (strcmp(key, "<ptr>.<anon0>") == 0) {
         metac_type_t *metac_type_obj = (metac_type_t*) ptr;
         if (write_operation == 0) {
-            switch (metac_type_obj->id) {
+            switch (metac_type_obj->kind) {
             case DW_TAG_typedef:
                 *p_discriminator_val = 0;
                 return 0;
@@ -1110,31 +1110,31 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
         } else {
             switch (*p_discriminator_val) {
             case 0:
-                metac_type_obj->id = DW_TAG_typedef;
+                metac_type_obj->kind = DW_TAG_typedef;
                 return 0;
             case 1:
-                metac_type_obj->id = DW_TAG_const_type;
+                metac_type_obj->kind = DW_TAG_const_type;
                 return 0;
             case 2:
-                metac_type_obj->id = DW_TAG_base_type;
+                metac_type_obj->kind = DW_TAG_base_type;
                 return 0;
             case 3:
-                metac_type_obj->id = DW_TAG_pointer_type;
+                metac_type_obj->kind = DW_TAG_pointer_type;
                 return 0;
             case 4:
-                metac_type_obj->id = DW_TAG_enumeration_type;
+                metac_type_obj->kind = DW_TAG_enumeration_type;
                 return 0;
             case 5:
-                metac_type_obj->id = DW_TAG_subprogram;
+                metac_type_obj->kind = DW_TAG_subprogram;
                 return 0;
             case 6:
-                metac_type_obj->id = DW_TAG_structure_type;
+                metac_type_obj->kind = DW_TAG_structure_type;
                 return 0;
             case 7:
-                metac_type_obj->id = DW_TAG_union_type;
+                metac_type_obj->kind = DW_TAG_union_type;
                 return 0;
             case 8:
-                metac_type_obj->id = DW_TAG_array_type;
+                metac_type_obj->kind = DW_TAG_array_type;
                 return 0;
             }
             return -1;

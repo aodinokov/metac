@@ -19,31 +19,31 @@ typedef struct metac_type_annotation_value metac_type_annotation_value_t;
 struct metac_type {
     metac_refcounter_object_t refcounter_object; /* needed to work with references if the object is dynamically allocated (see metac_type_create_pointer_for) */
 
-    metac_type_id_t id; /* type id */
+    metac_type_kind_t kind; /* type kind (base type and etc) */
     metac_name_t name; /* name of type (can be NULL) */
     metac_flag_t declaration; /* =1 if type is incomplete */
 
     /* METAC specific data */
     union {
-        /* .id == DW_TAG_typedef */
+        /* .kind == DW_TAG_typedef */
         struct typedef_info {
             metac_type_t *type; /* universal field */
         } typedef_info;
-        /* .id == DW_TAG_const_type */
+        /* .kind == DW_TAG_const_type */
         struct const_type_info {
             metac_type_t *type; /* universal field */
         } const_type_info;
-        /* .id == DW_TAG_base_type */
+        /* .kind == DW_TAG_base_type */
         struct base_type_info {
             metac_byte_size_t byte_size; /* mandatory field */
             metac_encoding_t encoding; /* type encoding (DW_ATE_signed etc) */
         } base_type_info;
-        /* .id == DW_TAG_pointer_type */
+        /* .kind == DW_TAG_pointer_type */
         struct pointer_type_info {
             metac_byte_size_t byte_size; /* can be optional */
             metac_type_t *type; /* universal field */
         } pointer_type_info;
-        /* .id == DW_TAG_enumeration_type */
+        /* .kind == DW_TAG_enumeration_type */
         struct enumeration_type_info {
             metac_type_t *type; /* universal field (can be NULL in some compliers) */
             metac_byte_size_t byte_size; /* mandatory field */
@@ -54,7 +54,7 @@ struct metac_type {
                 metac_const_value_t const_value; /* enumerator value */
             } *enumerators;
         } enumeration_type_info;
-        /* .id == DW_TAG_subprogram */
+        /* .kind == DW_TAG_subprogram */
         struct subprogram_info {
             metac_type_t *type; /* function return type (NULL if void) */
             metac_num_t parameters_count; /* number of parameters */
@@ -64,7 +64,7 @@ struct metac_type {
                 metac_name_t name; /* parameter name */
             } *parameters;
         } subprogram_info;
-        /* .id = DW_TAG_structure_type */
+        /* .kind = DW_TAG_structure_type */
         struct structure_type_info {
             metac_byte_size_t byte_size; /* size of the structure in bytes */
             metac_num_t members_count; /* number of members */
@@ -77,13 +77,13 @@ struct metac_type {
                 metac_bit_size_t *p_bit_size; /* bit size - used only when bits were specified. Can be NULL */
             } *members;
         } structure_type_info;
-        /* .id == DW_TAG_union_type */
+        /* .kind == DW_TAG_union_type */
         struct union_type_info {
             metac_byte_size_t byte_size; /* size of the union in bytes */
             metac_num_t members_count; /* number of members */
             struct metac_type_member_info *members;
         } union_type_info;
-        /* .id == DW_TAG_array_type */
+        /* .kind == DW_TAG_array_type */
         struct array_type_info {
             metac_type_t *type; /* type of elements */
             metac_flag_t is_flexible; /* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
