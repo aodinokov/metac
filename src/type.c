@@ -14,10 +14,10 @@
 #include <errno.h>
 #include <urcu/list.h>		/* struct cds_list_entry etc */
 
-#include "metac/metac_type.h"
+#include "metac/base.h"
 
-#include "metac_oop.h"		/*_create, _delete, ...*/
-#include "metac_debug.h"
+#include "oop.h"		    /*_create, _delete, ...*/
+#include "debug.h"
 
 static const metac_type_annotation_t*
 _annotation_by_key(metac_type_annotation_t *annotations, const char *key) {

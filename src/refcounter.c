@@ -8,8 +8,8 @@
 #include <errno.h>			/* ENOMEM etc */
 #include <stdlib.h>			/* calloc, free, NULL, qsort... */
 
-#include "metac_debug.h"	/* msg_stderr, ...*/
-#include "metac/metac_refcounter.h"
+#include "debug.h"	        /* msg_stderr, ...*/
+#include "metac/refcounter.h"
 
 int metac_unknown_object_init(struct metac_unknown_object *p_unknown_object,
         struct metac_unknown_object_ops *p_unknown_object_ops,

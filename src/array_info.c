@@ -12,11 +12,11 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "metac/metac_type.h"
-#include "metac/metac_array_info.h"
+#include "metac/base.h"
+#include "metac/array_info.h"
 
-#include "metac_oop.h"		/*_create, _delete, ...*/
-#include "metac_debug.h"
+#include "debug.h"
+#include "oop.h"		/*_create, _delete, ...*/
 
 metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
         metac_num_t default_subrange0_count) {

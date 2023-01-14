@@ -1,6 +1,3 @@
 check
 dwarfdump
 libdwarf-dev /* possible to get rid of this - need to modify metac.awk a bit */
-libjson0-dev
-liburcu-dev? /* not sure if this will be necessary - it's a set of types (no rb-tree, btw, but I like list.h :), but cp_rbtree can also be helpful) https://linux.die.net/man/3/cp_rbtree*/
-tsearch, tfind, tdelete, twalk, tdestroy - manage a binary tree

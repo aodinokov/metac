@@ -1,11 +1,11 @@
 #ifndef METAC_H_
 #define METAC_H_
 
+#include <stdio.h>  /* NULL */
 #include <libdwarf/dwarf.h>
-//#include <libdwarf/dwarf.h> /*for bionic*/
 
-#include "metac/metac_refcounter.h"
-#include "metac/metac_attrtypes.h"
+#include "metac/refcounter.h"
+#include "metac/attrtypes.h"
 
 #ifdef __cplusplus
 extern "C" {
