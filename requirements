@@ -1,3 +1,2 @@
 check
 dwarfdump
-libdwarf-dev /* possible to get rid of this - need to modify metac.awk a bit */

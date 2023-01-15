@@ -2,7 +2,7 @@
 #define METAC_H_
 
 #include <stdio.h>  /* NULL */
-#include <libdwarf/dwarf.h>
+//#include <libdwarf/dwarf.h>
 
 #include "metac/refcounter.h"
 #include "metac/attrtypes.h"
@@ -23,27 +23,30 @@ struct metac_type {
     metac_name_t name; /* name of type (can be NULL) */
     metac_flag_t declaration; /* =1 if type is incomplete */
 
+    /* METAC allows to set additional type annotations that help to make a decision e.g. during serialization */
+    metac_type_annotation_t *annotations; /* pointer to explicit annotations array for this type*/
+
     /* METAC specific data */
     union {
-        /* .kind == DW_TAG_typedef */
+        /* .kind == METAC_KND_typedef */
         struct typedef_info {
             metac_type_t *type; /* universal field */
         } typedef_info;
-        /* .kind == DW_TAG_const_type */
+        /* .kind == METAC_KND_const_type */
         struct const_type_info {
             metac_type_t *type; /* universal field */
         } const_type_info;
-        /* .kind == DW_TAG_base_type */
+        /* .kind == METAC_KND_base_type */
         struct base_type_info {
             metac_byte_size_t byte_size; /* mandatory field */
-            metac_encoding_t encoding; /* type encoding (DW_ATE_signed etc) */
+            metac_encoding_t encoding; /* type encoding (METAC_ENC_signed etc) */
         } base_type_info;
-        /* .kind == DW_TAG_pointer_type */
+        /* .kind == METAC_KND_pointer_type */
         struct pointer_type_info {
             metac_byte_size_t byte_size; /* can be optional */
             metac_type_t *type; /* universal field */
         } pointer_type_info;
-        /* .kind == DW_TAG_enumeration_type */
+        /* .kind == METAC_KND_enumeration_type */
         struct enumeration_type_info {
             metac_type_t *type; /* universal field (can be NULL in some compliers) */
             metac_byte_size_t byte_size; /* mandatory field */
@@ -54,7 +57,7 @@ struct metac_type {
                 metac_const_value_t const_value; /* enumerator value */
             } *enumerators;
         } enumeration_type_info;
-        /* .kind == DW_TAG_subprogram */
+        /* .kind == METAC_KND_subprogram */
         struct subprogram_info {
             metac_type_t *type; /* function return type (NULL if void) */
             metac_num_t parameters_count; /* number of parameters */
@@ -64,7 +67,7 @@ struct metac_type {
                 metac_name_t name; /* parameter name */
             } *parameters;
         } subprogram_info;
-        /* .kind == DW_TAG_subroutine_type */
+        /* .kind == METAC_KND_subroutine_type */
         struct subroutine_type_info {
             metac_type_t *type; /* function return type (NULL if void) */
             metac_num_t parameters_count; /* number of parameters */
@@ -74,26 +77,25 @@ struct metac_type {
                 metac_name_t name; /* parameter name */
             } *parameters;
         } subroutine_type_info;
-        /* .kind = DW_TAG_structure_type */
+        /* .kind = METAC_KND_structure_type */
         struct structure_type_info {
             metac_byte_size_t byte_size; /* size of the structure in bytes */
             metac_num_t members_count; /* number of members */
             struct metac_type_member_info {
                 metac_type_t *type; /* type of the member (mandatory) */
-#define METAC_ANON_MEMBER_NAME ""
                 metac_name_t name; /* name of the member (mandatory), but can be "" for anonymous elements */
                 metac_data_member_location_t data_member_location; /* location - offset in bytes (mandatory only for structure members, but 0 is ok if not defined) */
                 metac_bit_offset_t *p_bit_offset; /* bit offset - used only when bits were specified. Can be NULL */
                 metac_bit_size_t *p_bit_size; /* bit size - used only when bits were specified. Can be NULL */
             } *members;
         } structure_type_info;
-        /* .kind == DW_TAG_union_type */
+        /* .kind == METAC_KND_union_type */
         struct union_type_info {
             metac_byte_size_t byte_size; /* size of the union in bytes */
             metac_num_t members_count; /* number of members */
             struct metac_type_member_info *members;
         } union_type_info;
-        /* .kind == DW_TAG_array_type */
+        /* .kind == METAC_KND_array_type */
         struct array_type_info {
             metac_type_t *type; /* type of elements */
             metac_flag_t is_flexible; /* 1 - if array is flexible ??? may be create a macro and use elements_count == -1*/
@@ -115,8 +117,6 @@ struct metac_type {
         } array_type_info;
     };
 
-    /* METAC allows to set additional type annotations that help to make a decision e.g. during serialization */
-    metac_type_annotation_t *annotations; /* pointer to explicit annotations array for this type*/
 #if 0
     /**
      * RAW DWARF data
@@ -151,7 +151,7 @@ struct metac_type {
 
 metac_name_t metac_type_name(struct metac_type *type);
 metac_byte_size_t metac_type_byte_size(struct metac_type *type); /*< returns length in bytes of any type */
-struct metac_type* metac_type_actual_type(struct metac_type *type); /*< skips DW_TAG_typedef & DW_TAG_const_type and return actual type */
+struct metac_type* metac_type_actual_type(struct metac_type *type); /*< skips METAC_KND_typedef & METAC_KND_const_type and return actual type */
 int metac_type_enumeration_type_get_value(struct metac_type *type,
         metac_name_t name, metac_const_value_t *p_const_value);
 metac_name_t metac_type_enumeration_type_get_name(struct metac_type *type,
@@ -294,12 +294,9 @@ struct metac_type* metac_type_by_name(struct metac_type_sorted_array *array,
         metac_name_t name);
 
 struct metac_object {
+    metac_refcounter_object_t refcounter_object; /* needed to work with references if the object is dynamically allocated (see metac_type_create_pointer_for) */
     struct metac_type *type;
     void *ptr;
-    int fixed_part_byte_size;
-    int flexible_part_byte_size;
-    /*todo: reference count (0 for objects that were initialized by METAC_OBJECT/METAC_FUNCTION)*/
-    int ref_count;
 };
 #define METAC_OBJECT_NAME(name) METAC(object, name)
 #define METAC_OBJECT(_type_, _name_) \
@@ -308,8 +305,6 @@ struct metac_object {
 	struct metac_object METAC_OBJECT_NAME(_name_) = {\
 			.type = &METAC_TYPE_NAME(_type_),\
 			.ptr = &_name_,\
-			.fixed_part_byte_size = sizeof(_type_), \
-			.flexible_part_byte_size = sizeof(_name_) - sizeof(_type_),\
 	}
 #define METAC_FUNCTION(_name_) METAC_OBJECT(_name_, _name_)
 

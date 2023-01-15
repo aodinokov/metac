@@ -163,7 +163,7 @@ do {\
 //#define GENERAL_TYPE_CHECK_PRECOMILED() \
 //do {\
 //		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-//		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+//		fail_unless(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
 //		if (precompiled_type != NULL) { \
 //			metac_dump_precompiled_type(precompiled_type); \
 //			_type_ x; \
@@ -179,7 +179,7 @@ do {\
 //#define GENERAL_TYPE_CHECK_JSON_UNPACK_PACK() \
 //do {\
 //		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-//		fail_unless(precompiled_type != NULL || type->id == DW_TAG_subprogram, "metac_precompile_type failed for %s", #_type_); \
+//		fail_unless(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
 //		if (precompiled_type != NULL) { \
 //			_type_ x; \
 //			_type_ * p_x = NULL; \
@@ -342,7 +342,6 @@ struct _member_info {
 			p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, _type_name); \
 			fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
 			fail_unless(p_object->type == actual_type, "p_object_info.type must be == type");\
-			fail_unless(p_object->flexible_part_byte_size == 0, "p_object_info.flexible_part_byte_size must be == 0");\
 		}while(0)
 #define FUNCTION_CHECK_RETURN_TYPE(_return_type_name_) do { \
 			char* return_type_name = _return_type_name_; \
@@ -550,101 +549,101 @@ METAC_TYPE_GENERATE_AND_IMPORT(doublecomplex_t);
 //typedef long double complex ldoublecomplex_t;
 //METAC_TYPE_GENERATE_AND_IMPORT(ldoublecomplex_t);
 START_TEST( base_types_ut) {
-    BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(char, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(short, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(short, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(int, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(int, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(long, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(long, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(float, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(float, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(double, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-
-    BASE_TYPE_CHECK(char, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(short, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(int, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(long, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(float, DW_TAG_base_type, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(double, DW_TAG_base_type, DW_TAG_base_type,
+    BASE_TYPE_CHECK(double, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
 
-    BASE_TYPE_CHECK(char_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(char, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(schar_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(short, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(uchar_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(int, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-
-    BASE_TYPE_CHECK(short_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(long, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(shortint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(float, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(sshort_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(sshortint_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ushort_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ushortint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(double, METAC_KND_base_type, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
 
-    BASE_TYPE_CHECK(int_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(char_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(signed_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(schar_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(sint_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(unsigned_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(uint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(uchar_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
 
-    BASE_TYPE_CHECK(long_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(short_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(longint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(shortint_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(slong_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(sshort_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(slongint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(sshortint_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ulong_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(ushort_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ulongint_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-
-    BASE_TYPE_CHECK(llong_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(llongint_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(sllong_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(sllongint_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ullong_t, DW_TAG_typedef, DW_TAG_base_type,
-            _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ullongint_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(ushortint_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
 
-    BASE_TYPE_CHECK(float_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(int_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(double_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(signed_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(ldouble_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(sint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(unsigned_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(uint_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
 
-    BASE_TYPE_CHECK(floatcomplex_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(long_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-    BASE_TYPE_CHECK(doublecomplex_t, DW_TAG_typedef, DW_TAG_base_type,
+    BASE_TYPE_CHECK(longint_t, METAC_KND_typedef, METAC_KND_base_type,
             _GENERAL_TYPE_SKIP_ANNOTATIONS);
-//	BASE_TYPE_CHECK(ldoublecomplex_t, DW_TAG_typedef, DW_TAG_base_type, _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(slong_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(slongint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(ulong_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(ulongint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+
+    BASE_TYPE_CHECK(llong_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(llongint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(sllong_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(sllongint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(ullong_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(ullongint_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+
+    BASE_TYPE_CHECK(float_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(double_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(ldouble_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+
+    BASE_TYPE_CHECK(floatcomplex_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+    BASE_TYPE_CHECK(doublecomplex_t, METAC_KND_typedef, METAC_KND_base_type,
+            _GENERAL_TYPE_SKIP_ANNOTATIONS);
+//	BASE_TYPE_CHECK(ldoublecomplex_t, METAC_KND_typedef, METAC_KND_base_type, _GENERAL_TYPE_SKIP_ANNOTATIONS);
 }
 END_TEST
 
@@ -665,17 +664,17 @@ typedef int_t (*func_ptr_t)(doublecomplex_t *arg);
 METAC_TYPE_GENERATE_AND_IMPORT(func_ptr_t);
 
 START_TEST( pointers_ut) {
-    POINTER_TYPE_CHECK(voidptr_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(voidptr_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
-    POINTER_TYPE_CHECK(voidptrptr_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(voidptrptr_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
-    POINTER_TYPE_CHECK(charptr_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(charptr_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
-    POINTER_TYPE_CHECK(p_incomplete_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(p_incomplete_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
-    POINTER_TYPE_CHECK(cchar_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(cchar_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
-    POINTER_TYPE_CHECK(func_ptr_t, DW_TAG_typedef, DW_TAG_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
+    POINTER_TYPE_CHECK(func_ptr_t, METAC_KND_typedef, METAC_KND_pointer_type, _GENERAL_TYPE_SKIP_ANNOTATIONS)
     ;
 }
 END_TEST
@@ -695,7 +694,7 @@ typedef enum __attribute__((packed, aligned(16)))_aligned_enum_ {
 METAC_TYPE_GENERATE_AND_IMPORT(aligned_enum_t);
 
 START_TEST( enums_ut) {
-    ENUM_TYPE_CHECK_BEGIN(enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, "enum_t", "_enum_")
+    ENUM_TYPE_CHECK_BEGIN(enum_t, METAC_KND_typedef, METAC_KND_enumeration_type, "enum_t", "_enum_")
                 {
                     ENUM_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -706,7 +705,7 @@ START_TEST( enums_ut) {
                             {.name = "_eTwelve", .const_value = 12}, { .name =
                                     NULL }, });
                 }ENUM_TYPE_CHECK_END;
-    ENUM_TYPE_CHECK_BEGIN(anon_enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, "anon_enum_t", NULL)
+    ENUM_TYPE_CHECK_BEGIN(anon_enum_t, METAC_KND_typedef, METAC_KND_enumeration_type, "anon_enum_t", NULL)
                 {
                     ENUM_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -718,7 +717,7 @@ START_TEST( enums_ut) {
                             .const_value = 11}, {.name = "aeTwelve",
                             .const_value = 12}, { .name = NULL }, });
                 }ENUM_TYPE_CHECK_END;
-    ENUM_TYPE_CHECK_BEGIN(aligned_enum_t, DW_TAG_typedef, DW_TAG_enumeration_type, "aligned_enum_t", "_aligned_enum_")
+    ENUM_TYPE_CHECK_BEGIN(aligned_enum_t, METAC_KND_typedef, METAC_KND_enumeration_type, "aligned_enum_t", "_aligned_enum_")
                 {
                     ENUM_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -744,7 +743,7 @@ typedef char _3darray1_t[5][0][3];
 METAC_TYPE_GENERATE_AND_IMPORT(_3darray1_t);
 
 START_TEST( arrays_ut) {
-    ARRAY_TYPE_CHECK_BEGIN(char_array_t, DW_TAG_typedef, DW_TAG_array_type, {})
+    ARRAY_TYPE_CHECK_BEGIN(char_array_t, METAC_KND_typedef, METAC_KND_array_type, {})
                 {
                     ARRAY_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -752,7 +751,7 @@ START_TEST( arrays_ut) {
                     ARRAY_TYPE_CHECK_SUBRANGES(1, {{_BUG_ZERO_LEN_IS_FLEXIBLE_,
                             0}, });
                 }ARRAY_TYPE_CHECK_END;
-    ARRAY_TYPE_CHECK_BEGIN(char_array5_t, DW_TAG_typedef, DW_TAG_array_type, {})
+    ARRAY_TYPE_CHECK_BEGIN(char_array5_t, METAC_KND_typedef, METAC_KND_array_type, {})
                 {
                     ARRAY_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -760,7 +759,7 @@ START_TEST( arrays_ut) {
                     ARRAY_TYPE_CHECK_SUBRANGES(1, {{0, 5}, });
                     ARRAY_TYPE_CHECK_LOCATION([1], 0, 1, {1, });
                 }ARRAY_TYPE_CHECK_END;
-    ARRAY_TYPE_CHECK_BEGIN(_2darray_t, DW_TAG_typedef, DW_TAG_array_type, {})
+    ARRAY_TYPE_CHECK_BEGIN(_2darray_t, METAC_KND_typedef, METAC_KND_array_type, {})
                 {
                     ARRAY_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -782,7 +781,7 @@ START_TEST( arrays_ut) {
                     ARRAY_TYPE_CHECK_LOCATION([2][2], 1, 2, {2, 2, });
                     ARRAY_TYPE_CHECK_LOCATION([3][2], 1, 2, {3, 2, });
                 }ARRAY_TYPE_CHECK_END;
-    ARRAY_TYPE_CHECK_BEGIN(_3darray_t, DW_TAG_typedef, DW_TAG_array_type, {})
+    ARRAY_TYPE_CHECK_BEGIN(_3darray_t, METAC_KND_typedef, METAC_KND_array_type, {})
                 {
                     ARRAY_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -792,7 +791,7 @@ START_TEST( arrays_ut) {
                     ARRAY_TYPE_CHECK_LOCATION([1][0][1], 0, 3, {1, 0, 1, });
                     ARRAY_TYPE_CHECK_LOCATION([1][3][2], 0, 3, {1, 3, 2, });
                 }ARRAY_TYPE_CHECK_END;
-    ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, DW_TAG_typedef, DW_TAG_array_type, {})
+    ARRAY_TYPE_CHECK_BEGIN(_3darray1_t, METAC_KND_typedef, METAC_KND_array_type, {})
                 {
                     ARRAY_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -871,7 +870,7 @@ typedef struct _struct_with_flexible_ND_array_and_len {
 METAC_TYPE_GENERATE_AND_IMPORT(struct_with_flexible_ND_array_and_len_t);
 
 START_TEST( structs_ut) {
-    STRUCT_TYPE_CHECK_BEGIN(struct_t, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(struct_t, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -881,7 +880,7 @@ START_TEST( structs_ut) {
                             { STRUCT_TYPE_CHECK_MEMBER(widthValidated),
                             STRUCT_TYPE_CHECK_MEMBER(heightValidated), });
                 }STRUCT_TYPE_CHECK_END;
-    STRUCT_TYPE_CHECK_BEGIN(bit_fields_t, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(bit_fields_t, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -892,7 +891,7 @@ START_TEST( structs_ut) {
                             STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated),
                             });
                 }STRUCT_TYPE_CHECK_END;
-    STRUCT_TYPE_CHECK_BEGIN(bit_fields_for_longer_than32_bit_t, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(bit_fields_for_longer_than32_bit_t, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -905,7 +904,7 @@ START_TEST( structs_ut) {
                             STRUCT_TYPE_CHECK_MEMBER_BITFIELD(heightValidated2),
                             });
                 }STRUCT_TYPE_CHECK_END;
-    STRUCT_TYPE_CHECK_BEGIN(struct_with_struct_with_flexible_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(struct_with_struct_with_flexible_array_and_len_t, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(override_some_params, (char*[]) {
                                 "discrimitator_name",
@@ -923,7 +922,7 @@ START_TEST( structs_ut) {
                             { STRUCT_TYPE_CHECK_MEMBER(before_struct),
                             STRUCT_TYPE_CHECK_MEMBER(str1), });
                 }STRUCT_TYPE_CHECK_END;
-    STRUCT_TYPE_CHECK_BEGIN(anon_struct_with_anon_elements, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(anon_struct_with_anon_elements, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -935,7 +934,7 @@ START_TEST( structs_ut) {
                             STRUCT_TYPE_CHECK_ANON_MEMBER(x),
                             STRUCT_TYPE_CHECK_MEMBER(e), });
                 }STRUCT_TYPE_CHECK_END;
-    STRUCT_TYPE_CHECK_BEGIN(struct_with_flexible_ND_array_and_len_t, DW_TAG_typedef, DW_TAG_structure_type, {})
+    STRUCT_TYPE_CHECK_BEGIN(struct_with_flexible_ND_array_and_len_t, METAC_KND_typedef, METAC_KND_structure_type, {})
                 {
                     STRUCT_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -976,7 +975,7 @@ METAC_TYPE_ANNOTATION_BEGIN(union_anon_t) METAC_TYPE_ANNOTATION("ptr[]", METAC_C
 METAC_TYPE_ANNOTATION_END
 
 START_TEST( unions_ut) {
-    UNION_TYPE_CHECK_BEGIN(union_t, DW_TAG_typedef, DW_TAG_union_type, {})
+    UNION_TYPE_CHECK_BEGIN(union_t, METAC_KND_typedef, METAC_KND_union_type, {})
                 {
                     UNION_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -985,7 +984,7 @@ START_TEST( unions_ut) {
                     UNION_TYPE_CHECK_MEMBERS(2, { UNION_TYPE_CHECK_MEMBER(d),
                             UNION_TYPE_CHECK_MEMBER(f), });
                 }UNION_TYPE_CHECK_END;
-    UNION_TYPE_CHECK_BEGIN(union_anon_t, DW_TAG_typedef, DW_TAG_union_type, {})
+    UNION_TYPE_CHECK_BEGIN(union_anon_t, METAC_KND_typedef, METAC_KND_union_type, {})
                 {
                     UNION_TYPE_CHECK_ANNOTATIONS(_GENERAL_TYPE_SKIP_ANNOTATIONS)
                     ;
@@ -1016,7 +1015,7 @@ void func_vprintf(const char *format, va_list ap) {
 METAC_FUNCTION(func_vprintf);
 
 START_TEST( funtions_ut) {
-    FUNCTION_TYPE_CHECK_BEGIN(func_t, DW_TAG_subprogram, DW_TAG_subprogram)
+    FUNCTION_TYPE_CHECK_BEGIN(func_t, METAC_KND_subprogram, METAC_KND_subprogram)
                 {
                     FUNCTION_CHECK_GLOBALLY_ACCESSIBLE
                     ;
@@ -1024,7 +1023,7 @@ START_TEST( funtions_ut) {
                     FUNCTION_CHECK_PARAMS(_BUG_NO_USPECIFIED_PARAMETER_, 1,
                             { {.name = "arg", }, });
                 }FUNCTION_TYPE_CHECK_END;
-    FUNCTION_TYPE_CHECK_BEGIN(func_printf, DW_TAG_subprogram, DW_TAG_subprogram)
+    FUNCTION_TYPE_CHECK_BEGIN(func_printf, METAC_KND_subprogram, METAC_KND_subprogram)
                 {
                     FUNCTION_CHECK_GLOBALLY_ACCESSIBLE
                     ;
@@ -1033,7 +1032,7 @@ START_TEST( funtions_ut) {
                             { {.name = "format", },
                             {.unspecified_parameters = 1, }, });
                 }FUNCTION_TYPE_CHECK_END;
-    FUNCTION_TYPE_CHECK_BEGIN(func_vprintf, DW_TAG_subprogram, DW_TAG_subprogram)
+    FUNCTION_TYPE_CHECK_BEGIN(func_vprintf, METAC_KND_subprogram, METAC_KND_subprogram)
                 {
                     FUNCTION_CHECK_GLOBALLY_ACCESSIBLE
                     ;
@@ -1075,31 +1074,31 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
         metac_type_t *metac_type_obj = (metac_type_t*) ptr;
         if (write_operation == 0) {
             switch (metac_type_obj->kind) {
-            case DW_TAG_typedef:
+            case METAC_KND_typedef:
                 *p_discriminator_val = 0;
                 return 0;
-            case DW_TAG_const_type:
+            case METAC_KND_const_type:
                 *p_discriminator_val = 1;
                 return 0;
-            case DW_TAG_base_type:
+            case METAC_KND_base_type:
                 *p_discriminator_val = 2;
                 return 0;
-            case DW_TAG_pointer_type:
+            case METAC_KND_pointer_type:
                 *p_discriminator_val = 3;
                 return 0;
-            case DW_TAG_enumeration_type:
+            case METAC_KND_enumeration_type:
                 *p_discriminator_val = 4;
                 return 0;
-            case DW_TAG_subprogram:
+            case METAC_KND_subprogram:
                 *p_discriminator_val = 5;
                 return 0;
-            case DW_TAG_structure_type:
+            case METAC_KND_structure_type:
                 *p_discriminator_val = 6;
                 return 0;
-            case DW_TAG_union_type:
+            case METAC_KND_union_type:
                 *p_discriminator_val = 7;
                 return 0;
-            case DW_TAG_array_type:
+            case METAC_KND_array_type:
                 *p_discriminator_val = 8;
                 return 0;
             }
@@ -1110,31 +1109,31 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
         } else {
             switch (*p_discriminator_val) {
             case 0:
-                metac_type_obj->kind = DW_TAG_typedef;
+                metac_type_obj->kind = METAC_KND_typedef;
                 return 0;
             case 1:
-                metac_type_obj->kind = DW_TAG_const_type;
+                metac_type_obj->kind = METAC_KND_const_type;
                 return 0;
             case 2:
-                metac_type_obj->kind = DW_TAG_base_type;
+                metac_type_obj->kind = METAC_KND_base_type;
                 return 0;
             case 3:
-                metac_type_obj->kind = DW_TAG_pointer_type;
+                metac_type_obj->kind = METAC_KND_pointer_type;
                 return 0;
             case 4:
-                metac_type_obj->kind = DW_TAG_enumeration_type;
+                metac_type_obj->kind = METAC_KND_enumeration_type;
                 return 0;
             case 5:
-                metac_type_obj->kind = DW_TAG_subprogram;
+                metac_type_obj->kind = METAC_KND_subprogram;
                 return 0;
             case 6:
-                metac_type_obj->kind = DW_TAG_structure_type;
+                metac_type_obj->kind = METAC_KND_structure_type;
                 return 0;
             case 7:
-                metac_type_obj->kind = DW_TAG_union_type;
+                metac_type_obj->kind = METAC_KND_union_type;
                 return 0;
             case 8:
-                metac_type_obj->kind = DW_TAG_array_type;
+                metac_type_obj->kind = METAC_KND_array_type;
                 return 0;
             }
             return -1;

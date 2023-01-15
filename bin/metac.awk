@@ -100,10 +100,14 @@ function dump_main_types(type, i) {
                     res = res "\t\t." arr0[1] " = &" type_variable_name(arr[1]) ",\n";
                 }
                 break;
+            case "DW_AT_encoding":
+                if (match(data[i][j], "DW_ATE(.*)", arr)) {
+                    res = res "\t\t." arr0[1] " = METAC_ENC" arr[1] ",\n";
+                }
+                break;
             case "DW_AT_byte_size":
             case "DW_AT_bit_offset":
             case "DW_AT_bit_size":
-            case "DW_AT_encoding":
             case "DW_AT_lower_bound":
             case "DW_AT_upper_bound":
             case "DW_AT_count":
@@ -432,7 +436,7 @@ END {
                     print "/* --" i "--*/"
                     print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
 
-                    print "\t.kind = " data[i]["type"] ","
+                    print "\t.kind = METAC_KND_" arr0[1] "," #data[i]["type"] ","
                     if ("DW_AT_name" in data[i])
                         print "\t.name = \"" data[i]["DW_AT_name"] "\",";
                     if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")

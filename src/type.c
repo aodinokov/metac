@@ -57,12 +57,12 @@ struct metac_type* metac_type_actual_type(struct metac_type *type) {
         msg_stderr("invalid argument value: return NULL\n");
         return NULL;
     }
-    while (type->kind == DW_TAG_typedef || type->kind == DW_TAG_const_type) {
+    while (type->kind == METAC_KND_typedef || type->kind == METAC_KND_const_type) {
         switch (type->kind) {
-        case DW_TAG_typedef:
+        case METAC_KND_typedef:
             type = type->typedef_info.type;
             break;
-        case DW_TAG_const_type:
+        case METAC_KND_const_type:
             type = type->const_type_info.type;
             break;
         }
@@ -85,22 +85,22 @@ metac_byte_size_t metac_type_byte_size(struct metac_type *type) {
     assert(type);
 
     switch (type->kind) {
-    case DW_TAG_base_type:
+    case METAC_KND_base_type:
         return type->base_type_info.byte_size;
-    case DW_TAG_enumeration_type:
+    case METAC_KND_enumeration_type:
         return type->enumeration_type_info.byte_size;
-    case DW_TAG_structure_type:
+    case METAC_KND_structure_type:
         return type->structure_type_info.byte_size;
-    case DW_TAG_union_type:
+    case METAC_KND_union_type:
         return type->union_type_info.byte_size;
-    case DW_TAG_pointer_type:
+    case METAC_KND_pointer_type:
         if (type->pointer_type_info.byte_size > 0)
             return type->pointer_type_info.byte_size;
         return sizeof(void*);
-    case DW_TAG_array_type:
+    case METAC_KND_array_type:
         return type->array_type_info.elements_count
                 * metac_type_byte_size(type->array_type_info.type);
-    case DW_TAG_subprogram:
+    case METAC_KND_subprogram:
         return sizeof(metac_type_byte_size); /*it's always a constant*/
     }
     return 0;
@@ -121,7 +121,7 @@ int metac_type_enumeration_type_get_value(struct metac_type *type,
         msg_stderr("invalid argument value: return NULL\n");
         return -(EINVAL);
     }
-    if (type->kind != DW_TAG_enumeration_type) {
+    if (type->kind != METAC_KND_enumeration_type) {
         msg_stderr("invalid argument type: return NULL\n");
         return -(EINVAL);
     }
@@ -146,7 +146,7 @@ metac_name_t metac_type_enumeration_type_get_name(struct metac_type *type,
         msg_stderr("invalid argument value: return NULL\n");
         return NULL;
     }
-    if (type->kind != DW_TAG_enumeration_type) {
+    if (type->kind != METAC_KND_enumeration_type) {
         msg_stderr("invalid argument type: return NULL\n");
         return NULL;
     }
@@ -169,7 +169,7 @@ int metac_type_array_subrange_count(struct metac_type *type,
         msg_stderr("invalid argument value: type\n");
         return -(EINVAL);
     }
-    if (type->kind != DW_TAG_array_type) {
+    if (type->kind != METAC_KND_array_type) {
         msg_stderr("type id isn't ARRAY\n");
         return -(EINVAL);
     }
@@ -195,7 +195,7 @@ int metac_type_array_member_location(struct metac_type *type,
         msg_stderr("invalid argument value: type\n");
         return -(EINVAL);
     }
-    if (type->kind != DW_TAG_array_type) {
+    if (type->kind != METAC_KND_array_type) {
         msg_stderr("type id isn't ARRAY\n");
         return -(EINVAL);
     }
@@ -294,7 +294,7 @@ if (metac_refcounter_object_init(&p_metac_type->refcounter_object,
     return NULL;
 }
 
-p_metac_type->kind = DW_TAG_pointer_type;
+p_metac_type->kind = METAC_KND_pointer_type;
 p_metac_type->pointer_type_info.type = p_type;
 
 return p_metac_type;

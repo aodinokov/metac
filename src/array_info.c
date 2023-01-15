@@ -32,10 +32,10 @@ metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
 
     kind = metac_type_actual_type(type)->kind;
     switch (kind) {
-    case DW_TAG_pointer_type:
+    case METAC_KND_pointer_type:
         subranges_count = 1;
         break;
-    case DW_TAG_array_type:
+    case METAC_KND_array_type:
         subranges_count = type->array_type_info.subranges_count;
         break;
     default:
@@ -55,7 +55,7 @@ metac_array_info_t* metac_array_info_create_from_type(struct metac_type *type,
     p_array_info->subranges_count = subranges_count;
     p_array_info->subranges[0].count = default_subrange0_count;
 
-    if (kind == DW_TAG_array_type) {
+    if (kind == METAC_KND_array_type) {
         for (i = 0; i < subranges_count; ++i) {
             metac_type_array_subrange_count(type, i,
                     &p_array_info->subranges[i].count);
