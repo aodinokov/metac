@@ -1139,7 +1139,7 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
             }
             return -1;
         }
-    } else if (strcmp(key, "<ptr>.dwarf_info.at.<ptr>.<anon0>") == 0) {
+    } /*else if (strcmp(key, "<ptr>.dwarf_info.at.<ptr>.<anon0>") == 0) {
         struct metac_type_at *metac_type_at_obj = (struct metac_type_at*) ptr;
         if (write_operation == 0) {
             switch (metac_type_at_obj->id) {
@@ -1222,7 +1222,7 @@ static int _metac_type_t_discriminator_funtion(char *annotation_key,
             }
             return -1;
         }
-    }
+    } */
     return -1;
 }
 
@@ -1242,13 +1242,13 @@ static int _metac_type_t_array_elements_count_funtion(char *annotation_key,
         *p_subrange0_count =
                 metac_type_obj->enumeration_type_info.enumerators_count;
         res = 0;
-    } else if (strcmp(key, "<ptr>.dwarf_info.at") == 0) {
+    } /*else if (strcmp(key, "<ptr>.dwarf_info.at") == 0) {
         *p_subrange0_count = metac_type_obj->dwarf_info.at_num;
         res = 0;
     } else if (strcmp(key, "<ptr>.dwarf_info.child") == 0) {
         *p_subrange0_count = metac_type_obj->dwarf_info.child_num;
         res = 0;
-    } else if (strcmp(key, "<ptr>.<anon0>.structure_type_info.members") == 0) {
+    }*/ else if (strcmp(key, "<ptr>.<anon0>.structure_type_info.members") == 0) {
         *p_subrange0_count = metac_type_obj->structure_type_info.members_count;
         res = 0;
     } else if (strcmp(key, "<ptr>.<anon0>.union_type_info.members") == 0) {

@@ -107,7 +107,7 @@ struct metac_type {
 
     /* METAC allows to set additional type annotations that help to make a decision e.g. during serialization */
     metac_type_annotation_t *annotations; /* pointer to explicit annotations array for this type*/
-
+#if 0
     /**
      * RAW DWARF data
      * definition of C type attributes in C (based on DWARF)
@@ -136,6 +136,7 @@ struct metac_type {
             };
         } *at; /* pointer to array of attributes */
     } dwarf_info;
+#endif
 };
 
 metac_name_t metac_type_name(struct metac_type *type);

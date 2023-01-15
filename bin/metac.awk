@@ -416,15 +416,15 @@ END {
 	            if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
 	                print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
 	            }
-	            #dwarf data
-	            at_text = dump_dwarf_at_data(arr0[1], i)
-	            child_text = dump_dwarf_child_data(arr0[1], i);
-	            if (length(at_text) > 0 || length(child_text) > 0) {
-	                print "\t.dwarf_info = {"
-	                if (length(at_text) > 0)print at_text;
-	                if (length(child_text) > 0)print child_text;
-	                print "\t},"
-	            }
+	            ##dwarf data - disabled
+	            #at_text = dump_dwarf_at_data(arr0[1], i)
+	            #child_text = dump_dwarf_child_data(arr0[1], i);
+	            #if (length(at_text) > 0 || length(child_text) > 0) {
+	            #    print "\t.dwarf_info = {"
+	            #    if (length(at_text) > 0)print at_text;
+	            #    if (length(child_text) > 0)print child_text;
+	            #    print "\t},"
+	            #}
 	        }
 	        print "};"
 
