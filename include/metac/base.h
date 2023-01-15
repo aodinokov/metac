@@ -64,6 +64,16 @@ struct metac_type {
                 metac_name_t name; /* parameter name */
             } *parameters;
         } subprogram_info;
+        /* .kind == DW_TAG_subroutine_type */
+        struct subroutine_type_info {
+            metac_type_t *type; /* function return type (NULL if void) */
+            metac_num_t parameters_count; /* number of parameters */
+            struct metac_type_subroutine_type_parameter {
+                int unspecified_parameters; /* if 1 - after that it's possible to have a lot of arguments*/
+                metac_type_t *type; /* parameter type */
+                metac_name_t name; /* parameter name */
+            } *parameters;
+        } subroutine_type_info;
         /* .kind = DW_TAG_structure_type */
         struct structure_type_info {
             metac_byte_size_t byte_size; /* size of the structure in bytes */

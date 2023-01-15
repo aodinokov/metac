@@ -157,6 +157,29 @@ function dump_main_types(type, i) {
                 res = res "\t\t.parameters_count = "count ",\n" res1;
             }
         break;
+        case "subroutine_type":
+            if ("child" in data[i]) {
+                count = 0;
+                res1 = "\t\t.parameters = (struct metac_type_subroutine_type_parameter[]) {\n"
+                for (k in data[i]["child"]) {
+                    child_i = data[i]["child"][k];
+                    switch (data[child_i]["type"]) {
+                    case "DW_TAG_formal_parameter":
+                        if (match(data[child_i]["DW_AT_type"], "<([^>]+)>", arr)) {
+                            res1 = res1 "\t\t\t{.name = \"" data[child_i]["DW_AT_name"] "\", .type = &" type_variable_name(arr[1]) "},\n";
+                            ++count;
+                        }
+                        break;
+                    case "DW_TAG_unspecified_parameters":
+                        res1 = res1 "\t\t\t{.unspecified_parameters = 1},\n";
+                        ++count;
+                        break;
+                    }
+                }
+                res1 = res1 "\t\t},\n"
+                res = res "\t\t.parameters_count = "count ",\n" res1;
+            }
+        break;
         case "structure_type":
         case "union_type":
             if ("child" in data[i]) {
@@ -351,6 +374,7 @@ END {
     main_type_ids["const_type"] = "const_type";
     main_type_ids["enumeration_type"] = "enumeration_type";
     main_type_ids["subprogram"] = "subprogram";
+    main_type_ids["subroutine_type"] = "subroutine_type";
     main_type_ids["structure_type"] = "structure_type";
     main_type_ids["union_type"] = "union_type";
     main_type_ids["array_type"] = "array_type";
