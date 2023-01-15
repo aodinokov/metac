@@ -307,7 +307,7 @@ function type_variable_name(addr) {
         !(name in types_array))
         return "data_" addr;
     
-    return "metac__type_" gensub(/ /, "_", "g", name);
+    return "METAC_TYPE_NAME(" name ")"
 }
 
 function static_if_needed(addr) {
@@ -411,7 +411,12 @@ END {
 
 	    for (i in obj) {
 	        i = obj[i];
-	        print static_if_needed(i) "struct metac_type " type_variable_name(i) "; /* " i " */";
+	        if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0)) {
+	            # print all if dwarf is enabled, overwise print only main types since others are only linked from main
+	            if (dump_dwarf || arr0[1] in main_type_ids) {
+                    print static_if_needed(i) "struct metac_type " type_variable_name(i) "; /* " i " */";
+                }
+            }
 	    }
 
 	    print "\n/* actual data */"
@@ -421,43 +426,47 @@ END {
 	        at = "";
 	        p_at = "";
 
-	        print "/* --" i "--*/"
+	        if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0)) {
+	            # print all if dwarf is enabled, overwise print only main types since others are only linked from main
+	            if (dump_dwarf || arr0[1] in main_type_ids) {
+                    print "/* --" i "--*/"
+                    print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
 
-	        print static_if_needed(i) "struct metac_type " type_variable_name_for_initializer(i) " = {";
-	        if ("type" in data[i]) {
-	            print "\t.kind = " data[i]["type"] ","
-	            if ("DW_AT_name" in data[i])
-	                print "\t.name = \"" data[i]["DW_AT_name"] "\",";
-	            if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")
-	                print "\t.declaration = 1,";
-	            else {
-	                # special logic to print everything about the type and its parts
-	                if ("type" in data[i] && match(data[i]["type"], "DW_TAG_(.*)", arr0) && arr0[1] in main_type_ids) {
-	                    print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
-	                }
-	            }
-	            #specifications
-	            if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
-	                print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
-	            }
-	            ##dwarf data - disabled
-	            #at_text = dump_dwarf_at_data(arr0[1], i)
-	            #child_text = dump_dwarf_child_data(arr0[1], i);
-	            #if (length(at_text) > 0 || length(child_text) > 0) {
-	            #    print "\t.dwarf_info = {"
-	            #    if (length(at_text) > 0)print at_text;
-	            #    if (length(child_text) > 0)print child_text;
-	            #    print "\t},"
-	            #}
-	        }
-	        print "};"
+                    print "\t.kind = " data[i]["type"] ","
+                    if ("DW_AT_name" in data[i])
+                        print "\t.name = \"" data[i]["DW_AT_name"] "\",";
+                    if ("DW_AT_declaration" in data[i] && data[i]["DW_AT_name"] eq "yes(1)")
+                        print "\t.declaration = 1,";
+                    else {
+                        # special logic to print everything about the type and its parts
+                        if (arr0[1] in main_type_ids) {
+                            print "\t."arr0[1]"_info = {\n" dump_main_types(arr0[1], i) "\t},";
+                        }
+                    }
+                    #specifications
+                    if ( type_name(data[i]["DW_AT_name"]) in task4specs) {
+                        print "\t.annotations = METAC_TYPE_ANNOTATION_NAME(" type_name(data[i]["DW_AT_name"]) "),"
+                    }
+                    #dwarf data - disabled by default
+                    if (dump_dwarf) {
+                        at_text = dump_dwarf_at_data(arr0[1], i)
+                        child_text = dump_dwarf_child_data(arr0[1], i);
+                        if (length(at_text) > 0 || length(child_text) > 0) {
+                            print "\t.dwarf_info = {"
+                            if (length(at_text) > 0)print at_text;
+                            if (length(child_text) > 0)print child_text;
+                            print "\t},"
+                        }
+                    }
+                    print "};\n"
+                }
+           }
 
 	        # move type from task4types to types_array to print the whole list of types
 	        if ("DW_AT_name" in data[i] && type_name(data[i]["DW_AT_name"]) in task4types) {
 	            types_array[type_name(data[i]["DW_AT_name"])] = type_variable_name(i);
 	            delete task4types[type_name(data[i]["DW_AT_name"])];
 	        }
-	        print;
 	    }
 	}
     

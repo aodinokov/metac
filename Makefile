@@ -25,7 +25,7 @@ _always_:
 ifeq ($(UNAME_S),Linux)
 %.metac.c: %.dbg.o %.dbg.o.dwarfdump %.dbg.o.metac.task
 	-awk --version
-	cat $<.dwarfdump | ./bin/metac.awk -v file=$<.metac.task > $@
+	cat $<.dwarfdump | ./bin/metac.awk -v file=$<.metac.task dump_dwarf=0 > $@
 .PRECIOUS: %.metac.c
 %.dbg.o: %.c
 	$(CC) -c $< -g3 $(CFLAGS) -o $@
