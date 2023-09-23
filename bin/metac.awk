@@ -50,7 +50,7 @@ function dump_dwarf_at_data(type, i) {
                     ++at_num;
                     break;
                 case "DW_AT_const_value":
-                    if (match(data[i][j], "([0-9xabcdef]+).*", arr)) {
+                    if (match(data[i][j], "([-0-9xabcdef]+).*", arr)) {
                         at_res = at_res "\t\t\t{.id = " j ", ." arr0[1] " = " arr[1] "/*" data[i][j] "*/},\n"
                         ++at_num;
                     }
@@ -128,7 +128,7 @@ function dump_main_types(type, i) {
                 for (k in data[i]["child"]) {
                     child_i = data[i]["child"][k];
                     if (data[child_i]["type"] == "DW_TAG_enumerator") {
-                        if (match(data[child_i]["DW_AT_const_value"], "([0-9xabcdef]+).*", arr)) {
+                        if (match(data[child_i]["DW_AT_const_value"], "([-0-9xabcdef]+).*", arr)) {
                             res1 = res1 "\t\t\t{.name = \"" data[child_i]["DW_AT_name"] "\", .const_value = " arr[1] "/*" data[child_i]["DW_AT_const_value"] "*/},\n";
                             ++count;
                         }
