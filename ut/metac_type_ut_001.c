@@ -105,7 +105,7 @@ metac_discriminator_value_t *p_discriminator_val, void *data) {
 		struct metac_type *actual_type = metac_type_actual_type(type);
 
 #define GENERAL_TYPE_CHECK_BYTE_SIZE() do { \
-			fail_unless(metac_type_byte_size(type) == sizeof(*_ptr), "metac_type_byte_size returned incorrect value for %s", _type_name); \
+			ck_assert_msg(metac_type_byte_size(type) == sizeof(*_ptr), "metac_type_byte_size returned incorrect value for %s", _type_name); \
 		}while(0)
 #define GENERAL_TYPE_CHECK_NAME() do { \
 			char * type_name = metac_type_name(type); \
@@ -113,18 +113,18 @@ metac_discriminator_value_t *p_discriminator_val, void *data) {
 			char * type_name_copy = strdup((type_name!=NULL)?type_name:""), \
 				 * tmp = strchr(type_name_copy, ' '); \
 			if (tmp != NULL)*tmp = '\0';  \
-			fail_unless(strcmp(type_name_copy, _type_name) == 0, "type name returned '%s' instead of '%s'", metac_type_name(type), _type_name);\
+			ck_assert_msg(strcmp(type_name_copy, _type_name) == 0, "type name returned '%s' instead of '%s'", metac_type_name(type), _type_name);\
 			free(type_name_copy);\
 		}while(0)
 #define GENERAL_TYPE_CHECK_ACCESS_BY_NAME() do { \
 			struct metac_type *type_by_name = metac_type_by_name(&METAC_TYPES_ARRAY, _type_name);\
-			fail_unless(type_by_name == type, "metac_type_by_name returned incorrect value %p", type_by_name);\
+			ck_assert_msg(type_by_name == type, "metac_type_by_name returned incorrect value %p", type_by_name);\
 		}while(0)
 #define GENERAL_TYPE_CHECK_KIND(_kind_) do { \
-			fail_unless(type->kind == _kind_, "ID: must be " #_kind_ ", but it's 0x%x", (int)type->kind); \
+			ck_assert_msg(type->kind == _kind_, "ID: must be " #_kind_ ", but it's 0x%x", (int)type->kind); \
 		}while(0)
 #define GENERAL_TYPE_CHECK_NOT_TYPEDEF_KIND(_kind_) do { \
-			fail_unless(actual_type->kind == _kind_, "NOT_TYPEDEF_ID: must be " #_kind_ ", but it's 0x%x", (int)actual_type->kind); \
+			ck_assert_msg(actual_type->kind == _kind_, "NOT_TYPEDEF_ID: must be " #_kind_ ", but it's 0x%x", (int)actual_type->kind); \
 		}while(0)
 void _check_annotations(struct metac_type *type,
         metac_type_annotation_t *override_annotations,
@@ -134,13 +134,13 @@ void _check_annotations(struct metac_type *type,
     while (pp_annotation_keys[i] != NULL) {
         const metac_type_annotation_t *p_annotation = metac_type_annotation(
                 type, pp_annotation_keys[i], override_annotations);
-        fail_unless(p_annotation != NULL,
+        ck_assert_msg(p_annotation != NULL,
                 "metac_type_annotation returned NULL unexpectidly for key %s",
                 pp_annotation_keys[i]);
-        fail_unless(strcmp(p_annotation->key, pp_annotation_keys[i]) == 0,
+        ck_assert_msg(strcmp(p_annotation->key, pp_annotation_keys[i]) == 0,
                 "got incorrect annotation");
         if (expected_results[i] != NULL) {
-            fail_unless(p_annotation == expected_results[i],
+            ck_assert_msg(p_annotation == expected_results[i],
                     "annotation found unexpected result %p instead of %p, key %s",
                     p_annotation, expected_results[i], pp_annotation_keys[i]);
         }
@@ -154,7 +154,7 @@ void _check_annotations(struct metac_type *type,
 #define GENERAL_TYPE_CHECK_PRECOMILED() \
 do {\
 		/* TBD: metac_precompiled_type_t * p_precompiled_type = metac_precompile_type(type, NULL); \
-		fail_unless(p_precompiled_type != NULL, "metac_precompile_type failed for %s", _type_name); \
+		ck_assert_msg(p_precompiled_type != NULL, "metac_precompile_type failed for %s", _type_name); \
 		if (p_precompiled_type != NULL) { \
 			metac_dump_precompiled_type(p_precompiled_type); \
 			metac_free_precompiled_type(&p_precompiled_type); \
@@ -163,23 +163,23 @@ do {\
 //#define GENERAL_TYPE_CHECK_PRECOMILED() \
 //do {\
 //		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-//		fail_unless(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
+//		ck_assert_msg(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
 //		if (precompiled_type != NULL) { \
 //			metac_dump_precompiled_type(precompiled_type); \
 //			_type_ x; \
 //			_type_ *copy; \
 //			memset(&x, 0, sizeof(x)); \
-//			fail_unless(metac_visit(&x, sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed"); \
-//			fail_unless(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed"); \
-//			fail_unless(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
-//			fail_unless(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
+//			ck_assert_msg(metac_visit(&x, sizeof(x), precompiled_type, 1, NULL, 0, &_basic_visitor) == 0, "metac_visit failed"); \
+//			ck_assert_msg(metac_visit2(&x, precompiled_type, 1, &_basic_visitor2) == 0, "metac_visit2 failed"); \
+//			ck_assert_msg(metac_copy(&x, sizeof(x), precompiled_type, 1, (void**)&copy) == 0, "metac_copy failed"); \
+//			ck_assert_msg(metac_delete(copy, sizeof(x), precompiled_type, 1) == 0, "metac_delete failed"); \
 //			metac_free_precompiled_type(&precompiled_type); \
 //		} \
 //	}while(0)
 //#define GENERAL_TYPE_CHECK_JSON_UNPACK_PACK() \
 //do {\
 //		metac_precompiled_type_t * precompiled_type = metac_precompile_type(type); \
-//		fail_unless(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
+//		ck_assert_msg(precompiled_type != NULL || type->id == METAC_KND_subprogram, "metac_precompile_type failed for %s", #_type_); \
 //		if (precompiled_type != NULL) { \
 //			_type_ x; \
 //			_type_ * p_x = NULL; \
@@ -187,16 +187,16 @@ do {\
 //			metac_count_t elements_count = 0; \
 //			json_object * p_json = NULL;\
 //			memset(&x, 0, sizeof(x)); \
-//			fail_unless(metac_unpack_to_json(precompiled_type, &x, sizeof(x), 1, &p_json) == 0, "metac_unpack_to_json failed"); \
-//			fail_unless(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
+//			ck_assert_msg(metac_unpack_to_json(precompiled_type, &x, sizeof(x), 1, &p_json) == 0, "metac_unpack_to_json failed"); \
+//			ck_assert_msg(p_json != NULL, "metac_pack2json hasn't failed, but didn't return the object"); \
 //			printf("json:\n %s\n", json_object_to_json_string(p_json)); \
-//			fail_unless(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed"); \
+//			ck_assert_msg(metac_pack_from_json(precompiled_type, p_json, (void **)&p_x, &size, &elements_count) == 0, "metac_pack_from_json failed"); \
 //			json_object_put(p_json); \
 //			p_json = NULL; \
-//			fail_unless(size == sizeof(x), "metac_unpack_to_json returned unexpected size"); \
-//			fail_unless(elements_count == 1, "metac_unpack_to_json returned unexpected size"); \
-//			fail_unless(metac_unpack_to_json(precompiled_type, p_x, sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
-//			fail_unless(p_json != NULL, "metac_unpack_to_json hasn't failed, but didn't return the object"); \
+//			ck_assert_msg(size == sizeof(x), "metac_unpack_to_json returned unexpected size"); \
+//			ck_assert_msg(elements_count == 1, "metac_unpack_to_json returned unexpected size"); \
+//			ck_assert_msg(metac_unpack_to_json(precompiled_type, p_x, sizeof(x), 1, &p_json) == 0, "metac_pack2json failed"); \
+//			ck_assert_msg(p_json != NULL, "metac_unpack_to_json hasn't failed, but didn't return the object"); \
 //			printf("json_from_packed_obj:\n %s\n", json_object_to_json_string(p_json)); \
 //			json_object_put(p_json); \
 //			p_json = NULL; \
@@ -204,8 +204,8 @@ do {\
 //				DUMP_MEM("Original        : ", &x, sizeof(x)); \
 //				DUMP_MEM("Packed from json: ", p_x, sizeof(x)); \
 //			}\
-//			fail_unless(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 1, "object created by metac_pack_from_json isn't equal with the original"); \
-//			fail_unless(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed"); \
+//			ck_assert_msg(metac_equal(&x, p_x, sizeof(x), precompiled_type, 1) == 1, "object created by metac_pack_from_json isn't equal with the original"); \
+//			ck_assert_msg(metac_delete(p_x, sizeof(x), precompiled_type, 1) == 0, "metac_delete unexpectedly failed"); \
 //			metac_free_precompiled_type(&precompiled_type); \
 //		} \
 //	}while(0)
@@ -213,38 +213,38 @@ do {\
 		char * expected_name_skip_typedef = _expected_name_skip_typedef_ /*can be NULL for anonymous enums*/; \
 		char * type_name = metac_type_name(type); \
 		char * type_name_skip_typedef = metac_type_name(actual_type); \
-		fail_unless(strcmp(type_name, _expected_name_) == 0, \
+		ck_assert_msg(strcmp(type_name, _expected_name_) == 0, \
 				"check_name: %s instead of %s", type_name, _expected_name_); \
 		if (expected_name_skip_typedef != NULL) \
-			fail_unless(strcmp(type_name_skip_typedef, expected_name_skip_typedef) == 0, \
+			ck_assert_msg(strcmp(type_name_skip_typedef, expected_name_skip_typedef) == 0, \
 					"check_name_skip_typedef:  %s instead of %s", type_name_skip_typedef, expected_name_skip_typedef); \
 		else \
-			fail_unless(type_name_skip_typedef == NULL, \
+			ck_assert_msg(type_name_skip_typedef == NULL, \
 					"check_name_skip_typedef: Got non-NULL string instead of NULL"); \
 		}while(0)
 #define ENUM_TYPE_CHECK_VALS(_expected_vals_...) do {\
 			static struct metac_type_enumerator_info expected_values[] = _expected_vals_; \
 			int i = 0; \
-			fail_unless(actual_type->enumeration_type_info.byte_size == sizeof(*_ptr), \
-					"enum byte_size %d donsn't match sizeof value %d", \
+			ck_assert_msg(actual_type->enumeration_type_info.byte_size == sizeof(*_ptr), \
+					"enum byte_size %d donsn't match sizeof value %ld", \
 					type->enumeration_type_info.byte_size, \
 					sizeof(*_ptr)); \
 			while (expected_values[i].name != NULL) { \
 				metac_const_value_t const_value = 0; \
 				metac_name_t res_name = metac_type_enumeration_type_get_name(actual_type, expected_values[i].const_value); \
-				fail_unless(metac_type_enumeration_type_get_value(actual_type, expected_values[i].name, &const_value) == 0, \
+				ck_assert_msg(metac_type_enumeration_type_get_value(actual_type, expected_values[i].name, &const_value) == 0, \
 						"metac_type_enumeration_type_get_value failed for %s", expected_values[i].name); \
-				fail_unless(expected_values[i].const_value == const_value, "got incorrect value");\
-				fail_unless(strcmp(res_name, expected_values[i].name) == 0, "got incorrect name");\
+				ck_assert_msg(expected_values[i].const_value == const_value, "got incorrect value");\
+				ck_assert_msg(strcmp(res_name, expected_values[i].name) == 0, "got incorrect name");\
 				++i;\
 			}\
-			fail_unless(i == actual_type->enumeration_type_info.enumerators_count, "incorrect enumerators_count"); \
+			ck_assert_msg(i == actual_type->enumeration_type_info.enumerators_count, "incorrect enumerators_count"); \
 		}while(0)
 #define ARRAY_TYPE_CHECK_VALS(_element_type_name_, _expected_is_flexible_) do { \
 			char * element_type_name = _element_type_name_; \
 			int is_flexible = _expected_is_flexible_; \
-			fail_unless(is_flexible == actual_type->array_type_info.is_flexible, "is_flexible flag doesn't match"); \
-			fail_unless(strcmp(metac_type_name(actual_type->array_type_info.type), element_type_name) == 0, \
+			ck_assert_msg(is_flexible == actual_type->array_type_info.is_flexible, "is_flexible flag doesn't match"); \
+			ck_assert_msg(strcmp(metac_type_name(actual_type->array_type_info.type), element_type_name) == 0, \
 				"is_flexible flag doesn't match: %s, expected %s", \
 				metac_type_name(actual_type->array_type_info.type),\
 				element_type_name); \
@@ -257,18 +257,18 @@ struct _subrange_info {
 			metac_num_t i; \
 			metac_num_t subranges_count = _expected_subranges_count; \
 			static struct _subrange_info expected_subranges[] = _expected_subranges_; \
-			fail_unless(subranges_count == actual_type->array_type_info.subranges_count, \
+			ck_assert_msg(subranges_count == actual_type->array_type_info.subranges_count, \
 				"Subranges count doesn't match: %d, expected %d", actual_type->array_type_info.subranges_count, subranges_count); \
 			for (i = 0; i < subranges_count; i++) {\
 				metac_count_t count; \
 				int res = metac_type_array_subrange_count(actual_type, i, &count);\
-				fail_unless(res == expected_subranges[i].res, \
+				ck_assert_msg(res == expected_subranges[i].res, \
 					"metac_type_array_subrange_count returned unexpected value for i %d: %d, expected %d", \
 					(int)i, \
 					(int)res, \
 					(int)expected_subranges[i].res); \
 				if (res == 0) \
-					fail_unless(count == expected_subranges[i].count, "unexpected count for i %d", (int)i); \
+					ck_assert_msg(count == expected_subranges[i].count, "unexpected count for i %d", (int)i); \
 			} \
 		}while(0)
 #define _array_delta(_obj_, _postfix_) (((void*)&_obj_ _postfix_) - (void*)&_obj_)
@@ -279,14 +279,14 @@ struct _subrange_info {
 			metac_data_member_location_t data_member_location = 0;\
 			int call_res = metac_type_array_member_location(actual_type, \
 					subranges_count, subranges, &data_member_location); \
-			fail_unless(call_res >= 0, "metac_type_array_member_location failed"); \
-			fail_unless(should_warn == call_res, "warning doesn't work as expected"); \
-			fail_unless(((int)_array_delta(obj, _obj_indx_)) == (int)data_member_location, "_delta is different: %x and got %x", \
+			ck_assert_msg(call_res >= 0, "metac_type_array_member_location failed"); \
+			ck_assert_msg(should_warn == call_res, "warning doesn't work as expected"); \
+			ck_assert_msg(((int)_array_delta(obj, _obj_indx_)) == (int)data_member_location, "_delta is different: %x and got %x", \
 					(int)_array_delta(obj, _obj_indx_), (int)data_member_location); \
 		}while(0)
 #define STRUCT_UNION_TYPE_CHECK_BYTESIZE(_type_info_) do { \
 			metac_byte_size_t byte_size = sizeof(obj); \
-			fail_unless(byte_size == actual_type->_type_info_.byte_size, "byte_size doesn't match"); \
+			ck_assert_msg(byte_size == actual_type->_type_info_.byte_size, "byte_size doesn't match"); \
 		}while(0)
 struct _member_info {
     metac_name_t name;
@@ -315,17 +315,17 @@ struct _member_info {
 			metac_num_t i; \
 			metac_num_t members_count = _expected_members_count; \
 			struct _member_info expected_members[] = _expected_members_; \
-			fail_unless(members_count == actual_type->_type_info_.members_count, "members_count doesn't match"); \
+			ck_assert_msg(members_count == actual_type->_type_info_.members_count, "members_count doesn't match"); \
 			for (i = 0; i < members_count; i++) {\
-				fail_unless(strcmp(actual_type->_type_info_.members[i].name, expected_members[i].name) == 0, "name mismatch");\
-				fail_unless(actual_type->_type_info_.members[i].type != NULL, "type is NULL");\
+				ck_assert_msg(strcmp(actual_type->_type_info_.members[i].name, expected_members[i].name) == 0, "name mismatch");\
+				ck_assert_msg(actual_type->_type_info_.members[i].type != NULL, "type is NULL");\
 				switch(expected_members[i].flag) {\
 				case 1: \
-				fail_unless(actual_type->_type_info_.members[i].data_member_location == expected_members[i].location, "incorrect location"); \
+				ck_assert_msg(actual_type->_type_info_.members[i].data_member_location == expected_members[i].location, "incorrect location"); \
 				break; \
 				case 2: \
-				fail_unless(actual_type->_type_info_.members[i].p_bit_size != NULL, "bit_size must be set"); \
-				fail_unless(expected_members[i].location >= actual_type->_type_info_.members[i].data_member_location && \
+				ck_assert_msg(actual_type->_type_info_.members[i].p_bit_size != NULL, "bit_size must be set"); \
+				ck_assert_msg(expected_members[i].location >= actual_type->_type_info_.members[i].data_member_location && \
 						expected_members[i].location < actual_type->_type_info_.members[i].data_member_location + metac_type_byte_size(actual_type->_type_info_.members[i].type), \
 					"incorrect bit location: member %s, got %x, expected in range [%x, %x)", \
 					expected_members[i].name,\
@@ -340,16 +340,16 @@ struct _member_info {
 			struct metac_object * p_object; \
 			mark_point(); \
 			p_object = metac_object_by_name(&METAC_OBJECTS_ARRAY, _type_name); \
-			fail_unless(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
-			fail_unless(p_object->type == actual_type, "p_object_info.type must be == type");\
+			ck_assert_msg(p_object != NULL, "metac_object_by_name returned incorrect value %p", p_object);\
+			ck_assert_msg(p_object->type == actual_type, "p_object_info.type must be == type");\
 		}while(0)
 #define FUNCTION_CHECK_RETURN_TYPE(_return_type_name_) do { \
 			char* return_type_name = _return_type_name_; \
 			if (return_type_name == NULL) {\
-				fail_unless(actual_type->subprogram_info.type == NULL, "return type doesn't correlate with expected"); \
+				ck_assert_msg(actual_type->subprogram_info.type == NULL, "return type doesn't correlate with expected"); \
 			} else { \
-				fail_unless(metac_type_name(actual_type->subprogram_info.type) != NULL, "can't get name - (PS: will not work for arrays)"); \
-				fail_unless(strcmp(return_type_name, metac_type_name(actual_type->subprogram_info.type)) == 0, "type name doesn't match"); \
+				ck_assert_msg(metac_type_name(actual_type->subprogram_info.type) != NULL, "can't get name - (PS: will not work for arrays)"); \
+				ck_assert_msg(strcmp(return_type_name, metac_type_name(actual_type->subprogram_info.type)) == 0, "type name doesn't match"); \
 			} \
 		}while(0)
 #define FUNCTION_CHECK_PARAMS(_bug_with_unspecified_parameters_, _parameters_count_, _expected_parameters_...) do { \
@@ -357,13 +357,13 @@ struct _member_info {
 			int bug_with_unspecified_parameters = _bug_with_unspecified_parameters_; \
 			metac_num_t parameters_count = _parameters_count_; \
 			struct metac_type_subprogram_parameter expected_parameters[] = _expected_parameters_; \
-			fail_unless(parameters_count == actual_type->subprogram_info.parameters_count + bug_with_unspecified_parameters, \
+			ck_assert_msg(parameters_count == actual_type->subprogram_info.parameters_count + bug_with_unspecified_parameters, \
 				"parameters_count doesn't match"); \
 			for (i = 0; i < actual_type->subprogram_info.parameters_count; i++) { \
-				fail_unless(actual_type->subprogram_info.parameters[i].unspecified_parameters == expected_parameters[i].unspecified_parameters, \
+				ck_assert_msg(actual_type->subprogram_info.parameters[i].unspecified_parameters == expected_parameters[i].unspecified_parameters, \
 					"unspecified_parameters parameter mismatch"); \
 				if (expected_parameters[i].unspecified_parameters == 0) { \
-					fail_unless(strcmp(actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name) == 0, "name mismatch %s vs %s", \
+					ck_assert_msg(strcmp(actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name) == 0, "name mismatch %s vs %s", \
 						actual_type->subprogram_info.parameters[i].name, expected_parameters[i].name);\
 				} \
 			} \
@@ -1047,13 +1047,13 @@ START_TEST( metac_array_symbols) {
     mark_point();
     mark_point();
     void *handle = dlopen(NULL, RTLD_NOW);
-    fail_unless(handle != NULL, "dlopen failed");
+    ck_assert_msg(handle != NULL, "dlopen failed");
     void *types_array = dlsym(handle, METAC_TYPES_ARRAY_SYMBOL);
     void *objects_array = dlsym(handle, METAC_OBJECTS_ARRAY_SYMBOL);
     dlclose(handle);
-    fail_unless(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p",
+    ck_assert_msg(types_array == &METAC_TYPES_ARRAY, "can't find correct %s: %p",
     METAC_TYPES_ARRAY_SYMBOL, types_array);
-    fail_unless(objects_array == &METAC_OBJECTS_ARRAY,
+    ck_assert_msg(objects_array == &METAC_OBJECTS_ARRAY,
             "can't find correct %s: %p", METAC_OBJECTS_ARRAY_SYMBOL,
             objects_array);
 }
