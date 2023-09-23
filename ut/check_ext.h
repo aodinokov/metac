@@ -101,7 +101,7 @@ do { \
 	do { \
 		char *only_test = getenv("CK_ONLY_TEST"); \
 		if ((!only_test || strncmp(only_test, #_test_, sizeof(#_test_)) == 0)) \
-			_tcase_add_test(tcase, _test_, "" #_test_ "", _signal_hdlr_, _expected_exit_val_, _start_, _end_); \
+			_tcase_add_test(tcase, _test_, /*"" #_test_ "",*/ _signal_hdlr_, _expected_exit_val_, _start_, _end_); \
 	}while(0)
 
 #define ADD_TEST(_test_) \
