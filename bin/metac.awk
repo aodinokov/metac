@@ -41,6 +41,7 @@ function dump_dwarf_at_data(type, i) {
                     break;
                 case "DW_AT_byte_size":
                 case "DW_AT_bit_offset":
+                case "DW_AT_data_bit_offset":
                 case "DW_AT_bit_size":
                 case "DW_AT_encoding":
                 case "DW_AT_lower_bound":
@@ -107,6 +108,7 @@ function dump_main_types(type, i) {
                 break;
             case "DW_AT_byte_size":
             case "DW_AT_bit_offset":
+            case "DW_AT_data_bit_offset":
             case "DW_AT_bit_size":
             case "DW_AT_lower_bound":
             case "DW_AT_upper_bound":
@@ -205,6 +207,9 @@ function dump_main_types(type, i) {
                         }
                         if ("DW_AT_bit_offset" in data[child_i]) {
                             res1 = res1 "\t\t\t\t.p_bit_offset = (metac_bit_offset_t[]){" data[child_i]["DW_AT_bit_offset"] "},\n";
+                        }
+                        if ("DW_AT_data_bit_offset" in data[child_i]) {
+                            res1 = res1 "\t\t\t\t.p_data_bit_offset = (metac_bit_offset_t[]){" data[child_i]["DW_AT_data_bit_offset"] "},\n";
                         }
                         if ("DW_AT_bit_size" in data[child_i]) {
                             res1 = res1 "\t\t\t\t.p_bit_size = (metac_bit_size_t[]){" data[child_i]["DW_AT_bit_size"] "},\n";

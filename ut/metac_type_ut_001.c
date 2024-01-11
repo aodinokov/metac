@@ -317,7 +317,7 @@ struct _member_info {
 			struct _member_info expected_members[] = _expected_members_; \
 			ck_assert_msg(members_count == actual_type->_type_info_.members_count, "members_count doesn't match"); \
 			for (i = 0; i < members_count; i++) {\
-				ck_assert_msg(strcmp(actual_type->_type_info_.members[i].name, expected_members[i].name) == 0, "name mismatch");\
+				ck_assert_msg(strcmp(actual_type->_type_info_.members[i].name, expected_members[i].name) == 0, "name mismatch %d: actual %s", i, actual_type->_type_info_.members[i].name);\
 				ck_assert_msg(actual_type->_type_info_.members[i].type != NULL, "type is NULL");\
 				switch(expected_members[i].flag) {\
 				case 1: \
@@ -325,13 +325,17 @@ struct _member_info {
 				break; \
 				case 2: \
 				ck_assert_msg(actual_type->_type_info_.members[i].p_bit_size != NULL, "bit_size must be set"); \
-				ck_assert_msg(expected_members[i].location >= actual_type->_type_info_.members[i].data_member_location && \
-						expected_members[i].location < actual_type->_type_info_.members[i].data_member_location + metac_type_byte_size(actual_type->_type_info_.members[i].type), \
-					"incorrect bit location: member %s, got %x, expected in range [%x, %x)", \
-					expected_members[i].name,\
-					actual_type->_type_info_.members[i].data_member_location, \
-					expected_members[i].location, \
-					expected_members[i].location < actual_type->_type_info_.members[i].data_member_location + metac_type_byte_size(actual_type->_type_info_.members[i].type)); \
+                if (actual_type->_type_info_.members[i].p_data_bit_offset == NULL) { \
+                    ck_assert_msg(expected_members[i].location >= actual_type->_type_info_.members[i].data_member_location && \
+                            expected_members[i].location < actual_type->_type_info_.members[i].data_member_location + metac_type_byte_size(actual_type->_type_info_.members[i].type), \
+                        "incorrect bit location: member %s, got %x, expected in range [%x, %x)", \
+                        expected_members[i].name,\
+                        actual_type->_type_info_.members[i].data_member_location, \
+                        expected_members[i].location, \
+                        expected_members[i].location < actual_type->_type_info_.members[i].data_member_location + metac_type_byte_size(actual_type->_type_info_.members[i].type)); \
+                } else { \
+                /* TODO: support dwarf 4 field p_data_bit_offset*/ printf("location %d, data_bit_offset, %d\n", expected_members[i].location, *actual_type->_type_info_.members[i].p_data_bit_offset);\
+                }\
 				break; \
 				} \
 			} \

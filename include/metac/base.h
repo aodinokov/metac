@@ -85,6 +85,7 @@ struct metac_type {
                 metac_type_t *type; /* type of the member (mandatory) */
                 metac_name_t name; /* name of the member (mandatory), but can be "" for anonymous elements */
                 metac_data_member_location_t data_member_location; /* location - offset in bytes (mandatory only for structure members, but 0 is ok if not defined) */
+                metac_bit_offset_t *p_data_bit_offset; /* data bit offset - new field in DWARF4 instead of p_bit_offset */
                 metac_bit_offset_t *p_bit_offset; /* bit offset - used only when bits were specified. Can be NULL */
                 metac_bit_size_t *p_bit_size; /* bit size - used only when bits were specified. Can be NULL */
             } *members;
