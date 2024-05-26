@@ -1,32 +1,25 @@
-# Object files
 *.o
-*.ko
-*.obj
-*.elf
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
+*.d
+*.gcda
+*.gcno
+*.gcov
+*.meta.c
+*.meta.cpp
+*.meta.c.*
+*.meta.cpp.*
 *.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
 *.so
-*.so.*
-*.dylib
-
-# Executables
+*.test.c
+*.dummy.c
+*.test.cpp
+*.dummy.cpp
+*_test
+_meta_*
+metac
+coverage_*.css
+coverage_*.html
+*.dSYM
 *.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
+.DS_Store
+doc/html
+doc/latex

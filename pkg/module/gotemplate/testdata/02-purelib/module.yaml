@@ -1,0 +1,4 @@
+apiVersion: testVersion
+kind: goTemplate
+metadata:
+  name: 02-purelib

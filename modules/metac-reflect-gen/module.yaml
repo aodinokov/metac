@@ -1,0 +1,26 @@
+apiVersion: github.com/aodinokov/metac/v1
+kind: goTemplate
+metadata:
+  name: metac-reflect-gen
+spec:
+  settings:
+    path: must_override
+    path_type: yaml
+  template: |
+    {{- $dwarfy := "" -}}
+    {{- if eq .path_type "yaml" -}}
+    {{-   $dwarfy = dwarfFromYamlFile .path -}}
+    {{- end -}}
+    {{- if eq .path_type "json" -}}
+    {{-   $dwarfy = dwarfFromJsonFile .path -}}
+    {{- end -}}
+    {{- if eq .path_type "elf" -}}
+    {{-   $dwarfy = dwarfFromElf .path -}}
+    {{- end -}}
+    {{- if eq .path_type "pe" -}}
+    {{-   $dwarfy = dwarfFromPE .path -}}
+    {{- end -}}
+    {{- if eq .path_type "macho" -}}
+    {{-   $dwarfy = dwarfFromMacho (printf "%s.dSYM/Contents/Resources/DWARF/%s" .path (osBase .path)) -}}
+    {{- end -}}
+    {{- include "metac_reflect_gen" (tuple $dwarfy) -}}

@@ -1,70 +1,83 @@
-UNAME_S := $(shell uname -s)
-CFLAGS+=-g3 -o0 -D_GNU_SOURCE -Iinclude -Isrc
+# re-definable defaults
+METAC=./metac
+CFLAGS=-I./include
 
 all:
 
-_always_:
+# build target defined in Makefile by path $(M)
+ifneq ($(M),)
+include $(M)/Makefile
+# include all make-modules. target.mk is entypoint
+include mk/*.mk
+$(foreach t,$(subst ./,,$(shell cd $(M) && find . -name '*_test.c')),$(call test_rules,$(M),$(t),rules))
+$(foreach t,$(rules),$(call meta_rules,$(M),$(t)))
+$(foreach t,$(rules),$(call meta_rules_clean,$(M),$(t)))
+else
+# include all make-modules. target.mk is entypoint
+include mk/*.mk
+# this test dones't need meta-information - disable it explicitly
+META-src/inherit_test=n
+$(foreach t,$(shell find src -name '*_test.c'),$(call test_rules,$(shell pwd),$(t),gl_rules))
+$(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test,$(m),$(t))))
+$(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test_clean,$(m),$(t))))
+test: go_test
 
-%.dwarfdump: %
-	-dwarfdump -V
-	dwarfdump $< | grep -v ERROR > $@
-	@#echo "dwarf------------------------------------------------------------------"
-	@#cat $@
-	@#echo "-----------------------------------------------------------------------"
-.PRECIOUS: %.dwarfdump
+#add examples/demos as example rule to all
+$(foreach e,$(wildcard examples/*),$(call examples_rules,$(e),$(subst examples/,,$(e))))
+$(foreach e,$(filter-out %.md %step_00,$(wildcard doc/demo/*)),$(call examples_rules,$(e),$(subst doc/demo/,,$(e))))
+all: examples
+clean: examples_clean
+test: examples_test
+#add metac to all
+all: metac
+clean: RMFLAGS+=metac
+#add src/libmetac.a
+all: src/libmetac.a test
 
-%.metac.task: %
-	-nm --version
-	nm $< | sed -re '/metac__/!d;s/.* metac__//;s/^([^_]*)_/\1 /' > $@
-	@echo "task-------------------------------------------------------------------"
-	@cat $@
-	@echo "-----------------------------------------------------------------------"
-.PRECIOUS: %.metac.task
-
-# OS-dependent part
-ifeq ($(UNAME_S),Linux)
-%.metac.c: %.dbg.o %.dbg.o.dwarfdump %.dbg.o.metac.task
-	-awk --version
-	cat $<.dwarfdump | ./bin/metac.awk -v file=$<.metac.task dump_dwarf=0 > $@
-.PRECIOUS: %.metac.c
-%.dbg.o: %.c
-	$(CC) -c $< -g3 $(CFLAGS) -o $@
+# doc: TODO: probably should locate Doxygen as Makefile if $(M) is set
+doc: Doxyfile
+	doxygen $<
+.PHONY: doc
 endif
 
+# some global rules that we may add for modules so they could depend on them
+metac: $(filter-out _test.go, $(shell find ./ -name '*.go')) go.mod go.sum
+	go build
+ifeq ($(RUNMODE), coverage)
+go_test:
+	go test --cover ./...
+else
+go_test:
+	go test ./...
+endif
+.PHONY: go_test
 
-metac_objs = \
-	src/type.o \
-	src/refcounter.o \
-	src/array_info.o 
+gl_rules+= \
+	src/libmetac.a
+TPL-src/libmetac.a+=a_target
+IN-src/libmetac.a+= \
+	src/entry.o \
+	src/entry_cdecl.o \
+	src/entry_db.o \
+	src/entry_tag.o \
+	src/hashmap.o \
+	src/iterator.o \
+	src/value.o \
+	src/value_base_type.o \
+	src/value_deep.o \
+	src/value_string.o
 
-metac_libs = -lm -lrt
+$(foreach t,$(gl_rules),$(call meta_rules,$(shell pwd),$(t)))
+ifeq ($(M),)
+#clean major componants only if Make is ran for major module
+$(foreach t,$(gl_rules),$(call meta_rules_clean,$(shell pwd),$(t)))
+endif
 
-libmetac.a: $(metac_objs)
-	$(AR) $(ARFLAGS) $@ $^
+src/libmetac.a:$(shell pwd)/src/libmetac.a
 
-# tests
-metac_ut_libs = -ldl
-metac_ut_libs += -lcheck
-metac_ut_libs += -lsubunit
-metac_ut_libs += $(metac_libs)
-
-ut/metac_type_ut_001: LDFLAGS=-pthread -rdynamic
-ut/metac_type_ut_001: ut/metac_type_ut_001.o ut/metac_type_ut_001.metac.o libmetac.a
-ut/metac_type_ut_001: $(metac_ut_libs)
-
-all: libmetac.a
-all: ut/metac_type_ut_001.run 
-
-%.run: % _always_
-	#./$<
-	which valgrind && LD_LIBRARY_PATH=/usr/local/lib/ CK_FORK=no valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$< || LD_LIBRARY_PATH=/usr/local/lib/ ./$< 
-	#which valgrind && valgrind --trace-children=yes --leak-check=full --show-leak-kinds=all --track-origins=yes ./$< || ./$<
-
-# documentation
-doc: _always_
-	@doxygen Doxyfile
-
+# rule to clean files set in variable $(RMFLAGS)
+# we could use rm $(RMFLAGS), but there could be dups
 clean:
-	rm -rf src/*.o src/backends/*.o ut/*.o ut/*.metac.c ut/*.task ut/*.dwarfdump *.a
+	-echo $(RMFLAGS) | xargs -n 1| sort -u| xargs rm
 
-.PHONY: all clean _always_
+.PHONY: all clean

@@ -1,0 +1,2029 @@
+entries:
+    0:
+        children:
+            - 12
+            - 164
+            - 422
+            - 680
+            - 938
+    12:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -O0 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/c_app_complex.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4425
+              class: ClassAddress
+            - attr: Highpc
+              val: 55
+              class: ClassConstant
+            - attr: StmtList
+              val: 0
+              class: ClassLinePtr
+            - attr: Macros
+              val: 0
+              class: ClassUnknown
+        children:
+            - 50
+            - 66
+            - 73
+            - 89
+            - 105
+            - 121
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/c_app_complex.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/c_app_complex.c
+            - /usr/include/stdc-predef.h
+    50:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module3
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 66
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 66
+              class: ClassReference
+        children:
+            - 64
+    64:
+        parent: 50
+        kind: UnspecifiedParameters
+    66:
+        parent: 12
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    73:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module2
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 3
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 66
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 89
+              class: ClassReference
+        children:
+            - 87
+    87:
+        parent: 73
+        kind: UnspecifiedParameters
+    89:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module1f2
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 2
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 66
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 105
+              class: ClassReference
+        children:
+            - 103
+    103:
+        parent: 89
+        kind: UnspecifiedParameters
+    105:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module1f1
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 1
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 66
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 121
+              class: ClassReference
+        children:
+            - 119
+    119:
+        parent: 105
+        kind: UnspecifiedParameters
+    121:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: main
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 66
+              class: ClassReference
+            - attr: Lowpc
+              val: 4425
+              class: ClassAddress
+            - attr: Highpc
+              val: 55
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    164:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -O0 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f1.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4480
+              class: ClassAddress
+            - attr: Highpc
+              val: 58
+              class: ClassConstant
+            - attr: StmtList
+              val: 98
+              class: ClassLinePtr
+            - attr: Macros
+              val: 2242
+              class: ClassUnknown
+        children:
+            - 202
+            - 209
+            - 216
+            - 223
+            - 230
+            - 237
+            - 244
+            - 251
+            - 258
+            - 265
+            - 270
+            - 297
+            - 319
+            - 343
+            - 349
+            - 379
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f1.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f1.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1.h
+            - /usr/include/stdio.h
+            - /usr/include/stdc-predef.h
+            - /usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+            - /usr/include/features.h
+            - /usr/include/features-time64.h
+            - /usr/include/x86_64-linux-gnu/bits/wordsize.h
+            - /usr/include/x86_64-linux-gnu/bits/timesize.h
+            - /usr/include/x86_64-linux-gnu/sys/cdefs.h
+            - /usr/include/x86_64-linux-gnu/bits/long-double.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h
+            - /usr/include/x86_64-linux-gnu/bits/types.h
+            - /usr/include/x86_64-linux-gnu/bits/typesizes.h
+            - /usr/include/x86_64-linux-gnu/bits/time64.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+    202:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    209:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: unsigned int
+              class: ClassString
+    216:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 8
+              class: ClassConstant
+            - attr: Name
+              val: unsigned char
+              class: ClassString
+    223:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: short unsigned int
+              class: ClassString
+    230:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: signed char
+              class: ClassString
+    237:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: short int
+              class: ClassString
+    244:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    251:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: long int
+              class: ClassString
+    258:
+        parent: 164
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: char
+              class: ClassString
+    265:
+        parent: 164
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 258
+              class: ClassReference
+    270:
+        parent: 164
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 297
+              class: ClassReference
+        children:
+            - 283
+    283:
+        parent: 270
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 244
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    297:
+        parent: 164
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 19
+              class: ClassConstant
+            - attr: Type
+              val: 270
+              class: ClassReference
+            - attr: Location
+              val:
+                - 3
+                - 16
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    319:
+        parent: 164
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: printf
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 356
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 244
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 343
+              class: ClassReference
+        children:
+            - 336
+            - 341
+    336:
+        parent: 319
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 343
+              class: ClassReference
+    341:
+        parent: 319
+        kind: UnspecifiedParameters
+    343:
+        parent: 164
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 265
+              class: ClassReference
+    349:
+        parent: 164
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module1f1
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 244
+              class: ClassReference
+            - attr: Lowpc
+              val: 4518
+              class: ClassAddress
+            - attr: Highpc
+              val: 20
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    379:
+        parent: 164
+        kind: Subprogram
+        fields:
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Type
+              val: 244
+              class: ClassReference
+            - attr: Lowpc
+              val: 4480
+              class: ClassAddress
+            - attr: Highpc
+              val: 38
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    422:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -O0 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f2.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4538
+              class: ClassAddress
+            - attr: Highpc
+              val: 58
+              class: ClassConstant
+            - attr: StmtList
+              val: 347
+              class: ClassLinePtr
+            - attr: Macros
+              val: 4795
+              class: ClassUnknown
+        children:
+            - 460
+            - 467
+            - 474
+            - 481
+            - 488
+            - 495
+            - 502
+            - 509
+            - 516
+            - 523
+            - 528
+            - 555
+            - 577
+            - 601
+            - 607
+            - 637
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f2.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f2.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1.h
+            - /usr/include/stdio.h
+            - /usr/include/stdc-predef.h
+            - /usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+            - /usr/include/features.h
+            - /usr/include/features-time64.h
+            - /usr/include/x86_64-linux-gnu/bits/wordsize.h
+            - /usr/include/x86_64-linux-gnu/bits/timesize.h
+            - /usr/include/x86_64-linux-gnu/sys/cdefs.h
+            - /usr/include/x86_64-linux-gnu/bits/long-double.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h
+            - /usr/include/x86_64-linux-gnu/bits/types.h
+            - /usr/include/x86_64-linux-gnu/bits/typesizes.h
+            - /usr/include/x86_64-linux-gnu/bits/time64.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+    460:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    467:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: unsigned int
+              class: ClassString
+    474:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 8
+              class: ClassConstant
+            - attr: Name
+              val: unsigned char
+              class: ClassString
+    481:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: short unsigned int
+              class: ClassString
+    488:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: signed char
+              class: ClassString
+    495:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: short int
+              class: ClassString
+    502:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    509:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: long int
+              class: ClassString
+    516:
+        parent: 422
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: char
+              class: ClassString
+    523:
+        parent: 422
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 516
+              class: ClassReference
+    528:
+        parent: 422
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 555
+              class: ClassReference
+        children:
+            - 541
+    541:
+        parent: 528
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 502
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    555:
+        parent: 422
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 19
+              class: ClassConstant
+            - attr: Type
+              val: 528
+              class: ClassReference
+            - attr: Location
+              val:
+                - 3
+                - 20
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    577:
+        parent: 422
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: printf
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 356
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 502
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 601
+              class: ClassReference
+        children:
+            - 594
+            - 599
+    594:
+        parent: 577
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 601
+              class: ClassReference
+    599:
+        parent: 577
+        kind: UnspecifiedParameters
+    601:
+        parent: 422
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 523
+              class: ClassReference
+    607:
+        parent: 422
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module1f2
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 502
+              class: ClassReference
+            - attr: Lowpc
+              val: 4576
+              class: ClassAddress
+            - attr: Highpc
+              val: 20
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    637:
+        parent: 422
+        kind: Subprogram
+        fields:
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Type
+              val: 502
+              class: ClassReference
+            - attr: Lowpc
+              val: 4538
+              class: ClassAddress
+            - attr: Highpc
+              val: 38
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    680:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -O0 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4596
+              class: ClassAddress
+            - attr: Highpc
+              val: 60
+              class: ClassConstant
+            - attr: StmtList
+              val: 596
+              class: ClassLinePtr
+            - attr: Macros
+              val: 5165
+              class: ClassUnknown
+        children:
+            - 718
+            - 725
+            - 732
+            - 739
+            - 746
+            - 753
+            - 760
+            - 767
+            - 774
+            - 779
+            - 786
+            - 791
+            - 818
+            - 840
+            - 864
+            - 869
+            - 897
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.h
+            - /usr/include/stdio.h
+            - /usr/include/stdc-predef.h
+            - /usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+            - /usr/include/features.h
+            - /usr/include/features-time64.h
+            - /usr/include/x86_64-linux-gnu/bits/wordsize.h
+            - /usr/include/x86_64-linux-gnu/bits/timesize.h
+            - /usr/include/x86_64-linux-gnu/sys/cdefs.h
+            - /usr/include/x86_64-linux-gnu/bits/long-double.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h
+            - /usr/include/x86_64-linux-gnu/bits/types.h
+            - /usr/include/x86_64-linux-gnu/bits/typesizes.h
+            - /usr/include/x86_64-linux-gnu/bits/time64.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+    718:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    725:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: unsigned int
+              class: ClassString
+    732:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 8
+              class: ClassConstant
+            - attr: Name
+              val: unsigned char
+              class: ClassString
+    739:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: short unsigned int
+              class: ClassString
+    746:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: signed char
+              class: ClassString
+    753:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: short int
+              class: ClassString
+    760:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    767:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: long int
+              class: ClassString
+    774:
+        parent: 680
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 779
+              class: ClassReference
+    779:
+        parent: 680
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: char
+              class: ClassString
+    786:
+        parent: 680
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 779
+              class: ClassReference
+    791:
+        parent: 680
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 818
+              class: ClassReference
+        children:
+            - 804
+    804:
+        parent: 791
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 11
+              class: ClassConstant
+            - attr: Type
+              val: 774
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    818:
+        parent: 680
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Type
+              val: 791
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 24
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    840:
+        parent: 680
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: printf
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 356
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 760
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 864
+              class: ClassReference
+        children:
+            - 857
+            - 862
+    857:
+        parent: 840
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 864
+              class: ClassReference
+    862:
+        parent: 840
+        kind: UnspecifiedParameters
+    864:
+        parent: 680
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 786
+              class: ClassReference
+    869:
+        parent: 680
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module2
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 760
+              class: ClassReference
+            - attr: Lowpc
+              val: 4636
+              class: ClassAddress
+            - attr: Highpc
+              val: 20
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    897:
+        parent: 680
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 760
+              class: ClassReference
+            - attr: Lowpc
+              val: 4596
+              class: ClassAddress
+            - attr: Highpc
+              val: 40
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    938:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -O0 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4656
+              class: ClassAddress
+            - attr: Highpc
+              val: 110
+              class: ClassConstant
+            - attr: StmtList
+              val: 845
+              class: ClassLinePtr
+            - attr: Macros
+              val: 5535
+              class: ClassUnknown
+        children:
+            - 976
+            - 983
+            - 990
+            - 997
+            - 1004
+            - 1011
+            - 1018
+            - 1025
+            - 1032
+            - 1039
+            - 1044
+            - 1056
+            - 1091
+            - 1096
+            - 1120
+            - 1141
+            - 1163
+            - 1187
+            - 1192
+            - 1222
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.h
+            - /usr/include/stdio.h
+            - /usr/include/stdc-predef.h
+            - /usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+            - /usr/include/features.h
+            - /usr/include/features-time64.h
+            - /usr/include/x86_64-linux-gnu/bits/wordsize.h
+            - /usr/include/x86_64-linux-gnu/bits/timesize.h
+            - /usr/include/x86_64-linux-gnu/sys/cdefs.h
+            - /usr/include/x86_64-linux-gnu/bits/long-double.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h
+            - /usr/include/x86_64-linux-gnu/bits/types.h
+            - /usr/include/x86_64-linux-gnu/bits/typesizes.h
+            - /usr/include/x86_64-linux-gnu/bits/time64.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+    976:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    983:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: unsigned int
+              class: ClassString
+    990:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 8
+              class: ClassConstant
+            - attr: Name
+              val: unsigned char
+              class: ClassString
+    997:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: short unsigned int
+              class: ClassString
+    1004:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: signed char
+              class: ClassString
+    1011:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: short int
+              class: ClassString
+    1018:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    1025:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: long int
+              class: ClassString
+    1032:
+        parent: 938
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: char
+              class: ClassString
+    1039:
+        parent: 938
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 1032
+              class: ClassReference
+    1044:
+        parent: 938
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: unique1_t
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 27
+              class: ClassConstant
+            - attr: Type
+              val: 1056
+              class: ClassReference
+    1056:
+        parent: 938
+        kind: StructType
+        fields:
+            - attr: Name
+              val: unique1_s
+              class: ClassString
+            - attr: ByteSize
+              val: 16
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 1091
+              class: ClassReference
+        children:
+            - 1069
+            - 1079
+    1069:
+        parent: 1056
+        kind: Member
+        fields:
+            - attr: Name
+              val: udata
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 7
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    1079:
+        parent: 1056
+        kind: Member
+        fields:
+            - attr: Name
+              val: p
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 8
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 16
+              class: ClassConstant
+            - attr: Type
+              val: 1091
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    1091:
+        parent: 938
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 1044
+              class: ClassReference
+    1096:
+        parent: 938
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 12
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 1120
+              class: ClassReference
+        children:
+            - 1109
+    1109:
+        parent: 1096
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 13
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    1120:
+        parent: 938
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 19
+              class: ClassConstant
+            - attr: Type
+              val: 1096
+              class: ClassReference
+            - attr: Location
+              val:
+                - 3
+                - 32
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    1141:
+        parent: 938
+        kind: Variable
+        fields:
+            - attr: Name
+              val: uniq
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 18
+              class: ClassConstant
+            - attr: Type
+              val: 1056
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 48
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    1163:
+        parent: 938
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: printf
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 356
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 1187
+              class: ClassReference
+        children:
+            - 1180
+            - 1185
+    1180:
+        parent: 1163
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 1187
+              class: ClassReference
+    1185:
+        parent: 1163
+        kind: UnspecifiedParameters
+    1187:
+        parent: 938
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 1039
+              class: ClassReference
+    1192:
+        parent: 938
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: module3
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 23
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: Lowpc
+              val: 4746
+              class: ClassAddress
+            - attr: Highpc
+              val: 20
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+    1222:
+        parent: 938
+        kind: Subprogram
+        fields:
+            - attr: Name
+              val: _module3
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: Lowpc
+              val: 4656
+              class: ClassAddress
+            - attr: Highpc
+              val: 90
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+        children:
+            - 1252
+            - 1266
+    1252:
+        parent: 1222
+        kind: Variable
+        fields:
+            - attr: Name
+              val: local
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 15
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 104
+              class: ClassExprLoc
+    1266:
+        parent: 1222
+        kind: LexDwarfBlock
+        fields:
+            - attr: Lowpc
+              val: 4675
+              class: ClassAddress
+            - attr: Highpc
+              val: 32
+              class: ClassConstant
+        children:
+            - 1283
+    1283:
+        parent: 1266
+        kind: Variable
+        fields:
+            - attr: Name
+              val: local
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 17
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 13
+              class: ClassConstant
+            - attr: Type
+              val: 1018
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 108
+              class: ClassExprLoc
+
+

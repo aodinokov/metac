@@ -1,0 +1,9 @@
+apiVersion: github.com/aodinokov/metac/v1
+kind: goTemplate
+metadata:
+  name: doesn't matter
+spec:
+  settings:
+    path: testdata/c_app.dwarf.yaml
+  template: |
+    {{-  include "metac_reflect_gen" (tuple (dwarfFromYamlFile .path)) -}}

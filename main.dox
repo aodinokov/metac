@@ -1,0 +1,6 @@
+/** \mainpage Metac self-documentation reference in the code
+Some important notes in the code:
+- [Avoiding stack size limitation](avoiding_stack_limitation.html)
+- [Deep Functions implementation](deep_function_implementation.html)
+- [Work with tagmap](work_with_tagmap.html)
+*/

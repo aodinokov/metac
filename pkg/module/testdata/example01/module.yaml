@@ -1,0 +1,6 @@
+apiVersion: exampleVersion
+kind: exampleKind
+metadata:
+  name: example01
+spec:
+  testparam: true

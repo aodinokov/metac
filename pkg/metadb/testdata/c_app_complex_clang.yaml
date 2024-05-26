@@ -1,0 +1,950 @@
+entries:
+    0:
+        children:
+            - 12
+            - 67
+            - 163
+            - 259
+            - 364
+    12:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: Ubuntu clang version 14.0.0-1ubuntu1.1
+              class: ClassString
+            - attr: Language
+              val: 12
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/c_app_complex.c
+              class: ClassString
+            - attr: StrOffsetsBase
+              val: 8
+              class: Class(19)
+            - attr: StmtList
+              val: 0
+              class: ClassLinePtr
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4416
+              class: ClassAddress
+            - attr: Highpc
+              val: 51
+              class: ClassConstant
+            - attr: AddrBase
+              val: 8
+              class: Class(15)
+        children:
+            - 35
+            - 50
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/home/mralex/vs-workspace/metac/metac/examples/c_app_complex/c_app_complex.c
+            - examples/c_app_complex/c_app_complex.c
+    35:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4416
+              class: ClassAddress
+            - attr: Highpc
+              val: 51
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: main
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: Type
+              val: 50
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    50:
+        parent: 12
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: int
+              class: ClassString
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+    67:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: Ubuntu clang version 14.0.0-1ubuntu1.1
+              class: ClassString
+            - attr: Language
+              val: 12
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f1.c
+              class: ClassString
+            - attr: StrOffsetsBase
+              val: 36
+              class: Class(19)
+            - attr: StmtList
+              val: 117
+              class: ClassLinePtr
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4480
+              class: ClassAddress
+            - attr: Highpc
+              val: 42
+              class: ClassConstant
+            - attr: AddrBase
+              val: 24
+              class: Class(15)
+        children:
+            - 90
+            - 101
+            - 116
+            - 120
+            - 135
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f1.c
+            - examples/c_app_complex/module1.h
+            - examples/c_app_complex/module1f1.c
+    90:
+        parent: 67
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: Type
+              val: 101
+              class: ClassReference
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: Location
+              val:
+                - 161
+                - 0
+              class: ClassExprLoc
+    101:
+        parent: 67
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+        children:
+            - 106
+    106:
+        parent: 101
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: Type
+              val: 116
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    116:
+        parent: 67
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: int
+              class: ClassString
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+    120:
+        parent: 67
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4480
+              class: ClassAddress
+            - attr: Highpc
+              val: 11
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: module1f1
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: Type
+              val: 116
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    135:
+        parent: 67
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4496
+              class: ClassAddress
+            - attr: Highpc
+              val: 26
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: Type
+              val: 116
+              class: ClassReference
+    163:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: Ubuntu clang version 14.0.0-1ubuntu1.1
+              class: ClassString
+            - attr: Language
+              val: 12
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f2.c
+              class: ClassString
+            - attr: StrOffsetsBase
+              val: 80
+              class: Class(19)
+            - attr: StmtList
+              val: 274
+              class: ClassLinePtr
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4528
+              class: ClassAddress
+            - attr: Highpc
+              val: 42
+              class: ClassConstant
+            - attr: AddrBase
+              val: 56
+              class: Class(15)
+        children:
+            - 186
+            - 197
+            - 212
+            - 216
+            - 231
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module1f2.c
+            - examples/c_app_complex/module1.h
+            - examples/c_app_complex/module1f2.c
+    186:
+        parent: 163
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: Type
+              val: 197
+              class: ClassReference
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: Location
+              val:
+                - 161
+                - 0
+              class: ClassExprLoc
+    197:
+        parent: 163
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+        children:
+            - 202
+    202:
+        parent: 197
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: Type
+              val: 212
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    212:
+        parent: 163
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: int
+              class: ClassString
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+    216:
+        parent: 163
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4528
+              class: ClassAddress
+            - attr: Highpc
+              val: 11
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: module1f2
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: Type
+              val: 212
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    231:
+        parent: 163
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4544
+              class: ClassAddress
+            - attr: Highpc
+              val: 26
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: Type
+              val: 212
+              class: ClassReference
+    259:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: Ubuntu clang version 14.0.0-1ubuntu1.1
+              class: ClassString
+            - attr: Language
+              val: 12
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.c
+              class: ClassString
+            - attr: StrOffsetsBase
+              val: 124
+              class: Class(19)
+            - attr: StmtList
+              val: 431
+              class: ClassLinePtr
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4576
+              class: ClassAddress
+            - attr: Highpc
+              val: 43
+              class: ClassConstant
+            - attr: AddrBase
+              val: 88
+              class: Class(15)
+        children:
+            - 282
+            - 293
+            - 308
+            - 313
+            - 317
+            - 332
+            - 347
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module2.c
+            - examples/c_app_complex/module2.h
+            - examples/c_app_complex/module2.c
+    282:
+        parent: 259
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: Type
+              val: 293
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: Location
+              val:
+                - 161
+                - 0
+              class: ClassExprLoc
+    293:
+        parent: 259
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+        children:
+            - 298
+    298:
+        parent: 293
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: Type
+              val: 308
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    308:
+        parent: 259
+        kind: PointerType
+        fields:
+            - attr: Type
+              val: 313
+              class: ClassReference
+    313:
+        parent: 259
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: char
+              class: ClassString
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+    317:
+        parent: 259
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4576
+              class: ClassAddress
+            - attr: Highpc
+              val: 27
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: _module1
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: Type
+              val: 347
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    332:
+        parent: 259
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4608
+              class: ClassAddress
+            - attr: Highpc
+              val: 11
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: module2
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: Type
+              val: 347
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    347:
+        parent: 259
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: int
+              class: ClassString
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+    364:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: Ubuntu clang version 14.0.0-1ubuntu1.1
+              class: ClassString
+            - attr: Language
+              val: 12
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.c
+              class: ClassString
+            - attr: StrOffsetsBase
+              val: 172
+              class: Class(19)
+            - attr: StmtList
+              val: 588
+              class: ClassLinePtr
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4624
+              class: ClassAddress
+            - attr: Highpc
+              val: 90
+              class: ClassConstant
+            - attr: AddrBase
+              val: 120
+              class: Class(15)
+        children:
+            - 387
+            - 398
+            - 422
+            - 426
+            - 431
+            - 439
+            - 450
+            - 465
+            - 480
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/home/mralex/vs-workspace/metac/metac/examples/c_app_complex/module3.c
+            - examples/c_app_complex/module3.h
+            - examples/c_app_complex/module3.c
+    387:
+        parent: 364
+        kind: Variable
+        fields:
+            - attr: Name
+              val: uniq
+              class: ClassString
+            - attr: Type
+              val: 398
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: Location
+              val:
+                - 161
+                - 0
+              class: ClassExprLoc
+    398:
+        parent: 364
+        kind: StructType
+        fields:
+            - attr: Name
+              val: unique1_s
+              class: ClassString
+            - attr: ByteSize
+              val: 16
+              class: ClassConstant
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+        children:
+            - 403
+            - 412
+    403:
+        parent: 398
+        kind: Member
+        fields:
+            - attr: Name
+              val: udata
+              class: ClassString
+            - attr: Type
+              val: 422
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 7
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    412:
+        parent: 398
+        kind: Member
+        fields:
+            - attr: Name
+              val: p
+              class: ClassString
+            - attr: Type
+              val: 426
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 8
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    422:
+        parent: 364
+        kind: BaseType
+        fields:
+            - attr: Name
+              val: int
+              class: ClassString
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+    426:
+        parent: 364
+        kind: PointerType
+        fields:
+            - attr: Type
+              val: 431
+              class: ClassReference
+    431:
+        parent: 364
+        kind: Typedef
+        fields:
+            - attr: Type
+              val: 398
+              class: ClassReference
+            - attr: Name
+              val: unique1_t
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+    439:
+        parent: 364
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: Type
+              val: 450
+              class: ClassReference
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: Location
+              val:
+                - 161
+                - 1
+              class: ClassExprLoc
+    450:
+        parent: 364
+        kind: StructType
+        fields:
+            - attr: Name
+              val: dup
+              class: ClassString
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 11
+              class: ClassConstant
+        children:
+            - 455
+    455:
+        parent: 450
+        kind: Member
+        fields:
+            - attr: Name
+              val: dup_data
+              class: ClassString
+            - attr: Type
+              val: 422
+              class: ClassReference
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 12
+              class: ClassConstant
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    465:
+        parent: 364
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4624
+              class: ClassAddress
+            - attr: Highpc
+              val: 11
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: module3
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 23
+              class: ClassConstant
+            - attr: Type
+              val: 422
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+    480:
+        parent: 364
+        kind: Subprogram
+        fields:
+            - attr: Lowpc
+              val: 4640
+              class: ClassAddress
+            - attr: Highpc
+              val: 74
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 86
+              class: ClassExprLoc
+            - attr: Name
+              val: _module3
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: Type
+              val: 422
+              class: ClassReference
+        children:
+            - 495
+            - 506
+    495:
+        parent: 480
+        kind: Variable
+        fields:
+            - attr: Location
+              val:
+                - 145
+                - 124
+              class: ClassExprLoc
+            - attr: Name
+              val: local
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 15
+              class: ClassConstant
+            - attr: Type
+              val: 422
+              class: ClassReference
+    506:
+        parent: 480
+        kind: LexDwarfBlock
+        fields:
+            - attr: Lowpc
+              val: 4655
+              class: ClassAddress
+            - attr: Highpc
+              val: 24
+              class: ClassConstant
+        children:
+            - 512
+    512:
+        parent: 506
+        kind: Variable
+        fields:
+            - attr: Location
+              val:
+                - 145
+                - 120
+              class: ClassExprLoc
+            - attr: Name
+              val: local
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 17
+              class: ClassConstant
+            - attr: Type
+              val: 422
+              class: ClassReference
+
+

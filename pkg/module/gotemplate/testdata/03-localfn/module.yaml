@@ -1,0 +1,12 @@
+apiVersion: testVersion
+kind: goTemplate
+metadata:
+  name: 03-localfn
+spec:
+  include:
+    - 02-purelib
+  settings:
+    key1: val1
+  template: |
+    {{- include "localfn.show_pretty_json" . -}}
+    {{- include "purelib.show_pretty_json" . -}}

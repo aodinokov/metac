@@ -1,0 +1,11 @@
+apiVersion: testVersion
+kind: goTemplate
+metadata:
+  name: 01-minimal
+spec:
+  include:
+    - 02-purelib
+  settings:
+    key1: val1
+  template: |
+    {{- include "purelib.show_pretty_json" . -}}

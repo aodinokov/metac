@@ -1,14 +1,15 @@
-# metac
+<img src="doc/logo/metac-logo-noborder-4171x1956.png" alt="metac logo" style="height: 110px;"/>
 
-Reflection implementation for C, based on DWARF data(debug info used by gdb).
-This project is inspired by https://github.com/alexanderchuranov/Metaresc, but this is done in automated way. Later Metaresc was updated to support DWARF after some discussions.
+[![GoBuildAndTest](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml/badge.svg)](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml)
 
-For now it's a PoC that is intended to show "How C can benefit if we add reflection" and at the same time "How easy it's to add this feature - we already have it in DWARF".
-e.g. this project shows that it's possible to automatically serialize/deserialize binary data to/from JSON.
-It is also possible to create kind of RPC (may be even JSON-RPC), because it's possible to get function declaration from DWARF and use it for FFI calls (see libffi).
-Note that those examples are not implemented yet.
+/* ``If you can't do it in
+ANSI C, it isn't worth doing.''
+-- Unknown */
 
-We are not taking DWARF as-is (because there may be types we don't want to have available in runtime).
-Instead METAC allow to mark only requered types in .c file.
-Once it's done it's possible to compile the file with debug flags (see Makefile), run metac.awk to generate .metac.c file with reflection information and use API declared in metac.h and implemented in metac.c.
+A framework that extends C with **reflection** and some other related golang-like features.
+Reflection implementation is based on [DWARF](https://en.wikipedia.org/wiki/DWARF) data - one of the most common debugging information formats used by debuggers like gdb or lldb. Metac/reflect offers a familiar API similar in many ways to [Golang/reflect](https://pkg.go.dev/reflect) package for introspecting code and manipulating data at runtime. 
 
+**Features**:
+
+* 'Deep' functionality for printing, copying, comparing, and freeing memory of complex data structures: [demo link](/doc/demo/README.md#how-to-demo).
+* Supported on Ubuntu, macOS, Windows (msys2) with gcc or clang

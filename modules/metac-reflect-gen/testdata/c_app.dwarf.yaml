@@ -1,0 +1,2112 @@
+entries:
+    0:
+        children:
+            - 12
+            - 239
+    12:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -g3 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app_data.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4457
+              class: ClassAddress
+            - attr: Highpc
+              val: 65
+              class: ClassConstant
+            - attr: StmtList
+              val: 0
+              class: ClassLinePtr
+            - attr: Macros
+              val: 0
+              class: ClassUnknown
+        children:
+            - 50
+            - 73
+            - 89
+            - 96
+            - 103
+            - 115
+            - 162
+            - 168
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app_data.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app_data.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app_data.h
+            - /usr/include/stdc-predef.h
+    50:
+        parent: 12
+        kind: StructType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Sibling
+              val: 73
+              class: ClassReference
+        children:
+            - 59
+    59:
+        parent: 50
+        kind: Member
+        fields:
+            - attr: Name
+              val: numbers
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 73
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    73:
+        parent: 12
+        kind: ArrayType
+        fields:
+            - attr: Type
+              val: 96
+              class: ClassReference
+            - attr: Sibling
+              val: 89
+              class: ClassReference
+        children:
+            - 82
+    82:
+        parent: 73
+        kind: SubrangeType
+        fields:
+            - attr: Type
+              val: 89
+              class: ClassReference
+            - attr: UpperBound
+              val: 1
+              class: ClassConstant
+    89:
+        parent: 12
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    96:
+        parent: 12
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    103:
+        parent: 12
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: data_t
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 2
+              class: ClassConstant
+            - attr: Type
+              val: 50
+              class: ClassReference
+    115:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: data_mul
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 8
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 96
+              class: ClassReference
+            - attr: Lowpc
+              val: 4492
+              class: ClassAddress
+            - attr: Highpc
+              val: 30
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllCalls
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 162
+              class: ClassReference
+        children:
+            - 149
+    149:
+        parent: 115
+        kind: FormalParameter
+        fields:
+            - attr: Name
+              val: in
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 8
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 23
+              class: ClassConstant
+            - attr: Type
+              val: 162
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 104
+              class: ClassExprLoc
+    162:
+        parent: 12
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 103
+              class: ClassReference
+    168:
+        parent: 12
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: data_sum
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 3
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 96
+              class: ClassReference
+            - attr: Lowpc
+              val: 4457
+              class: ClassAddress
+            - attr: Highpc
+              val: 35
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllCalls
+              val: true
+              class: ClassFlag
+        children:
+            - 198
+            - 210
+    198:
+        parent: 168
+        kind: FormalParameter
+        fields:
+            - attr: Name
+              val: in
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 3
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 23
+              class: ClassConstant
+            - attr: Type
+              val: 162
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 88
+              class: ClassExprLoc
+    210:
+        parent: 168
+        kind: Variable
+        fields:
+            - attr: Name
+              val: sum
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 96
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 108
+              class: ClassExprLoc
+    239:
+        parent: 0
+        kind: CompileUnit
+        fields:
+            - attr: Producer
+              val: GNU C17 11.4.0 -mtune=generic -march=x86-64 -g3 -g3 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -fcf-protection
+              class: ClassString
+            - attr: Language
+              val: 29
+              class: ClassConstant
+            - attr: Name
+              val: /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app.c
+              class: ClassString
+            - attr: CompDir
+              val: /home/mralex/vs-workspace/metac/metac
+              class: ClassString
+            - attr: Lowpc
+              val: 4522
+              class: ClassAddress
+            - attr: Highpc
+              val: 259
+              class: ClassConstant
+            - attr: StmtList
+              val: 121
+              class: ClassLinePtr
+            - attr: Macros
+              val: 2258
+              class: ClassUnknown
+        children:
+            - 277
+            - 284
+            - 291
+            - 298
+            - 305
+            - 312
+            - 319
+            - 326
+            - 333
+            - 349
+            - 354
+            - 361
+            - 366
+            - 378
+            - 383
+            - 395
+            - 400
+            - 412
+            - 417
+            - 468
+            - 473
+            - 478
+            - 516
+            - 521
+            - 663
+            - 685
+            - 716
+            - 741
+            - 746
+            - 751
+            - 789
+            - 794
+            - 795
+            - 800
+            - 864
+            - 887
+            - 899
+            - 920
+            - 941
+            - 962
+            - 983
+            - 1004
+            - 1025
+            - 1049
+            - 1054
+            - 1074
+            - 1079
+            - 1099
+        declFiles:
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app.c
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app.c
+            - /home/mralex/vs-workspace/metac/metac/include/metac/base.h
+            - /home/mralex/vs-workspace/metac/metac/include/metac/reflect.h
+            - /home/mralex/vs-workspace/metac/metac/examples/c_app/c_app_data.h
+            - /usr/include/stdio.h
+            - /usr/include/stdc-predef.h
+            - /usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+            - /usr/include/features.h
+            - /usr/include/features-time64.h
+            - /usr/include/x86_64-linux-gnu/bits/wordsize.h
+            - /usr/include/x86_64-linux-gnu/bits/timesize.h
+            - /usr/include/x86_64-linux-gnu/sys/cdefs.h
+            - /usr/include/x86_64-linux-gnu/bits/long-double.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs.h
+            - /usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h
+            - /usr/include/x86_64-linux-gnu/bits/types.h
+            - /usr/include/x86_64-linux-gnu/bits/typesizes.h
+            - /usr/include/x86_64-linux-gnu/bits/time64.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+            - /usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+            - /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn.h
+            - /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+            - /usr/lib/gcc/x86_64-linux-gnu/11/include/stdint.h
+            - /usr/include/stdint.h
+            - /usr/include/x86_64-linux-gnu/bits/wchar.h
+            - /usr/include/x86_64-linux-gnu/bits/stdint-intn.h
+            - /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h
+            - /usr/include/complex.h
+            - /usr/include/x86_64-linux-gnu/bits/mathdef.h
+            - /usr/include/x86_64-linux-gnu/bits/cmathcalls.h
+            - /home/mralex/vs-workspace/metac/metac/include/metac/const.h
+    277:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: long unsigned int
+              class: ClassString
+    284:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: unsigned int
+              class: ClassString
+    291:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 8
+              class: ClassConstant
+            - attr: Name
+              val: unsigned char
+              class: ClassString
+    298:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 7
+              class: ClassConstant
+            - attr: Name
+              val: short unsigned int
+              class: ClassString
+    305:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: signed char
+              class: ClassString
+    312:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 2
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: short int
+              class: ClassString
+    319:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 4
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: int
+              class: ClassString
+    326:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Encoding
+              val: 5
+              class: ClassConstant
+            - attr: Name
+              val: long int
+              class: ClassString
+    333:
+        parent: 239
+        kind: ArrayType
+        fields:
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Sibling
+              val: 349
+              class: ClassReference
+        children:
+            - 342
+    342:
+        parent: 333
+        kind: SubrangeType
+        fields:
+            - attr: Type
+              val: 277
+              class: ClassReference
+            - attr: UpperBound
+              val: 1
+              class: ClassConstant
+    349:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 354
+              class: ClassReference
+    354:
+        parent: 239
+        kind: BaseType
+        fields:
+            - attr: ByteSize
+              val: 1
+              class: ClassConstant
+            - attr: Encoding
+              val: 6
+              class: ClassConstant
+            - attr: Name
+              val: char
+              class: ClassString
+    361:
+        parent: 239
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 354
+              class: ClassReference
+    366:
+        parent: 239
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: metac_num_t
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 17
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 13
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+    378:
+        parent: 239
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 366
+              class: ClassReference
+    383:
+        parent: 239
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: metac_name_t
+              class: ClassString
+            - attr: DeclFile
+              val: 2
+              class: ClassConstant
+            - attr: DeclLine
+              val: 20
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 15
+              class: ClassConstant
+            - attr: Type
+              val: 349
+              class: ClassReference
+    395:
+        parent: 239
+        kind: ConstType
+        fields:
+            - attr: Type
+              val: 383
+              class: ClassReference
+    400:
+        parent: 239
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: metac_entry_t
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 11
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 412
+              class: ClassReference
+    412:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: metac_entry
+              class: ClassString
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+    417:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: name_to_entries_info
+              class: ClassString
+            - attr: ByteSize
+              val: 24
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 27
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 468
+              class: ClassReference
+        children:
+            - 428
+            - 441
+            - 454
+    428:
+        parent: 417
+        kind: Member
+        fields:
+            - attr: Name
+              val: name
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 28
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 22
+              class: ClassConstant
+            - attr: Type
+              val: 383
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    441:
+        parent: 417
+        kind: Member
+        fields:
+            - attr: Name
+              val: entries_count
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 29
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 21
+              class: ClassConstant
+            - attr: Type
+              val: 366
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    454:
+        parent: 417
+        kind: Member
+        fields:
+            - attr: Name
+              val: entries
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 30
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 25
+              class: ClassConstant
+            - attr: Type
+              val: 468
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 16
+              class: ClassConstant
+    468:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 473
+              class: ClassReference
+    473:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 400
+              class: ClassReference
+    478:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: name_to_entries
+              class: ClassString
+            - attr: ByteSize
+              val: 16
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 32
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 516
+              class: ClassReference
+        children:
+            - 489
+            - 502
+    489:
+        parent: 478
+        kind: Member
+        fields:
+            - attr: Name
+              val: items_count
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 33
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 17
+              class: ClassConstant
+            - attr: Type
+              val: 366
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    502:
+        parent: 478
+        kind: Member
+        fields:
+            - attr: Name
+              val: items
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 34
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 34
+              class: ClassConstant
+            - attr: Type
+              val: 516
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    516:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 417
+              class: ClassReference
+    521:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: db_v0
+              class: ClassString
+            - attr: ByteSize
+              val: 160
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 36
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 663
+              class: ClassReference
+        children:
+            - 532
+            - 545
+            - 558
+            - 571
+            - 584
+            - 597
+            - 610
+            - 623
+            - 636
+            - 649
+    532:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: base_types
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 38
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    545:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: enums
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 39
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 16
+              class: ClassConstant
+    558:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: typedefs
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 40
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 32
+              class: ClassConstant
+    571:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: structs
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 41
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 48
+              class: ClassConstant
+    584:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: unions
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 42
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 64
+              class: ClassConstant
+    597:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: classes
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 43
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 80
+              class: ClassConstant
+    610:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: namespaces
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 44
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 96
+              class: ClassConstant
+    623:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: variables
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 45
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 112
+              class: ClassConstant
+    636:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: subprograms
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 46
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 128
+              class: ClassConstant
+    649:
+        parent: 521
+        kind: Member
+        fields:
+            - attr: Name
+              val: compile_units
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 47
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 478
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 144
+              class: ClassConstant
+    663:
+        parent: 239
+        kind: UnionType
+        fields:
+            - attr: ByteSize
+              val: 160
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 52
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Sibling
+              val: 685
+              class: ClassReference
+        children:
+            - 672
+    672:
+        parent: 663
+        kind: Member
+        fields:
+            - attr: Name
+              val: db_v0
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 53
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 22
+              class: ClassConstant
+            - attr: Type
+              val: 521
+              class: ClassReference
+    685:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: metac_db
+              class: ClassString
+            - attr: ByteSize
+              val: 168
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 50
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 716
+              class: ClassReference
+        children:
+            - 696
+            - 709
+    696:
+        parent: 685
+        kind: Member
+        fields:
+            - attr: Name
+              val: version
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 51
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 17
+              class: ClassConstant
+            - attr: Type
+              val: 366
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    709:
+        parent: 685
+        kind: Member
+        fields:
+            - attr: Type
+              val: 663
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    716:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: metac_db_link
+              class: ClassString
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 57
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 741
+              class: ClassReference
+        children:
+            - 727
+    727:
+        parent: 716
+        kind: Member
+        fields:
+            - attr: Name
+              val: pp_db
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 58
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 24
+              class: ClassConstant
+            - attr: Type
+              val: 741
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    741:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 746
+              class: ClassReference
+    746:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 685
+              class: ClassReference
+    751:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: metac_entry_link
+              class: ClassString
+            - attr: ByteSize
+              val: 16
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 61
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 789
+              class: ClassReference
+        children:
+            - 762
+            - 775
+    762:
+        parent: 751
+        kind: Member
+        fields:
+            - attr: Name
+              val: pp_entry
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 62
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 22
+              class: ClassConstant
+            - attr: Type
+              val: 468
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    775:
+        parent: 751
+        kind: Member
+        fields:
+            - attr: Name
+              val: p_data
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 63
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 27
+              class: ClassConstant
+            - attr: Type
+              val: 789
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    789:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 795
+              class: ClassReference
+    794:
+        parent: 239
+        kind: ConstType
+    795:
+        parent: 239
+        kind: VolatileType
+        fields:
+            - attr: Type
+              val: 794
+              class: ClassReference
+    800:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: Name
+              val: metac_decl_loc
+              class: ClassString
+            - attr: ByteSize
+              val: 32
+              class: ClassConstant
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 156
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 8
+              class: ClassConstant
+            - attr: Sibling
+              val: 864
+              class: ClassReference
+        children:
+            - 811
+            - 824
+            - 837
+            - 850
+    811:
+        parent: 800
+        kind: Member
+        fields:
+            - attr: Name
+              val: file
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 157
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 395
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    824:
+        parent: 800
+        kind: Member
+        fields:
+            - attr: Name
+              val: line
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 158
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 27
+              class: ClassConstant
+            - attr: Type
+              val: 378
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 8
+              class: ClassConstant
+    837:
+        parent: 800
+        kind: Member
+        fields:
+            - attr: Name
+              val: type
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 159
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 395
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 16
+              class: ClassConstant
+    850:
+        parent: 800
+        kind: Member
+        fields:
+            - attr: Name
+              val: name
+              class: ClassString
+            - attr: DeclFile
+              val: 3
+              class: ClassConstant
+            - attr: DeclLine
+              val: 160
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 28
+              class: ClassConstant
+            - attr: Type
+              val: 395
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 24
+              class: ClassConstant
+    864:
+        parent: 239
+        kind: StructType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: DeclFile
+              val: 4
+              class: ClassConstant
+            - attr: DeclLine
+              val: 4
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Sibling
+              val: 887
+              class: ClassReference
+        children:
+            - 873
+    873:
+        parent: 864
+        kind: Member
+        fields:
+            - attr: Name
+              val: numbers
+              class: ClassString
+            - attr: DeclFile
+              val: 4
+              class: ClassConstant
+            - attr: DeclLine
+              val: 5
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 333
+              class: ClassReference
+            - attr: DataMemberLoc
+              val: 0
+              class: ClassConstant
+    887:
+        parent: 239
+        kind: Typedef
+        fields:
+            - attr: Name
+              val: data_t
+              class: ClassString
+            - attr: DeclFile
+              val: 4
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 2
+              class: ClassConstant
+            - attr: Type
+              val: 864
+              class: ClassReference
+    899:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: CONST
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 6
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 16
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    920:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: STATICCONST
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 7
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Location
+              val:
+                - 3
+                - 20
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    941:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__gvar_CONST
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 9
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 1
+              class: ClassConstant
+            - attr: Type
+              val: 751
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 32
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    962:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__subprogram_data_sum
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 10
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 1
+              class: ClassConstant
+            - attr: Type
+              val: 751
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 48
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    983:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__subprogram_data_mul
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 11
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 1
+              class: ClassConstant
+            - attr: Type
+              val: 751
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 64
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    1004:
+        parent: 239
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__db_c_app
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 12
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 1
+              class: ClassConstant
+            - attr: Type
+              val: 716
+              class: ClassReference
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Location
+              val:
+                - 3
+                - 88
+                - 64
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+              class: ClassExprLoc
+    1025:
+        parent: 239
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: printf
+              class: ClassString
+            - attr: DeclFile
+              val: 5
+              class: ClassConstant
+            - attr: DeclLine
+              val: 356
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 12
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 1049
+              class: ClassReference
+        children:
+            - 1042
+            - 1047
+    1042:
+        parent: 1025
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 1049
+              class: ClassReference
+    1047:
+        parent: 1025
+        kind: UnspecifiedParameters
+    1049:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 361
+              class: ClassReference
+    1054:
+        parent: 239
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: data_mul
+              class: ClassString
+            - attr: DeclFile
+              val: 4
+              class: ClassConstant
+            - attr: DeclLine
+              val: 9
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 1074
+              class: ClassReference
+        children:
+            - 1068
+    1068:
+        parent: 1054
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 1074
+              class: ClassReference
+    1074:
+        parent: 239
+        kind: PointerType
+        fields:
+            - attr: ByteSize
+              val: 8
+              class: ClassConstant
+            - attr: Type
+              val: 887
+              class: ClassReference
+    1079:
+        parent: 239
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: data_sum
+              class: ClassString
+            - attr: DeclFile
+              val: 4
+              class: ClassConstant
+            - attr: DeclLine
+              val: 8
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Prototyped
+              val: true
+              class: ClassFlag
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Declaration
+              val: true
+              class: ClassFlag
+            - attr: Sibling
+              val: 1099
+              class: ClassReference
+        children:
+            - 1093
+    1093:
+        parent: 1079
+        kind: FormalParameter
+        fields:
+            - attr: Type
+              val: 1074
+              class: ClassReference
+    1099:
+        parent: 239
+        kind: Subprogram
+        fields:
+            - attr: External
+              val: true
+              class: ClassFlag
+            - attr: Name
+              val: main
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 14
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Lowpc
+              val: 4522
+              class: ClassAddress
+            - attr: Highpc
+              val: 259
+              class: ClassConstant
+            - attr: FrameBase
+              val:
+                - 156
+              class: ClassExprLoc
+            - attr: CallAllTailCalls
+              val: true
+              class: ClassFlag
+        children:
+            - 1129
+            - 1144
+            - 1158
+            - 1173
+            - 1187
+            - 1202
+            - 1217
+    1129:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__entry_data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 15
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 800
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 160
+                - 127
+              class: ClassExprLoc
+    1144:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: data
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 15
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 887
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 96
+              class: ClassExprLoc
+    1158:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: p_data_entry
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 18
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 21
+              class: ClassConstant
+            - attr: Type
+              val: 473
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 144
+                - 127
+              class: ClassExprLoc
+    1173:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: metac__entry_sum
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 20
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 800
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 64
+              class: ClassExprLoc
+    1187:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: sum
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 20
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 5
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 136
+                - 127
+              class: ClassExprLoc
+    1202:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: p_sum_entry
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 21
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 21
+              class: ClassConstant
+            - attr: Type
+              val: 473
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 152
+                - 127
+              class: ClassExprLoc
+    1217:
+        parent: 1099
+        kind: Variable
+        fields:
+            - attr: Name
+              val: mul
+              class: ClassString
+            - attr: DeclFile
+              val: 1
+              class: ClassConstant
+            - attr: DeclLine
+              val: 22
+              class: ClassConstant
+            - attr: DeclColumn
+              val: 9
+              class: ClassConstant
+            - attr: Type
+              val: 319
+              class: ClassReference
+            - attr: Location
+              val:
+                - 145
+                - 140
+                - 127
+              class: ClassExprLoc
+

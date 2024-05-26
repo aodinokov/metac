@@ -1,0 +1,88 @@
+#include "metac/test.h"
+
+#include "entry.c"
+#include "iterator.c"
+#include "value.c"
+#include "value_base_type.c"
+
+enum t1 {
+    t1_a = 0,
+    t1_b = 1,
+    t1_z = -1,
+    t1_c,
+    t1_d,
+}test1 = t1_c;
+METAC_GSYM_LINK(test1);
+METAC_START_TEST(test1_sanity) {
+    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test1);
+
+    metac_num_t sz = metac_value_enumeration_info_size(p_val);
+    fail_unless(sz == 5, "expected 5 possible values, got %d", (int)sz);
+
+    struct metac_type_enumerator_info const * p_i = metac_value_enumeration_info(p_val, 2);
+    fail_unless(p_i != NULL, "got NULL istead of info");
+    fail_unless(strcmp(p_i->name, "t1_z") == 0, "expect t1_z on the 2nd place, got %s", p_i->name);
+    fail_unless(p_i->const_value == t1_z, "expected values to be equal t1_z");
+
+    metac_name_t n = metac_value_enumeration_to_name(p_val, -1);
+    fail_unless(n != NULL, "expected -1(t1_z) is in rage");
+    fail_unless(strcmp(n, "t1_z") == 0 , "expected 't1_z' for -1");
+    fail_unless(metac_value_enumeration_to_name(p_val, -2) == NULL, "expected -2 isn't in rage");
+
+    metac_const_value_t var;
+    fail_unless(metac_value_enumeration(p_val, &var) == 0, "couldn't read enum");
+    fail_unless(var == test1, "expected var to be equal t1_c");
+
+    var = t1_z;
+    fail_unless(metac_value_set_enumeration(p_val, var) == 0, "couldn't write enum");
+    fail_unless(var == test1, "expected var to be equal t1_z");
+
+    var = -2;
+    fail_unless(metac_value_set_enumeration(p_val, var) == 0, "couldn't write enum");
+    fail_unless(var == test1, "expected var to be equal -2 (though it's not in range of enum)");
+
+    metac_value_delete(p_val);
+}END_TEST
+
+struct {
+    enum t1 t2_fld;
+}test2 = {.t2_fld = t1_c};
+METAC_GSYM_LINK(test2);
+METAC_START_TEST(test2_sanity) {
+    metac_value_t * p_sval = METAC_VALUE_FROM_LINK(test2);
+    fail_unless(metac_value_has_members(p_sval) == 1, "must be entity with members");
+    metac_num_t nm = metac_value_member_count(p_sval);
+    fail_unless(nm == 1,  "expected 1 memeber, got %d", (int)nm);
+
+    metac_value_t * p_val = metac_new_value_by_member_id(p_sval, 0);
+    fail_unless(p_val != NULL,  "expected 1st memeber non NULL");
+
+    metac_num_t sz = metac_value_enumeration_info_size(p_val);
+    fail_unless(sz == 5, "expected 5 possible values, got %d", (int)sz);
+
+    struct metac_type_enumerator_info const * p_i = metac_value_enumeration_info(p_val, 2);
+    fail_unless(p_i != NULL, "got NULL istead of info");
+    fail_unless(strcmp(p_i->name, "t1_z") == 0, "expect t1_z on the 2nd place, got %s", p_i->name);
+    fail_unless(p_i->const_value == t1_z, "expected values to be equal t1_z");
+
+    metac_name_t n = metac_value_enumeration_to_name(p_val, -1);
+    fail_unless(n != NULL, "expected -1(t1_z) is in rage");
+    fail_unless(strcmp(n, "t1_z") == 0 , "expected 't1_z' for -1");
+    fail_unless(metac_value_enumeration_to_name(p_val, -2) == NULL, "expected -2 isn't in rage");
+
+
+    metac_const_value_t var;
+    fail_unless(metac_value_enumeration(p_val, &var) == 0, "couldn't read enum");
+    fail_unless(var == test2.t2_fld, "expected var to be equal t1_c");
+
+    var = t1_z;
+    fail_unless(metac_value_set_enumeration(p_val, var) == 0, "couldn't write enum");
+    fail_unless(var == test2.t2_fld, "expected var to be equal t1_z");
+
+    var = -2;
+    fail_unless(metac_value_set_enumeration(p_val, var) == 0, "couldn't write enum");
+    fail_unless(var == test2.t2_fld, "expected var to be equal -2 (though it's not in range of enum)");
+
+    metac_value_delete(p_val);
+    metac_value_delete(p_sval);
+}END_TEST
