@@ -23,7 +23,7 @@ LDFLAGS-$(2:.c=)+=--coverage $$(METAC_CHECK_LDFLAGS)
 $$(addprefix $1/,$(2:.c=.test.o)):CFLAGS+=-g3 $$(METAC_CHECK_CFLAGS)
 $$(addprefix $1/,$(2:.c=.o)):CFLAGS+=-g3 -Wno-format-extra-args --coverage $$(METAC_CHECK_CFLAGS)
 $$(addprefix $1/,$(2:.c=.metac.o)):CFLAGS+=-Wno-format-extra-args $$(METAC_CHECK_CFLAGS)
-ifneq ($$(META-$(2:.c=)),n)
+ifneq ($$(REFLECT-$(2:.c=)),n)
 IN-$(2:.c=)+=$(2:.c=.meta.o)
 
 TPL-$(2:.c=.meta.c):=metac_target

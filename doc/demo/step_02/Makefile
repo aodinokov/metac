@@ -35,6 +35,6 @@ IN-libdemodb.a=demodb.o
 #tests
 DEPS-demodb_alt_test:=$(M)/libdemodb.a
 LDFLAGS-demodb_alt_test:=-L$(M) -ldemodb
-META-demodb_alt_test:=n
+REFLECT-demodb_alt_test:=n
 
-META-demodb_test:=n
+REFLECT-demodb_test:=n

@@ -16,7 +16,7 @@ else
 # include all make-modules. target.mk is entypoint
 include mk/*.mk
 # this test dones't need meta-information - disable it explicitly
-META-src/inherit_test=n
+REFLECT-src/inherit_test=n
 $(foreach t,$(shell find src -name '*_test.c'),$(call test_rules,$(shell pwd),$(t),gl_rules))
 $(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test,$(m),$(t))))
 $(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test_clean,$(m),$(t))))

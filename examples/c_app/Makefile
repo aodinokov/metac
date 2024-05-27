@@ -56,4 +56,4 @@ IN-target:= \
 # tests
 DEPS-c_app_data_test=src/libmetac.a
 LDFLAGS-c_app_data_test=-Lsrc -lmetac
-META-c_app_data_test=y
+REFLECT-c_app_data_test=y

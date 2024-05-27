@@ -205,7 +205,7 @@ There are lots of things happened here:
 1. since we ran on macOs we needed to run `dsymutil _meta_demodb_test` in order to access DWARF information
 1. metac golang binary was built (because it was the first run and it didn't present). it's possible to set METAC path if you want to use the external binary.
 1. we used `run metac-test-gen` command to generate `demodb_test.test.c` which will contain the actual `main` function for the test. This file is used instead of demodb_test.dummy on the second pass of build.
-1. we used `run metac-reflect-gen` to generate a reflection db for the test. Actually it wasn't necessary for this particular case because we didn't use reflection in the test. To avoid that step we had to add something like `META-<testname>=n` to Makefile. for our case `META-demodb_alt_test:=n` Though reflection information won't hurt for testing.
+1. we used `run metac-reflect-gen` to generate a reflection db for the test. Actually it wasn't necessary for this particular case because we didn't use reflection in the test. To avoid that step we had to add something like `REFLECT-<testname>=n` to Makefile. for our case `REFLECT-demodb_alt_test:=n` Though reflection information won't hurt for testing.
 1. building and running demodb_test. It's seen that the test has passed ok - it was empty.
 
 for the reference, here is generated `demodb_test.test.c` file:
@@ -309,7 +309,7 @@ IN-libdemodb.a=demodb.o
 #tests
 DEPS-demodb_alt_test:=$(M)/libdemodb.a
 LDFLAGS-demodb_alt_test:=-L$(M) -ldemodb
-META-demodb_alt_test:=n
+REFLECT-demodb_alt_test:=n
 ```
 
 Here we're building a library .a file and linking it to this test. The last line is - not to generate reflection meta-information.
