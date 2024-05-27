@@ -37,4 +37,8 @@ DEPS-demodb_alt_test:=$(M)/libdemodb.a
 LDFLAGS-demodb_alt_test:=-L$(M) -ldemodb
 REFLECT-demodb_alt_test:=n
 
+DEPS-demodb_alt_checkmk:=$(M)/libdemodb.a
+LDFLAGS-demodb_alt_checkmk:=-L$(M) -ldemodb
+REFLECT-demodb_alt_checkmk:=n
+
 REFLECT-demodb_test:=n

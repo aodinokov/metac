@@ -67,6 +67,7 @@
         "iterator.h": "c",
         "reqresp.h": "c",
         "complex.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "test.h": "c"
     }
 }

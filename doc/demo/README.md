@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 ```
 As you can see - it uses `check` library under the hood, but it's not necessary to write this entrypoint manually. To generate this file [metac-test-gen](/modules/metac-test-gen) go-template module was used.
 
-Unit-tests are always built with coverage information. For our simple case we can run `make METAC_ROOT=../../.. test RUNMODE=coverage`, and we'll see the coverage for this particular file. But for more complex cases where we have many tests for many C-files and we need to get complete coverage information for each of the files - please install gcovr and use `gcovr -p ./ -e '.*_test\.c|.*\.h'` or similar. It may even build html files and show coverage for each line.
+Unit-tests are always built with coverage information. For our simple case we can run `make METAC_ROOT=../../.. test RUNMODE=coverage`, and we'll see the coverage for this particular file. But for more complex cases where we have many tests for many C-files and we need to get complete coverage information for each of the files - please install gcovr and use `gcovr -p ./ -e '.*_test\.c|.*_checkmk\.c|.*\.h'` or similar. It may even build html files and show coverage for each line.
 
 Since C requires the developer to manage dynamic memory it's very useful to check test for memory leaks. On Linux it's possible to install `valgrind` package and after that run the test with the following command: `make METAC_ROOT=../../.. test RUNMODE=valgrind`. This will show if the test has any leakage.
 
@@ -313,6 +313,14 @@ REFLECT-demodb_alt_test:=n
 ```
 
 Here we're building a library .a file and linking it to this test. The last line is - not to generate reflection meta-information.
+
+Check library has an utility called `checkmk`, which accepts a [special file format](https://github.com/libcheck/check/blob/master/checkmk/test/multiple_everything/in) as input and generates test that inludes tests. We also support that: such files must have name pattern `*.checkmk`. Metac will generate test binary with the name `*_checkmk` for such file. Here is the [converted example](step_02/demodb_alt.checkmk). And we need to make the corresponding changes in Makefile:
+
+```Makefile
+DEPS-demodb_alt_checkmk:=$(M)/libdemodb.a
+LDFLAGS-demodb_alt_checkmk:=-L$(M) -ldemodb
+REFLECT-demodb_alt_checkmk:=n
+```
 
 To make sure that this works ok - just run `make METAC_ROOT=../../.. test` or `make METAC_ROOT=../../..` in the folder [step_02](step_02/)
 
