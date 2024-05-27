@@ -11,7 +11,7 @@ Reflection implementation for C has some C-specific complications. The chapter w
 Metac in general requires [Golang](https://go.dev/doc/install) installed on the system. This is to build the binary which reads DWARF and generates C files with metainformation.
 The libmetac doesn't require any dependencies. Check package is needed to be able to run unit-tests. Pkg-config package is needed by Makefile in order to identify which CFLAGS/LDFLAGS are needed for the check library.
 
-Integrational testing is running for Linux, macOS and Windows: check the project [settings](/.github/workflows/goBuildAndTest.yaml).
+Integrational testing is running for Linux, macOS and Windows: check the project [settings](/.github/workflows/BuildAndTest.yaml).
 ### MacOS
 Install developers tools:
 ```bash
@@ -49,7 +49,7 @@ It even has some simple [Makefile](step_00/Makefile) which can build and clean t
 ### Rewriting Makefile
 It's not mandatory, but in this demo we're going to use Metac Makefile support of different features, and because of that we'll need to translate Makefile to Metac-compliant.
 
-The orinal file was really simple:
+The original file was really simple:
 ```Makefile
 all: demodb
 
