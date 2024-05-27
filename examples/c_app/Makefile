@@ -18,7 +18,7 @@ CFLAGS+=-DMETAC_MODULE_NAME="c_app" -g3
 rules+= \
 	target \
 	_meta_c_app \
-	c_app.meta.c \
+	c_app.reflect.c \
 	c_app \
 	libc_app_static.a \
 	libc_app.so
@@ -31,21 +31,21 @@ LDFLAGS-libc_app.so=-shared
 in_c_app+=c_app_data.o c_app.o
 
 TPL-_meta_c_app:=bin_target
-IN-_meta_c_app=$(in_c_app:.o=.metac.o)
+IN-_meta_c_app=$(in_c_app:.o=.meta.o)
 POST-_meta_c_app=$(METAC_POST_META)
 
 TPL-c_app:=bin_target
-IN-c_app=$(in_c_app) c_app.meta.o
+IN-c_app=$(in_c_app) c_app.reflect.o
 DEPS-c_app=src/libmetac.a
 
-TPL-c_app.meta.c:=metac_target
-METACFLAGS-c_app.meta.c+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
-IN-c_app.meta.c=_meta_c_app
+TPL-c_app.reflect.c:=metac_target
+METACFLAGS-c_app.reflect.c+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
+IN-c_app.reflect.c=_meta_c_app
 
 TPL-libc_app_static.a:=a_target
-IN-libc_app_static.a+=c_app_data.o c_app.meta.o
+IN-libc_app_static.a+=c_app_data.o c_app.reflect.o
 TPL-libc_app.so:=bin_target
-IN-libc_app.so+=c_app_data.o c_app.meta.o
+IN-libc_app.so+=c_app_data.o c_app.reflect.o
 
 TPL-target:=phony_target
 IN-target:= \
@@ -56,4 +56,4 @@ IN-target:= \
 # tests
 DEPS-c_app_data_test=src/libmetac.a
 LDFLAGS-c_app_data_test=-Lsrc -lmetac
-META-c_app_data_test=y
+REFLECT-c_app_data_test=y

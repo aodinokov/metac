@@ -13,7 +13,7 @@ test_extra_clean = $(eval $(call test_extra_clean_tpl,$1,$2))
 define test_meta_rules_tpl
 $(3)+= \
 	$(2:.c=) \
-	$(2:.c=.meta.c) \
+	$(2:.c=.reflect.c) \
 	$(2:.c=.test.c) \
 	$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))
 
@@ -22,13 +22,13 @@ IN-$(2:.c=)=$(2:.c=.o) $(2:.c=.test.o)
 LDFLAGS-$(2:.c=)+=--coverage $$(METAC_CHECK_LDFLAGS)
 $$(addprefix $1/,$(2:.c=.test.o)):CFLAGS+=-g3 $$(METAC_CHECK_CFLAGS)
 $$(addprefix $1/,$(2:.c=.o)):CFLAGS+=-g3 -Wno-format-extra-args --coverage $$(METAC_CHECK_CFLAGS)
-$$(addprefix $1/,$(2:.c=.metac.o)):CFLAGS+=-Wno-format-extra-args $$(METAC_CHECK_CFLAGS)
-ifneq ($$(META-$(2:.c=)),n)
-IN-$(2:.c=)+=$(2:.c=.meta.o)
+$$(addprefix $1/,$(2:.c=.meta.o)):CFLAGS+=-Wno-format-extra-args $$(METAC_CHECK_CFLAGS)
+ifneq ($$(REFLECT-$(2:.c=)),n)
+IN-$(2:.c=)+=$(2:.c=.reflect.o)
 
-TPL-$(2:.c=.meta.c):=metac_target
-METACFLAGS-$(2:.c=.meta.c)+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
-IN-$(2:.c=.meta.c)=$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))
+TPL-$(2:.c=.reflect.c):=metac_target
+METACFLAGS-$(2:.c=.reflect.c)+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
+IN-$(2:.c=.reflect.c)=$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))
 endif
 
 TPL-$(2:.c=.test.c):=metac_target
@@ -36,7 +36,7 @@ METACFLAGS-$(2:.c=.test.c)+=run metac-test-gen $(METAC_OVERRIDE_IN_TYPE)
 IN-$(2:.c=.test.c)=$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))
 
 TPL-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=)):=bin_target
-IN-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))=$(2:.c=.metac.o) $(2:.c=.dummy.o)
+IN-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))=$(2:.c=.meta.o) $(2:.c=.dummy.o)
 LDFLAGS-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))=$$(LDFLAGS-$(2:.c=))
 DEPS-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))=$$(DEPS-$(2:.c=))
 POST-$$(dir $(2:.c=))_meta_$$(notdir $(2:.c=))=$$(METAC_POST_META)
