@@ -314,6 +314,14 @@ REFLECT-demodb_alt_test:=n
 
 Here we're building a library .a file and linking it to this test. The last line is - not to generate reflection meta-information.
 
+Check library has an utility called `checkmk`, which accepts a [special file format](https://github.com/libcheck/check/blob/master/checkmk/test/multiple_everything/in) as input and generates test that inludes tests. We also support that: such files must have name pattern `*.checkmk`. Metac will generate test binary with the name `*_checkmk` for such file. Here is the [converted example](step_02/demodb_alt.checkmk). And we need to make the corresponding changes in Makefile:
+
+```Makefile
+DEPS-demodb_alt_checkmk:=$(M)/libdemodb.a
+LDFLAGS-demodb_alt_checkmk:=-L$(M) -ldemodb
+REFLECT-demodb_alt_checkmk:=n
+```
+
 To make sure that this works ok - just run `make METAC_ROOT=../../.. test` or `make METAC_ROOT=../../..` in the folder [step_02](step_02/)
 
 ### Reflection

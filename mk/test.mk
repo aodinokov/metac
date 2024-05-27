@@ -60,30 +60,32 @@ endef
 test_checkmk_c_clean = $(eval $(call test_checkmk_c_clean_tpl,$1,$2))
 
 define test_checkmk_meta_rules_tpl
-$(warning XXX)
 $(3)+= \
-	$(2:.checkmk=_checkmk) \
-	$(2:.checkmk=_checkmk.reflect.c) \
-	$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))
+	$(2:.checkmk=_checkmk)
 
 TPL-$(2:.checkmk=_checkmk):=bin_target test_checkmk_c
 IN-$(2:.checkmk=_checkmk)=$(2:.checkmk=_checkmk.o)
 LDFLAGS-$(2:.checkmk=_checkmk)+=--coverage $$(METAC_CHECK_LDFLAGS)
 $$(addprefix $1/,$(2:.checkmk=_checkmk.o)):CFLAGS+=-g3 -Wno-format-extra-args --coverage $$(METAC_CHECK_CFLAGS)
 $$(addprefix $1/,$(2:.checkmk=_checkmk.meta.o)):CFLAGS+=-Wno-format-extra-args $$(METAC_CHECK_CFLAGS)
+
 ifneq ($$(REFLECT-$(2:.checkmk=_checkmk)),n)
 IN-$(2:.checkmk=_checkmk)+=$(2:.checkmk=_checkmk.reflect.o)
 
 TPL-$(2:.checkmk=_checkmk.reflect.c):=metac_target
 METACFLAGS-$(2:.checkmk=_checkmk.reflect.c)+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
 IN-$(2:.checkmk=_checkmk.reflect.c)=$$(dir $(2:.c=))_meta_$$(notdir $(2:.checkmk=_checkmk))
-endif
 
 TPL-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk)):=bin_target
 IN-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$(2:.checkmk=_checkmk.meta.o)
 LDFLAGS-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(LDFLAGS-$(2:.checkmk=))
 DEPS-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(DEPS-$(2:.checkmk=))
 POST-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(METAC_POST_META)
+
+$(3)+= \
+	$(2:.checkmk=_checkmk.reflect.c) \
+	$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))
+endif
 
 bin_test: $$(addprefix $1/,$(2:.checkmk=_checkmk))
 
