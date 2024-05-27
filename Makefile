@@ -10,6 +10,7 @@ include $(M)/Makefile
 # include all make-modules. target.mk is entypoint
 include mk/*.mk
 $(foreach t,$(subst ./,,$(shell cd $(M) && find . -name '*_test.c')),$(call test_c_rules,$(M),$(t),rules))
+$(foreach t,$(subst ./,,$(shell cd $(M) && find . -name '*.checkmk')),$(call test_checkmk_rules,$(M),$(t),rules))
 $(foreach t,$(rules),$(call meta_rules,$(M),$(t)))
 $(foreach t,$(rules),$(call meta_rules_clean,$(M),$(t)))
 else
@@ -18,6 +19,7 @@ include mk/*.mk
 # this test dones't need meta-information - disable it explicitly
 REFLECT-src/inherit_test=n
 $(foreach t,$(shell find src -name '*_test.c'),$(call test_c_rules,$(shell pwd),$(t),gl_rules))
+$(foreach t,$(shell find src -name '*.checkmk'),$(call test_checkmk_rules,$(shell pwd),$(t),gl_rules))
 $(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test,$(m),$(t))))
 $(foreach m,$(wildcard modules/*),$(foreach t,$(subst $(m)/,,$(shell find $(m) -name '*_test.c.yaml')),$(call modules_test_clean,$(m),$(t))))
 test: go_test
