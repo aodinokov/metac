@@ -2,13 +2,21 @@ ifneq ($(DWARF_VER_FORCE),) #3,4 are currently supported on Ubuntu
 METAC_DWARF_VER_CFLAGS=-gdwarf-$(DWARF_VER_FORCE)
 endif
 # o-file with disabled metac macroses and in debug mode to export DWARF 
-# %.metac.o: CFLAGS+=-g3 -D_METAC_OFF_ - doesn't work when set CFLAGS as args
-%.metac.o: %.c
+# %.meta.o: CFLAGS+=-g3 -D_METAC_OFF_ - doesn't work when set CFLAGS as args
+%.meta.o: %.c
 	$(CC) $(CFLAGS) -g3 $(METAC_DWARF_VER_CFLAGS) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
-%.metac.o: %.cpp
+%.meta.o: %.cpp
 	$(CC) $(CFLAGS) -g3 $(METAC_DWARF_VER_CFLAGS) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
-%.metac.o: %.cxx
+%.meta.o: %.cxx
 	$(CC) $(CFLAGS) -g3 $(METAC_DWARF_VER_CFLAGS) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
+# nometa - use those files if metainformation from that source must be ommitted in metadb
+%.nometa.o: %.c
+	$(CC) $(filter-out -g%,$(CFLAGS)) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
+%.nometa.o: %.cpp
+	$(CC) $(filter-out -g%,$(CFLAGS)) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
+%.nometa.o: %.cxx
+	$(CC) $(filter-out -g%,$(CFLAGS)) -D_METAC_OFF_ -c -MMD -MF $(@:.o=.d) -MP -MT '$@ $(@:.o=.d)' -o $@ $<
+
 
 #defaults (linux)
 METAC_DWARFY_SRC=elf

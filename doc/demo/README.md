@@ -179,17 +179,17 @@ To run this test we'll need just to run `make test METAC_ROOT=<path to the metac
 step_02 % make METAC_ROOT=../../.. test
 make -C ../../.. M=/home/test/metac/doc/demo/step_02 test
 cc -I./include -g3 -Wno-format-extra-args --coverage -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.d' -o /home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.c
-cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -Wno-format-extra-args -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -g3  -D_METAC_OFF_ -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.metac.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.metac.o /home/test/metac/doc/demo/step_02/demodb_test.metac.d' -o /home/test/metac/doc/demo/step_02/demodb_test.metac.o /home/test/metac/doc/demo/step_02/demodb_test.c
+cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -Wno-format-extra-args -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -g3  -D_METAC_OFF_ -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.meta.d' -o /home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.c
 cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.dummy.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.dummy.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.d' -o /home/test/metac/doc/demo/step_02/demodb_test.dummy.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.c
-cc /home/test/metac/doc/demo/step_02/demodb_test.metac.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/./_meta_demodb_test
+cc /home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/./_meta_demodb_test
 (which dsymutil) && dsymutil /home/test/metac/doc/demo/step_02/./_meta_demodb_test || echo "Couldn't find dsymutil"
 /usr/bin/dsymutil
 go build
 ./metac run metac-test-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/demo/step_02/./_meta_demodb_test"' > /home/test/metac/doc/demo/step_02/demodb_test.test.c
 cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.test.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.test.d' -o /home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.test.c
-./metac run metac-reflect-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/demo/step_02/./_meta_demodb_test"' > /home/test/metac/doc/demo/step_02/demodb_test.meta.c
-cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.meta.d' -o /home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.meta.c
-cc /home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.meta.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/demodb_test
+./metac run metac-reflect-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/demo/step_02/./_meta_demodb_test"' > /home/test/metac/doc/demo/step_02/demodb_test.reflect.c
+cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.reflect.o /home/test/metac/doc/demo/step_02/demodb_test.meta.d' -o /home/test/metac/doc/demo/step_02/demodb_test.reflect.o /home/test/metac/doc/demo/step_02/demodb_test.reflect.c
+cc /home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.reflect.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/demodb_test
 Running suite(s): /home/test/metac/doc/demo/step_02/demodb_test
 100%: Checks: 1, Failures: 0, Errors: 0
 All test dependencies were: bin_test module_test
@@ -198,7 +198,7 @@ step_02 %
 
 There are lots of things happened here:
 1. build of `demodb_test.o` from `demodb_test.c`
-1. build of `demodb_test.metac.o` from `demodb_test.c`. **Note:** `*.metac.o` files are the object-files that are ALWAYS built with options `-g3 -D_METAC_OFF_`. This is part of the build process for the binary from which DWARF info will be taken.
+1. build of `demodb_test.meta.o` from `demodb_test.c`. **Note:** `*.meta.o` files are the object-files that are ALWAYS built with options `-g3 -D_METAC_OFF_`. This is part of the build process for the binary from which DWARF info will be taken.
 1. generation of `demodb_test.dummy.c` which contains an empty `main` function. This is needed, because without that we can't build any binary.
 1. compilation of `demodb_test.dummy.o`
 1. linking of `_meta_demodb_test` application binary. This binary won't work because it has an empty `main` function. but it can be used to collect DWARF information.
@@ -403,8 +403,8 @@ rules+= \
 
 TPL-_meta_demodb=bin_target
 IN-_meta_demodb= \
-	main.metac.o \
-	demodb.metac.o
+	main.meta.o \
+	demodb.meta.o
 POST-_meta_demodb=$(METAC_POST_META)
 
 TPL-demodb.reflect.c:=metac_target

@@ -3,10 +3,10 @@
 *.gcda
 *.gcno
 *.gcov
-*.meta.c
-*.meta.cpp
-*.meta.c.*
-*.meta.cpp.*
+*.reflect.c
+*.reflect.cpp
+*.reflect.c.*
+*.reflect.cpp.*
 *.a
 *.so
 *.test.c

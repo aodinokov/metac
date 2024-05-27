@@ -38,8 +38,8 @@ rules+= \
 
 TPL-_meta_demodb=bin_target
 IN-_meta_demodb= \
-	main.metac.o \
-	demodb.metac.o
+	main.meta.o \
+	demodb.meta.o
 POST-_meta_demodb=$(METAC_POST_META)
 
 TPL-demodb.reflect.c:=metac_target

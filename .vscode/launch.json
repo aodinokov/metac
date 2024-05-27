@@ -38,7 +38,7 @@
             //"args": ["run", "-f", "test.yaml", "-M", "./pkg/module/gotemplate/testdata/", "-s", "{\"key2\": \"val2\",\"key2\":{\"key4\":\"val4\"}}"]
             //"args": ["run", "-f", "/home/mralex/vs-workspace/metac/metac/examples/c_app/metac.yaml", "-s", "'path': \"/home/mralex/vs-workspace/metac/metac/examples/c_app/_meta_c_app\""]
             //"args": ["run", "-f", "/home/mralex/vs-workspace/metac/metac/examples/c_app/metac.yaml", "-s", "'path': \"/home/mralex/vs-workspace/metac/metac/examples/c_app/metac_type_ut_001.dbg.o\""]
-            //"args": ["run", "-f", "/home/mralex/vs-workspace/metac/metac/src/entry_db_test_check.meta.c.yaml"]
+            //"args": ["run", "-f", "/home/mralex/vs-workspace/metac/metac/src/entry_db_test_check.reflect.c.yaml"]
             "args": ["run", "metac-test-gen", "-s", "'path_type': \"pe\"", "-s","'path': \"C:/msys64/home/alexe/Workspace/metac/src/_meta_entry_db_test.exe\""]
         }
     ]
