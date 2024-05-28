@@ -78,7 +78,7 @@ IN-$(2:.checkmk=_checkmk.reflect.c)=$$(dir $(2:.c=))_meta_$$(notdir $(2:.checkmk
 
 TPL-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk)):=bin_target
 IN-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$(2:.checkmk=_checkmk.meta.o)
-LDFLAGS-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(LDFLAGS-$(2:.checkmk=))
+LDFLAGS-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(LDFLAGS-$(2:.checkmk=_checkmk))
 DEPS-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(DEPS-$(2:.checkmk=))
 POST-$$(dir $(2:.checkmk=_checkmk))_meta_$$(notdir $(2:.checkmk=_checkmk))=$$(METAC_POST_META)
 

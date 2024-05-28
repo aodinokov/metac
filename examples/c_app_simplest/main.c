@@ -1,6 +1,6 @@
-#include <stdio.h> // printf
+#include <stdio.h>  // printf
 #include <stdlib.h> // free
-#include <math.h> // M_PI, M_E
+#include <math.h>   // M_PI, M_E
 #include "metac/reflect.h"
 
 struct test {
