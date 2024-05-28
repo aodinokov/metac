@@ -13,7 +13,7 @@ Reflection implementation is based on [DWARF](https://en.wikipedia.org/wiki/DWAR
 
 * Reflection for all native C types.
 * 'Deep' functionality for printing, copying, comparing, and freeing memory of complex data structures.
-* Supported on Ubuntu, macOS, Windows (msys2) with gcc or clang
+* Supported on **Ubuntu, macOS, Windows (msys2)** with **gcc** or **clang**.
 
 [**Example**](/examples/c_app_simplest/):
 

@@ -40,6 +40,7 @@ TPL-_meta_demodb=bin_target
 IN-_meta_demodb= \
 	main.meta.o \
 	demodb.meta.o
+LDFLAGS-_meta_demodb=-Lsrc -lmetac
 POST-_meta_demodb=$(METAC_POST_META)
 
 TPL-demodb.reflect.c:=metac_target

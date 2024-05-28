@@ -1,8 +1,8 @@
 # generates target to build binaries and .so
 define bin_target_tpl
 
-# add extra LDFLAGS specific for this target
-$$(addprefix $1/,$2): LDFLAGS+=$$(LDFLAGS-$2)
+# add extra LDFLAGS specific for this target (don't add duplicates)
+$$(addprefix $1/,$2): LDFLAGS=$(filter-out $$(LDFLAGS-$2),$(LDFLAGS)) $$(LDFLAGS-$2)
 
 ifneq ($$(CC-$2),)
 $$(addprefix $1/,$2): CC=$$(CC-$2)
