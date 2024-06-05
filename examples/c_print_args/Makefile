@@ -1,18 +1,20 @@
 ifeq ($(M),)
 METAC_ROOT=../..
 
-all: c_print_args
+all: target test
 
-c_print_args:
+target:
 	$(MAKE) -C $(METAC_ROOT) M=$(PWD) $(PWD)/c_print_args
 
 clean:
 	$(MAKE) -C $(METAC_ROOT) M=$(PWD) clean
 
+test:
+
 .PHONY: all clean
 endif
 
-CFLAGS+=-Wno-varargs
+CFLAGS+=-Wno-varargs -g3
 
 rules+=\
 	c_print_args \
