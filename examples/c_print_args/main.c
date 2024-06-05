@@ -117,47 +117,6 @@ void print_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, ...) {
         free(v);
         metac_value_delete(p_val);
 
-#if 0
-        if (metac_entry_is_base_type(p_param_type_entry) != 0) {
-            metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry);
-#define _base_type_arg_(_type_, _pseudoname_) \
-    do { \
-        if (strcmp(param_base_type_name, #_pseudoname_) == 0) { \
-            _type_ val = va_arg(args, _type_); \
-            metac_value_t * p_val = metac_new_value(p_param_type_entry, &val); \
-            if (p_val == NULL) { \
-                break; \
-            } \
-            char * s = metac_value_string(p_val); \
-            if (s == NULL) { \
-                metac_value_delete(p_val); \
-                break; \
-            } \
-            printf("%s: %s", param_name, s); \
-            free(s); \
-            metac_value_delete(p_val); \
-        } \
-    } while(0)
-    _base_type_arg_(char, char);
-    _base_type_arg_(unsigned char, unsigned char);
-    _base_type_arg_(short, short int);
-    _base_type_arg_(unsigned short, unsigned short int);
-    _base_type_arg_(int, int);
-    _base_type_arg_(unsigned int, unsigned int);
-    _base_type_arg_(long, long int);
-    _base_type_arg_(unsigned long, unsigned long int);
-    _base_type_arg_(long long, long long int);
-    _base_type_arg_(unsigned long long, unsigned long long int);
-    _base_type_arg_(bool, _Bool);
-    _base_type_arg_(float, float);
-    _base_type_arg_(double, double);
-    _base_type_arg_(long double, long double);
-    _base_type_arg_(float complex, complex);
-    _base_type_arg_(double complex, complex);
-    _base_type_arg_(long double complex, complex);
-#undef _base_type_arg_
-        }
-#endif
     }
     printf(")\n");
     va_end(args);
