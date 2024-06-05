@@ -12,6 +12,8 @@ clean:
 .PHONY: all clean
 endif
 
+CFLAGS+=-Wno-varargs
+
 rules+=\
 	c_print_args \
 	_meta_c_print_args \

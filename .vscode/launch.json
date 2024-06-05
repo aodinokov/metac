@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/value_deep_test",
+            "program": "${fileDirname}/c_print_args",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
