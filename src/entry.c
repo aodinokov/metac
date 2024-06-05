@@ -529,6 +529,18 @@ metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag
     return metac_entry_final_entry(p_entry, NULL);
 }
 
+metac_flag_t metac_entry_has_result(metac_entry_t * p_entry) {
+    metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
+    _check_(p_final_entry == NULL, 0);
+    return p_final_entry->subprogram_info.type != NULL;
+}
+
+metac_entry_t * metac_entry_result_type(metac_entry_t * p_entry) {
+    metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
+    _check_(p_final_entry == NULL, NULL);
+    return p_final_entry->subprogram_info.type;
+}
+
 metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry) {
     _check_(p_entry == NULL, 0);
     return metac_entry_kind(p_entry) == METAC_KND_subprogram_parameter;

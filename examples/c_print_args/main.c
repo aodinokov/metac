@@ -5,13 +5,10 @@
 
 #include "metac/reflect.h"
 
-void print_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, ...) {
+void vprint_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, va_list args) {
     if (p_entry == NULL || metac_entry_has_paremeter(p_entry) == 0) {
         return;
     }
-    
-    va_list args;
-    va_start(args, p_entry);
 
     printf("%s(", metac_entry_name(p_entry));
 
@@ -45,13 +42,11 @@ void print_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, ...) {
         }
 
         char buf[32];
-
         int handled = 0;
 #define _handle_sz_(_sz_) \
         do { \
             if (param_byte_sz == _sz_) { \
-                char *x = &buf[0]; \
-                x = va_arg(args, char[_sz_]); \
+                char *x = va_arg(args, char[_sz_]); \
                 memcpy(buf, x, _sz_); \
                 handled = 1; \
             } \
@@ -118,14 +113,71 @@ void print_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, ...) {
         metac_value_delete(p_val);
 
     }
-    printf(")\n");
+    printf(")");
+}
+
+void print_args(metac_tag_map_t * p_tag_map, metac_entry_t *p_entry, ...) {
+    va_list args;
+    va_start(args, p_entry);
+    vprint_args(p_tag_map, p_entry, args);
     va_end(args);
     return;
 }
 
+void print_res(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, metac_value_t * p_val) {
+    if (p_entry == NULL || metac_entry_has_result(p_entry) == 0 || p_val == NULL) {
+        return;
+    }
+    metac_entry_t * p_res_type = metac_entry_result_type(p_entry);
+    if (metac_entry_final_entry(p_res_type, NULL) != metac_entry_final_entry(metac_value_entry(p_val), NULL)) {
+        printf("provided type doesn't match with type info\n");
+        return;
+    }
+    char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
+    if (v == NULL) {
+        return;
+    }
+
+    printf("%s() returned %s\n", metac_entry_name(p_entry), v);
+    free(v);
+}
+
+void print_args_and_res(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, metac_value_t * p_val, ...) {
+    if (p_entry == NULL || metac_entry_has_result(p_entry) == 0 || p_val == NULL) {
+        return;
+    }
+    metac_entry_t * p_res_type = metac_entry_result_type(p_entry);
+    if (metac_entry_final_entry(p_res_type, NULL) != metac_entry_final_entry(metac_value_entry(p_val), NULL)) {
+        printf("provided type doesn't match with type info\n");
+        return;
+    }
+    char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
+    if (v == NULL) {
+        return;
+    }
+
+    va_list args;
+    va_start(args, p_val);
+    vprint_args(p_tag_map, p_entry, args);
+    va_end(args);
+    printf(" returned %s\n", v);
+    free(v);
+}
+
 #define METAC_WRAP_FN(_fn_, _args_...) ({ \
+        printf("calling "); \
         print_args(NULL, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        printf("\n"); \
         _fn_(_args_); \
+    })
+
+#define METAC_WRAP_FN_RES(_type_, _fn_, _args_...) ({ \
+        printf("calling "); \
+        print_args(NULL, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        printf("\n"); \
+        WITH_METAC_DECLLOC(loc, _type_ res = _fn_(_args_)); \
+        print_args_and_res(NULL, METAC_GSYM_LINK_ENTRY(_fn_), METAC_VALUE_FROM_DECLLOC(loc, res), _args_); \
+        res; \
     })
 
 
@@ -155,6 +207,12 @@ double test_function3_with_args(list_t *p_list) {
  }
  METAC_GSYM_LINK(test_function3_with_args);
 
+double test_function4_with_args(list_t *p_list) {
+    return METAC_WRAP_FN_RES(double, test_function3_with_args, p_list) - 1000;
+}
+METAC_GSYM_LINK(test_function4_with_args);
+
+
 int main() {
     printf("fn returned: %i\n", METAC_WRAP_FN(test_function1_with_args, 10, 22));
 
@@ -164,5 +222,9 @@ int main() {
     list_t * p_list = (list_t[]){{.x = 42.42, .p_next = (list_t[]){{ .x = 45.4, .p_next = NULL}}}};
     printf("fn returned: %f\n", METAC_WRAP_FN(test_function3_with_args, p_list));
 
+    METAC_WRAP_FN_RES(int, test_function2_with_args, &x, 22);
+
+    METAC_WRAP_FN_RES(double, test_function4_with_args, p_list);
+    
     return 0;
 }

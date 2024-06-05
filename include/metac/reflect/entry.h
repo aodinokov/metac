@@ -262,4 +262,14 @@ metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry);
 */
 metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry);
 
+/**
+ * @brief check if final entry is function (METAC_KND_subroutine) which isn't void
+*/
+metac_flag_t metac_entry_has_result(metac_entry_t * p_entry);
+
+/**
+ * @brief returns type which the function returns
+*/
+metac_entry_t * metac_entry_result_type(metac_entry_t * p_entry);
+
 #endif
