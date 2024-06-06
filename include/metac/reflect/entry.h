@@ -79,6 +79,11 @@ metac_flag_t metac_entry_is_dynamic(metac_entry_t * p_entry);
 void metac_entry_delete(metac_entry_t * p_entry);
 
 /**
+ * @brief return name of base type (char, int, double, etc). NULL in case of error
+*/
+metac_name_t metac_entry_base_type_name(metac_entry_t *p_entry);
+
+/**
  * @brief check if final entry is base type (char, int, double, etc)
 */
 metac_flag_t metac_entry_is_base_type(metac_entry_t *p_entry);
@@ -243,5 +248,28 @@ metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_
  * better to use wrapper METAC_ENTRY_BY_PARAMETER_IDS
 */
 metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids);
+
+/**
+ * @brief check if entry is subprogram parameter (kind==METAC_KND_subprogram_parameter)
+*/
+metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry);
+/**
+ * @brief check if parameter is ... (va_arg)
+*/
+metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry);
+/**
+ * @brief returns type of argument
+*/
+metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry);
+
+/**
+ * @brief check if final entry is function (METAC_KND_subroutine) which isn't void
+*/
+metac_flag_t metac_entry_has_result(metac_entry_t * p_entry);
+
+/**
+ * @brief returns type which the function returns
+*/
+metac_entry_t * metac_entry_result_type(metac_entry_t * p_entry);
 
 #endif
