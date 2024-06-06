@@ -162,6 +162,8 @@ void print_args_and_res(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, me
     va_end(args);
     printf(" returned %s\n", v);
     free(v);
+
+    metac_value_delete(p_val);
 }
 
 #define METAC_WRAP_FN(_fn_, _args_...) ({ \
