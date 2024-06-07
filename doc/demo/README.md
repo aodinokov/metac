@@ -627,7 +627,7 @@ metac_value_t * metac_new_value_by_member_id(metac_value_t *p_val, metac_num_t m
 ```
 The produced value of the member element will contain the member type and address. Similarly work:
 ```c
-metac_value_t * metac_new_element_count_value(metac_value_t *p_val, metac_num_t count);  /* creates new value with overriden element count. useful for flexible arrays if we got actual len*/
+metac_value_t * metac_new_element_count_value(metac_value_t *p_val, metac_num_t count);  /* creates new value with overridden element count. useful for flexible arrays if we got actual len*/
 metac_value_t * metac_new_value_by_element_id(metac_value_t *p_val, metac_num_t element_id);
 ```
 This allows it to iterate in depth of structure/array and read and write every leaf element of complex structures. We didn't demonstrate how to use those functions because they are very simple and work exactly as [golang/reflect](https://pkg.go.dev/reflect). This is exactly what deep functions do. User an use those functions directly or use the 'deep' set of functions which will be described next.

@@ -27,7 +27,7 @@ data:
 `,
 			override: []string{`
 data:
-  value1: overriden
+  value1: overridden
   arr:
     - 4
     - 5
@@ -37,7 +37,7 @@ newdata: x
     arr:
         - 4
         - 5
-    value1: overriden
+    value1: overridden
     value2: 2
 newdata: x
 `,
@@ -58,7 +58,7 @@ data:
     arr:
         - 4
         - 5
-    value1: overriden
+    value1: overridden
     value2: 2
 newdata: x
 `,
@@ -74,12 +74,12 @@ data:
     - 2
     - 3
 `,
-			override: []string{`{"data": {"value1": "overriden", "arr": [4,5]}, "newdata": "x"}`},
+			override: []string{`{"data": {"value1": "overridden", "arr": [4,5]}, "newdata": "x"}`},
 			expectedResult: `data:
     arr:
         - 4
         - 5
-    value1: overriden
+    value1: overridden
     value2: 2
 newdata: x
 `,
@@ -100,7 +100,7 @@ data:
     arr:
         - 4
         - 5
-    value1: overriden
+    value1: overridden
     value2: 2
 newdata: x
 `,

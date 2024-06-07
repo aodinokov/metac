@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// converts string represetnation to the override
+// converts string representations to the override
 func New(override string) (*map[string]interface{}, error) {
 	overrideUnstr := &map[string]interface{}{}
 
@@ -48,7 +48,7 @@ func MergeAll(in *map[string]interface{}, overrides []string) (*map[string]inter
 			return nil, err
 		}
 		// support only merge so far
-		in, err = Merge(in, overrideUnstr)
+		in, _ = Merge(in, overrideUnstr)
 	}
 	return in, nil
 }

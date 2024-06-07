@@ -111,7 +111,7 @@ func (baseType *BaseType) fromEntry(entry *dwarfy.Entry) error {
 		baseType.Encoding = dwarfy.Encoding(encoding).String()
 	}
 
-	// highlight the incompatiblity with what compiler generated
+	// highlight the incompatibility with what compiler generated
 	_, ok = entry.Val("BitSize").(int64)
 	if ok {
 		return fmt.Errorf("current implementation doesn't expect BitSize attr for base type")
@@ -137,7 +137,7 @@ func (b *BaseType) Signature(comparable bool) (string, error) {
 	if !comparable {
 		return signature, nil
 	}
-	comparable = false
+
 	if b.isDeclaration() {
 		return "", fmt.Errorf("can't create comparable signature from declaration")
 	}
@@ -168,7 +168,7 @@ func (e *EnumerationType) Signature(comparable bool) (string, error) {
 			return signature, nil
 		}
 	}
-	comparable = false
+
 	if e.isDeclaration() {
 		return "", fmt.Errorf("can't create comparable signature from declaration")
 	}
@@ -562,7 +562,7 @@ func (s *StructType) Signature(comparable bool) (string, error) {
 		for _, h := range s.Hierarchy {
 			signature += "("
 			if h.p == nil {
-				return "", fmt.Errorf("hierachy element of struct contains nil pointer")
+				return "", fmt.Errorf("hierarchy element of struct contains nil pointer")
 			}
 			x, err := h.p.Signature(comparable)
 			if err != nil {

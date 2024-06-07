@@ -1,5 +1,5 @@
 data:
-  value1: overriden
+  value1: overridden
   arr:
     - 4
     - 5

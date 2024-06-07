@@ -1,6 +1,6 @@
 <img src="doc/logo/metac-logo-noborder-4171x1956.png" alt="metac logo" style="height: 110px;"/>
 
-[![GoBuildAndTest](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml/badge.svg)](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml)
+[![GoBuildAndTest](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml/badge.svg)](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/aodinokov/metac)](https://goreportcard.com/report/github.com/aodinokov/metac) [![Go Reference](https://pkg.go.dev/badge/github.com/aodinokov/metac)](https://pkg.go.dev/github.com/aodinokov/metac)
 
 /* ``If you can't do it in
 ANSI C, it isn't worth doing.''

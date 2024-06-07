@@ -984,7 +984,7 @@ func (builder *MetaDbBuilder) commonIdFromICommon(ic ICommon) CommonId {
 		if x.Name != nil {
 			name = xstrings.ToSnakeCase(*x.Name)
 		} else {
-			// TODO: C++ has actual implementaiton of abstract functions
+			// TODO: C++ has actual implementation of abstract functions
 			name = "tbd"
 		}
 	case *LexBlock:
