@@ -140,6 +140,8 @@ void print_res(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, metac_value
 
     printf("%s() returned %s\n", metac_entry_name(p_entry), v);
     free(v);
+
+    metac_value_delete(p_val);
 }
 
 void print_args_and_res(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, metac_value_t * p_val, ...) {
