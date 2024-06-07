@@ -161,7 +161,7 @@ func (s *LexBlock) streamline() {
 }
 
 func (cu *LexBlock) Signature(_ bool) (string, error) {
-	return "", fmt.Errorf("singature operation isn't supported for LexDwarfBlock")
+	return "", fmt.Errorf("signature operation isn't supported for LexDwarfBlock")
 }
 
 type Subprogram struct {
