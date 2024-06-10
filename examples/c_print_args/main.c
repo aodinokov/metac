@@ -191,6 +191,8 @@ double test_function3_with_args(list_t *p_list) {
     double sum = 0.0;
     while(p_list != NULL) {
         sum += p_list->x;
+        p_list->x += 1;
+        
         p_list = p_list->p_next;
     }
     return sum;
