@@ -203,13 +203,13 @@ METAC_GSYM_LINK(test_function4_with_args);
 int main() {
     printf("fn returned: %i\n", METAC_WRAP_FN(test_function1_with_args, 10, 22));
 
-    // int x = 689; /* could use (int[]){{689, }}, but used this to simplify reading */
-    // printf("fn returned: %i\n", METAC_WRAP_FN(test_function2_with_args, &x, 22));
+    int x = 689; /* could use (int[]){{689, }}, but used this to simplify reading */
+    printf("fn returned: %i\n", METAC_WRAP_FN(test_function2_with_args, &x, 22));
 
     list_t * p_list = (list_t[]){{.x = 42.42, .p_next = (list_t[]){{ .x = 45.4, .p_next = NULL}}}};
-    // printf("fn returned: %f\n", METAC_WRAP_FN(test_function3_with_args, p_list));
+    printf("fn returned: %f\n", METAC_WRAP_FN(test_function3_with_args, p_list));
 
-    // METAC_WRAP_FN_RES(int, test_function2_with_args, &x, 22);
+    METAC_WRAP_FN_RES(int, test_function2_with_args, &x, 22);
 
     printf("fn returned: %f\n", METAC_WRAP_FN_RES(double, test_function4_with_args, p_list));
     
