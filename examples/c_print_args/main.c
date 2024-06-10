@@ -37,12 +37,12 @@ static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*1
     return 0;
 }
 
-void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t has_res, metac_entry_t *p_entry, va_list args) {
+void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t want_res, metac_entry_t *p_entry, va_list args) {
     if (p_entry == NULL || metac_entry_has_paremeter(p_entry) == 0) {
         return;
     }
 
-    if (has_res == 0) {
+    if (want_res == 0) {
         printf("calling ");
     }
 
@@ -112,36 +112,39 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t has_res, metac_entry_
     printf(")");
 
     do {
-        if (has_res != 0 && metac_entry_has_result(p_entry)){
-            metac_entry_t * p_result_type_entry = metac_entry_result_type(p_entry);
-            if (p_result_type_entry == NULL) {
-                break;
-            }
+        if (want_res != 0) {
+            printf(" returned");
+            if (metac_entry_has_result(p_entry)!=0) {
+                metac_entry_t * p_result_type_entry = metac_entry_result_type(p_entry);
+                if (p_result_type_entry == NULL) {
+                    break;
+                }
 
-            metac_size_t result_byte_sz = 0;
-            if (metac_entry_byte_size(p_result_type_entry, &result_byte_sz) != 0) {
-                break;
-            }
+                metac_size_t result_byte_sz = 0;
+                if (metac_entry_byte_size(p_result_type_entry, &result_byte_sz) != 0) {
+                    break;
+                }
 
-            int handled = handle_sz(&args, result_byte_sz, &buf[0]);
-            if (handled == 0) {
-                break;
-            }
+                int handled = handle_sz(&args, result_byte_sz, &buf[0]);
+                if (handled == 0) {
+                    break;
+                }
 
-            metac_value_t * p_val = metac_new_value(p_result_type_entry, &buf[0]);
-            if (p_val == NULL) {
-                break;
-            }
-            char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-            if (v == NULL) {
+                metac_value_t * p_val = metac_new_value(p_result_type_entry, &buf[0]);
+                if (p_val == NULL) {
+                    break;
+                }
+                char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
+                if (v == NULL) {
+                    metac_value_delete(p_val);
+                    break;
+                }
+                printf(" %s", v);
+
+                free(v);
+
                 metac_value_delete(p_val);
-                break;
             }
-            printf(" returned %s", v);
-
-            free(v);
-
-            metac_value_delete(p_val);
         }
     }while(0);
 
