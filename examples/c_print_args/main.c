@@ -159,11 +159,11 @@ void print_args(metac_tag_map_t * p_tag_map, metac_flag_t has_res, metac_entry_t
     return;
 }
 
-#define METAC_WRAP_FN(_fn_, _args_...) ({ \
+#define METAC_WRAP_FN_NORES(_fn_, _args_...) { \
         print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
         _fn_(_args_); \
-    })
-
+        print_args(NULL, 1, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+    }
 #define METAC_WRAP_FN_RES(_type_, _fn_, _args_...) ({ \
         print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
         _type_ res = _fn_(_args_); \
@@ -171,16 +171,23 @@ void print_args(metac_tag_map_t * p_tag_map, metac_flag_t has_res, metac_entry_t
         res; \
     })
 
+#define DEBUG
 
 int test_function1_with_args(int a, short b){
     return a + b + 6;
 }
 METAC_GSYM_LINK(test_function1_with_args);
+#ifdef DEBUG
+#define test_function1_with_args(args...) METAC_WRAP_FN_RES(int, test_function1_with_args, args)
+#endif
 
 int test_function2_with_args(int *a, short b){
     return *a + b + 999;
 }
 METAC_GSYM_LINK(test_function2_with_args);
+#ifdef DEBUG
+#define test_function2_with_args(args...) METAC_WRAP_FN_RES(int, test_function2_with_args, args)
+#endif
 
 typedef struct list_s{
     double x;
@@ -196,27 +203,46 @@ double test_function3_with_args(list_t *p_list) {
         p_list = p_list->p_next;
     }
     return sum;
- }
- METAC_GSYM_LINK(test_function3_with_args);
+}
+METAC_GSYM_LINK(test_function3_with_args);
+#ifdef DEBUG
+#define test_function3_with_args(args...) METAC_WRAP_FN_RES(double, test_function3_with_args, args)
+#endif
 
 double test_function4_with_args(list_t *p_list) {
-    return METAC_WRAP_FN_RES(double, test_function3_with_args, p_list) - 1000;
+    return test_function3_with_args(p_list) - 1000;
 }
 METAC_GSYM_LINK(test_function4_with_args);
+#ifdef DEBUG
+#define test_function4_with_args(args...) METAC_WRAP_FN_RES(double, test_function4_with_args, args)
+#endif
 
+void test_function5_no_res(list_t *p_list) {
+        while(p_list != NULL) {
+        p_list->x -= 1;
+        
+        p_list = p_list->p_next;
+    }
+}
+METAC_GSYM_LINK(test_function5_no_res);
+#ifdef DEBUG
+#define test_function5_no_res(args...) METAC_WRAP_FN_NORES(test_function5_no_res, args);
+#endif
 
 int main() {
-    printf("fn returned: %i\n", METAC_WRAP_FN(test_function1_with_args, 10, 22));
+    printf("fn returned: %i\n", test_function1_with_args(10, 22));
 
     int x = 689; /* could use (int[]){{689, }}, but used this to simplify reading */
-    printf("fn returned: %i\n", METAC_WRAP_FN(test_function2_with_args, &x, 22));
+    printf("fn returned: %i\n", test_function2_with_args(&x, 22));
 
     list_t * p_list = (list_t[]){{.x = 42.42, .p_next = (list_t[]){{ .x = 45.4, .p_next = NULL}}}};
-    printf("fn returned: %f\n", METAC_WRAP_FN(test_function3_with_args, p_list));
+    printf("fn returned: %f\n", test_function3_with_args(p_list));
 
-    METAC_WRAP_FN_RES(int, test_function2_with_args, &x, 22);
+    test_function2_with_args(&x, 22);
 
-    printf("fn returned: %f\n", METAC_WRAP_FN_RES(double, test_function4_with_args, p_list));
+    printf("fn returned: %f\n", test_function4_with_args(p_list));
     
+    test_function5_no_res(p_list);
+
     return 0;
 }
