@@ -5,38 +5,6 @@
 
 #include "metac/reflect.h"
 
-static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*max 16b */) {
-    if (p_buf == NULL) {
-        return 0;
-    }
-#define _handle_sz_(_sz_) \
-        do { \
-            if (sz == _sz_) { \
-                char *x = va_arg(*p_args, char[_sz_]); \
-                memcpy(p_buf, x, sz); \
-                return 1; \
-            } \
-        } while(0)
-        _handle_sz_(1);
-        _handle_sz_(2);
-        _handle_sz_(3);
-        _handle_sz_(4);
-        _handle_sz_(5);
-        _handle_sz_(6);
-        _handle_sz_(7);
-        _handle_sz_(8);
-        _handle_sz_(9);
-        _handle_sz_(10);
-        _handle_sz_(11);
-        _handle_sz_(12);
-        _handle_sz_(13);
-        _handle_sz_(14);
-        _handle_sz_(15);
-        _handle_sz_(16);
-#undef _handle_sz_
-    return 0;
-}
-
 void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry,  metac_value_t * p_res, va_list args) {
     if (p_entry == NULL || metac_entry_has_paremeters(p_entry) == 0) {
         return;
@@ -79,7 +47,33 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             break;
         }
 
-        int handled = handle_sz(&args, param_byte_sz, &buf[0]);
+        int handled = 0;
+#define _handle_sz_(_sz_) \
+        do { \
+            if (param_byte_sz == _sz_) { \
+                char *x = va_arg(args, char[_sz_]); \
+                if (x == NULL) { break; } \
+                memcpy(buf, x, param_byte_sz); \
+                handled = 1; \
+            } \
+        } while(0)
+        _handle_sz_(1);
+        _handle_sz_(2);
+        _handle_sz_(3);
+        _handle_sz_(4);
+        _handle_sz_(5);
+        _handle_sz_(6);
+        _handle_sz_(7);
+        _handle_sz_(8);
+        _handle_sz_(9);
+        _handle_sz_(10);
+        _handle_sz_(11);
+        _handle_sz_(12);
+        _handle_sz_(13);
+        _handle_sz_(14);
+        _handle_sz_(15);
+        _handle_sz_(16);
+#undef _handle_sz_
         if (handled == 0) {
             break;
         }
