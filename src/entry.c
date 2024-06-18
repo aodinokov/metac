@@ -476,11 +476,11 @@ static metac_entry_t * _entry_with_paremeter_info(metac_entry_t *p_entry) {
     return p_final_entry;
 }
 
-metac_flag_t metac_entry_has_paremeter(metac_entry_t * p_entry) {
+metac_flag_t metac_entry_has_paremeters(metac_entry_t * p_entry) {
     return _entry_with_paremeter_info(p_entry) != NULL;
 }
 
-metac_num_t metac_entry_paremeter_count(metac_entry_t *p_entry) {
+metac_num_t metac_entry_paremeters_count(metac_entry_t *p_entry) {
     metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
     _check_(p_final_entry == NULL, -(EINVAL));
     return p_final_entry->subprogram_info.parameters_count;
@@ -489,7 +489,7 @@ metac_num_t metac_entry_paremeter_count(metac_entry_t *p_entry) {
 metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_t name) {
     metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
     _check_(p_final_entry == NULL, -(EINVAL));
-    metac_num_t par_count = metac_entry_paremeter_count(p_entry);
+    metac_num_t par_count = metac_entry_paremeters_count(p_entry);
     _check_(par_count < 0, -(EFAULT));
     for (metac_num_t i = 0; i < par_count; ++i) {
         if (p_final_entry->subprogram_info.parameters[i].name != NULL &&
