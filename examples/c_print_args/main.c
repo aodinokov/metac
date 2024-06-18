@@ -5,7 +5,7 @@
 
 #include "metac/reflect.h"
 
-static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*16*/) {
+static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*max 16b */) {
     if (p_buf == NULL) {
         return 0;
     }
@@ -14,7 +14,7 @@ static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*1
             if (sz == _sz_) { \
                 char *x = va_arg(*p_args, char[_sz_]); \
                 memcpy(p_buf, x, sz); \
-                return 1;\
+                return 1; \
             } \
         } while(0)
         _handle_sz_(1);
@@ -37,12 +37,12 @@ static metac_flag_t handle_sz(va_list *p_args, metac_size_t sz, char * p_buf /*1
     return 0;
 }
 
-void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t want_res, metac_entry_t *p_entry, va_list args) {
-    if (p_entry == NULL || metac_entry_has_paremeter(p_entry) == 0) {
+void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry,  metac_value_t * p_res, va_list args) {
+    if (p_entry == NULL || metac_entry_has_paremeters(p_entry) == 0) {
         return;
     }
 
-    if (want_res == 0) {
+    if (calling == 1) {
         printf("calling ");
     }
 
@@ -50,7 +50,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t want_res, metac_entry
 
     char buf[16];
 
-    for (int i = 0; i < metac_entry_paremeter_count(p_entry); ++i) {
+    for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
         if (i > 0) {
             printf(", ");
         }
@@ -111,63 +111,41 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t want_res, metac_entry
     }
     printf(")");
 
-    do {
-        if (want_res != 0) {
-            printf(" returned");
-            if (metac_entry_has_result(p_entry)!=0) {
-                metac_entry_t * p_result_type_entry = metac_entry_result_type(p_entry);
-                if (p_result_type_entry == NULL) {
-                    break;
-                }
-
-                metac_size_t result_byte_sz = 0;
-                if (metac_entry_byte_size(p_result_type_entry, &result_byte_sz) != 0) {
-                    break;
-                }
-
-                int handled = handle_sz(&args, result_byte_sz, &buf[0]);
-                if (handled == 0) {
-                    break;
-                }
-
-                metac_value_t * p_val = metac_new_value(p_result_type_entry, &buf[0]);
-                if (p_val == NULL) {
-                    break;
-                }
-                char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-                if (v == NULL) {
-                    metac_value_delete(p_val);
-                    break;
-                }
-                printf(" %s", v);
-
-                free(v);
-
-                metac_value_delete(p_val);
+    if (calling == 0) {
+        printf(" returned");
+        if (p_res != NULL) {
+            char * v = metac_value_string_ex(p_res, METAC_WMODE_deep, p_tag_map);
+            if (v == NULL) {
+                return;
             }
+            printf(" %s", v);
+
+            free(v);
+
+            metac_value_delete(p_res);
         }
-    }while(0);
+    }
 
     printf("\n");
 }
 
-void print_args(metac_tag_map_t * p_tag_map, metac_flag_t has_res, metac_entry_t *p_entry, ...) {
+void print_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry, metac_value_t * p_res, ...) {
     va_list args;
-    va_start(args, p_entry);
-    vprint_args(p_tag_map, has_res, p_entry, args);
+    va_start(args, p_res);
+    vprint_args(p_tag_map, calling, p_entry, p_res, args);
     va_end(args);
     return;
 }
 
 #define METAC_WRAP_FN_NORES(_fn_, _args_...) { \
-        print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        print_args(NULL, 1, METAC_GSYM_LINK_ENTRY(_fn_), NULL, _args_); \
         _fn_(_args_); \
-        print_args(NULL, 1, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), NULL, _args_); \
     }
 #define METAC_WRAP_FN_RES(_type_, _fn_, _args_...) ({ \
-        print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
-        _type_ res = _fn_(_args_); \
-        print_args(NULL, 1, METAC_GSYM_LINK_ENTRY(_fn_), _args_, res); \
+        print_args(NULL, 1, METAC_GSYM_LINK_ENTRY(_fn_), NULL, _args_); \
+        WITH_METAC_DECLLOC(loc, _type_ res = _fn_(_args_)); \
+        print_args(NULL, 0, METAC_GSYM_LINK_ENTRY(_fn_), METAC_VALUE_FROM_DECLLOC(loc, res), _args_); \
         res; \
     })
 
