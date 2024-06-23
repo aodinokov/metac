@@ -183,6 +183,12 @@ static int _entry_check_base_type(metac_entry_t *p_entry, metac_name_t expected_
 
     assert(p_entry->name != NULL);
 
+    // clang doesn't have long complex double -> downgrade to "complex double"
+    if (strcmp(expected_name, "long complex double") == 0 &&
+        sizeof(long complex double) == sizeof(complex double)) {
+        expected_name = "complex double";
+    }
+
     if (strcmp(p_entry->name, expected_name) == 0 && (
             p_entry->base_type_info.encoding == METAC_ENC_undefined || 
             p_entry->base_type_info.encoding == expected_encoding) && (
