@@ -52,42 +52,32 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
         if (metac_entry_is_base_type(p_param_type_entry) != 0) {
             // take what type of base type it is. It can be char, unsigned char.. etc
             metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry);
-#define _base_type_arg_(_type_, _pseudoname_) \
+#define _base_type_arg_(_type_, _va_type_, _pseudoname_) \
             do { \
                 if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
-                    _type_ val = va_arg(args, _type_); \
+                    _type_ val = va_arg(args, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     handled = 1; \
                 } \
             } while(0)
             // handle all known base types
-            _base_type_arg_(char, char);
-            _base_type_arg_(unsigned char, unsigned char);
-            _base_type_arg_(short, short int);
-            _base_type_arg_(unsigned short, unsigned short int);
-            _base_type_arg_(int, int);
-            _base_type_arg_(unsigned int, unsigned int);
-            _base_type_arg_(long, long int);
-            _base_type_arg_(unsigned long, unsigned long int);
-            _base_type_arg_(long long, long long int);
-            _base_type_arg_(unsigned long long, unsigned long long int);
-            _base_type_arg_(bool, _Bool);
-            //_base_type_arg_(float, float);
-            do {
-                // va_arg always put double if it's float, e.g.
-                // https://github.com/lattera/glibc/blob/master/stdio-common/vfprintf.c#L771
-                if (handled == 0 && strcmp(param_base_type_name, "float") == 0) {
-                    double val = va_arg(args, double);
-                    float fval = val;
-                    memcpy(buf, &fval, sizeof(fval));
-                    handled = 1;
-                }
-            } while(0);
-            _base_type_arg_(double, double);
-            _base_type_arg_(long double, long double);
-            _base_type_arg_(float complex, complex);
-            _base_type_arg_(double complex, complex);
-            _base_type_arg_(long double complex, complex);
+            _base_type_arg_(char, int, char);
+            _base_type_arg_(unsigned char, int, unsigned char);
+            _base_type_arg_(short, int, short int);
+            _base_type_arg_(unsigned short, int, unsigned short int);
+            _base_type_arg_(int, int, int);
+            _base_type_arg_(unsigned int, unsigned int, unsigned int);
+            _base_type_arg_(long, long, long int);
+            _base_type_arg_(unsigned long, unsigned long, unsigned long int);
+            _base_type_arg_(long long, long long, long long int);
+            _base_type_arg_(unsigned long long, unsigned long long, unsigned long long int);
+            _base_type_arg_(bool, int, _Bool);
+            _base_type_arg_(float, double, float);
+            _base_type_arg_(double, double, double);
+            _base_type_arg_(long double, long double, long double);
+            _base_type_arg_(float complex, float complex, complex);
+            _base_type_arg_(double complex, double complex, complex);
+            _base_type_arg_(long double complex, long double complex, complex);
 #undef _base_type_arg_
         } else if (0) {
 #define _handle_sz_(_sz_) \
