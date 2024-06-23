@@ -333,9 +333,9 @@ char *metac_value_base_type_string(metac_value_t * p_val) {
                 return NULL; \
             } \
             if (cimag(v) < 0.0) { \
-                return dsprintf( "%lf - I * %lf", creal(v), -1.0 * cimag(v)); \
+                return dsprintf( "%s: %lf - I * %lf", #_pseudoname_, creal(v), -1.0 * cimag(v)); \
             } \
-            return dsprintf( "%lf + I * %lf", creal(v), cimag(v)); \
+            return dsprintf( "%s: %lf + I * %lf", #_pseudoname_, creal(v), cimag(v)); \
         } \
     } while(0)
     _string_(float complex, float_complex);

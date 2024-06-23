@@ -183,6 +183,8 @@ static int _entry_check_base_type(metac_entry_t *p_entry, metac_name_t expected_
 
     assert(p_entry->name != NULL);
 
+printf("expected name %s, byte_size %d, actual name byte_size %d\n", expected_name, expected_size, p_entry->name, p_entry->base_type_info.byte_size);
+
     if (strcmp(p_entry->name, expected_name) == 0 && (
             p_entry->base_type_info.encoding == METAC_ENC_undefined || 
             p_entry->base_type_info.encoding == expected_encoding) && (
