@@ -40,6 +40,12 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             // something is wrong
             break;
         }
+        metac_size_t param_byte_sz = 0;
+        if (metac_entry_byte_size(p_param_type_entry, &param_byte_sz) != 0) {
+            // something is wrong
+            break;
+        }
+
 
         int handled = 0;
 
@@ -48,7 +54,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry);
 #define _base_type_arg_(_type_, _pseudoname_) \
             do { \
-                if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0) { \
+                if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
                     _type_ val = va_arg(args, _type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     handled = 1; \
@@ -68,9 +74,12 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _base_type_arg_(bool, _Bool);
             //_base_type_arg_(float, float);
             do {
+                // va_arg always put double if it's float, e.g.
+                // https://github.com/lattera/glibc/blob/master/stdio-common/vfprintf.c#L771
                 if (handled == 0 && strcmp(param_base_type_name, "float") == 0) {
-                    float val = va_arg(args, float);
-                    memcpy(buf, &val, sizeof(float));
+                    double val = va_arg(args, double);
+                    float fval = val;
+                    memcpy(buf, &fval, sizeof(fval));
                     handled = 1;
                 }
             } while(0);
@@ -81,12 +90,6 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _base_type_arg_(long double complex, complex);
 #undef _base_type_arg_
         } else {
-            metac_size_t param_byte_sz = 0;
-            if (metac_entry_byte_size(p_param_type_entry, &param_byte_sz) != 0) {
-                // something is wrong
-                break;
-            }
-
 #define _handle_sz_(_sz_) \
             do { \
                 if (param_byte_sz == _sz_) { \

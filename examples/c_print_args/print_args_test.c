@@ -63,9 +63,9 @@ METAC_START_TEST(sanity){
     float arg_11 = 11.0;
     double arg_12 = 12.0;
     long double  arg_13 = 13.0;
-    float complex  arg_14 = 14.0;
-    double complex arg_15 = 15.0;
-    long double complex arg_16 = 16.0;
+    float complex  arg_14 = 14.0 - 14.0*I;
+    double complex arg_15 = 15.0 - 15.0*I;
+    long double complex arg_16 = 16.0 + 116.0*I;
 
     METAC_WRAP_FN_NORES(test_function_with_base_args,
         arg_00, arg_01, arg_02, arg_03, arg_04,

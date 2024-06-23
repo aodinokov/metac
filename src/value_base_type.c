@@ -324,10 +324,25 @@ char *metac_value_base_type_string(metac_value_t * p_val) {
     _string_(float, float, "%f", v);
     _string_(double, double, "%lf", v);
     _string_(long double, ldouble, "%Lf", v);
-    _string_(float complex, float_complex, "%lf + I * %lf", creal(v), cimag(v));
-    _string_(double complex, double_complex, "%lf + I * %lf", creal(v), cimag(v));
-    _string_(long double complex, ldouble_complex, "%lf + I * %lf", creal(v), cimag(v));
 #undef _string_
+#define _string_(_type_, _pseudoname_) \
+    do { \
+        if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
+            _type_ v; \
+            if (metac_value_##_pseudoname_(p_val, &v) != 0) { \
+                return NULL; \
+            } \
+            if (cimag(v) < 0.0) { \
+                return dsprintf( "%lf - I * %lf", creal(v), -1.0 * cimag(v)); \
+            } \
+            return dsprintf( "%lf + I * %lf", creal(v), cimag(v)); \
+        } \
+    } while(0)
+    _string_(float complex, float_complex);
+    _string_(double complex, double_complex);
+    _string_(long double complex, ldouble_complex);
+#undef _string_
+
 
     return NULL;
 }
