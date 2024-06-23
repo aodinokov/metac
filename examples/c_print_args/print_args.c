@@ -92,7 +92,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
         } else {
 #define _handle_sz_(_sz_) \
             do { \
-                if (param_byte_sz == _sz_) { \
+                if (handled == 0 && param_byte_sz == _sz_) { \
                     char *x = va_arg(args, char[_sz_]); \
                     if (x == NULL) { break; } \
                     memcpy(buf, x, param_byte_sz); \
