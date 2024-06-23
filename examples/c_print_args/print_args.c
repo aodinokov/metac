@@ -75,9 +75,9 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _base_type_arg_(float, double, float);
             _base_type_arg_(double, double, double);
             _base_type_arg_(long double, long double, long double);
-            _base_type_arg_(float complex, float complex, complex);
-            _base_type_arg_(double complex, double complex, complex);
-            _base_type_arg_(long double complex, long double complex, complex);
+            _base_type_arg_(float complex, float complex, complex float);
+            _base_type_arg_(double complex, double complex, complex double);
+            _base_type_arg_(long double complex, long double complex, long complex double);
 #undef _base_type_arg_
         } else if (metac_entry_is_pointer(p_param_type_entry) != 0){
             do {
