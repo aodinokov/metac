@@ -559,7 +559,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
 
-    expected_s = "{.data = 888, .content_type = 1, .content_len = 1, .p_content = (struct t7_cntnt1 []){{.c = 19.330000 + I * -0.400000,},},}";
+    expected_s = "{.data = 888, .content_type = 1, .content_len = 1, .p_content = (struct t7_cntnt1 []){{.c = 19.330000 - I * 0.400000,},},}";
     s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
