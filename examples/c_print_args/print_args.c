@@ -89,7 +89,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _base_type_arg_(double complex, complex);
             _base_type_arg_(long double complex, complex);
 #undef _base_type_arg_
-        } else {
+        } else if (0) {
 #define _handle_sz_(_sz_) \
             do { \
                 if (handled == 0 && param_byte_sz == _sz_) { \
