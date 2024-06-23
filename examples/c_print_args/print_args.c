@@ -16,7 +16,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 
     printf("%s(", metac_entry_name(p_entry));
 
-    char buf[16];
+    char buf[32];
 
     for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
         if (i > 0) {
@@ -40,40 +40,54 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             // something is wrong
             break;
         }
-
         metac_size_t param_byte_sz = 0;
         if (metac_entry_byte_size(p_param_type_entry, &param_byte_sz) != 0) {
             // something is wrong
             break;
         }
 
+
         int handled = 0;
-#define _handle_sz_(_sz_) \
-        do { \
-            if (param_byte_sz == _sz_) { \
-                char *x = va_arg(args, char[_sz_]); \
-                if (x == NULL) { break; } \
-                memcpy(buf, x, param_byte_sz); \
-                handled = 1; \
-            } \
-        } while(0)
-        _handle_sz_(1);
-        _handle_sz_(2);
-        _handle_sz_(3);
-        _handle_sz_(4);
-        _handle_sz_(5);
-        _handle_sz_(6);
-        _handle_sz_(7);
-        _handle_sz_(8);
-        _handle_sz_(9);
-        _handle_sz_(10);
-        _handle_sz_(11);
-        _handle_sz_(12);
-        _handle_sz_(13);
-        _handle_sz_(14);
-        _handle_sz_(15);
-        _handle_sz_(16);
-#undef _handle_sz_
+
+        if (metac_entry_is_base_type(p_param_type_entry) != 0) {
+            // take what type of base type it is. It can be char, unsigned char.. etc
+            metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry);
+#define _base_type_arg_(_type_, _va_type_, _pseudoname_) \
+            do { \
+                if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
+                    _type_ val = va_arg(args, _va_type_); \
+                    memcpy(buf, &val, sizeof(val)); \
+                    handled = 1; \
+                } \
+            } while(0)
+            // handle all known base types
+            _base_type_arg_(char, int, char);
+            _base_type_arg_(unsigned char, int, unsigned char);
+            _base_type_arg_(short, int, short int);
+            _base_type_arg_(unsigned short, int, unsigned short int);
+            _base_type_arg_(int, int, int);
+            _base_type_arg_(unsigned int, unsigned int, unsigned int);
+            _base_type_arg_(long, long, long int);
+            _base_type_arg_(unsigned long, unsigned long, unsigned long int);
+            _base_type_arg_(long long, long long, long long int);
+            _base_type_arg_(unsigned long long, unsigned long long, unsigned long long int);
+            _base_type_arg_(bool, int, _Bool);
+            _base_type_arg_(float, double, float);
+            _base_type_arg_(double, double, double);
+            _base_type_arg_(long double, long double, long double);
+            _base_type_arg_(float complex, float complex, complex float);
+            _base_type_arg_(double complex, double complex, complex double);
+            _base_type_arg_(long double complex, long double complex, long complex double);
+#undef _base_type_arg_
+        } else if (metac_entry_is_pointer(p_param_type_entry) != 0){
+            do {
+                if (handled == 0 ) {
+                    void * val = va_arg(args, void *);
+                    memcpy(buf, &val, sizeof(val));
+                    handled = 1;
+                }
+            } while(0);
+        } 
         if (handled == 0) {
             break;
         }

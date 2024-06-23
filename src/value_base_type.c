@@ -53,13 +53,13 @@ metac_flag_t metac_value_is_ldouble(metac_value_t * p_val) {
     return metac_value_check_base_type(p_val, "long double", METAC_ENC_float, sizeof(long double)) == 0;
 }
 metac_flag_t metac_value_is_float_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "complex", METAC_ENC_complex_float, sizeof(float complex)) == 0;
+    return metac_value_check_base_type(p_val, "complex float", METAC_ENC_complex_float, sizeof(float complex)) == 0;
 }
 metac_flag_t metac_value_is_double_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "complex", METAC_ENC_complex_float, sizeof(double complex)) == 0;
+    return metac_value_check_base_type(p_val, "complex double", METAC_ENC_complex_float, sizeof(double complex)) == 0;
 }
 metac_flag_t metac_value_is_ldouble_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "complex", METAC_ENC_complex_float, sizeof(long double complex)) == 0;
+    return metac_value_check_base_type(p_val, "long complex double", METAC_ENC_complex_float, sizeof(long double complex)) == 0;
 }
 /**/
 int metac_value_char(metac_value_t * p_val, char *p_var) {
@@ -105,13 +105,13 @@ int metac_value_ldouble(metac_value_t * p_val, long double *p_var) {
     return metac_value_base_type(p_val, "long double", METAC_ENC_float, (void*)p_var, sizeof(long double));
 }
 int metac_value_float_complex(metac_value_t * p_val, float complex *p_var) {
-    return metac_value_base_type(p_val, "complex", METAC_ENC_complex_float, (void*)p_var, sizeof(float complex));
+    return metac_value_base_type(p_val, "complex float", METAC_ENC_complex_float, (void*)p_var, sizeof(float complex));
 }
 int metac_value_double_complex(metac_value_t * p_val, double complex *p_var) {
-    return metac_value_base_type(p_val, "complex", METAC_ENC_complex_float, (void*)p_var, sizeof(double complex));
+    return metac_value_base_type(p_val, "complex double", METAC_ENC_complex_float, (void*)p_var, sizeof(double complex));
 }
 int metac_value_ldouble_complex(metac_value_t * p_val, long double complex *p_var) {
-    return metac_value_base_type(p_val, "complex", METAC_ENC_complex_float, (void*)p_var, sizeof(long double complex));
+    return metac_value_base_type(p_val, "long complex double", METAC_ENC_complex_float, (void*)p_var, sizeof(long double complex));
 }
 /* */
 int metac_value_set_char(metac_value_t * p_val, char var) {
@@ -157,13 +157,13 @@ int metac_value_set_ldouble(metac_value_t * p_val, long double var) {
     return metac_value_set_base_type(p_val, "long double", METAC_ENC_float, &var, sizeof(long double));
 }
 int metac_value_set_float_complex(metac_value_t * p_val, float complex var) {
-    return metac_value_set_base_type(p_val, "complex", METAC_ENC_complex_float, &var, sizeof(float complex));
+    return metac_value_set_base_type(p_val, "complex float", METAC_ENC_complex_float, &var, sizeof(float complex));
 }
 int metac_value_set_double_complex(metac_value_t * p_val, double complex var) {
-    return metac_value_set_base_type(p_val, "complex", METAC_ENC_complex_float, &var, sizeof(double complex));
+    return metac_value_set_base_type(p_val, "complex double", METAC_ENC_complex_float, &var, sizeof(double complex));
 }
 int metac_value_set_ldouble_complex(metac_value_t * p_val, long double complex var) {
-    return metac_value_set_base_type(p_val, "complex", METAC_ENC_complex_float, &var, sizeof(long double complex));
+    return metac_value_set_base_type(p_val, "long complex double", METAC_ENC_complex_float, &var, sizeof(long double complex));
 }
 
 int metac_value_num(metac_value_t * p_val, metac_num_t * p_var) {
@@ -324,10 +324,25 @@ char *metac_value_base_type_string(metac_value_t * p_val) {
     _string_(float, float, "%f", v);
     _string_(double, double, "%lf", v);
     _string_(long double, ldouble, "%Lf", v);
-    _string_(float complex, float_complex, "%lf + I * %lf", creal(v), cimag(v));
-    _string_(double complex, double_complex, "%lf + I * %lf", creal(v), cimag(v));
-    _string_(long double complex, ldouble_complex, "%lf + I * %lf", creal(v), cimag(v));
 #undef _string_
+#define _string_(_type_, _pseudoname_) \
+    do { \
+        if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
+            _type_ v; \
+            if (metac_value_##_pseudoname_(p_val, &v) != 0) { \
+                return NULL; \
+            } \
+            if (cimag(v) < 0.0) { \
+                return dsprintf( "%lf - I * %lf", creal(v), -1.0 * cimag(v)); \
+            } \
+            return dsprintf( "%lf + I * %lf", creal(v), cimag(v)); \
+        } \
+    } while(0)
+    _string_(float complex, float_complex);
+    _string_(double complex, double_complex);
+    _string_(long double complex, ldouble_complex);
+#undef _string_
+
 
     return NULL;
 }

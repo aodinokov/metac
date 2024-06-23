@@ -69,14 +69,13 @@ var baseTypeSynonims = map[string]string{
 	"long long unsigned":     "unsigned long long int",
 	"long long unsigned int": "unsigned long long int",
 
-	/* clang has only complex. with different size */
-	"complex float":       "complex",
-	"float complex":       "complex",
-	"complex double":      "complex",
-	"double complex":      "complex",
-	"long double complex": "complex",
-	"complex long double": "complex",
-	"long complex double": "complex",
+	"complex float":       "complex float",
+	"float complex":       "complex float",
+	"complex double":      "complex double",
+	"double complex":      "complex double",
+	"long double complex": "long complex double",
+	"complex long double": "long complex double",
+	"long complex double": "long complex double",
 }
 
 func deSynonim(in string) string {
@@ -104,6 +103,23 @@ func (baseType *BaseType) fromEntry(entry *dwarfy.Entry) error {
 	}
 	// correct name of type to avoid synonims. e.g. if long use long int (or vice-versa)
 	dsname := deSynonim(*baseType.Name)
+	if dsname == "complex" {
+		if baseType.ByteSize == nil {
+			return fmt.Errorf("the ByteSize isn't set for complex")
+		}
+		var bsz = *baseType.ByteSize
+		/* clang has only complex. with different size */
+		switch bsz {
+		case 8:
+			dsname = "complex float"
+		case 16:
+			dsname = "complex double"
+		case 32:
+			dsname = "long complex double"
+		default:
+			return fmt.Errorf("the ByteSize %d isn't supported", bsz)
+		}
+	}
 	baseType.Name = &dsname
 
 	encoding, ok := entry.Val("Encoding").(int64)
