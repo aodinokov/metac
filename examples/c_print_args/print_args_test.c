@@ -19,9 +19,7 @@ void test_function_with_base_args(
     long double  arg_13,
     float complex  arg_14,
     double complex arg_15,
-    long double complex arg_16
-    ){
-    printf("arg_11 %f\n", arg_11);
+    long double complex arg_16) {
     return;
 }
 METAC_GSYM_LINK(test_function_with_base_args);
@@ -42,13 +40,12 @@ void test_function_with_base_args_ptr(char * arg_00,
     long double *arg_13,
     float complex *arg_14,
     double complex *arg_15,
-    long double complex *arg_16){
+    long double complex *arg_16) {
     return;
 }
 METAC_GSYM_LINK(test_function_with_base_args_ptr);
 
-
-METAC_START_TEST(sanity){
+METAC_START_TEST(sanity_base_type) {
     char arg_00 = 0;
     unsigned char arg_01 = 1;
     short arg_02 = 2;
@@ -79,5 +76,45 @@ METAC_START_TEST(sanity){
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
         &arg_15, &arg_16);
 
+}END_TEST
 
+enum test_enum_01 {
+    e01_0 = 0,
+    e01_end = 1,
+};
+
+enum test_enum_02 {
+    e02_0 = 0,
+    e02_1 = 1,
+    e02_end = 0x100,
+};
+
+enum test_enum_04 {
+    e04_0 = 0,
+    e04_1 = 1,
+    e04_end = 0x100000,
+};
+
+void test_function_with_enum_args(
+    enum test_enum_01 arg_00,
+    enum test_enum_02 arg_01,
+    enum test_enum_04 arg_02) {
+    return;
+}
+METAC_GSYM_LINK(test_function_with_enum_args);
+
+void test_function_with_enum_args_ptr(
+    enum test_enum_01 * arg_00,
+    enum test_enum_02 * arg_01,
+    enum test_enum_04 * arg_02) {
+    return;
+}
+METAC_GSYM_LINK(test_function_with_enum_args_ptr);
+
+METAC_START_TEST(sanity_enum) {
+    enum test_enum_01 arg_00 = e01_end;
+    enum test_enum_02 arg_01 = e02_end;
+    enum test_enum_04 arg_02 = e04_end;
+    METAC_WRAP_FN_NORES(test_function_with_enum_args, arg_00, arg_01, arg_02);
+    METAC_WRAP_FN_NORES(test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02);
 }END_TEST
