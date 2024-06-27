@@ -16,7 +16,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 
     printf("%s(", metac_entry_name(p_entry));
 
-    char buf[32];
+    char buf[128];
 
     for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
         if (i > 0) {
@@ -79,7 +79,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _base_type_arg_(double complex, double complex, complex double);
             _base_type_arg_(long double complex, long double complex, long complex double);
 #undef _base_type_arg_
-        } else if (metac_entry_is_pointer(p_param_type_entry) != 0){
+        } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
             do {
                 if (handled == 0 ) {
                     void * val = va_arg(args, void *);
@@ -87,7 +87,22 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
                     handled = 1;
                 }
             } while(0);
-        } 
+        } else if (metac_entry_is_enumeration(p_param_type_entry) != 0) {
+#define _enum_arg_(_type_, _va_type_) \
+            do { \
+                if (handled == 0 && param_byte_sz == sizeof(_type_)) { \
+                    _type_ val = va_arg(args, _va_type_); \
+                    memcpy(buf, &val, sizeof(val)); \
+                    handled = 1; \
+                } \
+            } while(0)
+            _enum_arg_(char, int);
+            _enum_arg_(short, int);
+            _enum_arg_(int, int);
+            _enum_arg_(long, long);
+            _enum_arg_(long long, long long);
+#undef _enum_arg_          
+        }
         if (handled == 0) {
             break;
         }
