@@ -16,8 +16,8 @@ void test_function_with_base_args(
     bool arg_10,
     float arg_11,
     double arg_12,
-    long double  arg_13,
-    float complex  arg_14,
+    long double arg_13,
+    float complex arg_14,
     double complex arg_15,
     long double complex arg_16) {
     return;
@@ -75,7 +75,6 @@ METAC_START_TEST(sanity_base_type) {
         &arg_05, &arg_06, &arg_07, &arg_08, &arg_09, 
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
         &arg_15, &arg_16);
-
 }END_TEST
 
 enum test_enum_01 {
