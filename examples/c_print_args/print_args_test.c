@@ -95,10 +95,17 @@ enum test_enum_04 {
     e04_end = 0x100000,
 };
 
+typedef enum test_enum_08 {
+    e08_0 = 0,
+    e08_1 = 1,
+    e08_end = 0x1000000000,
+}test_enum_08_t;
+
 void test_function_with_enum_args(
     enum test_enum_01 arg_00,
     enum test_enum_02 arg_01,
-    enum test_enum_04 arg_02) {
+    enum test_enum_04 arg_02,
+    test_enum_08_t arg_03) {
     return;
 }
 METAC_GSYM_LINK(test_function_with_enum_args);
@@ -106,7 +113,8 @@ METAC_GSYM_LINK(test_function_with_enum_args);
 void test_function_with_enum_args_ptr(
     enum test_enum_01 * arg_00,
     enum test_enum_02 * arg_01,
-    enum test_enum_04 * arg_02) {
+    enum test_enum_04 * arg_02,
+    test_enum_08_t * arg_03) {
     return;
 }
 METAC_GSYM_LINK(test_function_with_enum_args_ptr);
@@ -115,6 +123,7 @@ METAC_START_TEST(sanity_enum) {
     enum test_enum_01 arg_00 = e01_end;
     enum test_enum_02 arg_01 = e02_end;
     enum test_enum_04 arg_02 = e04_end;
-    METAC_WRAP_FN_NORES(test_function_with_enum_args, arg_00, arg_01, arg_02);
-    METAC_WRAP_FN_NORES(test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02);
+    enum test_enum_08 arg_03 = e08_end;
+    METAC_WRAP_FN_NORES(test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
+    METAC_WRAP_FN_NORES(test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
 }END_TEST
