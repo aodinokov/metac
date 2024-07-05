@@ -126,3 +126,25 @@ METAC_START_TEST(sanity_enum) {
     METAC_WRAP_FN_NORES(test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
     METAC_WRAP_FN_NORES(test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
 }END_TEST
+
+
+typedef struct {
+    int a;
+    int arr[10];
+} test_struct_t;
+
+void test_function_with_struct_args(
+    test_struct_t arg_00,
+    test_struct_t * arg_01,
+    test_struct_t ** arg_02) {
+    return;
+}
+METAC_GSYM_LINK(test_function_with_struct_args);
+
+METAC_START_TEST(sanity_struct) {
+    test_struct_t arg_00 = {.a = 1, .arr = {2,0,}};
+    test_struct_t * arg_01 = &arg_00;
+    test_struct_t ** arg_02 = &arg_01;
+
+    METAC_WRAP_FN_NORES(test_function_with_struct_args, arg_00, arg_01, arg_02);
+}END_TEST

@@ -102,6 +102,14 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             _enum_arg_(long, long);
             _enum_arg_(long long, long long);
 #undef _enum_arg_          
+        }else if (metac_entry_has_members(p_param_type_entry) != 0) {
+            do {
+                if (handled == 0 ) {
+                    void * val = va_arg(args, void *);
+                    memcpy(buf, val, sizeof(buf));
+                    handled = 1;
+                }
+            } while(0);
         }
         if (handled == 0) {
             break;
