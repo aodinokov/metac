@@ -148,3 +148,31 @@ METAC_START_TEST(sanity_struct) {
 
     METAC_WRAP_FN_NORES(test_function_with_struct_args, arg_00, arg_01, arg_02);
 }END_TEST
+
+
+typedef int test_1d_array_t[15];
+typedef int test_2d_array_t[3][5];
+
+void test_function_with_array_args(
+    test_1d_array_t arg_00,
+    test_1d_array_t * arg_01,
+    test_1d_array_t ** arg_02,
+    test_2d_array_t arg_03,
+    test_2d_array_t * arg_04,
+    test_2d_array_t ** arg_05) {
+    return;
+}
+METAC_GSYM_LINK(test_function_with_array_args);
+
+METAC_START_TEST(sanity_array) {
+    test_1d_array_t arg_00 = {1,2,3};
+    test_1d_array_t * arg_01 = &arg_00;
+    test_1d_array_t ** arg_02 = &arg_01;
+
+    test_2d_array_t arg_03 = {{1,2,3},{4,5,6},};
+    test_2d_array_t * arg_04 = &arg_03;
+    test_2d_array_t ** arg_05 = &arg_04;
+
+
+    METAC_WRAP_FN_NORES(test_function_with_array_args, arg_00, arg_01, arg_02, arg_03, arg_04, arg_05);
+}END_TEST
