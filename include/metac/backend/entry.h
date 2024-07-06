@@ -8,6 +8,8 @@
 
 #include "metac/reflect.h"
 
+typedef void* (*va_arg_t)(va_list *p_va_list);
+
 // NOTE: C++ doesn't treat structs the same way as C if we define struct inside anonymous union
 
 struct typedef_info {
@@ -68,6 +70,8 @@ struct metac_member_info { /* define separatelly to make C and C++ behave the sa
 };
 struct structure_type_info { // fits to all Classes, Structs and Unions
     metac_size_t byte_size; /* size of the structure in bytes */
+
+    va_arg_t p_va_arg_fn;   /* function which is needed to get extract this structure from va_list */
 
     metac_num_t members_count; /* number of members */
     metac_entry_t *members;

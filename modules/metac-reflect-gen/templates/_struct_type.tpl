@@ -5,6 +5,14 @@
 /* {{ $key }} */
 {{-        range $i,$v := $map -}}
 {{-          $declaraion := false }}
+static void * {{ $i }}_va_arg(va_list *p_va_list) {
+{{-   with $v.ByteSize }}
+    if (p_va_list != NULL) {
+        return (void*) va_arg(*p_va_list, char[{{ . }}]);
+    }
+{{-   end }}
+    return NULL;
+}
 static struct metac_entry {{ $i }} = {
     .kind = METAC_KND_{{ snakecase $v.Tag }},
 {{-          indent 4 (include "metac_reflect_gen.name_mixin" $v) -}}
@@ -18,6 +26,7 @@ static struct metac_entry {{ $i }} = {
 {{-          if ne $declaraion true }}
     .structure_type_info = {
 {{-            indent 8 (include "metac_reflect_gen.byte_size_mixin" $v) }}
+        .p_va_arg_fn = {{ $i }}_va_arg,
 {{-            if ne (len $v.Fields) 0 }}
         .members_count = {{ len $v.Fields }},
         .members = (struct metac_entry[]){

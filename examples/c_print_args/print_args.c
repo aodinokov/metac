@@ -105,10 +105,10 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
         }else if (metac_entry_has_members(p_param_type_entry) != 0) {
             do {
                 if (handled == 0 ) {
-                    void * val = va_arg(args, char[sizeof(struct {
-    int a;
-    int arr[10];
-})]);
+                    void * val = metac_entry_struct_va_arg(p_param_type_entry, &args);
+                    if (val == NULL) {
+                        break;
+                    }
                     memcpy(buf, val, sizeof(buf));
                     handled = 1;
                 }

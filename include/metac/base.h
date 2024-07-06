@@ -2,6 +2,7 @@
 #define INCLUDE_METAC_BASE_H_
 
 #include <stdio.h>  /* NULL */
+#include <stdarg.h> /* va_list */
 #include <stdint.h> /* int8_t, uint8_t, uint64_t */
 #include <inttypes.h> /* PRId64, ...*/
 #include <stdbool.h> /* bool */
