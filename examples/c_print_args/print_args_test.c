@@ -130,7 +130,7 @@ METAC_START_TEST(sanity_enum) {
 
 typedef struct {
     int a;
-    int arr[10];
+    int arr[200];
 } test_struct_t;
 
 void test_function_with_struct_args(

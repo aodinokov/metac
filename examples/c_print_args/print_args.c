@@ -22,6 +22,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
     char buf[128];
 
     for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
+
         if (i > 0) {
             printf(", ");
         }
@@ -49,18 +50,17 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
             break;
         }
 
-
-        int handled = 0;
+        void * addr = NULL;
 
         if (metac_entry_is_base_type(p_param_type_entry) != 0) {
             // take what type of base type it is. It can be char, unsigned char.. etc
             metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry);
 #define _base_type_arg_(_type_, _va_type_, _pseudoname_) \
             do { \
-                if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
+                if (addr == NULL && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
                     _type_ val = va_arg(cntr.args, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
-                    handled = 1; \
+                    addr = &buf[0]; \
                 } \
             } while(0)
             // handle all known base types
@@ -84,19 +84,19 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 #undef _base_type_arg_
         } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
             do {
-                if (handled == 0 ) {
+                if (addr == NULL ) {
                     void * val = va_arg(cntr.args, void *);
                     memcpy(buf, &val, sizeof(val));
-                    handled = 1;
+                    addr = &buf[0];
                 }
             } while(0);
         } else if (metac_entry_is_enumeration(p_param_type_entry) != 0) {
 #define _enum_arg_(_type_, _va_type_) \
             do { \
-                if (handled == 0 && param_byte_sz == sizeof(_type_)) { \
+                if (addr == NULL && param_byte_sz == sizeof(_type_)) { \
                     _type_ val = va_arg(cntr.args, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
-                    handled = 1; \
+                    addr = &buf[0]; \
                 } \
             } while(0)
             _enum_arg_(char, int);
@@ -107,33 +107,54 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 #undef _enum_arg_          
         }else if (metac_entry_has_members(p_param_type_entry) != 0) {
             do {
-                if (handled == 0 ) {
-                    void * val = metac_entry_struct_va_arg(p_param_type_entry, &cntr);
-                    if (val == NULL) {
-                        break;
+                if (addr == NULL) {
+                    /*  NOTE: we can't call calloc AFTER metac_entry_struct_va_arg, we can only copy data.
+                        calloc, printf and other functions damage the data 
+                    */
+                    if (param_byte_sz > sizeof(buf)) {
+                        addr = calloc(1, param_byte_sz);
+                        if (addr == NULL) {
+                            break;
+                        }
+                        void * val = metac_entry_struct_va_arg(p_param_type_entry, &cntr);
+                        if (val == NULL) {
+                            free(addr);
+                            break;
+                        }
+                        memcpy(addr, val, param_byte_sz);
+                    } else {
+                        void * val = metac_entry_struct_va_arg(p_param_type_entry, &cntr);
+                        if (val == NULL) {
+                            break;
+                        }
+                        memcpy(buf, val, param_byte_sz);
+                        addr = &buf[0];
                     }
-                    memcpy(buf, val, sizeof(buf));
-                    handled = 1;
                 }
             } while(0);
         }
-        if (handled == 0) {
+        if (addr == NULL) {
             break;
         }
 
-        metac_value_t * p_val = metac_new_value(p_param_type_entry, &buf[0]);
+        metac_value_t * p_val = metac_new_value(p_param_type_entry, addr);
         if (p_val == NULL) {
             break;
         }
         char * v = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
+        // delete val immideatly
+        metac_value_delete(p_val);
+        if (addr != &buf[0]) {
+            // if buf was too small we allocated memory
+            free(addr);
+        }
         if (v == NULL) {
-            metac_value_delete(p_val);
             break;
         }
+
         char * arg_decl = metac_entry_cdecl(p_param_type_entry);
         if (arg_decl == NULL) {
             free(v);
-            metac_value_delete(p_val);
             break;
         }
 
@@ -142,8 +163,6 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 
         free(arg_decl);
         free(v);
-
-        metac_value_delete(p_val);
 
     }
     printf(")");
