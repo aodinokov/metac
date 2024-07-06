@@ -16,9 +16,9 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 
     printf("%s(", metac_entry_name(p_entry));
 
-    struct va_list_container cntr = {
-        .args = args,
-    };
+    struct va_list_container cntr = {};
+    va_copy(cntr.args, args);
+
     char buf[128];
 
     for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
