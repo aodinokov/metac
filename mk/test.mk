@@ -111,7 +111,7 @@ endif
 bin_test:
 	@exitCode=0; \
 	for j in $(call $(RUNFILTERFN),$(RUNFILTER), $(sort $^)); do \
-	    CK_FORK=no $(VALGRIND) --leak-check=full -s $$j || exitCode=1; \
+	    CK_FORK=no $(VALGRIND) --leak-check=full --track-origins=yes -s $$j || exitCode=1; \
 	done; \
 	exit $$exitCode
 else

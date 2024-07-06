@@ -129,8 +129,8 @@ METAC_START_TEST(sanity_enum) {
 
 
 typedef struct {
-    int a;
-    int arr[200];
+    short a;
+    int arr[42];
 } test_struct_t;
 
 void test_function_with_struct_args(
@@ -142,9 +142,13 @@ void test_function_with_struct_args(
 METAC_GSYM_LINK(test_function_with_struct_args);
 
 METAC_START_TEST(sanity_struct) {
-    test_struct_t arg_00 = {.a = 1, .arr = {2,0,}};
+    test_struct_t arg_00 = {.a = 1, .arr = {0,}};
     test_struct_t * arg_01 = &arg_00;
     test_struct_t ** arg_02 = &arg_01;
+    for (int i=0; i < sizeof(arg_00.arr)/sizeof(arg_00.arr[0]); ++i){
+        arg_00.arr[i] = i;
+    }
+    arg_00.a = sizeof(arg_00.arr)/sizeof(arg_00.arr[0]);
 
     METAC_WRAP_FN_NORES(test_function_with_struct_args, arg_00, arg_01, arg_02);
 }END_TEST
