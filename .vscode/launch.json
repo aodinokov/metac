@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/c_print_args",
+            "program": "${fileDirname}/print_args_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

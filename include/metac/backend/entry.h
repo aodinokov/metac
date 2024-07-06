@@ -8,7 +8,7 @@
 
 #include "metac/reflect.h"
 
-typedef void* (*va_arg_t)(va_list *p_va_list);
+typedef void* (*va_arg_t)(struct va_list_container *p_va_list_container);
 
 // NOTE: C++ doesn't treat structs the same way as C if we define struct inside anonymous union
 

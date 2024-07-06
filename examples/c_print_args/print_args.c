@@ -16,6 +16,9 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 
     printf("%s(", metac_entry_name(p_entry));
 
+    struct va_list_container cntr = {
+        .args = args,
+    };
     char buf[128];
 
     for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
@@ -55,7 +58,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 #define _base_type_arg_(_type_, _va_type_, _pseudoname_) \
             do { \
                 if (handled == 0 && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
-                    _type_ val = va_arg(args, _va_type_); \
+                    _type_ val = va_arg(cntr.args, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     handled = 1; \
                 } \
@@ -82,7 +85,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
         } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
             do {
                 if (handled == 0 ) {
-                    void * val = va_arg(args, void *);
+                    void * val = va_arg(cntr.args, void *);
                     memcpy(buf, &val, sizeof(val));
                     handled = 1;
                 }
@@ -91,7 +94,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
 #define _enum_arg_(_type_, _va_type_) \
             do { \
                 if (handled == 0 && param_byte_sz == sizeof(_type_)) { \
-                    _type_ val = va_arg(args, _va_type_); \
+                    _type_ val = va_arg(cntr.args, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     handled = 1; \
                 } \
@@ -105,7 +108,7 @@ void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_
         }else if (metac_entry_has_members(p_param_type_entry) != 0) {
             do {
                 if (handled == 0 ) {
-                    void * val = metac_entry_struct_va_arg(p_param_type_entry, &args);
+                    void * val = metac_entry_struct_va_arg(p_param_type_entry, &cntr);
                     if (val == NULL) {
                         break;
                     }

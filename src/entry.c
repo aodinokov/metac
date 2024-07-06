@@ -289,11 +289,11 @@ static metac_entry_t * _entry_with_struct_info(metac_entry_t *p_entry) {
     return p_final_entry;
 }
 
-void * metac_entry_struct_va_arg(metac_entry_t *p_entry, va_list *p_va_list) {
+void * metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container) {
     metac_entry_t * p_final_entry = _entry_with_struct_info(p_entry);
     _check_(p_final_entry == NULL || p_final_entry->structure_type_info.p_va_arg_fn == NULL, NULL);
     
-    return p_final_entry->structure_type_info.p_va_arg_fn(p_va_list);
+    return p_final_entry->structure_type_info.p_va_arg_fn(p_va_list_container);
 }
 
 metac_flag_t metac_entry_has_members(metac_entry_t *p_entry) {

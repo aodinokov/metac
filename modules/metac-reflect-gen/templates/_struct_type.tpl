@@ -5,10 +5,10 @@
 /* {{ $key }} */
 {{-        range $i,$v := $map -}}
 {{-          $declaraion := false }}
-static void * {{ $i }}_va_arg(va_list *p_va_list) {
+static void * {{ $i }}_va_arg(struct va_list_container *p_va_list_container) {
 {{-   with $v.ByteSize }}
-    if (p_va_list != NULL) {
-        return (void*) va_arg(*p_va_list, char[{{ . }}]);
+    if (p_va_list_container != NULL) {
+        return (void*) va_arg(p_va_list_container->args, char[{{ . }}]);
     }
 {{-   end }}
     return NULL;

@@ -171,7 +171,7 @@ metac_flag_t metac_entry_has_members(metac_entry_t *p_entry);
 /**
  * @brief performs analog of va_arg(*p_va_list, this struct)
 */
-void * metac_entry_struct_va_arg(metac_entry_t *p_entry, va_list *p_va_list);
+void * metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container);
 
 /**
  * @brief returns number of members of the structure/union. Negative value is errno
