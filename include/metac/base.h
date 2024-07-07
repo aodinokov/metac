@@ -2,6 +2,7 @@
 #define INCLUDE_METAC_BASE_H_
 
 #include <stdio.h>  /* NULL */
+#include <stdarg.h> /* va_list */
 #include <stdint.h> /* int8_t, uint8_t, uint64_t */
 #include <inttypes.h> /* PRId64, ...*/
 #include <stdbool.h> /* bool */
@@ -12,6 +13,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/** @brief the cross-platform way to pass va_list back and forth in functions */
+struct va_list_container {
+    va_list args;
+};
 
 /** @brief kind of metac_entry_t */
 typedef int8_t metac_kind_t;
