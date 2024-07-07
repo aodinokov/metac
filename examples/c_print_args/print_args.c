@@ -271,7 +271,6 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
                             break;
                         }
                         memcpy(addr, val, param_byte_sz);
-                        printf("val: %p\n", val);
                     } else {
                         void * val = metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container);
                         if (val == NULL) {

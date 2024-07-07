@@ -67,7 +67,8 @@ IN-src/libmetac.a+= \
 	src/value.o \
 	src/value_base_type.o \
 	src/value_deep.o \
-	src/value_string.o
+	src/value_string.o \
+	src/value_with_args.o
 
 $(foreach t,$(gl_rules),$(call meta_rules,$(shell pwd),$(t)))
 ifeq ($(M),)
