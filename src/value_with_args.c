@@ -26,6 +26,7 @@ static void value_with_args_load_delete(struct metac_value_with_args_load * p_lo
             free(p_load->args[i].p_buf);
         }
     }
+    free(p_load);
 }
 
 static void _handle_subprogram(
@@ -194,7 +195,7 @@ static metac_value_t * _new_value_with_args(metac_tag_map_t * p_tag_map, metac_e
     _check_(p_entry == NULL || metac_entry_has_paremeters(p_entry) == 0, NULL);
 
     struct metac_value_with_args_load * p_load =  new_value_with_args_load(metac_entry_paremeters_count(p_entry));
-    _check_(p_load, NULL);
+    _check_(p_load == NULL, NULL);
     metac_value_t * p_val = metac_new_value(p_entry, p_load);
     if (p_val == NULL) {
         value_with_args_load_delete(p_load);

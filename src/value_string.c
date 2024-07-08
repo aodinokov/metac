@@ -461,6 +461,10 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
 
             }
         }
+        //case METAC_KND_subroutine_type:
+        case METAC_KND_subprogram: {
+            // TODO: support arguments
+        }
         default: {
                 /*quickly fail if we don't know how to handle*/
                 metac_recursive_iterator_fail(p_iter);
