@@ -92,6 +92,23 @@ to create it partially and link the second layer to the original and have a defa
 it's better alsoway have null default tag on module-specific map.
  */
 
+/** @brief metac_value internal buffer to store argument */
+struct metac_arg {
+    metac_flag_t is_value_with_args_load;    /**< if not 0 - we need to use value_with_args_load_delete to cleanup, not free */
+    void * p_buf;
+};
+
+/** @brief metac_value internal buffer to store arguments and result
+ * we can't used va_list, because it's getting destroyed as soon as va_arg is called and some fn which uses va_list
+ */
+typedef struct metac_value_with_args_load {
+    metac_flag_t with_res;      /**< if not 0 - we have only args */
+    void * p_res_buf;           /**< buffer of result */
+
+    metac_num_t args_count;
+    struct metac_arg args[];
+}metac_value_with_args_load_t;
+
 /* event for callback */
 /** @brief value object declaraion (hidden implementation )*/
 typedef struct metac_value metac_value_t;
@@ -101,12 +118,15 @@ typedef enum {
     METAC_RQVST_union_member = 1,   /**< return value union member to continue */
     METAC_RQVST_flex_array_count,   /**< return metac_new_element_count_value of flex array with proper len */
     METAC_RQVST_pointer_array_count,/**< return metac_new_element_count_value of pointer with proper len */
+    METAC_RQVST_va_list,            /**< return */
 }metac_value_event_type_t;
 
 /** @brief event structure which includes type and plase where the hanlder needs to put return value */
 typedef struct{
-    metac_value_event_type_t type;  /**< type of event*/
-    metac_value_t *p_return_value;  /**< for METAC_RQVST_union_member, METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
+    metac_value_event_type_t type;                  /**< type of event*/
+    metac_value_t *p_return_value;                  /**< for METAC_RQVST_union_member, 
+                                                         METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
+    metac_value_with_args_load_t *p_va_list_load;   /**< METAC_RQVST_va_list*/
 }metac_value_event_t;
 
 typedef struct metac_value_walker_hierarchy metac_value_walker_hierarchy_t;

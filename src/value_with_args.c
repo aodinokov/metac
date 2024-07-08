@@ -23,7 +23,11 @@ static void value_with_args_load_delete(struct metac_value_with_args_load * p_lo
     }
     for (metac_num_t i = 0; i < p_load->args_count; ++i) {
         if (p_load->args[i].p_buf != NULL) {
-            free(p_load->args[i].p_buf);
+            if (p_load->args[i].is_value_with_args_load != 0) {
+                value_with_args_load_delete((struct metac_value_with_args_load *)p_load->args[i].p_buf);
+            } else {
+                free(p_load->args[i].p_buf);
+            }
         }
     }
     free(p_load);
@@ -55,22 +59,31 @@ static void _handle_subprogram(
             metac_recursive_iterator_fail(p_iter);
             return;
         }
-        void * addr = NULL;
+
         if (metac_entry_is_unspecified_parameter(p_param_entry) != 0) {
             // we don't support printing va_args yet
-            if (p_tag_map != NULL){
-                // TODO: handle va_arg as event
-                // metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
-                // metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
-                // if (p_tag != NULL && p_tag->handler) {
-                //     if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
-                //         metac_recursive_iterator_fail(p_iter);
-                //         continue;
-                //     }
-                //     p_arr_val = ev.p_return_value;
-                // }
+            if (p_tag_map == NULL) {
+                metac_recursive_iterator_fail(p_iter);
+                return;
+            }
+            // TODO: handle va_arg as event
+            metac_value_event_t ev = {.type = METAC_RQVST_va_list, .p_va_list_load = NULL};
+            metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+            if (p_tag != NULL && p_tag->handler) {
+                if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                    metac_recursive_iterator_fail(p_iter);
+                    return;
+                }
+                if (ev.p_va_list_load == NULL) {
+                    metac_recursive_iterator_fail(p_iter);
+                    return;
+                }
+                p_load->args[i].is_value_with_args_load = 1;
+                p_load->args[i].p_buf = ev.p_va_list_load;
             }
         } else {
+            void * addr = NULL;
+
             metac_entry_t * p_param_type_entry = metac_entry_parameter_entry(p_param_entry);
             if (p_param_type_entry == NULL) {
                 // something is wrong
@@ -161,13 +174,13 @@ static void _handle_subprogram(
                     }
                 } while(0);
             }
+            if (addr == NULL) {
+                metac_recursive_iterator_fail(p_iter);
+                return;
+            }
+            // save region
+            p_load->args[i].p_buf = addr;
         }
-        if (addr == NULL) {
-            metac_recursive_iterator_fail(p_iter);
-            return;
-        }
-        // save region
-        p_load->args[i].p_buf = addr;
     }
     metac_recursive_iterator_done(p_iter, NULL);
 }

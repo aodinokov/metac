@@ -48,21 +48,4 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
     metac_tag_map_t * p_tag_map);
 void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 
-
-/** @brief metac_value internal buffer to store argument */
-struct metac_arg {
-    void * p_buf;
-};
-
-/** @brief metac_value internal buffer to store arguments and result
- * we can't used va_list, because it's getting destroyed as soon as va_arg is called and some fn which uses va_list
- */
-struct metac_value_with_args_load {
-    metac_flag_t with_res;   // if not 0 - we have only args
-    void * p_res_buf;       // buffer of result
-
-    metac_num_t args_count;
-    struct metac_arg args[];
-};
-
 #endif

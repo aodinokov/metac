@@ -213,3 +213,15 @@ METAC_START_TEST(array_to_value) {
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
     metac_value_with_args_delete(p_val);
 }END_TEST
+
+void test_function_with_va_args(const char * format, ...) {
+    return;
+}
+METAC_GSYM_LINK(test_function_with_va_args);
+
+METAC_START_TEST(va_arg_to_value) {
+    metac_value_t *p_val;
+    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_va_args, "%p\n", NULL);
+    // fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
+    // metac_value_with_args_delete(p_val);
+}
