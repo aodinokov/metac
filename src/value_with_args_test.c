@@ -3,6 +3,7 @@
 
 #include "entry.c"
 #include "entry_cdecl.c"
+#include "entry_db.c"
 #include "entry_tag.c"
 #include "iterator.c"
 #include "hashmap.c"
@@ -215,13 +216,133 @@ METAC_START_TEST(array_to_value) {
 }END_TEST
 
 void test_function_with_va_args(const char * format, ...) {
+    va_list l;
+    va_start(l, format);
+    vprintf(format, l);
+    va_end(l);
     return;
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
+#include <stdio.h>
+#include <ctype.h>
+
+// naive implementation
+// we can lookup in https://github.com/bminor/glibc/blob/master/stdio-common/vfprintf-internal.c#L288
+
+// Function to parse a single format specifier
+size_t parse_format_specifier(const char *format, size_t *pos, char *specifier) {
+  size_t specifier_len = 0;
+  // Skip leading percent sign
+  if (format[*pos] == '%') {
+    (*pos)++;
+  } else {
+    // Not a format specifier, return 0
+    return 0;
+  }
+
+  // Check for optional flags (+, -, #, 0, space)
+  while (*pos < strlen(format) && (format[*pos] == '+' || format[*pos] == '-' || format[*pos] == '#' || format[*pos] == '0' || format[*pos] == ' ')) {
+    // specifier[specifier_len++] = format[*pos];
+    (*pos)++;
+  }
+
+  // Check for optional minimum field width (digits)
+  while (*pos < strlen(format) && isdigit(format[*pos])) {
+    // specifier[specifier_len++] = format[*pos];
+    (*pos)++;
+  }
+
+  // Check for optional precision (. and digits)
+  if (*pos < strlen(format) && format[*pos] == '.') {
+    // specifier[specifier_len++] = format[*pos];
+    (*pos)++;
+    while (*pos < strlen(format) && isdigit(format[*pos])) {
+      // specifier[specifier_len++] = format[*pos];
+      (*pos)++;
+    }
+  }
+
+  // Check for optional length modifier (h, l, ll, L)
+  if (*pos < strlen(format) && (format[*pos] == 'h' || format[*pos] == 'l' || format[*pos] == 'L')) {
+    // specifier[specifier_len++] = format[*pos];
+    (*pos)++;
+    if (*pos < strlen(format) && (format[*pos] == 'l')) {
+        // specifier[specifier_len++] = format[*pos];
+        (*pos)++;
+    }
+  }
+
+  // Check for conversion specifier
+  if (isalpha(format[*pos])) {
+    specifier[specifier_len++] = format[*pos];
+    (*pos)++;
+  } else {
+    // Invalid format specifier
+    return 0;
+  }
+
+  specifier[specifier_len] = '\0'; // Null terminate the specifier string
+  return specifier_len;
+}
+
+// Function to count the number of format specifiers
+size_t count_format_specifiers(const char *format) {
+  size_t num_specifiers = 0;
+  size_t pos = 0;
+  char dummy_specifier[10]; // Temporary buffer to avoid passing NULL
+
+  while (pos < strlen(format)) {
+    if (format[pos] == '%') {
+      // Check if a valid format specifier follows
+      if (parse_format_specifier(format, &pos, dummy_specifier) > 0) {
+        printf("%s at %d\n", dummy_specifier, pos);
+        num_specifiers++;
+      }
+    }
+    pos++;
+  }
+  return num_specifiers;
+}
+
+
+static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
+    if (p_ev == NULL) {
+        return -(EINVAL);
+    }
+    if (p_ev->type != METAC_RQVST_va_list && 
+        metac_value_walker_hierarchy_level(p_hierarchy) < 0) {
+        return -(EINVAL);
+    }
+    metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
+    printf("yes %d!!!\n", p_ev->va_list_param_id);
+    return -(EINVAL);
+}
+
+METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
+    /* start tags for all types */
+
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(test_function_with_va_args))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
+            .handler = _va_arg_hdlr,
+        )
+    METAC_TAG_MAP_ENTRY_END
+METAC_TAG_MAP_END
+
 METAC_START_TEST(va_arg_to_value) {
+    metac_tag_map_t *p_tag_map = va_args_tag_map();
+
+    printf("count: %d\n", count_format_specifiers("%% %05p |%12.4f|%12.4e|%12.4g|%12.4Lf|%12.4Lg|\n"));
+
     metac_value_t *p_val;
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_va_args, "%p\n", NULL);
+    test_function_with_va_args("%% %05p\n", NULL);
+    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
     // fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
     // metac_value_with_args_delete(p_val);
+
+    metac_tag_map_delete(p_tag_map);
 }

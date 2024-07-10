@@ -52,7 +52,7 @@ static void _handle_subprogram(
     assert(metac_entry_has_paremeters(p_entry) != 0);
     assert(metac_entry_paremeters_count(p_entry) == p_load->args_count);
 
-    for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
+    for (metac_num_t i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
         metac_entry_t * p_param_entry = metac_entry_by_paremeter_id(p_entry, i);
         if (metac_entry_is_parameter(p_param_entry) == 0) {
             // something is wrong
@@ -61,14 +61,13 @@ static void _handle_subprogram(
         }
 
         if (metac_entry_is_unspecified_parameter(p_param_entry) != 0) {
-            // we don't support printing va_args yet
             if (p_tag_map == NULL) {
                 metac_recursive_iterator_fail(p_iter);
                 return;
             }
-            // TODO: handle va_arg as event
-            metac_value_event_t ev = {.type = METAC_RQVST_va_list, .p_va_list_load = NULL};
-            metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+            // handle va_arg as event
+            metac_value_event_t ev = {.type = METAC_RQVST_va_list, .va_list_param_id = i, .p_va_list_load = NULL};
+            metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, p_param_entry);
             if (p_tag != NULL && p_tag->handler) {
                 if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
                     metac_recursive_iterator_fail(p_iter);
@@ -217,6 +216,9 @@ static metac_value_t * _new_value_with_args(metac_tag_map_t * p_tag_map, metac_e
 
     // we need to wrap our code into iterator to be able to reuse p_tag_map.
     // actually there is no iteration - we'll have only main p_val
+    // alternativly it was possible to iterate here by params as well, but let's keep it simple for now
+    // the only drawback is - we need to add special args into event:
+    // va_list_param_id and p_va_list_load. 
     metac_recursive_iterator_t * p_iter = metac_new_recursive_iterator(p_val);
     for (metac_value_t * p = (metac_value_t *)metac_recursive_iterator_next(p_iter); p != NULL;
         p = (metac_value_t *)metac_recursive_iterator_next(p_iter)) {
@@ -268,6 +270,7 @@ metac_value_t * metac_new_value_with_vargs(metac_tag_map_t * p_tag_map, metac_en
 //metac_value_t * metac_new_value_with_args(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...)
 //metac_value_t * metac_new_value_with_vargs(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list args)
 //metac_flag_t metac_value_is_value_with_args(metac_value_t * p_val)
+//metac_value_t * metac_value_with_args_arg(metac_value_t * p_val, )
 //void metac_value_with_args_set_res(metac_value_t * p_val, void *)
 //void metac_value_with_args_res(metac_value_t * p_val, void *)
 //...

@@ -126,7 +126,8 @@ typedef struct{
     metac_value_event_type_t type;                  /**< type of event*/
     metac_value_t *p_return_value;                  /**< for METAC_RQVST_union_member, 
                                                          METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
-    metac_value_with_args_load_t *p_va_list_load;   /**< METAC_RQVST_va_list*/
+    metac_num_t va_list_param_id;                   /**< get from here the id of va_arg in case METAC_RQVST_va_list*/
+    metac_value_with_args_load_t *p_va_list_load;   /**< put here load in case METAC_RQVST_va_list*/
 }metac_value_event_t;
 
 typedef struct metac_value_walker_hierarchy metac_value_walker_hierarchy_t;
