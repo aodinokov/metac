@@ -7,6 +7,7 @@
 #include "entry_tag.c"
 #include "iterator.c"
 #include "hashmap.c"
+#include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
 #include "value_string.c"
@@ -14,7 +15,7 @@
 #include "value_with_args.c"
 
 #define METAC_NEW_VALUE_WITH_ARGS(_p_tag_map_, _fn_, _args_...) \
-        metac_new_value_with_args(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
+        metac_new_value_with_parameters(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
 
 void test_function_with_base_args(
     char arg_00,
@@ -86,7 +87,7 @@ METAC_START_TEST(base_type_args_to_value) {
         arg_10, arg_11, arg_12, arg_13, arg_14,
         arg_15, arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_base_args_ptr,
         &arg_00, &arg_01, &arg_02, &arg_03, &arg_04,
@@ -94,7 +95,7 @@ METAC_START_TEST(base_type_args_to_value) {
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
         &arg_15, &arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
 }END_TEST
 
 enum test_enum_01 {
@@ -148,10 +149,10 @@ METAC_START_TEST(enum_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
         fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args_ptr");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
 }END_TEST
 
 
@@ -181,7 +182,7 @@ METAC_START_TEST(struct_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_struct_args, arg_00, arg_01, arg_02);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
 }END_TEST
 
 
@@ -212,7 +213,7 @@ METAC_START_TEST(array_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_array_args, arg_00, arg_01, arg_02, arg_03, arg_04, arg_05);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_args_delete(p_val);
+    metac_value_with_parameters_delete(p_val);
 }END_TEST
 
 void test_function_with_va_args(const char * format, ...) {
@@ -224,99 +225,94 @@ void test_function_with_va_args(const char * format, ...) {
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
-#include <stdio.h>
-#include <ctype.h>
+#include "metac/backend/printf_format.h"
 
-// naive implementation
-// we can lookup in https://github.com/bminor/glibc/blob/master/stdio-common/vfprintf-internal.c#L288
-
-// Function to parse a single format specifier
-size_t parse_format_specifier(const char *format, size_t *pos, char *specifier) {
-  size_t specifier_len = 0;
-  // Skip leading percent sign
-  if (format[*pos] == '%') {
-    (*pos)++;
-  } else {
-    // Not a format specifier, return 0
-    return 0;
-  }
-
-  // Check for optional flags (+, -, #, 0, space)
-  while (*pos < strlen(format) && (format[*pos] == '+' || format[*pos] == '-' || format[*pos] == '#' || format[*pos] == '0' || format[*pos] == ' ')) {
-    // specifier[specifier_len++] = format[*pos];
-    (*pos)++;
-  }
-
-  // Check for optional minimum field width (digits)
-  while (*pos < strlen(format) && isdigit(format[*pos])) {
-    // specifier[specifier_len++] = format[*pos];
-    (*pos)++;
-  }
-
-  // Check for optional precision (. and digits)
-  if (*pos < strlen(format) && format[*pos] == '.') {
-    // specifier[specifier_len++] = format[*pos];
-    (*pos)++;
-    while (*pos < strlen(format) && isdigit(format[*pos])) {
-      // specifier[specifier_len++] = format[*pos];
-      (*pos)++;
-    }
-  }
-
-  // Check for optional length modifier (h, l, ll, L)
-  if (*pos < strlen(format) && (format[*pos] == 'h' || format[*pos] == 'l' || format[*pos] == 'L')) {
-    // specifier[specifier_len++] = format[*pos];
-    (*pos)++;
-    if (*pos < strlen(format) && (format[*pos] == 'l')) {
-        // specifier[specifier_len++] = format[*pos];
-        (*pos)++;
-    }
-  }
-
-  // Check for conversion specifier
-  if (isalpha(format[*pos])) {
-    specifier[specifier_len++] = format[*pos];
-    (*pos)++;
-  } else {
-    // Invalid format specifier
-    return 0;
-  }
-
-  specifier[specifier_len] = '\0'; // Null terminate the specifier string
-  return specifier_len;
-}
-
-// Function to count the number of format specifiers
-size_t count_format_specifiers(const char *format) {
-  size_t num_specifiers = 0;
-  size_t pos = 0;
-  char dummy_specifier[10]; // Temporary buffer to avoid passing NULL
-
-  while (pos < strlen(format)) {
-    if (format[pos] == '%') {
-      // Check if a valid format specifier follows
-      if (parse_format_specifier(format, &pos, dummy_specifier) > 0) {
-        printf("%s at %d\n", dummy_specifier, pos);
-        num_specifiers++;
-      }
-    }
-    pos++;
-  }
-  return num_specifiers;
-}
-
-
+// TODO: we need to write a test for this
 static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
     if (p_ev == NULL) {
         return -(EINVAL);
     }
-    if (p_ev->type != METAC_RQVST_va_list && 
+    if (p_ev->type != METAC_RQVST_va_list ||
+        p_ev->p_va_list_container == NULL ||
         metac_value_walker_hierarchy_level(p_hierarchy) < 0) {
         return -(EINVAL);
     }
     metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
-    printf("yes %d!!!\n", p_ev->va_list_param_id);
-    return -(EINVAL);
+    metac_value_t *p_param_val = metac_new_value_by_paremeter_id(p_val, p_ev->va_list_param_id -1 /* use previous param */);
+
+    if (p_param_val == NULL) {
+        return -(EINVAL);
+    }
+
+    if (metac_value_is_pointer(p_param_val) == 0) {
+        metac_value_delete(p_param_val);
+        return -(EINVAL);
+    }
+    // TODO: check that it's char * (use cdecl?)
+
+    // extract pointer
+    char * format = NULL;
+    if (metac_value_pointer(p_param_val, (void **)&format) != 0) {
+        metac_value_delete(p_param_val);
+        return -(EINVAL);
+    }
+    metac_value_delete(p_param_val);
+
+    if (format == NULL) {
+        return -(EINVAL);
+    }
+
+    metac_num_t parameters_count = metac_count_format_specifiers(format);
+    struct metac_value_with_parameters_load * p_load = metac_new_value_with_parameters_load(parameters_count);
+    if (p_load == NULL) {
+        return -(EINVAL);
+    }
+
+    metac_num_t param_id = 0;
+    size_t pos = 0;
+    metac_printf_specifier_t dummy_specifier;
+
+    struct va_list_container cntr = {};
+    va_copy(cntr.parameters, p_ev->p_va_list_container->parameters);
+
+    while (pos < strlen(format)) {
+        if (format[pos] == '%') {
+            // Check if a valid format specifier follows
+            if (metac_parse_format_specifier(format, &pos, &dummy_specifier) > 0) {
+                switch (dummy_specifier.t) {
+                case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
+                case 'p'/* pointers including strings */:{
+                        p_load->parameters[param_id].p_buf = calloc(1, sizeof(void*));
+                        if (p_load->parameters[param_id].p_buf == NULL) {
+                            va_end(cntr.parameters);
+                            metac_value_with_parameters_load_delete(p_load);
+                            return -(EINVAL);                           
+                        }
+                        void * p = va_arg(cntr.parameters, void*);
+                        memcpy(p_load->parameters[param_id].p_buf, &p, sizeof(p));
+                    }
+                    break;
+                case 'd':/* basic types */
+                case 'i':
+                case 'c': {
+
+                    }
+                    break;
+                default: {
+                        va_end(cntr.parameters);
+                        metac_value_with_parameters_load_delete(p_load);
+                        return -(EINVAL);
+                    }
+                }
+            }
+        }
+        ++param_id;
+        ++pos;
+    }
+    va_end(cntr.parameters);
+
+    p_ev->p_va_list_load = p_load;
+    return 0;
 }
 
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
@@ -336,13 +332,10 @@ METAC_TAG_MAP_END
 METAC_START_TEST(va_arg_to_value) {
     metac_tag_map_t *p_tag_map = va_args_tag_map();
 
-    printf("count: %d\n", count_format_specifiers("%% %05p |%12.4f|%12.4e|%12.4g|%12.4Lf|%12.4Lg|\n"));
-
     metac_value_t *p_val;
-    test_function_with_va_args("%% %05p\n", NULL);
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
-    // fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    // metac_value_with_args_delete(p_val);
+    fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
+    metac_value_with_parameters_delete(p_val);
 
     metac_tag_map_delete(p_tag_map);
 }

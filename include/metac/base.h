@@ -16,7 +16,7 @@ extern "C" {
 
 /** @brief the cross-platform way to pass va_list back and forth in functions */
 struct va_list_container {
-    va_list args;
+    va_list parameters;
 };
 
 /** @brief kind of metac_entry_t */

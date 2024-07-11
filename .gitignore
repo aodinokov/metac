@@ -18,6 +18,7 @@
 *_checkmk.*
 _meta_*
 metac
+!include/metac
 coverage_*.css
 coverage_*.html
 *.dSYM

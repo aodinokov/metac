@@ -232,13 +232,13 @@ metac_entry_t * metac_entry_by_member_ids(metac_entry_t * p_entry, metac_flag_t 
 /**
  * @brief check if final entry is function (METAC_KND_subroutine)
 */
-metac_flag_t metac_entry_has_paremeters(metac_entry_t * p_entry);
+metac_flag_t metac_entry_has_parameters(metac_entry_t * p_entry);
 /**
  * @brief return number of parameters. Negative value is errno
 */
-metac_num_t metac_entry_paremeters_count(metac_entry_t *p_entry);
+metac_num_t metac_entry_parameters_count(metac_entry_t *p_entry);
 /**
- * @brief returns pointer to the parameter entry (kind==METAC_KND_member) by param_id which is in range [0; metac_entry_paremeters_count -1]
+ * @brief returns pointer to the parameter entry (kind==METAC_KND_member) by param_id which is in range [0; metac_entry_parameters_count -1]
 */
 metac_entry_t * metac_entry_by_paremeter_id(metac_entry_t *p_entry, metac_num_t param_id);
 /**

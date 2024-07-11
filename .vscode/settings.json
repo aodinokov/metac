@@ -68,6 +68,8 @@
         "reqresp.h": "c",
         "complex.h": "c",
         "stdint.h": "c",
-        "test.h": "c"
+        "test.h": "c",
+        "__locale": "c",
+        "ios": "c"
     }
 }
