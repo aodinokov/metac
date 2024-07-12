@@ -4,10 +4,65 @@
 #include "metac/backend/value.h"
 
 #include <assert.h> /*assert*/
+#include <errno.h>  /*EINVAL... */
 #include <string.h> /*strcmp*/
 
+void metac_parameter_load_delete(metac_parameter_load_t * p_pload);
+
+metac_parameter_load_t * metac_new_parameter_load(metac_num_t val_count) {
+    // offset_of:
+    size_t sz = (size_t)(&((metac_parameter_load_t *)NULL)->p_val[val_count + 1]);
+
+    metac_parameter_load_t * p_pload = calloc(1, sz);
+    _check_(p_pload == NULL, NULL);
+
+    p_pload->val_count = val_count;
+    return p_pload;
+}
+
+static int metac_parameter_load_value_delete(metac_parameter_load_t * p_pload, metac_num_t val_count) {
+    _check_(p_pload == NULL, -(EINVAL));
+    _check_(val_count >= p_pload->val_count, -(EINVAL));
+
+    metac_value_t *p_val = p_pload->p_val[val_count];
+    _check_(p_val == NULL, -(EINVAL));
+
+    void * p_buf = metac_value_addr(p_val);
+    assert(p_buf != NULL);
+
+    metac_entry_t * p_entry = metac_value_entry(p_val);
+    metac_value_delete(p_val);
+
+    if (metac_entry_is_parameter(p_entry) != 0 && 
+        metac_entry_is_unspecified_parameter(p_entry)) { // TODO: or va_list
+
+        metac_parameter_load_t * p_buf_pload = (metac_parameter_load_t *)p_buf;
+        assert(p_buf_pload != NULL);
+        metac_parameter_load_delete(p_buf_pload);
+    } else {
+        free(p_buf);
+    }
+    
+    if (metac_entry_is_dynamic(p_entry)) {
+        metac_entry_delete(p_entry);
+    }
+
+    return 0;
+}
+
+void metac_parameter_load_delete(metac_parameter_load_t * p_pload) {
+    if (p_pload == NULL) {
+        return;
+    }
+    for (metac_num_t i = 0; i < p_pload->val_count; ++i) {
+        if (p_pload->p_val[i] != NULL) {
+            metac_parameter_load_value_delete(p_pload, i);
+        }
+    }
+}
+
 struct metac_value_with_parameters_load * metac_new_value_with_parameters_load(metac_num_t parameters_count) {
-    // offset_of(struct metac_value_with_parameters_load, parameters[parameters_count + 1])
+    // offset_of:
     size_t sz = (size_t)(&((struct metac_value_with_parameters_load*)NULL)->parameters[parameters_count + 1]);
 
     struct metac_value_with_parameters_load * p_load = calloc(1, sz);
@@ -22,12 +77,15 @@ void metac_value_with_parameters_load_delete(struct metac_value_with_parameters_
         return;
     }
     for (metac_num_t i = 0; i < p_load->parameters_count; ++i) {
-        if (p_load->parameters[i].p_buf != NULL) {
-            if (p_load->parameters[i].is_value_with_parameters_load != 0) {
-                metac_value_with_parameters_load_delete((struct metac_value_with_parameters_load *)p_load->parameters[i].p_buf);
-            } else {
-                free(p_load->parameters[i].p_buf);
-            }
+        void * addr  = metac_value_addr(p_load->parameters[i]);
+        if (addr == NULL) {
+            continue;
+        }
+
+        if (metac_entry_is_unspecified_parameter(metac_value_entry(p_load->parameters[i]))) { // TODO: or va_list
+            metac_parameter_load_delete((metac_parameter_load_t *)addr);
+        } else {
+            free(addr);
         }
     }
     free(p_load);
@@ -68,9 +126,9 @@ static void _handle_subprogram(
             // handle va_paremeter as event
             metac_value_event_t ev = {
                 .type = METAC_RQVST_va_list,
-                .va_list_param_id = i, 
+                .va_list_param_id = i,  // TODO: to remove?
+                .p_va_list_param_entry = p_param_entry,
                 .p_va_list_container = p_va_list_container,
-                .p_va_list_load = NULL
             };
             metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, p_param_entry);
             if (p_tag != NULL && p_tag->handler) {
@@ -78,12 +136,11 @@ static void _handle_subprogram(
                     metac_recursive_iterator_fail(p_iter);
                     return;
                 }
-                if (ev.p_va_list_load == NULL) {
+                if (ev.p_return_value == NULL) {
                     metac_recursive_iterator_fail(p_iter);
                     return;
                 }
-                p_load->parameters[i].is_value_with_parameters_load = 1;
-                p_load->parameters[i].p_buf = ev.p_va_list_load;
+                p_load->parameters[i] = ev.p_return_value;
             }
         } else {
             void * addr = NULL;
@@ -182,8 +239,14 @@ static void _handle_subprogram(
                 metac_recursive_iterator_fail(p_iter);
                 return;
             }
+
             // save region
-            p_load->parameters[i].p_buf = addr;
+            p_load->parameters[i] = metac_new_value(p_param_type_entry, addr);
+            if (p_load->parameters[i] == NULL) {
+                free(addr);
+                metac_recursive_iterator_fail(p_iter);
+                return;
+            }
         }
     }
     metac_recursive_iterator_done(p_iter, NULL);
@@ -300,12 +363,7 @@ metac_value_t * metac_new_value_by_paremeter_id(metac_value_t *p_val, metac_num_
     _check_(p_load == NULL, NULL);
     _check_(paremeter_id >= p_load->parameters_count, NULL);
 
-    _check_(p_load->parameters[paremeter_id].p_buf == NULL, NULL);
-    _check_(
-        (p_load->parameters[paremeter_id].is_value_with_parameters_load != 0) != 
-        (metac_entry_is_unspecified_parameter(p_param_entry) != 0), NULL); // arg ..., TODO: also can be va_arg
-    
-    return metac_new_value(p_param_entry, p_load->parameters[paremeter_id].p_buf);
+    return p_load->parameters[paremeter_id];
 }
 
 // potential API

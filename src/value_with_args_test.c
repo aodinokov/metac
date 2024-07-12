@@ -263,8 +263,9 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
     }
 
     metac_num_t parameters_count = metac_count_format_specifiers(format);
-    struct metac_value_with_parameters_load * p_load = metac_new_value_with_parameters_load(parameters_count);
-    if (p_load == NULL) {
+    metac_entry_t * p_entry = NULL;
+    metac_parameter_load_t * p_pload = metac_new_parameter_load(parameters_count);
+    if (p_pload == NULL) {
         return -(EINVAL);
     }
 
@@ -282,14 +283,17 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
                 switch (dummy_specifier.t) {
                 case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
                 case 'p'/* pointers including strings */:{
-                        p_load->parameters[param_id].p_buf = calloc(1, sizeof(void*));
-                        if (p_load->parameters[param_id].p_buf == NULL) {
+                        WITH_METAC_DECLLOC(decl, void * p_buf = calloc(1, sizeof(void*)));
+                        if (p_buf == NULL) {
                             va_end(cntr.parameters);
-                            metac_value_with_parameters_load_delete(p_load);
+                            metac_parameter_load_delete(p_pload);
                             return -(EINVAL);                           
                         }
                         void * p = va_arg(cntr.parameters, void*);
-                        memcpy(p_load->parameters[param_id].p_buf, &p, sizeof(p));
+                        memcpy(p_buf, &p, sizeof(p));
+                        p_entry = METAC_ENTRY_FROM_DECLLOC(decl, p_buf);
+
+                        // TODO: p_pload->p_val[param_id]
                     }
                     break;
                 case 'd':/* basic types */
@@ -300,7 +304,7 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
                     break;
                 default: {
                         va_end(cntr.parameters);
-                        metac_value_with_parameters_load_delete(p_load);
+                        metac_parameter_load_delete(p_pload);
                         return -(EINVAL);
                     }
                 }
@@ -311,7 +315,12 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
     }
     va_end(cntr.parameters);
 
-    p_ev->p_va_list_load = p_load;
+    if (p_pload != NULL) {    // TODO: check leaks
+        p_ev->p_return_value = metac_new_value(p_ev->p_va_list_param_entry, p_pload);
+        if (p_ev->p_return_value == NULL) {
+            metac_parameter_load_delete(p_pload);
+        }
+    }
     return 0;
 }
 
