@@ -92,7 +92,6 @@ void metac_value_with_parameters_load_delete(struct metac_value_with_parameters_
 }
 
 //// new
-
 metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values_count) {
     _check_(values_count < 0, NULL);
 
@@ -118,21 +117,55 @@ metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * 
 metac_value_t * metac_load_of_parameter_new_value(metac_value_load_of_parameter_t * p_param_load,
     metac_num_t id,
     metac_entry_t *p_entry,
-    metac_size_t size) {
+    metac_num_t size) {
     _check_(id < 0 || id >= p_param_load->values_count , NULL);
     _check_(p_entry == NULL, NULL);
-    _check_(metac_entry_kind(p_entry) != METAC_KND_subprogram_parameter, NULL);
+    _check_(p_param_load->values[id] != NULL, NULL); // already exists
 
-    if (metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0){
-        // create another metac_value_load_of_parameter_t * - size is number of subaargs
-    } else {
-        // allocate memory with correct size;
+    metac_value_t *p_value = NULL;
+    if (metac_entry_has_load_of_parameter(p_entry) != 0) {// create another metac_value_load_of_parameter_t * - size is number of subaargs
+        metac_value_load_of_parameter_t * p_in_para_load = metac_new_load_of_parameter(size);
+        if (p_in_para_load == NULL) {
+            return NULL;
+        }
+
+        p_value = metac_new_value(p_entry, p_in_para_load);
+        if (p_value == NULL) {
+            metac_load_of_parameter_delete(p_in_para_load);
+        }
+    } else { // allocate memory with correct size;
+        void * addr = calloc(1, size);
+        if (addr == NULL) {
+            return NULL;
+        }
+        p_value = metac_new_value(p_entry, addr);
+        if (p_value == NULL) {
+            free(addr);
+        }
     }
+    p_param_load->values[id] = p_value;
+    return p_value;
 }
 
-// note: this method deletes all values and frees their addr as well
-void metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_param_load) {
+metac_flag_t metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_param_load) {
+    _check_(p_param_load == NULL, 0);
+    for (metac_num_t id = 0; id < p_param_load->values_count; ++id) {
+        metac_value_t * p_value  = metac_load_of_parameter_value(p_param_load, id);
+        if (p_value == NULL) {
+            continue;
+        }
+        metac_entry_t * p_entry = metac_value_entry(p_value);
 
+        if (metac_entry_has_load_of_parameter(p_entry) == 0) {
+            void * addr = metac_value_addr(p_value);
+            if (addr != NULL) {
+                free(addr);
+            }
+        } // don't do anything otherwise - metac_value_delete will take case of metac_value_load_of_parameter_t
+
+        metac_value_delete(p_value);
+    }
+    return 1;
 }
 
 static void _handle_subprogram(

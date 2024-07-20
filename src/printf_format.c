@@ -1,7 +1,9 @@
 // this is a very naive version. it's needed to demonstrate the idea of how to print va_args
 // see value_with_args.c and its test for more details
-#include "metac/backend/printf_format.h"
+#include "metac/reflect.h"
 
+#include "metac/backend/printf_format.h"
+#include "metac/backend/value.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -109,4 +111,110 @@ size_t metac_count_format_specifiers(const char *format) {
         pos++;
     }
     return num_specifiers;
+}
+
+static metac_value_t * _parse_va_list_per_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr);
+
+metac_value_t * metac_parse_va_list_per_format_specifier(const char * format, va_list parameters) {
+    struct va_list_container cntr = {};
+
+    va_copy(cntr.parameters, parameters);
+    metac_value_t * p_value = _parse_va_list_per_format_specifier(format, (void*)metac_parse_va_list_per_format_specifier, &cntr);
+    va_end(cntr.parameters);
+
+    return p_value;
+}
+METAC_GSYM_LINK(metac_parse_va_list_per_format_specifier);
+
+metac_value_t * metac_parse_unspec_per_format_specifier(const char * format, ...) {
+    struct va_list_container cntr = {};
+
+    va_start(cntr.parameters, format);
+    metac_value_t * p_value = _parse_va_list_per_format_specifier(format, (void*)metac_parse_unspec_per_format_specifier, &cntr);
+    va_end(cntr.parameters);
+
+    return p_value;
+}
+METAC_GSYM_LINK(metac_parse_unspec_per_format_specifier);
+
+
+static metac_value_t * _parse_va_list_per_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr) {
+    metac_entry_t *p_fn_entry = NULL;
+    if (fn_ptr == metac_parse_va_list_per_format_specifier) {
+        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_parse_va_list_per_format_specifier);
+    } else if (fn_ptr == metac_parse_unspec_per_format_specifier) {
+        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_parse_unspec_per_format_specifier);
+    }
+
+    if (p_fn_entry == NULL ||
+        metac_entry_has_parameters(p_fn_entry) == 0 ||
+        metac_entry_parameters_count(p_fn_entry) != 2) {
+        return NULL;
+    }
+
+    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
+    if (p_va_list_entry == NULL ||
+        metac_entry_has_load_of_parameter(p_va_list_entry) == 0) {
+        return NULL;
+    }
+
+    metac_num_t parameters_count = metac_count_format_specifiers(format);
+
+    metac_value_load_of_parameter_t * p_pload = metac_new_load_of_parameter(parameters_count);
+    if (p_pload == NULL) {
+        return NULL;
+    }
+
+    metac_num_t param_id = 0;
+    size_t pos = 0;
+    metac_printf_specifier_t dummy_specifier;
+
+    while (pos < strlen(format)) {
+        if (format[pos] == '%') {
+            // Check if a valid format specifier follows
+            if (metac_parse_format_specifier(format, &pos, &dummy_specifier) > 0) {
+                switch (dummy_specifier.t) {
+                //case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
+                case 'p'/* pointers including strings */: {
+                        WITH_METAC_DECLLOC(decl, void * p_param_value_ptr = NULL);
+                        metac_entry_t * p_param_entry = METAC_ENTRY_FROM_DECLLOC(decl, p_param_value_ptr);
+                        metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(void*));
+                        if (p_param_value == NULL) {
+                            metac_load_of_parameter_delete(p_pload);
+                            return NULL;                           
+                        }
+                        p_param_value_ptr = metac_value_addr(p_param_value);
+
+                        void * p = va_arg(p_cntr->parameters, void*);
+                        memcpy(p_param_value_ptr, &p, sizeof(p));
+                        
+                    }
+                    break;
+                case 'd':/* basic types */
+                case 'i':
+                case 'c': {
+
+                    }
+                    break;
+                default: {
+                        metac_load_of_parameter_delete(p_pload);
+                        return NULL;
+                    }
+                }
+            }
+        }
+        ++param_id;
+        ++pos;
+    }
+
+    metac_value_t * p_return_value = NULL;
+    if (p_pload != NULL) {
+        p_return_value = metac_new_value(p_va_list_entry, p_pload);
+        if (p_return_value == NULL) {
+            metac_load_of_parameter_delete(p_pload);
+        }
+    }
+    return p_return_value;
+
+
 }

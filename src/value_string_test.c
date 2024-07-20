@@ -10,7 +10,7 @@
 #include "hashmap.c"
 #include "value.c"
 #include "value_base_type.c"
-
+#include "value_with_args.c"
 
 #include "value_string.c"
 

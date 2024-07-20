@@ -1,6 +1,7 @@
 #include "metac/backend/entry.h"
 #include "metac/backend/helpers.h"
 #include "metac/backend/iterator.h"
+#include "metac/backend/value.h"
 #include "metac/endian.h"
 #include "metac/reflect.h"
 
@@ -657,6 +658,14 @@ char *metac_value_pointer_string(metac_value_t * p_val) {
     return dsprintf("%p", v);
 }
 
+// special type of value - parameters of functions. we have a special load for it and need to cleanup addr
+// when delete such objects
+metac_flag_t metac_value_has_load_of_parameter(metac_value_t * p_val) {
+    _check_(p_val == NULL, 0);
+    _check_(p_val->p_entry == NULL, 0);
+    return metac_entry_has_load_of_parameter(p_val->p_entry);
+}
+
 static metac_value_t * metac_init_value(metac_value_t * p_val, metac_entry_t *p_entry, void * addr) {
     assert(p_val != NULL);
 
@@ -749,7 +758,14 @@ void * metac_value_addr(metac_value_t * p_val) {
 }
 
 void metac_value_delete(metac_value_t * p_val) {
-    if ( metac_entry_is_dynamic(p_val->p_entry)!=0){
+    if (metac_value_has_load_of_parameter(p_val)){
+        metac_value_load_of_parameter_t * p_in_para_load = metac_value_addr(p_val);
+        if (p_in_para_load != NULL) {
+            metac_load_of_parameter_delete(p_in_para_load);
+        }
+    }
+
+    if (metac_entry_is_dynamic(p_val->p_entry)!=0){
         metac_entry_delete(p_val->p_entry);
     }
     free(p_val);

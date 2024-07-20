@@ -284,4 +284,9 @@ metac_flag_t metac_entry_has_result(metac_entry_t * p_entry);
 */
 metac_entry_t * metac_entry_result_type(metac_entry_t * p_entry);
 
+/**
+ * @brief returns true if entry is subprogram or va_arg (both can have several parameters)
+*/
+metac_flag_t metac_entry_has_load_of_parameter(metac_entry_t *p_entry);
+
 #endif

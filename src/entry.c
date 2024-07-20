@@ -587,4 +587,10 @@ metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     return p_entry->subprogram_parameter_info.type;
 }
 
+metac_flag_t metac_entry_has_load_of_parameter(metac_entry_t *p_entry) {
+    _check_(p_entry == NULL, 0);
+    return
+        metac_entry_has_parameters(p_entry) != 0 ||
+        metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0;
+}
 

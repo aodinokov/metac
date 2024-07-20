@@ -10,6 +10,7 @@
 #include "value_base_type.c"
 #include "value_deep.c"
 #include "value_string.c"
+#include "value_with_args.c"
 
 struct list_itm {
     int data;
