@@ -48,6 +48,23 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
     metac_tag_map_t * p_tag_map);
 void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 
+typedef struct metac_value_load_of_parameter {
+    metac_num_t values_count;
+    metac_value_t ** values;
+} metac_value_load_of_parameter_t;
+
+typedef struct metac_value_load_of_subprogram {
+    metac_value_load_of_parameter_t * parameters;
+    metac_value_t * result;
+} metac_value_load_of_subprogram_t;
+
+metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values_count);
+void metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_param_load);
+
+metac_value_load_of_subprogram_t * metac_new_load_of_subprogram(metac_num_t values_count);
+void metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * p_subprog_load);
+
+// to remove
 /** @brief metac_value internal buffer to store unspecified params or va_list */
 typedef struct metac_parameter_load {
     metac_num_t val_count;  // typically it must be 1, but it can be more for va_list or unspecified param

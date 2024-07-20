@@ -260,9 +260,15 @@ metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag
 */
 metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry);
 /**
- * @brief check if parameter is ... (va_arg)
+ * @brief check if parameter is ...
 */
 metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry);
+
+/**
+ * @brief check if parameter is va_list
+*/
+metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry);
+
 /**
  * @brief returns type of argument
 */

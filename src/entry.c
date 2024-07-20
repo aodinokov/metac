@@ -564,9 +564,23 @@ metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry) {
     return p_entry->subprogram_parameter_info.unspecified_parameters;
 }
 
+metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry) {
+    _check_(p_entry == NULL, 0);
+    _check_(metac_entry_kind(p_entry) != METAC_KND_subprogram_parameter, 0);
+    _check_(p_entry->subprogram_parameter_info.unspecified_parameters != 0, 0);
+    
+    char * cdecl = metac_entry_cdecl(p_entry->subprogram_parameter_info.type);
+    _check_(cdecl == NULL, 0);
+    int cmp_res = strcmp(cdecl, "va_list %s");
+    free(cdecl);
+
+    return (cmp_res == 0);
+}
+
 metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     _check_(p_entry == NULL, NULL);
     _check_(metac_entry_kind(p_entry) != METAC_KND_subprogram_parameter, NULL);
+    _check_(p_entry->subprogram_parameter_info.unspecified_parameters != 0, NULL);
     return p_entry->subprogram_parameter_info.type;
 }
 

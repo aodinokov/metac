@@ -1,6 +1,7 @@
 #include "metac/test.h"
 
 #include "entry.c"
+#include "entry_cdecl.c"
 #include "iterator.c"
 #include "value.c"
 #include "value_base_type.c"

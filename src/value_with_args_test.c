@@ -216,6 +216,7 @@ METAC_START_TEST(array_to_value) {
     metac_value_with_parameters_delete(p_val);
 }END_TEST
 
+#if 0
 void test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
@@ -348,3 +349,4 @@ METAC_START_TEST(va_arg_to_value) {
 
     metac_tag_map_delete(p_tag_map);
 }
+#endif

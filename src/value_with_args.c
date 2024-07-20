@@ -91,6 +91,50 @@ void metac_value_with_parameters_load_delete(struct metac_value_with_parameters_
     free(p_load);
 }
 
+//// new
+
+metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values_count) {
+    _check_(values_count < 0, NULL);
+
+    metac_value_load_of_parameter_t * p_param_load = calloc(1, sizeof(metac_value_load_of_parameter_t));
+    _check_(p_param_load == NULL, NULL);
+
+    if (values_count > 0) {
+        p_param_load->values = calloc(values_count, sizeof(metac_value_t *));
+        if (p_param_load->values == NULL) {
+            free(p_param_load);
+            return NULL;
+        }
+    }
+    p_param_load->values_count = values_count;
+    return p_param_load;
+}
+
+metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id) {
+    _check_(id < 0 || id >= p_param_load->values_count , NULL);
+    return p_param_load->values[id];
+}
+
+metac_value_t * metac_load_of_parameter_new_value(metac_value_load_of_parameter_t * p_param_load,
+    metac_num_t id,
+    metac_entry_t *p_entry,
+    metac_size_t size) {
+    _check_(id < 0 || id >= p_param_load->values_count , NULL);
+    _check_(p_entry == NULL, NULL);
+    _check_(metac_entry_kind(p_entry) != METAC_KND_subprogram_parameter, NULL);
+
+    if (metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0){
+        // create another metac_value_load_of_parameter_t * - size is number of subaargs
+    } else {
+        // allocate memory with correct size;
+    }
+}
+
+// note: this method deletes all values and frees their addr as well
+void metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_param_load) {
+
+}
+
 static void _handle_subprogram(
     metac_recursive_iterator_t * p_iter,
     metac_value_t * p,

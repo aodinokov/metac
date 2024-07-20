@@ -1,6 +1,7 @@
 #include "metac/test.h"
 
 #include "entry.c"
+#include "entry_cdecl.c"
 #include "entry_tag.c"
 #include "entry_db.c"
 #include "hashmap.c"
