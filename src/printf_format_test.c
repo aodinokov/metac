@@ -130,12 +130,16 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
             .expected_sz = 5,
             .expected_s = (char *[]){"(char []){'d',}", "(short int []){10000,}", "(int []){1000000,}", "(long int []){20000000,}", "(long long int []){20000000,}"},
         },
-
-        // {
-        //     .p_parsed_value = metac_new_value_printf("%s %s", "some", "test"),
-        //     .expected_sz = 2,
-        //     .expected_s = (char *[]){"'s', 'o', 'm', 'e'", "'t', 'e', 's', 't'"},
-        // },
+        {
+            .p_parsed_value = metac_new_value_printf("%s %s", "some", "test"),
+            .expected_sz = 2,
+            .expected_s = (char *[]){"{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}"},
+        },
+        {
+            .p_parsed_value = metac_new_value_printf("%s %s", NULL, NULL),
+            .expected_sz = 2,
+            .expected_s = (char *[]){"NULL", "NULL"},
+        },
     };
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {

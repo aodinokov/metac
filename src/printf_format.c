@@ -6,6 +6,7 @@
 #include "metac/backend/value.h"
 
 #include <stdio.h>
+#include <string.h> /*strlen*/
 #include <ctype.h>
 
 // parse a single format specifier
@@ -176,10 +177,37 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, voi
             // Check if a valid format specifier follows
             if (metac_parse_format_specifier(format, &pos, &dummy_specifier) > 0) {
                 switch (dummy_specifier.t) {
-                //case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
+                case 's': {
+                        WITH_METAC_DECLLOC(decl, char * p = NULL);
+                        p = (char*)va_arg(p_cntr->parameters, char*);
+
+                        metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, p), NULL);
+
+                        if (p == NULL) { // use std ptr approach
+                            metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(p));
+                            if (p_param_value == NULL) {
+                                metac_load_of_parameter_delete(p_pload);
+                                return NULL;
+                            }
+                            void * p_param_value_ptr = metac_value_addr(p_param_value);
+                            memcpy(p_param_value_ptr, &p, sizeof(p));
+                        }else{
+                            size_t len = strlen(p);
+                            metac_entry_t * p_param_with_len_entry = metac_new_element_count_entry(p_param_entry, len+1);
+
+                            metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_with_len_entry, len+1);
+                            if (p_param_value == NULL) {
+                                metac_load_of_parameter_delete(p_pload);
+                                return NULL;
+                            }
+                            void * p_param_value_ptr = metac_value_addr(p_param_value);
+                            memcpy(p_param_value_ptr, p, len+1);
+                        }
+                    }
+                    break;
                 /* pointers */
 #define _process(_type_, _va_arg_type) { \
-                        WITH_METAC_DECLLOC(decl, _type_ dummy = 0); \
+                        WITH_METAC_DECLLOC(decl, _type_ dummy = NULL); \
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
                         metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(dummy)); \
                         if (p_param_value == NULL) { \

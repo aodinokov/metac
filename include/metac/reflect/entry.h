@@ -69,6 +69,9 @@ metac_entry_t * metac_entry_final_entry(metac_entry_t *p_entry, metac_quals_t * 
  * @brief create dynamically allocated entry and copy data from original
  */
 metac_entry_t * metac_new_entry(metac_entry_t * p_entry_from);
+
+/** @brief creates new value with overriden element count. useful for flexible arrays if we got actual len */
+metac_entry_t * metac_new_element_count_entry(metac_entry_t *p_entry_from, metac_num_t count);
 /**
  * @brief returns non-zero if entry was created with metac_new_entry
  */

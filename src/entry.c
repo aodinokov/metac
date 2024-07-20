@@ -28,6 +28,45 @@ metac_entry_t * metac_new_entry(metac_entry_t *p_entry_from) {
     return p_entry;
 }
 
+metac_entry_t * metac_new_element_count_entry(metac_entry_t *p_entry_from, metac_num_t count) {
+    _check_(p_entry_from == NULL, NULL);
+    
+    metac_entry_t * p_final_entry = metac_entry_final_entry(p_entry_from, NULL);
+
+    _check_(p_final_entry == NULL, NULL);
+    _check_(metac_entry_kind(p_final_entry) != METAC_KND_array_type && metac_entry_kind(p_final_entry) != METAC_KND_pointer_type, NULL);
+
+    metac_entry_t * p_element_type_entry = NULL;
+    switch (metac_entry_kind(p_final_entry))
+    {
+    case METAC_KND_array_type:
+        p_element_type_entry = metac_entry_element_entry(p_final_entry);
+        break;
+    case METAC_KND_pointer_type:
+        p_element_type_entry = metac_entry_pointer_entry(p_final_entry);
+        break;
+    default:
+        return NULL;
+    }
+    _check_(p_element_type_entry == NULL, NULL);
+
+    metac_entry_t * p_new_entry = (metac_entry_t[]){{
+        .dynamically_allocated = 1, /* this will make metac_new_value to create a copy*/
+        .kind = METAC_KND_array_type,
+        .name = 0,
+        .parents_count = 0,
+        .array_type_info = {
+            .type = p_element_type_entry,
+            .count = count,
+            .lower_bound = 0,
+            .p_stride_bit_size = NULL,
+        },
+    }};
+
+    return metac_new_entry(p_new_entry);
+}
+
+
 void metac_entry_delete(metac_entry_t * p_entry) {
     if (metac_entry_is_dynamic(p_entry) == 0) {
         return;

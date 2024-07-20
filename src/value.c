@@ -745,36 +745,27 @@ metac_value_t * metac_new_element_count_value(metac_value_t *p_val, metac_num_t 
     _check_(metac_entry_kind(p_final_entry) != METAC_KND_array_type && metac_entry_kind(p_final_entry) != METAC_KND_pointer_type, NULL);
 
     void * p_addr = p_val->addr;
-    metac_entry_t * p_element_type_entry = NULL;
     switch (metac_entry_kind(p_final_entry))
     {
     case METAC_KND_array_type:
-        p_element_type_entry = metac_entry_element_entry(p_final_entry);
         break;
     case METAC_KND_pointer_type:
-        p_element_type_entry = metac_entry_pointer_entry(p_final_entry);
         p_addr = *((void**)p_addr);
         _check_(p_addr == NULL, NULL);
         break;
     default:
         return NULL;
     }
-    _check_(p_element_type_entry == NULL, NULL);
 
-    metac_entry_t * p_new_entry = (metac_entry_t[]){{
-        .dynamically_allocated = 1, /* this will make metac_new_value to create a copy*/
-        .kind = METAC_KND_array_type,
-        .name = 0,
-        .parents_count = 0,
-        .array_type_info = {
-            .type = p_element_type_entry,
-            .count = count,
-            .lower_bound = 0,
-            .p_stride_bit_size = NULL,
-        },
-    }};
+    metac_entry_t *p_new_entry = metac_new_element_count_entry(metac_value_entry(p_val), count);
+    if (p_new_entry == NULL) {
+        return NULL;
+    }
 
-    return metac_new_value(p_new_entry, p_addr);
+    metac_value_t *p_new_val = metac_new_value(p_new_entry, p_addr);
+    metac_entry_delete(p_new_entry);
+
+    return p_new_val;
 }
 
 metac_entry_t * metac_value_entry(metac_value_t * p_val) {
