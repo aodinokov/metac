@@ -113,37 +113,36 @@ size_t metac_count_format_specifiers(const char *format) {
     return num_specifiers;
 }
 
-static metac_value_t * _parse_va_list_per_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr);
+static metac_value_t * _new_value_from_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr);
 
-metac_value_t * metac_parse_va_list_per_format_specifier(const char * format, va_list parameters) {
+metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters) {
     struct va_list_container cntr = {};
 
     va_copy(cntr.parameters, parameters);
-    metac_value_t * p_value = _parse_va_list_per_format_specifier(format, (void*)metac_parse_va_list_per_format_specifier, &cntr);
+    metac_value_t * p_value = _new_value_from_format_specifier(format, (void*)metac_new_value_vprintf, &cntr);
     va_end(cntr.parameters);
 
     return p_value;
 }
-METAC_GSYM_LINK(metac_parse_va_list_per_format_specifier);
+METAC_GSYM_LINK(metac_new_value_vprintf);
 
-metac_value_t * metac_parse_unspec_per_format_specifier(const char * format, ...) {
+metac_value_t * metac_new_value_printf(const char * format, ...) {
     struct va_list_container cntr = {};
 
     va_start(cntr.parameters, format);
-    metac_value_t * p_value = _parse_va_list_per_format_specifier(format, (void*)metac_parse_unspec_per_format_specifier, &cntr);
+    metac_value_t * p_value = _new_value_from_format_specifier(format, (void*)metac_new_value_printf, &cntr);
     va_end(cntr.parameters);
 
     return p_value;
 }
-METAC_GSYM_LINK(metac_parse_unspec_per_format_specifier);
+METAC_GSYM_LINK(metac_new_value_printf);
 
-
-static metac_value_t * _parse_va_list_per_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr) {
+static metac_value_t * _new_value_from_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr) {
     metac_entry_t *p_fn_entry = NULL;
-    if (fn_ptr == metac_parse_va_list_per_format_specifier) {
-        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_parse_va_list_per_format_specifier);
-    } else if (fn_ptr == metac_parse_unspec_per_format_specifier) {
-        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_parse_unspec_per_format_specifier);
+    if (fn_ptr == metac_new_value_vprintf) {
+        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_vprintf);
+    } else if (fn_ptr == metac_new_value_printf) {
+        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_printf);
     }
 
     if (p_fn_entry == NULL ||
@@ -215,6 +214,4 @@ static metac_value_t * _parse_va_list_per_format_specifier(const char * format, 
         }
     }
     return p_return_value;
-
-
 }

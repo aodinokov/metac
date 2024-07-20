@@ -44,10 +44,16 @@ METAC_START_TEST(param_count_sanity) {
 }
 
 METAC_START_TEST(test_parse_va_list_per_format_specifier) {
-    metac_value_t * p_value = metac_parse_unspec_per_format_specifier("%p %p", NULL, NULL);
+    metac_value_t * p_value = metac_new_value_printf("%p %p", NULL, NULL);
     fail_unless(p_value != NULL);
 
-    
+    for (int i = 0; i < metac_value_load_of_parameter_count(p_value); ++i) {
+        metac_value_t * p = metac_value_load_of_parameter_value(p_value, i);
+        fail_unless(p != NULL);
+        char *s = metac_value_string(p);
+        fail_unless(s != NULL);
+        free(s);
+    }
 
     metac_value_delete(p_value);
 }

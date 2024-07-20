@@ -109,6 +109,11 @@ metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values
     return p_param_load;
 }
 
+metac_num_t metac_load_of_parameter_value_count(metac_value_load_of_parameter_t * p_param_load) {
+    _check_(p_param_load == NULL, 0);
+    return p_param_load->values_count;
+}
+
 metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id) {
     _check_(id < 0 || id >= p_param_load->values_count , NULL);
     return p_param_load->values[id];

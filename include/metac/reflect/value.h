@@ -364,4 +364,11 @@ int metac_value_set_ldouble_complex(metac_value_t * p_val, long double complex v
 /** @brief read any numberic from char to unsigned long long into num_t */
 int metac_value_num(metac_value_t * p_val, metac_num_t * p_var);
 
+/** @brief subprograms and va_list arguments are such types - created by metac_new_value_printf and etc */
+metac_flag_t metac_value_has_load_of_parameter(metac_value_t * p_val);
+/** @brief get number of args of such value subtype */
+metac_num_t metac_value_load_of_parameter_count(metac_value_t * p_val);
+/** @brief get each subvalue of such value subtype */
+metac_value_t * metac_value_load_of_parameter_value(metac_value_t * p_val, metac_num_t id);
+
 #endif

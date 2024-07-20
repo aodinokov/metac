@@ -65,6 +65,8 @@ metac_value_t * metac_load_of_parameter_new_value(metac_value_load_of_parameter_
     metac_num_t id,
     metac_entry_t *p_entry,
     metac_num_t size);
+metac_num_t metac_load_of_parameter_value_count(metac_value_load_of_parameter_t * p_param_load);
+metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id);
 
 metac_value_load_of_subprogram_t * metac_new_load_of_subprogram(metac_num_t values_count);
 metac_flag_t metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * p_subprog_load);
