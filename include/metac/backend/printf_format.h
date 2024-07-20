@@ -19,12 +19,14 @@ typedef struct metac_printf_specifier_flag {
     };
 } metac_printf_specifier_flag_t;
 
+/* modifiers */
 typedef enum metac_printf_specifier_arg_len {
     psal_no = 0,
-    psal_h,
-    psal_l,
-    psal_ll,
-    psal_L,
+    psal_h,  // short
+    psal_hh, // char
+    psal_l,  // long
+    psal_ll, // long long
+    psal_L,  // long double
 }metac_printf_specifier_arg_len_t;
 
 typedef struct metac_printf_specifier {

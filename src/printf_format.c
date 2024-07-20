@@ -74,11 +74,14 @@ size_t metac_parse_format_specifier(const char *format, size_t *pos, metac_print
         } else if (format[*pos] == 'l') {
             p_specifier->arg_len = psal_l;
         } else if (format[*pos] == 'L') {
-            p_specifier->arg_len = psal_l;
+            p_specifier->arg_len = psal_L;
         }
         (*pos)++;
-        if (*pos < strlen(format) && (format[*pos] == 'l')) {
+        if (*pos < strlen(format) && p_specifier->arg_len == psal_l && (format[*pos] == 'l')) {
             p_specifier->arg_len = psal_ll;
+            (*pos)++;
+        } else if (*pos < strlen(format) && p_specifier->arg_len == psal_h && (format[*pos] == 'h')) {
+            p_specifier->arg_len = psal_hh;
             (*pos)++;
         }
     }
@@ -174,35 +177,117 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, voi
             if (metac_parse_format_specifier(format, &pos, &dummy_specifier) > 0) {
                 switch (dummy_specifier.t) {
                 //case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
-                case 'p'/* pointers including strings */: {
-                        WITH_METAC_DECLLOC(decl, void * p_param_value_ptr = NULL);
-                        metac_entry_t * p_param_entry = METAC_ENTRY_FROM_DECLLOC(decl, p_param_value_ptr);
-                        metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(void*));
-                        if (p_param_value == NULL) {
-                            metac_load_of_parameter_delete(p_pload);
-                            return NULL;                           
-                        }
-                        p_param_value_ptr = metac_value_addr(p_param_value);
-
-                        void * p = va_arg(p_cntr->parameters, void*);
-                        memcpy(p_param_value_ptr, &p, sizeof(p));
-                        
+                /* pointers */
+#define _process(_type_, _va_arg_type) { \
+                        WITH_METAC_DECLLOC(decl, _type_ dummy = 0); \
+                        metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
+                        metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        if (p_param_value == NULL) { \
+                            metac_load_of_parameter_delete(p_pload); \
+                            return NULL; \
+                        } \
+                        void * p_param_value_ptr = metac_value_addr(p_param_value); \
+                        void * p = (_type_)va_arg(p_cntr->parameters, void*); \
+                        memcpy(p_param_value_ptr, &p, sizeof(p)); \
+                    }
+                case 'p'/* simple pointers */:
+                    _process(void*, void*);
+                    break;
+                case 'n'/* n pointers */:
+                    if (dummy_specifier.arg_len == psal_hh) {
+                        _process(char*, void*);
+                    } else if (dummy_specifier.arg_len == psal_h) {
+                        _process(short*, void*);
+                    } else if (dummy_specifier.arg_len == psal_no) {
+                        _process(int*, void*);
+                    } else if (dummy_specifier.arg_len == psal_l) {
+                        _process(long*, void*);
+                    } else if (dummy_specifier.arg_len == psal_ll) {
+                        _process(long long*, void*);
+                    } else {
+                        return NULL;
                     }
                     break;
-                case 'd':/* basic types */
+#undef _process
+                /* basic types */
+#define _process(_type_, _va_arg_type) { \
+                        WITH_METAC_DECLLOC(decl, _type_ dummy = 0); \
+                        metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
+                        metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        if (p_param_value == NULL) { \
+                            metac_load_of_parameter_delete(p_pload); \
+                            return NULL; \
+                        } \
+                        _type_ * p_param_value_ptr = metac_value_addr(p_param_value); \
+                        *p_param_value_ptr = (_type_)va_arg(p_cntr->parameters, _va_arg_type); \
+                    }
+                    break;
+                // signed
+                case 'c':
                 case 'i':
-                case 'c': {
-
+                case 'd': {
+                        if (dummy_specifier.t == 'c' ||
+                            dummy_specifier.arg_len == psal_hh) {
+                            _process(char, int);
+                        } else if (dummy_specifier.t != 'c') {
+                            if (dummy_specifier.arg_len == psal_h) {
+                                _process(short, int);
+                            } else if (dummy_specifier.arg_len == psal_no) {
+                                _process(int, int);
+                            } else if (dummy_specifier.arg_len == psal_l) {
+                                _process(long, long);
+                            } else if (dummy_specifier.arg_len == psal_ll) {
+                                _process(long long, long long);
+                            } else {
+                                return NULL;
+                            }
+                        } else {
+                            return NULL;
+                        }
                     }
                     break;
+                // unsigned
+                case 'o': 
+                case 'u':
+                case 'x':
+                case 'X': {
+                        if (dummy_specifier.arg_len == psal_hh) {
+                            _process(unsigned char, unsigned int);
+                        } else if (dummy_specifier.arg_len == psal_h) {
+                            _process(unsigned short, unsigned int);
+                        } else if (dummy_specifier.arg_len == psal_no) {
+                            _process(unsigned int, unsigned int);
+                        } else if (dummy_specifier.arg_len == psal_l) {
+                            _process(unsigned long, unsigned long);
+                        } else if (dummy_specifier.arg_len == psal_ll) {
+                            _process(unsigned long long, unsigned long long);
+                        } else {
+                            return NULL;
+                        }
+                    }
+                    break;
+                // unsigned
+                case 'f': 
+                case 'g':
+                case 'e': {
+                        if (dummy_specifier.arg_len == psal_no) {
+                            _process(double, double);
+                        } else if (dummy_specifier.arg_len == psal_L) {
+                            _process(long double, long double);
+                        } else {
+                            return NULL;
+                        }
+                    }
+                    break;
+#undef _process
                 default: {
                         metac_load_of_parameter_delete(p_pload);
                         return NULL;
                     }
                 }
             }
+            ++param_id;
         }
-        ++param_id;
         ++pos;
     }
 
