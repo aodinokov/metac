@@ -1,7 +1,7 @@
 #ifndef INCLUDE_METAC_PRINTF_FORMAT_H_
 #define INCLUDE_METAC_PRINTF_FORMAT_H_
 
-#include "metac/base.h"
+#include "metac/reflect.h"
 
 // naive implementation
 // we can lookup in https://github.com/bminor/glibc/blob/master/stdio-common/vfprintf-internal.c#L288
@@ -39,5 +39,7 @@ typedef struct metac_printf_specifier {
 
 size_t metac_parse_format_specifier(const char *format, size_t *pos, metac_printf_specifier_t *p_specifier);
 size_t metac_count_format_specifiers(const char *format);
+metac_value_t * metac_new_value_printf(const char * format, ...);
+metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters);
 
 #endif
