@@ -81,12 +81,12 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
             .expected_s = (char *[]){"-100000", "1000001"},
         },
         {
-            .p_parsed_value = metac_new_value_printf("%ld %li", -2000000, 2000000),
+            .p_parsed_value = metac_new_value_printf("%ld %li", -2000000L, 2000000L),
             .expected_sz = 2,
             .expected_s = (char *[]){"-2000000", "2000000"},
         },
         {
-            .p_parsed_value = metac_new_value_printf("%lld %lli", -2000000, 2000000),
+            .p_parsed_value = metac_new_value_printf("%lld %lli", -2000000LL, 2000000LL),
             .expected_sz = 2,
             .expected_s = (char *[]){"-2000000", "2000000"},
         },
