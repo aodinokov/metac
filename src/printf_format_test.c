@@ -50,6 +50,10 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
     long _l_ = 20000000;
     long long _ll_ = 20000000;
 
+    char b1[32], b2[32];
+    snprintf(b1, sizeof(b1), "%p", (void*)0x100);
+    snprintf(b2, sizeof(b2), "%p", (void*)0xff00);
+
     struct {
         metac_value_t * p_parsed_value;
         metac_num_t expected_sz;
@@ -61,9 +65,9 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
             .expected_s = (char *[]){"NULL", "NULL"},
         },
         {
-            .p_parsed_value = metac_new_value_printf("%p %p", 0x100, 0xff00),
+            .p_parsed_value = metac_new_value_printf("%p %p", (void*)0x100,(void*)0xff00),
             .expected_sz = 2,
-            .expected_s = (char *[]){"0x100", "0xff00"},
+            .expected_s = (char *[]){b1, b2},
         },
         {
             .p_parsed_value = metac_new_value_printf("%c %hhi, %hhd", 'x', 'y', 'z'),
@@ -154,7 +158,6 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
             fail_unless(s != NULL);
             fail_unless(strcmp(tcs[tc_inx].expected_s[i], s) == 0, "tc %d.%d, expected %s, got %s",
                 tc_inx, i, tcs[tc_inx].expected_s[i], s);
-            printf("%s\n", s);
             free(s);
         }
 
