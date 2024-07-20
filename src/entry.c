@@ -572,6 +572,9 @@ metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry) {
     char * cdecl = metac_entry_cdecl(p_entry->subprogram_parameter_info.type);
     _check_(cdecl == NULL, 0);
     int cmp_res = strcmp(cdecl, "va_list %s");
+    if (cmp_res != 0) { // linux
+        cmp_res = strcmp(cdecl, "struct __va_list_tag * %s");
+    }
     free(cdecl);
 
     return (cmp_res == 0);
