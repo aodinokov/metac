@@ -194,8 +194,12 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, voi
                         }else{
                             size_t len = strlen(p);
                             metac_entry_t * p_param_with_len_entry = metac_new_element_count_entry(p_param_entry, len+1);
+                            if (p_param_with_len_entry == NULL) {
+                                return NULL;
+                            }
 
                             metac_value_t * p_param_value = metac_load_of_parameter_new_value(p_pload, param_id, p_param_with_len_entry, len+1);
+                            metac_entry_delete(p_param_with_len_entry);
                             if (p_param_value == NULL) {
                                 metac_load_of_parameter_delete(p_pload);
                                 return NULL;

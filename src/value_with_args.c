@@ -170,6 +170,11 @@ metac_flag_t metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_
 
         metac_value_delete(p_value);
     }
+    
+    if (p_param_load->values != NULL) {
+        free(p_param_load->values);
+    }
+    free(p_param_load);
     return 1;
 }
 
