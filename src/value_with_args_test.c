@@ -226,9 +226,6 @@ void test_function_with_va_args(const char * format, ...) {
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
-#include "metac/backend/printf_format.h"
-
-// TODO: we need to write a test for this
 static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
     if (p_ev == NULL) {
         return -(EINVAL);
@@ -288,7 +285,7 @@ METAC_START_TEST(va_arg_to_value) {
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
 
-    
+
     metac_value_delete(p_val);
 
     metac_tag_map_delete(p_tag_map);
