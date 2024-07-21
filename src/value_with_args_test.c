@@ -216,7 +216,6 @@ METAC_START_TEST(array_to_value) {
     metac_value_delete(p_val);
 }END_TEST
 
-#if 1
 void test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
@@ -254,7 +253,6 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
         metac_value_delete(p_param_val);
         return -(EINVAL);
     }
-    metac_value_delete(p_param_val);
 
     if (format == NULL) {
         return -(EINVAL);
@@ -285,9 +283,8 @@ METAC_START_TEST(va_arg_to_value) {
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
 
-
+    
     metac_value_delete(p_val);
 
     metac_tag_map_delete(p_tag_map);
 }
-#endif

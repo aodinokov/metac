@@ -781,7 +781,10 @@ void * metac_value_addr(metac_value_t * p_val) {
 void metac_value_delete(metac_value_t * p_val) {
     if (metac_value_has_load_of_parameter(p_val)){
         if (metac_entry_has_parameters(p_val->p_entry) != 0) {
-            // TODO: use metac_value_load_of_subprogram_t
+            metac_value_load_of_subprogram_t * p_in_subprog_load = metac_value_addr(p_val);
+            if (p_in_subprog_load != NULL) {
+                metac_load_of_subprogram_delete(p_in_subprog_load);
+            }
         } else {
             metac_value_load_of_parameter_t * p_in_para_load = metac_value_addr(p_val);
             if (p_in_para_load != NULL) {
