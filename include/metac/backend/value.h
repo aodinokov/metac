@@ -67,33 +67,18 @@ metac_value_t * metac_load_of_parameter_new_value(metac_value_load_of_parameter_
     metac_num_t size);
 metac_num_t metac_load_of_parameter_value_count(metac_value_load_of_parameter_t * p_param_load);
 metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id);
+metac_value_t * metac_load_of_parameter_set_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id, metac_value_t * p_value);
 
 metac_value_load_of_subprogram_t * metac_new_load_of_subprogram(metac_num_t values_count);
 metac_flag_t metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * p_subprog_load);
-
-// to remove
-/** @brief metac_value internal buffer to store unspecified params or va_list */
-typedef struct metac_parameter_load {
-    metac_num_t val_count;  // typically it must be 1, but it can be more for va_list or unspecified param
-    metac_value_t *p_val[];
-} metac_parameter_load_t;
-
-/** @brief metac_value internal buffer to store arguments and result
- * we can't used va_list, because it's getting destroyed as soon as va_arg is called and some fn which uses va_list
- */
-typedef struct metac_value_with_parameters_load {
-    metac_flag_t with_res;      /**< if not 0 - we have only args */
-    void * p_res_buf;           /**< buffer of result */
-
-    metac_num_t parameters_count;
-    metac_value_t *parameters[];
-}metac_value_with_parameters_load_t;
-
-// struct metac_value_with_parameters_load * metac_new_value_with_parameters_load(metac_num_t parameters_count);
-// void metac_value_with_parameters_load_delete(struct metac_value_with_parameters_load * p_load);
-
-metac_parameter_load_t * metac_new_parameter_load(metac_num_t val_count);
-void metac_parameter_load_delete(metac_parameter_load_t * p_pload);
-
+metac_value_t * metac_load_of_subprogram_param_new_value(metac_value_load_of_subprogram_t * p_subprog_load,
+    metac_num_t id,
+    metac_entry_t *p_entry,
+    metac_num_t size);
+metac_value_t * metac_load_of_subprogram_param_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_num_t id);
+metac_value_t * metac_load_of_subprogram_param_set_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_num_t id, metac_value_t * p_value);
+metac_num_t metac_load_of_subprogram_param_value_count(metac_value_load_of_subprogram_t * p_subprog_load);
+metac_value_t * metac_load_of_subprogram_result_value(metac_value_load_of_subprogram_t * p_subprog_load);
+metac_flag_t metac_load_of_subprogram_set_result_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_value_t * p_value);
 
 #endif

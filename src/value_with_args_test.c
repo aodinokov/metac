@@ -87,7 +87,7 @@ METAC_START_TEST(base_type_args_to_value) {
         arg_10, arg_11, arg_12, arg_13, arg_14,
         arg_15, arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_base_args_ptr,
         &arg_00, &arg_01, &arg_02, &arg_03, &arg_04,
@@ -95,7 +95,7 @@ METAC_START_TEST(base_type_args_to_value) {
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
         &arg_15, &arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 }END_TEST
 
 enum test_enum_01 {
@@ -149,10 +149,10 @@ METAC_START_TEST(enum_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
         fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args_ptr");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 }END_TEST
 
 
@@ -182,7 +182,7 @@ METAC_START_TEST(struct_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_struct_args, arg_00, arg_01, arg_02);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 }END_TEST
 
 
@@ -213,7 +213,7 @@ METAC_START_TEST(array_to_value) {
 
     p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_array_args, arg_00, arg_01, arg_02, arg_03, arg_04, arg_05);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 }END_TEST
 
 #if 0
@@ -345,7 +345,7 @@ METAC_START_TEST(va_arg_to_value) {
     metac_value_t *p_val;
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
-    metac_value_with_parameters_delete(p_val);
+    metac_value_delete(p_val);
 
     metac_tag_map_delete(p_tag_map);
 }
