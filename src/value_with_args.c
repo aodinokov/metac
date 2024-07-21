@@ -338,14 +338,6 @@ static void _handle_subprogram(
                 metac_recursive_iterator_fail(p_iter);
                 return;
             }
-
-            // // save region
-            // p_load->parameters[i] = metac_new_value(p_param_type_entry, addr);
-            // if (p_load->parameters[i] == NULL) {
-            //     free(addr);
-            //     metac_recursive_iterator_fail(p_iter);
-            //     return;
-            // }
         }
     }
     metac_recursive_iterator_done(p_iter, NULL);

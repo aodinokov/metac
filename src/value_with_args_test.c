@@ -216,7 +216,7 @@ METAC_START_TEST(array_to_value) {
     metac_value_delete(p_val);
 }END_TEST
 
-#if 0
+#if 1
 void test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
@@ -263,65 +263,7 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
         return -(EINVAL);
     }
 
-    metac_num_t parameters_count = metac_count_format_specifiers(format);
-    metac_entry_t * p_entry = NULL;
-    metac_parameter_load_t * p_pload = metac_new_parameter_load(parameters_count);
-    if (p_pload == NULL) {
-        return -(EINVAL);
-    }
-
-    metac_num_t param_id = 0;
-    size_t pos = 0;
-    metac_printf_specifier_t dummy_specifier;
-
-    struct va_list_container cntr = {};
-    va_copy(cntr.parameters, p_ev->p_va_list_container->parameters);
-
-    while (pos < strlen(format)) {
-        if (format[pos] == '%') {
-            // Check if a valid format specifier follows
-            if (metac_parse_format_specifier(format, &pos, &dummy_specifier) > 0) {
-                switch (dummy_specifier.t) {
-                case 's'/* hmm.. here we could identify length TODO: to think. maybe instead of p_load we need to return array of metac_values */: 
-                case 'p'/* pointers including strings */:{
-                        WITH_METAC_DECLLOC(decl, void * p_buf = calloc(1, sizeof(void*)));
-                        if (p_buf == NULL) {
-                            va_end(cntr.parameters);
-                            metac_parameter_load_delete(p_pload);
-                            return -(EINVAL);                           
-                        }
-                        void * p = va_arg(cntr.parameters, void*);
-                        memcpy(p_buf, &p, sizeof(p));
-                        p_entry = METAC_ENTRY_FROM_DECLLOC(decl, p_buf);
-
-                        // TODO: p_pload->p_val[param_id]
-                    }
-                    break;
-                case 'd':/* basic types */
-                case 'i':
-                case 'c': {
-
-                    }
-                    break;
-                default: {
-                        va_end(cntr.parameters);
-                        metac_parameter_load_delete(p_pload);
-                        return -(EINVAL);
-                    }
-                }
-            }
-        }
-        ++param_id;
-        ++pos;
-    }
-    va_end(cntr.parameters);
-
-    if (p_pload != NULL) {    // TODO: check leaks
-        p_ev->p_return_value = metac_new_value(p_ev->p_va_list_param_entry, p_pload);
-        if (p_ev->p_return_value == NULL) {
-            metac_parameter_load_delete(p_pload);
-        }
-    }
+    p_ev->p_return_value = metac_new_value_vprintf(format, p_ev->p_va_list_container->parameters);
     return 0;
 }
 
@@ -345,6 +287,8 @@ METAC_START_TEST(va_arg_to_value) {
     metac_value_t *p_val;
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%05p\n", NULL);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
+
+    
     metac_value_delete(p_val);
 
     metac_tag_map_delete(p_tag_map);
