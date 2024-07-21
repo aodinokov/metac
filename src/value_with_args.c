@@ -7,6 +7,16 @@
 #include <errno.h>  /*EINVAL... */
 #include <string.h> /*strcmp*/
 
+typedef struct metac_value_load_of_parameter {
+    metac_num_t values_count;
+    metac_value_t ** values;
+} metac_value_load_of_parameter_t;
+
+typedef struct metac_value_load_of_subprogram {
+    metac_value_load_of_parameter_t * parameters;
+    metac_value_t * result;
+} metac_value_load_of_subprogram_t;
+
 metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values_count) {
     _check_(values_count < 0, NULL);
 
