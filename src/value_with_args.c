@@ -250,7 +250,7 @@ static void _handle_subprogram(
 #define _base_type_paremeter_(_type_, _va_type_, _pseudoname_) \
                 do { \
                     if (addr == NULL && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
-                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_type_entry, sizeof(_type_)); \
+                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_entry, sizeof(_type_)); \
                         if (p_param_value == NULL) { \
                             metac_recursive_iterator_fail(p_iter); \
                             return; \
@@ -284,7 +284,7 @@ static void _handle_subprogram(
             } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
                 do {
                     if (addr == NULL ) {
-                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_type_entry, sizeof(void *));
+                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_entry, sizeof(void *));
                         if (p_param_value == NULL) {
                             metac_recursive_iterator_fail(p_iter);
                             return;
@@ -301,7 +301,7 @@ static void _handle_subprogram(
 #define _enum_paremeter_(_type_, _va_type_) \
                 do { \
                     if (addr == NULL && param_byte_sz == sizeof(_type_)) { \
-                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_type_entry, sizeof(_type_)); \
+                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_entry, sizeof(_type_)); \
                         if (p_param_value == NULL) { \
                             metac_recursive_iterator_fail(p_iter); \
                             return; \
@@ -325,7 +325,7 @@ static void _handle_subprogram(
                         /*  NOTE: we can't call calloc AFTER metac_entry_struct_va_paremeter, we can only copy data.
                             calloc, printf and other functions damage the data 
                         */
-                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_type_entry, param_byte_sz);
+                        metac_value_t * p_param_value = metac_load_of_subprogram_param_new_value(p_subprog_load, i, p_param_entry, param_byte_sz);
                         if (p_param_value == NULL) {
                             metac_recursive_iterator_fail(p_iter);
                             return;
