@@ -650,3 +650,45 @@ METAC_START_TEST(test9_satnity) {
     metac_value_delete(p_val);
     metac_tag_map_delete(p_tagmap);
 }END_TEST
+
+void test_function_for_subrouting_sanity1(
+    int a) {
+    return;
+}
+METAC_GSYM_LINK(test_function_for_subrouting_sanity1);
+
+void test_function_for_subrouting_sanity2(
+    int a, short b) {
+    return;
+}
+METAC_GSYM_LINK(test_function_for_subrouting_sanity2);
+
+METAC_START_TEST(subrouting_sanity) {
+    metac_value_t * p_val;
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = NULL;
+
+    p_val = metac_new_value_with_parameters(p_tagmap, 
+        METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity1), 10);
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_for_subrouting_sanity1(int a = 10)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+    p_val = metac_new_value_with_parameters(p_tagmap, 
+        METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity2), 10, -5);
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_for_subrouting_sanity2(int a = 10, short int b = -5)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+}END_TEST
