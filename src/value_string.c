@@ -21,7 +21,13 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
         p = (metac_value_t *)metac_recursive_iterator_next(p_iter)) {
         int state = metac_recursive_iterator_get_state(p_iter);
 
-        metac_kind_t final_kind = metac_value_final_kind(p, NULL);
+        metac_kind_t final_kind;
+        if (metac_value_kind(p) != METAC_KND_subprogram_parameter || metac_value_has_load_of_parameter(p) == 0) {
+            final_kind = metac_value_final_kind(p, NULL);
+        } else {
+            final_kind = METAC_KND_subprogram_parameter;    // unspecified and va_arg;
+        }
+         
         switch(final_kind) {
         case METAC_KND_base_type: {
             char * out = metac_value_base_type_string(p);
@@ -460,6 +466,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                 }
             }
         }
+        case METAC_KND_subprogram_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
         //case METAC_KND_subroutine_type:
         case METAC_KND_subprogram: {
             // TODO: support arguments
@@ -499,14 +506,23 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                             break;
                         }
 
-                        char * param_cdecl = metac_entry_cdecl(metac_entry_parameter_entry(metac_value_entry(p_param_val)));
+                        char * param_cdecl = NULL;
+                        if (metac_value_kind(p_param_val) == METAC_KND_subprogram_parameter) {
+                            // TODO: skip this for ...
+                            param_cdecl = metac_entry_cdecl(metac_entry_parameter_entry(metac_value_entry(p_param_val)));
+                        } else {
+                            param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
+                        }
                         if (param_cdecl == NULL) {
                             free(param_out);
                             failure = 1;
                             break;
                         }
 
-                        char * param_name = metac_entry_name(metac_value_entry(p_param_val));
+                        char * param_name = NULL;
+                        if (metac_value_kind(p_param_val) == METAC_KND_subprogram_parameter) {
+                            param_name = metac_entry_name(metac_value_entry(p_param_val));
+                        }
                         char * param = dsprintf(param_cdecl,
                             param_name == NULL?"":param_name);
                         free(param_cdecl);
@@ -517,10 +533,11 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         }
                         
                         char *prev_out = out;
-                        out = dsprintf("%s%s%s = %s",
+                        out = dsprintf("%s%s%s%s%s",
                             prev_out == NULL?"":prev_out, /*must include , at the end */
                             prev_out == NULL?"":", ",
                             param,
+                            param_name == NULL?" ":" = ",
                             param_out
                         );
                         if (prev_out) {
@@ -540,6 +557,12 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         metac_recursive_iterator_set_state(p_iter, 2); // failure cleanup
                         continue;
                     }
+
+                    if (final_kind == METAC_KND_subprogram_parameter) {
+                        metac_recursive_iterator_done(p_iter, out);
+                        continue;
+                    }
+
                     char *prev_out = out;
                     out = dsprintf("%s(%s)",
                         metac_entry_name(metac_value_entry(p)),

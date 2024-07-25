@@ -470,4 +470,23 @@ METAC_START_TEST(va_arg_to_value) {
     }
 
     metac_tag_map_delete(p_tag_map);
-}
+}END_TEST
+
+METAC_START_TEST(subrouting_sanity) {
+    metac_value_t * p_val;
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_args, "%s %s", "some", "test");
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_with_va_args(const char * format = (const char []){'%', 's', ' ', '%', 's', 0,}, "
+        "va_list parameters = char [5] {'s', 'o', 'm', 'e', 0,}, char [5] {'t', 'e', 's', 't', 0,})";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+    metac_tag_map_delete(p_tagmap);
+}END_TEST
