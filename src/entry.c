@@ -177,6 +177,9 @@ metac_entry_t * metac_entry_final_entry(metac_entry_t *p_entry, metac_quals_t * 
             p_entry = p_entry->variable_info.type;
             break;
         case METAC_KND_subprogram_parameter:
+            if (p_entry->subprogram_parameter_info.unspecified_parameters != 0) {
+                return p_entry; // this is the final entry then
+            }
             p_entry = p_entry->subprogram_parameter_info.type;
             break;
         case METAC_KND_member:
