@@ -507,10 +507,12 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         }
 
                         char * param_cdecl = NULL;
+                        char * param_name = NULL;
                         if (metac_value_kind(p_param_val) == METAC_KND_subprogram_parameter) {
                             // TODO: skip this for ...
                             param_cdecl = metac_entry_cdecl(metac_entry_parameter_entry(metac_value_entry(p_param_val)));
-                        } else {
+                            param_name = metac_entry_name(metac_value_entry(p_param_val));
+                        } else { // then we parse va_arg (subparam) 
                             param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
                         }
                         if (param_cdecl == NULL) {
@@ -519,10 +521,6 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                             break;
                         }
 
-                        char * param_name = NULL;
-                        if (metac_value_kind(p_param_val) == METAC_KND_subprogram_parameter) {
-                            param_name = metac_entry_name(metac_value_entry(p_param_val));
-                        }
                         char * param = dsprintf(param_cdecl,
                             param_name == NULL?"":param_name);
                         free(param_cdecl);
@@ -533,11 +531,12 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         }
                         
                         char *prev_out = out;
-                        out = dsprintf("%s%s%s%s%s",
+                        out = dsprintf("%s%s%s%s%s%s",
                             prev_out == NULL?"":prev_out, /*must include , at the end */
                             prev_out == NULL?"":", ",
+                            param_name == NULL?"(":"",
                             param,
-                            param_name == NULL?" ":" = ",
+                            param_name == NULL?")":" = ",
                             param_out
                         );
                         if (prev_out) {
@@ -559,6 +558,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                     }
 
                     if (final_kind == METAC_KND_subprogram_parameter) {
+                        // if it's unspecified param - done, othervise make it in mk_va_arg(%s)
                         metac_recursive_iterator_done(p_iter, out);
                         continue;
                     }

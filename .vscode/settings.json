@@ -70,6 +70,7 @@
         "stdint.h": "c",
         "test.h": "c",
         "__locale": "c",
-        "ios": "c"
+        "ios": "c",
+        "va_list_ex.h": "c"
     }
 }
