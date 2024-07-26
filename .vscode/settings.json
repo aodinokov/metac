@@ -71,6 +71,7 @@
         "test.h": "c",
         "__locale": "c",
         "ios": "c",
-        "va_list_ex.h": "c"
+        "va_list_ex.h": "c",
+        "stdarg.h": "c"
     }
 }
