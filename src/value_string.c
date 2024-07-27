@@ -520,6 +520,13 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 failure = 1;
                                 break;
                             }
+                            // trim trailing spaces if any
+                            size_t param_type_len = strlen(param_type);
+                            while (param_type_len > 0 && param_type[param_type_len - 1] == ' ') {
+                                param_type[param_type_len - 1] = 0,
+                                --param_type_len;
+                            }
+
 
                             char *prev_out = out;
                             out = dsprintf("%s%s(%s)%s",

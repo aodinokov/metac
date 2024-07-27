@@ -24,7 +24,7 @@ void va_arg_in_va_arg_lvl_3(int expected, ...) {
     struct va_list_container local_cntr = {};
 #if __linux__
     // linux (gcc) can't extract va_arg from va_arg
-    void * p= va_arg(in_cntr.parameters, void*);
+    void * p = va_arg(in_cntr.parameters, void*);
     memcpy(&local_cntr, p, sizeof(local_cntr));
 #else
     // other platforms
@@ -49,6 +49,7 @@ void va_arg_in_va_arg_lvl_1(int expected, ...) {
 
 METAC_START_TEST(va_arg_in_va_arg_precheck) {
     va_arg_in_va_arg_lvl_1(1, 1);
+    va_arg_in_va_arg_lvl_1(-1000, -1000);
 }END_TEST
 #endif
 
@@ -577,12 +578,11 @@ METAC_START_TEST(va_list_sanity) {
     metac_value_t * p_val;
     char *s, *expected_s;
     metac_tag_map_t * p_tagmap = va_args_tag_map();
-
 #define VA_LIST(_args_...) VA_LIST_FROM_CONTAINER(c, _args_)
+
     WITH_VA_LIST_CONTAINER(c, 
         p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST("some", "test"));
     );
-#undef VA_LIST
     fail_unless(p_val != NULL);
 
     expected_s = "test_function_with_va_list("
@@ -595,6 +595,37 @@ METAC_START_TEST(va_list_sanity) {
 
     metac_value_delete(p_val);
 
+    WITH_VA_LIST_CONTAINER(c, 
+        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%d %ld", VA_LIST((int)5, (long int)-100));
+    );
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_with_va_list("
+        "(const char []){'%', 'd', ' ', '%', 'l', 'd', 0,}, "
+        "VA_LIST((int)5, (long int)-100))";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+    WITH_VA_LIST_CONTAINER(c, 
+        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%p", VA_LIST((void *)NULL));
+    );
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_with_va_list("
+        "(const char []){'%', 'p', 0,}, "
+        "VA_LIST((void *)NULL))";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+#undef VA_LIST
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
