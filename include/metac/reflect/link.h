@@ -34,6 +34,8 @@ struct metac_entry_link {
 #endif /* _METAC_OFF_ */
 
 #define METAC_GSYM_LINK(name) _METAC_GSYM_LINK(name)
+// this allows to use the link to itself in the functions
+#define METAC_GSYM_LINK_DECLARE(name) struct metac_entry_link METAC_GSYM_LINK_NAME(name)
 
 /** @brief use this marcos to request entry for the given global symbol (variable or subroutine) */
 #define METAC_GSYM_LINK_ENTRY(_name_) ({ \

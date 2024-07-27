@@ -495,7 +495,6 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                     metac_flag_t failure = 0;
                     char * out = NULL;
 
-                    /* build center part .<name> = out*/
                     while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
                         metac_value_t * p_param_val;
                         char * param_out = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_param_val, NULL);
@@ -505,45 +504,48 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                             failure = 1;
                             break;
                         }
+                       
+                        if (final_kind == METAC_KND_subprogram_parameter) { // building va_list or ...
+                            char * param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
+                            if (param_cdecl == NULL) {
+                                free(out);
+                                failure = 1;
+                                break;
+                            }
 
-                        char * param_cdecl = NULL;
-                        char * param_name = NULL;
-                        if (metac_value_kind(p_param_val) == METAC_KND_subprogram_parameter) {
-                            // TODO: skip this for ...
-                            param_cdecl = metac_entry_cdecl(metac_entry_parameter_entry(metac_value_entry(p_param_val)));
-                            param_name = metac_entry_name(metac_value_entry(p_param_val));
-                        } else { // then we parse va_arg (subparam) 
-                            param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
-                        }
-                        if (param_cdecl == NULL) {
+                            char * param_type = dsprintf(param_cdecl, "");
+                            free(param_cdecl);
+                            if (param_type == NULL) {
+                                free(out);
+                                failure = 1;
+                                break;
+                            }
+
+                            char *prev_out = out;
+                            out = dsprintf("%s%s(%s)%s",
+                                prev_out == NULL?"":prev_out, /*must include , at the end */
+                                prev_out == NULL?"":", ",
+                                param_type,
+                                param_out
+                            );
+                            free(param_type);
                             free(param_out);
-                            failure = 1;
-                            break;
+                            if (prev_out) {
+                                free(prev_out);
+                            }
+                        } else { // building part of fn call - append value
+                            char *prev_out = out;
+                            out = dsprintf("%s%s%s",
+                                prev_out == NULL?"":prev_out, /*must include , at the end */
+                                prev_out == NULL?"":", ",
+                                param_out
+                            );
+                            free(param_out);
+                            if (prev_out) {
+                                free(prev_out);
+                            }
                         }
 
-                        char * param = dsprintf(param_cdecl,
-                            param_name == NULL?"":param_name);
-                        free(param_cdecl);
-                        if (param == NULL) {
-                            free(param_out);
-                            failure = 1;
-                            break;
-                        }
-                        
-                        char *prev_out = out;
-                        out = dsprintf("%s%s%s%s%s%s",
-                            prev_out == NULL?"":prev_out, /*must include , at the end */
-                            prev_out == NULL?"":", ",
-                            param_name == NULL?"(":"",
-                            param,
-                            param_name == NULL?")":" = ",
-                            param_out
-                        );
-                        if (prev_out) {
-                            free(prev_out);
-                        }
-                        free(param);
-                        free(param_out);
                         if (out == NULL) {
                             failure = 1;
                             break; 
@@ -558,7 +560,15 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                     }
 
                     if (final_kind == METAC_KND_subprogram_parameter) {
-                        // if it's unspecified param - done, othervise make it in mk_va_arg(%s)
+                        if (metac_entry_is_va_list_parameter(metac_value_entry(p))!=0) { // wrap with VA_LIST()
+                            char *prev_out = out;
+                            out = dsprintf("VA_LIST(%s)",prev_out);
+                            free(prev_out);
+                            if (out == NULL) {
+                                metac_recursive_iterator_set_state(p_iter, 2); // failure cleanup
+                                continue;   
+                            }
+                        }
                         metac_recursive_iterator_done(p_iter, out);
                         continue;
                     }

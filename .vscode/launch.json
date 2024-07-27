@@ -8,7 +8,7 @@
             "name": "(gdb) Launch - Linux",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/value_string_test",
+            "program": "${fileDirname}/value_with_args_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

@@ -23,7 +23,7 @@
     }while(0)
 
 // this must be big enough to cover stack for alloca
-#define _va_list_padding (int)0x5555, (int)0x5555, (int)0x5555, (int)0x5555
+#define _va_list_padding (int)0x55AAAA55, (int)0x55AAAA55, (int)0x55AAAA55, (int)0x55AAAA55
 static inline void va_list_container_start(void** pp, struct va_list_container * p, ...) {
     *pp = (void*)&(pp); // store the top stack param addr
     va_start(p->parameters, p);

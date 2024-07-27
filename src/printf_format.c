@@ -5,6 +5,7 @@
 #include "metac/backend/printf_format.h"
 #include "metac/backend/value.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h> /*strlen*/
 #include <ctype.h>
@@ -117,45 +118,51 @@ size_t metac_count_format_specifiers(const char *format) {
     return num_specifiers;
 }
 
-static metac_value_t * _new_value_from_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr);
+static metac_value_t * _new_value_from_format_specifier(const char * format, metac_entry_t * p_va_list_entry, struct va_list_container * p_cntr);
 
-metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters) {
+metac_value_t * metac_new_value_vprintf_ex(const char * format, metac_entry_t * p_va_list_entry, va_list parameters) {
     struct va_list_container cntr = {};
 
     va_copy(cntr.parameters, parameters);
-    metac_value_t * p_value = _new_value_from_format_specifier(format, (void*)metac_new_value_vprintf, &cntr);
+    metac_value_t * p_value = _new_value_from_format_specifier(format, p_va_list_entry, &cntr);
     va_end(cntr.parameters);
 
     return p_value;
 }
+
+METAC_GSYM_LINK_DECLARE(metac_new_value_vprintf);
+metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters) {
+    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_vprintf);
+    assert(
+        p_fn_entry != NULL &&
+        metac_entry_has_parameters(p_fn_entry) != 0 &&
+        metac_entry_parameters_count(p_fn_entry) == 2);
+    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
+
+    return metac_new_value_vprintf_ex(format, p_va_list_entry, parameters);
+}
 METAC_GSYM_LINK(metac_new_value_vprintf);
 
+METAC_GSYM_LINK_DECLARE(metac_new_value_printf);
 metac_value_t * metac_new_value_printf(const char * format, ...) {
+    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_printf);
+    assert(
+        p_fn_entry != NULL &&
+        metac_entry_has_parameters(p_fn_entry) != 0 &&
+        metac_entry_parameters_count(p_fn_entry) == 2);
+    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
+
     struct va_list_container cntr = {};
 
     va_start(cntr.parameters, format);
-    metac_value_t * p_value = _new_value_from_format_specifier(format, (void*)metac_new_value_printf, &cntr);
+    metac_value_t * p_value = _new_value_from_format_specifier(format, p_va_list_entry, &cntr);
     va_end(cntr.parameters);
 
     return p_value;
 }
 METAC_GSYM_LINK(metac_new_value_printf);
 
-static metac_value_t * _new_value_from_format_specifier(const char * format, void * fn_ptr, struct va_list_container * p_cntr) {
-    metac_entry_t *p_fn_entry = NULL;
-    if (fn_ptr == metac_new_value_vprintf) {
-        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_vprintf);
-    } else if (fn_ptr == metac_new_value_printf) {
-        p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_printf);
-    }
-
-    if (p_fn_entry == NULL ||
-        metac_entry_has_parameters(p_fn_entry) == 0 ||
-        metac_entry_parameters_count(p_fn_entry) != 2) {
-        return NULL;
-    }
-
-    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
+static metac_value_t * _new_value_from_format_specifier(const char * format, metac_entry_t * p_va_list_entry, struct va_list_container * p_cntr) {
     if (p_va_list_entry == NULL ||
         metac_entry_has_load_of_parameter(p_va_list_entry) == 0) {
         return NULL;

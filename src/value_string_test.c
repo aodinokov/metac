@@ -672,7 +672,7 @@ METAC_START_TEST(subrouting_sanity) {
         METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity1), 10);
     fail_unless(p_val != NULL);
 
-    expected_s = "test_function_for_subrouting_sanity1(int a = 10)";
+    expected_s = "test_function_for_subrouting_sanity1(10)";
     s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -684,7 +684,7 @@ METAC_START_TEST(subrouting_sanity) {
         METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity2), 10, -5);
     fail_unless(p_val != NULL);
 
-    expected_s = "test_function_for_subrouting_sanity2(int a = 10, short int b = -5)";
+    expected_s = "test_function_for_subrouting_sanity2(10, -5)";
     s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);

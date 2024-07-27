@@ -1,6 +1,8 @@
 #include "metac/test.h"
 #include <stdio.h>
 
+#include "metac/backend/va_list_ex.h"
+
 #include "entry.c"
 #include "entry_cdecl.c"
 #include "entry_db.c"
@@ -216,12 +218,16 @@ METAC_START_TEST(array_to_value) {
     metac_value_delete(p_val);
 }END_TEST
 
+void test_function_with_va_list(const char * format, va_list vl) {
+    vprintf(format, vl);
+}
+METAC_GSYM_LINK(test_function_with_va_list);
+
 void test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
-    vprintf(format, l);
+    test_function_with_va_list(format, l);
     va_end(l);
-    return;
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
@@ -235,7 +241,12 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
         return -(EINVAL);
     }
     metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
+    metac_entry_t *p_va_list_entry = metac_entry_by_paremeter_id(metac_value_entry(p_val), p_ev->va_list_param_id);
     metac_value_t *p_param_val = metac_new_value_by_paremeter_id(p_val, p_ev->va_list_param_id -1 /* use previous param */);
+
+    if (p_va_list_entry == NULL) {
+        return -(EINVAL);
+    }
 
     if (p_param_val == NULL) {
         return -(EINVAL);
@@ -258,7 +269,7 @@ static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value
         return -(EINVAL);
     }
 
-    p_ev->p_return_value = metac_new_value_vprintf(format, p_ev->p_va_list_container->parameters);
+    p_ev->p_return_value = metac_new_value_vprintf_ex(format, p_va_list_entry, p_ev->p_va_list_container->parameters);
     return 0;
 }
 
@@ -277,6 +288,17 @@ METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask =
             .handler = _va_arg_hdlr,
         )
     METAC_TAG_MAP_ENTRY_END
+
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(test_function_with_va_list))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "format"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
+            .handler = _va_arg_hdlr,
+        )
+    METAC_TAG_MAP_ENTRY_END
+
+
 METAC_TAG_MAP_END
 
 METAC_START_TEST(va_arg_to_value) {
@@ -291,6 +313,12 @@ METAC_START_TEST(va_arg_to_value) {
     char b1[32], b2[32];
     snprintf(b1, sizeof(b1), "%p", (void*)0x100);
     snprintf(b2, sizeof(b2), "%p", (void*)0xff00);
+
+    // special case - test_function_with_va_list
+    metac_value_t *p_list_val;  
+    WITH_VA_LIST_CONTAINER(c,
+        p_list_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
+    );
 
     struct {
         metac_value_t * p_parsed_value;
@@ -433,6 +461,14 @@ METAC_START_TEST(va_arg_to_value) {
                 "NULL", "NULL"
             },
         },
+        {
+            .p_parsed_value = p_list_val,
+            .expected_sz = 3,
+            .expected_s = (char *[]){
+                "(const char []){'%', 's', ' ', '%', 's', 0,}",
+                "{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}",
+            },
+        },
     };
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
@@ -481,13 +517,33 @@ METAC_START_TEST(subrouting_sanity) {
     p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_args, "%s %s", "some", "test");
     fail_unless(p_val != NULL);
 
-    expected_s = "test_function_with_va_args(const char * format = (const char []){'%', 's', ' ', '%', 's', 0,}, "
-        "(char [5]){'s', 'o', 'm', 'e', 0,}, (char [5]){'t', 'e', 's', 't', 0,})";
+    expected_s = "test_function_with_va_args("
+        "(const char []){'%', 's', ' ', '%', 's', 0,}, "
+        "(char [5]){'s', 'o', 'm', 'e', 0,}, "
+        "(char [5]){'t', 'e', 's', 't', 0,})";
     s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
     fail_unless(s != NULL, "got NULL");
-    //fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
     metac_value_delete(p_val);
+
+    ///
+    WITH_VA_LIST_CONTAINER(c,
+        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
+    );
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_with_va_list("
+        "(const char []){'%', 's', ' ', '%', 's', 0,}, "
+        "VA_LIST((char [5]){'s', 'o', 'm', 'e', 0,}, (char [5]){'t', 'e', 's', 't', 0,}))";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+
     metac_tag_map_delete(p_tagmap);
 }END_TEST

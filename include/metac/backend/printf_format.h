@@ -41,5 +41,6 @@ size_t metac_parse_format_specifier(const char *format, size_t *pos, metac_print
 size_t metac_count_format_specifiers(const char *format);
 metac_value_t * metac_new_value_printf(const char * format, ...);
 metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters);
+metac_value_t * metac_new_value_vprintf_ex(const char * format, metac_entry_t * p_va_list_entry, va_list parameters);
 
 #endif

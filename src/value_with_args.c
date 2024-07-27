@@ -177,6 +177,10 @@ metac_flag_t metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * 
     return 1;
 }
 
+static void _va_list_cp_to_container(struct va_list_container * dst, va_list src) {
+    va_copy(dst->parameters, src);
+}
+
 static void _handle_subprogram(
     metac_recursive_iterator_t * p_iter,
     metac_value_t * p,
@@ -204,8 +208,8 @@ static void _handle_subprogram(
             return;
         }
 
-        if (metac_entry_is_unspecified_parameter(p_param_entry) != 0 /* ||
-            metac_entry_is_va_list_parameter(p_param_entry) != 0 ???*/) {
+        if (metac_entry_is_unspecified_parameter(p_param_entry) != 0 ||
+            metac_entry_is_va_list_parameter(p_param_entry) != 0) {
             if (p_tag_map == NULL) {
                 metac_recursive_iterator_fail(p_iter);
                 return;
@@ -217,12 +221,28 @@ static void _handle_subprogram(
                 .p_va_list_param_entry = p_param_entry,
                 .p_va_list_container = p_va_list_container,
             };
+
             metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, p_param_entry);
+            
             if (p_tag != NULL && p_tag->handler) {
+
+                // if parameter is va_list - we need to extract it
+                int local = 0;
+                struct va_list_container local_cntr = {};
+                if (metac_entry_is_va_list_parameter(p_param_entry) != 0) {
+                    local = 1;
+                    _va_list_cp_to_container(&local_cntr, va_arg(p_va_list_container->parameters, va_list));
+                    ev.p_va_list_container = &local_cntr;
+                }
+
                 if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                    if (local != 0){va_end(local_cntr.parameters);}
+
                     metac_recursive_iterator_fail(p_iter);
                     return;
                 }
+                if (local != 0){va_end(local_cntr.parameters);}
+
                 if (ev.p_return_value == NULL) {
                     metac_recursive_iterator_fail(p_iter);
                     return;
