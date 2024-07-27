@@ -231,7 +231,13 @@ static void _handle_subprogram(
                 struct va_list_container local_cntr = {};
                 if (metac_entry_is_va_list_parameter(p_param_entry) != 0) {
                     local = 1;
+#if __linux__
+                    // linux (gcc) can't extract va_arg from va_arg
+                    void * p = va_arg(p_va_list_container->parameters, void*);
+                    memcpy(&local_cntr, p, sizeof(local_cntr));
+#else
                     _va_list_cp_to_container(&local_cntr, va_arg(p_va_list_container->parameters, va_list));
+#endif
                     ev.p_va_list_container = &local_cntr;
                 }
 

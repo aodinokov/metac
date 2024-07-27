@@ -369,13 +369,11 @@ METAC_START_TEST(va_arg_to_value) {
     snprintf(b1, sizeof(b1), "%p", (void*)0x100);
     snprintf(b2, sizeof(b2), "%p", (void*)0xff00);
 
-#if 0
     // special case - test_function_with_va_list
     metac_value_t *p_list_val;  
     WITH_VA_LIST_CONTAINER(c,
         p_list_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
-#endif
 
     struct {
         metac_value_t * p_parsed_value;
@@ -518,7 +516,6 @@ METAC_START_TEST(va_arg_to_value) {
                 "NULL", "NULL"
             },
         },
-#if 0
         {
             .p_parsed_value = p_list_val,
             .expected_sz = 3,
@@ -527,7 +524,6 @@ METAC_START_TEST(va_arg_to_value) {
                 "{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}",
             },
         },
-#endif
     };
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
@@ -588,7 +584,6 @@ METAC_START_TEST(subrouting_sanity) {
     metac_value_delete(p_val);
 
     ///
-#if 0
     WITH_VA_LIST_CONTAINER(c,
         p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
@@ -603,7 +598,6 @@ METAC_START_TEST(subrouting_sanity) {
     free(s);
 
     metac_value_delete(p_val);
-#endif
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
