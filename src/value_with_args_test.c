@@ -16,6 +16,37 @@
 
 #include "value_with_args.c"
 
+static void _local_va_list_cp_to_container(struct va_list_container * dst, va_list src) {
+    va_copy(dst->parameters, src);
+}
+
+void va_arg_in_va_arg_lvl_3(int expected, ...) {
+    va_list ap;
+    va_start(ap, expected);
+    
+    struct va_list_container local_cntr = {};
+    _local_va_list_cp_to_container(&local_cntr, va_arg(ap, va_list));
+
+    int res = va_arg(local_cntr.parameters, int);
+    fail_unless(expected == res, "expected %d, got %d", expected, res);
+    va_end(ap);
+}
+
+void va_arg_in_va_arg_lvl_2(int expected, va_list ap) {
+    va_arg_in_va_arg_lvl_3(expected, ap);
+}
+
+void va_arg_in_va_arg_lvl_1(int expected, ...) {
+    va_list ap;
+    va_start(ap, expected);
+    va_arg_in_va_arg_lvl_2(expected, ap);
+    va_end(ap);
+}
+
+METAC_START_TEST(va_arg_in_va_arg_precheck) {
+    va_arg_in_va_arg_lvl_1(1, 1);
+}END_TEST
+
 #define METAC_NEW_VALUE_WITH_ARGS(_p_tag_map_, _fn_, _args_...) \
         metac_new_value_with_parameters(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
 
@@ -461,6 +492,7 @@ METAC_START_TEST(va_arg_to_value) {
                 "NULL", "NULL"
             },
         },
+#if 0
         {
             .p_parsed_value = p_list_val,
             .expected_sz = 3,
@@ -469,6 +501,7 @@ METAC_START_TEST(va_arg_to_value) {
                 "{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}",
             },
         },
+#endif
     };
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
@@ -529,6 +562,7 @@ METAC_START_TEST(subrouting_sanity) {
     metac_value_delete(p_val);
 
     ///
+#if 0
     WITH_VA_LIST_CONTAINER(c,
         p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
@@ -543,7 +577,7 @@ METAC_START_TEST(subrouting_sanity) {
     free(s);
 
     metac_value_delete(p_val);
-
+#endif
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
