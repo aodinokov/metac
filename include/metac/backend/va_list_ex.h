@@ -18,6 +18,7 @@
 */
 #define WITH_VA_LIST_CONTAINER(_name_, _in_...) do { \
         struct va_list_container _name_; \
+        void * _ptr_ = NULL; \
         _in_ \
         va_end(_name_.parameters); \
     }while(0)
@@ -36,7 +37,7 @@ static inline void va_list_container_start(void** pp, struct va_list_container *
 #define VA_LIST_CONTAINER(_name_, _args_...) ({ \
         void* pp = NULL; \
         va_list_container_start(&pp, &_name_, _args_, _va_list_padding); \
-        alloca(((char*)&pp)-((char*)pp)); \
+        _ptr_ = alloca(((char*)&pp)-((char*)pp)); \
         &_name_; \
     })
 #define VA_LIST_FROM_CONTAINER(_name_, _args_...) VA_LIST_CONTAINER(_name_, _args_)->parameters
