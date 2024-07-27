@@ -444,7 +444,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%lo, %lu, %lx, %lX", 11800000, 12000000, 12100000, 12200000),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%lo, %lu, %lx, %lX", 11800000L, 12000000L, 12100000L, 12200000L),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'l', 'o', ',', ' ', '%', 'l', 'u', ',', ' ', '%', 'l', 'x', ',', ' ', '%', 'l', 'X', 0,}",
