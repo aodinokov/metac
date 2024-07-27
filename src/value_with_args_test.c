@@ -268,48 +268,6 @@ void test_function_with_va_args(const char * format, ...) {
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
-static int _va_arg_hdlr(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
-    if (p_ev == NULL) {
-        return -(EINVAL);
-    }
-    if (p_ev->type != METAC_RQVST_va_list ||
-        p_ev->p_va_list_container == NULL ||
-        metac_value_walker_hierarchy_level(p_hierarchy) < 0) {
-        return -(EINVAL);
-    }
-    metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
-    metac_entry_t *p_va_list_entry = metac_entry_by_paremeter_id(metac_value_entry(p_val), p_ev->va_list_param_id);
-    metac_value_t *p_param_val = metac_new_value_by_paremeter_id(p_val, p_ev->va_list_param_id -1 /* use previous param */);
-
-    if (p_va_list_entry == NULL) {
-        return -(EINVAL);
-    }
-
-    if (p_param_val == NULL) {
-        return -(EINVAL);
-    }
-
-    if (metac_value_is_pointer(p_param_val) == 0) {
-        metac_value_delete(p_param_val);
-        return -(EINVAL);
-    }
-    // TODO: check that it's char * (use cdecl?)
-
-    // extract pointer
-    char * format = NULL;
-    if (metac_value_pointer(p_param_val, (void **)&format) != 0) {
-        metac_value_delete(p_param_val);
-        return -(EINVAL);
-    }
-
-    if (format == NULL) {
-        return -(EINVAL);
-    }
-
-    p_ev->p_return_value = metac_new_value_vprintf_ex(format, p_va_list_entry, p_ev->p_va_list_container->parameters);
-    return 0;
-}
-
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
@@ -322,7 +280,7 @@ METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask =
             METAC_ZERO_ENDED_STRING()
         )
         METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
-            .handler = _va_arg_hdlr,
+            METAC_FORMAT_BASED_VA_ARG()
         )
     METAC_TAG_MAP_ENTRY_END
 
@@ -330,8 +288,8 @@ METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask =
         METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "format"}),
             METAC_ZERO_ENDED_STRING()
         )
-        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
-            .handler = _va_arg_hdlr,
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "vl"}), 
+            METAC_FORMAT_BASED_VA_ARG()
         )
     METAC_TAG_MAP_ENTRY_END
 

@@ -6,6 +6,7 @@
 #include "entry_db.c"
 #include "hashmap.c"
 #include "iterator.c"
+#include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
 #include "value_with_args.c"

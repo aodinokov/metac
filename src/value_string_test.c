@@ -8,6 +8,7 @@
 #include "entry_tag.c"
 #include "iterator.c"
 #include "hashmap.c"
+#include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
 #include "value_with_args.c"

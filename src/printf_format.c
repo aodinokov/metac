@@ -1,3 +1,7 @@
+// this is needed because we're using reflection inside this source file
+// and we want that information not to conflict with dflt
+#include "_module.h"
+
 // this is a very naive version. it's needed to demonstrate the idea of how to print va_args
 // see value_with_args.c and its test for more details
 #include "metac/reflect.h"

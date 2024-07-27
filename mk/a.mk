@@ -4,6 +4,10 @@ define a_target_tpl
 # add extra ARFLAGS specific for this target
 $$(addprefix $1/,$2): ARFLAGS+=$$(ARFLAGS-$2)
 
+ifneq ($$(INCFLAGS-$2),)
+$$(addprefix $1/,$$(IN-$2)): CFLAGS+=$$(INCFLAGS-$2)
+endif
+
 # rule to generate target .a from IN-files for this target
 $$(addprefix $1/,$2): $$(addprefix $1/,$$(IN-$2))
 	$$(AR) $$(ARFLAGS) $$@ $$^

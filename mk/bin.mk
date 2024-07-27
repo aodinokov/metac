@@ -8,6 +8,10 @@ ifneq ($$(CC-$2),)
 $$(addprefix $1/,$2): CC=$$(CC-$2)
 endif
 
+ifneq ($$(INCFLAGS-$2),)
+$$(addprefix $1/,$$(IN-$2)): CFLAGS+=$$(INCFLAGS-$2)
+endif
+
 # rule to generate target from IN-files for this target. NOTE: manually add -shared ad LDFLAG for .so
 $$(addprefix $1/,$2): $$(addprefix $1/,$$(IN-$2)) $$(DEPS-$2)
 	@$$(PRE-$2)

@@ -423,4 +423,14 @@ void metac_ptr_cast_context_delete(void *p_context);
 /** @brief internal implementation */
 int metac_handle_ptr_cast(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
 
+/**
+ * @brief instruct metac_new_value_with_parameters or metac_new_value_with_vparameters that the argument is variadic and
+ * can be handled based on the previous argument that is pritnf format string
+*/
+#define METAC_FORMAT_BASED_VA_ARG() \
+    .handler = metac_handle_printf_format,
+
+/** @brief internal implementation */
+int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
+
 #endif
