@@ -7,6 +7,11 @@
 #include <errno.h>  /*EINVAL... */
 #include <string.h> /*strcmp*/
 
+// disable this to avoid supporting of this feature
+#ifndef VA_ARG_IN_VA_ARG
+#define VA_ARG_IN_VA_ARG 1
+#endif
+
 typedef struct metac_value_load_of_parameter {
     metac_num_t values_count;
     metac_value_t ** values;
@@ -177,9 +182,11 @@ metac_flag_t metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * 
     return 1;
 }
 
+#if VA_ARG_IN_VA_ARG != 0
 static void _va_list_cp_to_container(struct va_list_container * dst, va_list src) {
     va_copy(dst->parameters, src);
 }
+#endif 
 
 static void _handle_subprogram(
     metac_recursive_iterator_t * p_iter,
@@ -208,8 +215,11 @@ static void _handle_subprogram(
             return;
         }
 
-        if (metac_entry_is_unspecified_parameter(p_param_entry) != 0 ||
-            metac_entry_is_va_list_parameter(p_param_entry) != 0) {
+        if (metac_entry_is_unspecified_parameter(p_param_entry) != 0
+#if VA_ARG_IN_VA_ARG != 0
+            || metac_entry_is_va_list_parameter(p_param_entry) != 0
+#endif
+            ) {
             if (p_tag_map == NULL) {
                 metac_recursive_iterator_fail(p_iter);
                 return;
@@ -229,6 +239,7 @@ static void _handle_subprogram(
                 // if parameter is va_list - we need to extract it
                 int local = 0;
                 struct va_list_container local_cntr = {};
+#if VA_ARG_IN_VA_ARG != 0
                 if (metac_entry_is_va_list_parameter(p_param_entry) != 0) {
                     local = 1;
 #if __linux__
@@ -240,6 +251,7 @@ static void _handle_subprogram(
 #endif
                     ev.p_va_list_container = &local_cntr;
                 }
+#endif
 
                 if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
                     if (local != 0){va_end(local_cntr.parameters);}

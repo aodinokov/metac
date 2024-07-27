@@ -16,27 +16,7 @@
 
 #include "value_with_args.c"
 
-static int _va_list_from_va_list_option() {
-    int option = 0;
-    WITH_METAC_DECLLOC(c,
-        va_list x;
-    );
-    metac_entry_t *p = METAC_ENTRY_FROM_DECLLOC(c, x);
-    if (p == NULL) {
-        return -(EFAULT);
-    }
-    char * cdecl = metac_entry_cdecl(p);
-    if (cdecl == NULL) {
-        return -(EFAULT);
-    }
-    if (strcmp(cdecl, "va_list x") == 0) {
-        option = 1; // linux
-    }
-    free(cdecl);
-    return option;
-}
-
-
+#if VA_ARG_IN_VA_ARG != 0
 void va_arg_in_va_arg_lvl_3(int expected, ...) {
     struct va_list_container in_cntr;
     va_start(in_cntr.parameters, expected);
@@ -70,6 +50,7 @@ void va_arg_in_va_arg_lvl_1(int expected, ...) {
 METAC_START_TEST(va_arg_in_va_arg_precheck) {
     va_arg_in_va_arg_lvl_1(1, 1);
 }END_TEST
+#endif
 
 #define METAC_NEW_VALUE_WITH_ARGS(_p_tag_map_, _fn_, _args_...) \
         metac_new_value_with_parameters(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
@@ -369,11 +350,13 @@ METAC_START_TEST(va_arg_to_value) {
     snprintf(b1, sizeof(b1), "%p", (void*)0x100);
     snprintf(b2, sizeof(b2), "%p", (void*)0xff00);
 
+#if VA_ARG_IN_VA_ARG != 0
     // special case - test_function_with_va_list
     metac_value_t *p_list_val;  
     WITH_VA_LIST_CONTAINER(c,
         p_list_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
+#endif
 
     struct {
         metac_value_t * p_parsed_value;
@@ -516,6 +499,7 @@ METAC_START_TEST(va_arg_to_value) {
                 "NULL", "NULL"
             },
         },
+#if VA_ARG_IN_VA_ARG != 0
         {
             .p_parsed_value = p_list_val,
             .expected_sz = 3,
@@ -524,6 +508,7 @@ METAC_START_TEST(va_arg_to_value) {
                 "{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}",
             },
         },
+#endif
     };
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
@@ -584,6 +569,7 @@ METAC_START_TEST(subrouting_sanity) {
     metac_value_delete(p_val);
 
     ///
+#if VA_ARG_IN_VA_ARG != 0
     WITH_VA_LIST_CONTAINER(c,
         p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
@@ -598,6 +584,7 @@ METAC_START_TEST(subrouting_sanity) {
     free(s);
 
     metac_value_delete(p_val);
+#endif
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
