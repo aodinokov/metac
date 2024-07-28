@@ -268,6 +268,9 @@ void test_function_with_va_args(const char * format, ...) {
 }
 METAC_GSYM_LINK(test_function_with_va_args);
 
+void test_array_len(int * arr, int len) {}
+METAC_GSYM_LINK(test_array_len);
+
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
@@ -293,6 +296,11 @@ METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask =
         )
     METAC_TAG_MAP_ENTRY_END
 
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(test_array_len))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "arr"}),
+            METAC_COUNT_BY(len)
+        )
+    METAC_TAG_MAP_ENTRY_END
 
 METAC_TAG_MAP_END
 
@@ -588,3 +596,38 @@ METAC_START_TEST(va_list_sanity) {
 }END_TEST
 
 #endif
+
+METAC_START_TEST(array_len_sanity) {
+    metac_value_t * p_val;
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+    int * test_arr1 = (int[]){0, 1, 2, 3};
+    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_array_len, test_arr1, 4);
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_array_len((int []){0, 1, 2, 3,}, 4)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+
+    int test_arr2[] = {0, 1, 2, 3, 4};
+    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_array_len, test_arr2, sizeof(test_arr2)/sizeof(test_arr2[0]));
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_array_len((int []){0, 1, 2, 3, 4,}, 5)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+
+    metac_tag_map_delete(p_tagmap);
+
+}END_TEST

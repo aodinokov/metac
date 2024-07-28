@@ -472,7 +472,7 @@ metac_num_t metac_value_parameters_count(metac_value_t *p_val) {
     return metac_entry_parameters_count(_value_with_subprogram_info(p_val));
 }
 
-metac_value_t * metac_new_value_by_paremeter_id(metac_value_t *p_val, metac_num_t paremeter_id) {
+metac_value_t * metac_value_by_parameter_id(metac_value_t *p_val, metac_num_t paremeter_id) {
     metac_entry_t * p_final_entry = _value_with_subprogram_info(p_val);
     _check_(p_final_entry == NULL, NULL);
     _check_(paremeter_id < 0 || paremeter_id >= metac_entry_parameters_count(p_final_entry), NULL);

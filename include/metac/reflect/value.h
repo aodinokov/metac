@@ -373,7 +373,7 @@ metac_value_t * metac_value_load_of_parameter_value(metac_value_t * p_val, metac
 
 metac_flag_t metac_value_has_parameters(metac_value_t * p_val);
 metac_num_t metac_value_parameters_count(metac_value_t *p_val);
-metac_value_t * metac_new_value_by_paremeter_id(metac_value_t *p_val, metac_num_t paremeter_id);
+metac_value_t * metac_value_by_parameter_id(metac_value_t *p_val, metac_num_t paremeter_id);
 
 metac_value_t * metac_new_value_with_parameters(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...);
 metac_value_t * metac_new_value_with_vparameters(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters);
