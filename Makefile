@@ -54,19 +54,21 @@ go_test:
 endif
 .PHONY: go_test
 
-libmetac+= \
+libmetac_no_reflect+= \
 	src/entry.c \
 	src/entry_cdecl.c \
 	src/entry_db.c \
 	src/entry_tag.c \
 	src/hashmap.c \
 	src/iterator.c \
-	src/printf_format.c \
 	src/value.c \
 	src/value_base_type.c \
 	src/value_deep.c \
 	src/value_string.c \
 	src/value_with_args.c
+libmetac_reflect+= \
+	src/printf_format.c
+libmetac+=$(libmetac_no_reflect) $(libmetac_reflect)
 
 gl_rules+= \
 	src/libmetac.a \
@@ -80,7 +82,8 @@ INCFLAGS-src/libmetac.a+=-DMETAC_MODULE_NAME=libmetac
 # this is to genearte
 TPL-src/_meta_libmetac+=bin_target
 IN-src/_meta_libmetac= \
-	$(libmetac:%.c=%.meta.o) \
+	$(libmetac_no_reflect:%.c=%.o) \
+	$(libmetac_reflect:%.c=%.meta.o) \
 	src/_module.o
 INCFLAGS-src/_meta_libmetac+=-DMETAC_MODULE_NAME=libmetac
 POST-src/_meta_libmetac=$(METAC_POST_META)
