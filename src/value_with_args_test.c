@@ -53,7 +53,7 @@ METAC_START_TEST(va_arg_in_va_arg_precheck) {
 }END_TEST
 #endif
 
-#define METAC_NEW_VALUE_WITH_ARGS(_p_tag_map_, _fn_, _args_...) \
+#define METAC_NEW_VALUE_WITH_ARGS_FN(_p_tag_map_, _fn_, _args_...) \
         metac_new_value_with_parameters(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
 
 void test_function_with_base_args(
@@ -77,6 +77,24 @@ void test_function_with_base_args(
     return;
 }
 METAC_GSYM_LINK(test_function_with_base_args);
+typedef void test_function_with_base_args_t(
+    char arg_00,
+    unsigned char arg_01,
+    short arg_02,
+    unsigned short arg_03,
+    int arg_04,
+    unsigned int arg_05,
+    long arg_06,
+    unsigned long arg_07,
+    long long arg_08,
+    unsigned long long arg_09,
+    bool arg_10,
+    float arg_11,
+    double arg_12,
+    long double arg_13,
+    float complex arg_14,
+    double complex arg_15,
+    long double complex arg_16);
 
 void test_function_with_base_args_ptr(char * arg_00,
     unsigned char *arg_01,
@@ -98,6 +116,23 @@ void test_function_with_base_args_ptr(char * arg_00,
     return;
 }
 METAC_GSYM_LINK(test_function_with_base_args_ptr);
+typedef void test_function_with_base_args_ptr_t(char * arg_00,
+    unsigned char *arg_01,
+    short *arg_02,
+    unsigned short *arg_03,
+    int *arg_04,
+    unsigned int *arg_05,
+    long *arg_06,
+    unsigned long *arg_07,
+    long long *arg_08,
+    unsigned long long *arg_09,
+    bool *arg_10,
+    float *arg_11,
+    double *arg_12,
+    long double *arg_13,
+    float complex *arg_14,
+    double complex *arg_15,
+    long double complex *arg_16);
 
 METAC_START_TEST(base_type_args_to_value) {
     char arg_00 = 0;
@@ -120,7 +155,7 @@ METAC_START_TEST(base_type_args_to_value) {
 
     metac_value_t *p_val;
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_base_args,
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_base_args,
         arg_00, arg_01, arg_02, arg_03, arg_04,
         arg_05, arg_06, arg_07, arg_08, arg_09, 
         arg_10, arg_11, arg_12, arg_13, arg_14,
@@ -128,7 +163,7 @@ METAC_START_TEST(base_type_args_to_value) {
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
     metac_value_delete(p_val);
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_base_args_ptr,
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_base_args_ptr,
         &arg_00, &arg_01, &arg_02, &arg_03, &arg_04,
         &arg_05, &arg_06, &arg_07, &arg_08, &arg_09, 
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
@@ -186,10 +221,10 @@ METAC_START_TEST(enum_to_value) {
     
     metac_value_t *p_val;
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_enum_args, arg_00, arg_01, arg_02, arg_03);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
     metac_value_delete(p_val);
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_enum_args_ptr, &arg_00, &arg_01, &arg_02, &arg_03);
         fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args_ptr");
     metac_value_delete(p_val);
 }END_TEST
@@ -219,7 +254,7 @@ METAC_START_TEST(struct_to_value) {
 
     metac_value_t *p_val;
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_struct_args, arg_00, arg_01, arg_02);
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_struct_args, arg_00, arg_01, arg_02);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
     metac_value_delete(p_val);
 }END_TEST
@@ -250,7 +285,7 @@ METAC_START_TEST(array_to_value) {
 
     metac_value_t *p_val;
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(NULL, test_function_with_array_args, arg_00, arg_01, arg_02, arg_03, arg_04, arg_05);
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(NULL, test_function_with_array_args, arg_00, arg_01, arg_02, arg_03, arg_04, arg_05);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_enum_args");
     metac_value_delete(p_val);
 }END_TEST
@@ -273,7 +308,7 @@ METAC_GSYM_LINK(test_array_len);
 
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -321,7 +356,7 @@ METAC_START_TEST(va_arg_to_value) {
     // special case - test_function_with_va_list
     metac_value_t *p_list_val;  
     WITH_VA_LIST_CONTAINER(c,
-        p_list_val = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
+        p_list_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_list, "%s %s", VA_LIST_FROM_CONTAINER(c, "some", "test"));
     );
 #endif
 
@@ -331,7 +366,7 @@ METAC_START_TEST(va_arg_to_value) {
         char ** expected_s; //strings
     }tcs[] = {
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%p %p", NULL, NULL),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%p %p", NULL, NULL),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'p', ' ', '%', 'p', 0,}",
@@ -339,7 +374,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%p %p", (void*)0x100,(void*)0xff00),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%p %p", (void*)0x100,(void*)0xff00),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'p', ' ', '%', 'p', 0,}",
@@ -347,7 +382,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%c %hhi, %hhd", 'x', 'y', 'z'),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%c %hhi, %hhd", 'x', 'y', 'z'),
             .expected_sz = 4,
             .expected_s = (char *[]){
                 "(const char []){'%', 'c', ' ', '%', 'h', 'h', 'i', ',', ' ', '%', 'h', 'h', 'd', 0,}",
@@ -355,7 +390,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%hd %hi", -1500, 1499),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%hd %hi", -1500, 1499),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'h', 'd', ' ', '%', 'h', 'i', 0,}",
@@ -363,7 +398,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%d %i", -100000, 1000001),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%d %i", -100000, 1000001),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'd', ' ', '%', 'i', 0,}",
@@ -371,7 +406,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%ld %li", -2000000L, 2000000L),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%ld %li", -2000000L, 2000000L),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'l', 'd', ' ', '%', 'l', 'i', 0,}",
@@ -379,7 +414,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%lld %lli", -2000000LL, 2000000LL),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%lld %lli", -2000000LL, 2000000LL),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 'l', 'l', 'd', ' ', '%', 'l', 'l', 'i', 0,}",
@@ -387,7 +422,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%hho, %hhu, %hhx, %hhX", 118, 120, 121, 122),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%hho, %hhu, %hhx, %hhX", 118, 120, 121, 122),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'h', 'h', 'o', ',', ' ', '%', 'h', 'h', 'u', ',', ' ', '%', 'h', 'h', 'x', ',', ' ', '%', 'h', 'h', 'X', 0,}",
@@ -395,7 +430,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%ho, %hu, %hx, %hX", 11800, 12000, 12100, 12200),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%ho, %hu, %hx, %hX", 11800, 12000, 12100, 12200),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'h', 'o', ',', ' ', '%', 'h', 'u', ',', ' ', '%', 'h', 'x', ',', ' ', '%', 'h', 'X', 0,}",
@@ -403,7 +438,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%o, %u, %x, %X", 1180000, 1200000, 1210000, 1220000),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%o, %u, %x, %X", 1180000, 1200000, 1210000, 1220000),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'o', ',', ' ', '%', 'u', ',', ' ', '%', 'x', ',', ' ', '%', 'X', 0,}",
@@ -411,7 +446,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%lo, %lu, %lx, %lX", 11800000L, 12000000L, 12100000L, 12200000L),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%lo, %lu, %lx, %lX", 11800000L, 12000000L, 12100000L, 12200000L),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'l', 'o', ',', ' ', '%', 'l', 'u', ',', ' ', '%', 'l', 'x', ',', ' ', '%', 'l', 'X', 0,}",
@@ -419,7 +454,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%llo, %llu, %llx, %llX", 11800000, 12000000, 12100000, 12200000),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%llo, %llu, %llx, %llX", 11800000, 12000000, 12100000, 12200000),
             .expected_sz = 5,
             .expected_s = (char *[]){
                 "(const char []){'%', 'l', 'l', 'o', ',', ' ', '%', 'l', 'l', 'u', ',', ' ', '%', 'l', 'l', 'x', ',', ' ', '%', 'l', 'l', 'X', 0,}",
@@ -427,7 +462,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%f, %g, %e", 11.1, 11.2, -11.3),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%f, %g, %e", 11.1, 11.2, -11.3),
             .expected_sz = 4,
             .expected_s = (char *[]){
                 "(const char []){'%', 'f', ',', ' ', '%', 'g', ',', ' ', '%', 'e', 0,}",
@@ -435,7 +470,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%Lf, %Lg, %Le", 11.1L, 11.2L, -11.3L),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%Lf, %Lg, %Le", 11.1L, 11.2L, -11.3L),
             .expected_sz = 4,
             .expected_s = (char *[]){
                 "(const char []){'%', 'L', 'f', ',', ' ', '%', 'L', 'g', ',', ' ', '%', 'L', 'e', 0,}",
@@ -443,7 +478,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%hhn, %hn, %n, %ln, %lln", &_c_, &_s_, &_i_, &_l_, &_ll_),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%hhn, %hn, %n, %ln, %lln", &_c_, &_s_, &_i_, &_l_, &_ll_),
             .expected_sz = 6,
             .expected_s = (char *[]){
                 "(const char []){'%', 'h', 'h', 'n', ',', ' ', '%', 'h', 'n', ',', ' ', '%', 'n', ',', ' ', '%', 'l', 'n', ',', ' ', '%', 'l', 'l', 'n', 0,}",
@@ -451,7 +486,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%s %s", "some", "test"),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%s %s", "some", "test"),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 's', ' ', '%', 's', 0,}",
@@ -459,7 +494,7 @@ METAC_START_TEST(va_arg_to_value) {
             },
         },
         {
-            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS(p_tag_map, test_function_with_va_args, "%s %s", NULL, NULL),
+            .p_parsed_value = METAC_NEW_VALUE_WITH_ARGS_FN(p_tag_map, test_function_with_va_args, "%s %s", NULL, NULL),
             .expected_sz = 3,
             .expected_s = (char *[]){
                 "(const char []){'%', 's', ' ', '%', 's', 0,}",
@@ -521,7 +556,7 @@ METAC_START_TEST(va_arg_sanity) {
     char *s, *expected_s;
     metac_tag_map_t * p_tagmap = va_args_tag_map();
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_args, "%s %s", "some", "test");
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_function_with_va_args, "%s %s", "some", "test");
     fail_unless(p_val != NULL);
 
     expected_s = "test_function_with_va_args("
@@ -547,7 +582,7 @@ METAC_START_TEST(va_list_sanity) {
 #define VA_LIST(_args_...) VA_LIST_FROM_CONTAINER(c, _args_)
 
     WITH_VA_LIST_CONTAINER(c, 
-        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST("some", "test"));
+        p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_function_with_va_list, "%s %s", VA_LIST("some", "test"));
     );
     fail_unless(p_val != NULL);
 
@@ -562,7 +597,7 @@ METAC_START_TEST(va_list_sanity) {
     metac_value_delete(p_val);
 
     WITH_VA_LIST_CONTAINER(c, 
-        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%d %ld", VA_LIST((int)5, (long int)-100));
+        p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_function_with_va_list, "%d %ld", VA_LIST((int)5, (long int)-100));
     );
     fail_unless(p_val != NULL);
 
@@ -577,7 +612,7 @@ METAC_START_TEST(va_list_sanity) {
     metac_value_delete(p_val);
 
     WITH_VA_LIST_CONTAINER(c, 
-        p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_function_with_va_list, "%p", VA_LIST((void *)NULL));
+        p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_function_with_va_list, "%p", VA_LIST((void *)NULL));
     );
     fail_unless(p_val != NULL);
 
@@ -603,7 +638,7 @@ METAC_START_TEST(array_len_sanity) {
     metac_tag_map_t * p_tagmap = va_args_tag_map();
 
     int * test_arr1 = (int[]){0, 1, 2, 3};
-    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_array_len, test_arr1, 4);
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_array_len, test_arr1, 4);
     fail_unless(p_val != NULL);
 
     expected_s = "test_array_len((int []){0, 1, 2, 3,}, 4)";
@@ -616,7 +651,7 @@ METAC_START_TEST(array_len_sanity) {
 
 
     int test_arr2[] = {0, 1, 2, 3, 4};
-    p_val = METAC_NEW_VALUE_WITH_ARGS(p_tagmap, test_array_len, test_arr2, sizeof(test_arr2)/sizeof(test_arr2[0]));
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_array_len, test_arr2, sizeof(test_arr2)/sizeof(test_arr2[0]));
     fail_unless(p_val != NULL);
 
     expected_s = "test_array_len((int []){0, 1, 2, 3, 4,}, 5)";
@@ -631,3 +666,54 @@ METAC_START_TEST(array_len_sanity) {
     metac_tag_map_delete(p_tagmap);
 
 }END_TEST
+
+// function pointer tests
+#undef METAC_NEW_VALUE_WITH_ARGS_PTR
+#define METAC_NEW_VALUE_WITH_ARGS_PTR(_p_tag_map_, _ptr_init_expression_, _ptr_name_, _args_...) ({ \
+        WITH_METAC_DECLLOC(dec, _ptr_init_expression_); \
+        metac_new_value_with_parameters(_p_tag_map_, METAC_ENTRY_FROM_DECLLOC(dec, _ptr_name_), _args_); \
+    })
+
+#if 0
+METAC_START_TEST(base_type_args_to_value_ptr) {
+    char arg_00 = 0;
+    unsigned char arg_01 = 1;
+    short arg_02 = 2;
+    unsigned short arg_03 = 3;
+    int arg_04 = 4;
+    unsigned int arg_05 = 5;
+    long arg_06 = 6;
+    unsigned long arg_07 = 7;
+    long long arg_08 = 8;
+    unsigned long long arg_09 = 9;
+    bool arg_10 = true;
+    float arg_11 = 11.0;
+    double arg_12 = 12.0;
+    long double  arg_13 = 13.0;
+    float complex  arg_14 = 14.0 - 14.0*I;
+    double complex arg_15 = 15.0 - 15.0*I;
+    long double complex arg_16 = 16.0 + 116.0*I;
+
+    metac_value_t *p_val;
+
+    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(NULL,
+        test_function_with_base_args_t * p = &test_function_with_base_args,
+        p,
+        arg_00, arg_01, arg_02, arg_03, arg_04,
+        arg_05, arg_06, arg_07, arg_08, arg_09, 
+        arg_10, arg_11, arg_12, arg_13, arg_14,
+        arg_15, arg_16);
+    fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
+    metac_value_delete(p_val);
+
+    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(NULL, 
+        test_function_with_base_args_ptr_t * p = &test_function_with_base_args_ptr,
+        p,
+        &arg_00, &arg_01, &arg_02, &arg_03, &arg_04,
+        &arg_05, &arg_06, &arg_07, &arg_08, &arg_09, 
+        &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
+        &arg_15, &arg_16);
+    fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
+    metac_value_delete(p_val);
+}END_TEST
+#endif 

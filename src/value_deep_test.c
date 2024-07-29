@@ -122,7 +122,7 @@ struct t3 {
 
 METAC_TAG_MAP_NEW(new_t3_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     METAC_TAG_MAP_ENTRY_FROM_TYPE(struct t3_users)
@@ -787,7 +787,7 @@ struct t4 {
 /* option with variable tags inplace */
 METAC_TAG_MAP_NEW(new_module_tag_map, NULL, {.mask =
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
 
@@ -802,7 +802,7 @@ METAC_TAG_MAP_END
 /* option with final enty (not scalable) */
 METAC_TAG_MAP_NEW(new_module_tag_map_with_final, NULL, {.mask =
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
 
@@ -1355,7 +1355,7 @@ typedef struct {
 
 METAC_TAG_MAP_NEW(t9_10_tag_map, NULL, {.mask =
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     METAC_TAG_MAP_ENTRY_FROM_TYPE(test9_t)

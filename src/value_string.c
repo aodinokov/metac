@@ -22,10 +22,10 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
         int state = metac_recursive_iterator_get_state(p_iter);
 
         metac_kind_t final_kind;
-        if (metac_value_kind(p) != METAC_KND_subprogram_parameter || metac_value_has_load_of_parameter(p) == 0) {
+        if (metac_value_kind(p) != METAC_KND_func_parameter || metac_value_has_load_of_parameter(p) == 0) {
             final_kind = metac_value_final_kind(p, NULL);
         } else {
-            final_kind = METAC_KND_subprogram_parameter;    // unspecified and va_arg;
+            final_kind = METAC_KND_func_parameter;    // unspecified and va_arg;
         }
          
         switch(final_kind) {
@@ -466,7 +466,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                 }
             }
         }
-        case METAC_KND_subprogram_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
+        case METAC_KND_func_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
         //case METAC_KND_subroutine_type:
         case METAC_KND_subprogram: {
             // TODO: support arguments
@@ -505,7 +505,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                             break;
                         }
                        
-                        if (final_kind == METAC_KND_subprogram_parameter) { // building va_list or ...
+                        if (final_kind == METAC_KND_func_parameter) { // building va_list or ...
                             char * param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
                             if (param_cdecl == NULL) {
                                 free(out);
@@ -566,7 +566,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         continue;
                     }
 
-                    if (final_kind == METAC_KND_subprogram_parameter) {
+                    if (final_kind == METAC_KND_func_parameter) {
                         if (metac_entry_is_va_list_parameter(metac_value_entry(p))!=0) { // wrap with VA_LIST()
                             char *prev_out = out;
                             out = dsprintf("VA_LIST(%s)",prev_out);

@@ -68,7 +68,7 @@ METAC_GSYM_LINK(_test_fn1);
 
 METAC_TAG_MAP_NEW(new_module_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */

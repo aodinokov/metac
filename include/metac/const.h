@@ -39,7 +39,7 @@ enum {
     METAC_KND_union_type,
     METAC_KND_class_type, /* C++ specific type kind */
     METAC_KND_variable,
-    METAC_KND_subprogram_parameter,
+    METAC_KND_func_parameter,
     METAC_KND_subprogram,
     METAC_KND_lex_block,
     METAC_KND_namespace,  /* C++ specific type kind */

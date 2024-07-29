@@ -138,7 +138,7 @@ METAC_GSYM_LINK(test5);
 
 METAC_TAG_MAP_NEW(new_t5_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -207,7 +207,7 @@ METAC_GSYM_LINK(test6);
 
 METAC_TAG_MAP_NEW(new_t6_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -361,7 +361,7 @@ METAC_GSYM_LINK(test7);
 
 METAC_TAG_MAP_NEW(new_t7_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -625,7 +625,7 @@ char * test9 = "some data";
 METAC_GSYM_LINK(test9);
 METAC_TAG_MAP_NEW(new_t9_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */

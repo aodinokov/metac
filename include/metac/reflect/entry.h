@@ -259,7 +259,7 @@ metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_
 metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids);
 
 /**
- * @brief check if entry is subprogram parameter (kind==METAC_KND_subprogram_parameter)
+ * @brief check if entry is subprogram parameter (kind==METAC_KND_func_parameter)
 */
 metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry);
 /**

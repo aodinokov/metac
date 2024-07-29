@@ -7,6 +7,8 @@ dsprintf_render_with_buf(64)
 #define dsprintf(_x_...) dsprintf64( _x_)
 #endif
 
+#include <assert.h>
+
 /**
  * convert metac_entry to the C-declaration like string.
  * if entry is type the result will container a placeholder %s
@@ -364,7 +366,7 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                             metac_recursive_iterator_create_and_append_dep(p_iter, p->subprogram_info.type);// ask to process type on the next level
                         }
                         for (int i = 0; i < p->subprogram_info.parameters_count; ++i) {
-                            if (p->subprogram_info.parameters[i].kind == METAC_KND_subprogram_parameter) {
+                            if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
                                 if (p->subprogram_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
                                     p->subprogram_info.parameters[i].subprogram_parameter_info.type != NULL) {
                                     metac_recursive_iterator_create_and_append_dep(p_iter, p->subprogram_info.parameters[i].subprogram_parameter_info.type);
@@ -386,7 +388,7 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         }
                         char * params = NULL;
                         for (int i = 0; i < p->subprogram_info.parameters_count; ++i) {
-                            if (p->subprogram_info.parameters[i].kind == METAC_KND_subprogram_parameter) {
+                            if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
                                 char *param = NULL;
                                 if (p->subprogram_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
                                     p->subprogram_info.parameters[i].subprogram_parameter_info.type != NULL) {
@@ -476,9 +478,11 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                             metac_recursive_iterator_create_and_append_dep(p_iter, p->subroutine_type_info.type);// ask to process type on the next level
                         }
                         for (int i = 0; i < p->subroutine_type_info.parameters_count; ++i) {
-                            if (p->subroutine_type_info.parameters[i].unspecified_parameters == 0 &&
-                                p->subroutine_type_info.parameters[i].type != NULL) {
-                                metac_recursive_iterator_create_and_append_dep(p_iter, p->subroutine_type_info.parameters[i].type);
+                            if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
+                                if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
+                                    p->subroutine_type_info.parameters[i].subprogram_parameter_info.type != NULL) {
+                                    metac_recursive_iterator_create_and_append_dep(p_iter, p->subroutine_type_info.parameters[i].subprogram_parameter_info.type);
+                                }
                             }
                         }
                         metac_recursive_iterator_set_state(p_iter, 1);
@@ -496,9 +500,10 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         }
                         char * params = NULL;
                         for (int i = 0; i < p->subroutine_type_info.parameters_count; ++i) {
+                            assert(p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter);
                             char *param = NULL;
-                            if (p->subroutine_type_info.parameters[i].unspecified_parameters == 0 &&
-                                p->subroutine_type_info.parameters[i].type != NULL) {
+                            if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
+                                p->subroutine_type_info.parameters[i].subprogram_parameter_info.type != NULL) {
                                 char * param_type_pattern = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, NULL, NULL);
                                 if (param_type_pattern == NULL) {
                                     failure = 1;
@@ -507,7 +512,7 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                                 // we don't have param name, put space there
                                 param = trim_trailing_spaces(dsprintf(param_type_pattern,""));
                                 free(param_type_pattern);
-                            }else if (p->subroutine_type_info.parameters[i].unspecified_parameters != 0) {
+                            }else if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters != 0) {
                                 param = strdup("...");
                             }
                             // param has to be non NULL

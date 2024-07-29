@@ -15,7 +15,7 @@ static struct metac_entry {{ $i }} = {
         .parameters = (struct metac_entry[]){
 {{-          range $_,$val := $v.Param }}
             {
-                .kind = METAC_KND_subprogram_parameter,
+                .kind = METAC_KND_func_parameter,
 {{-                indent 16 (include "metac_reflect_gen.name_mixin" $val) }}
                 .parents_count = 1,
                 .parents = (metac_entry_t*[]){ &{{ $i }}, },

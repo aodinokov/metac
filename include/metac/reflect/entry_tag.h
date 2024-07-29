@@ -139,7 +139,7 @@ typedef struct metac_tag_map metac_tag_map_t;
 /** @brief tagmap entry categories */
 typedef enum {
     METAC_TEC_variable = 0,         /**< corresponds to METAC_KND_variable */
-    METAC_TEC_subprogram_parameter, /**< corresponds to METAC_KND_subprogram_parameter*/
+    METAC_TEC_func_parameter, /**< corresponds to METAC_KND_func_parameter*/
     METAC_TEC_member,               /**< corresponds to METAC_KND_member */
     METAC_TEC_final,                /**< can be base_type, enum, pointer, array, structure/union/class)*/
 }metac_tag_map_entry_category_t;
@@ -194,7 +194,7 @@ void metac_tag_map_delete(metac_tag_map_t * p_tag_map);
  * @brief creates tagmap with 1 category
  *      with mask =
  *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) | 
- *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+ *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
  *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member);
  */
 metac_tag_map_t * metac_new_tag_map(metac_entry_tag_t *p_default_tag);

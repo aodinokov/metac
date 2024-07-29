@@ -145,7 +145,7 @@ metac_tag_map_t * metac_new_tag_map_ex(metac_num_t categories_count, metac_tag_m
 metac_tag_map_t * metac_new_tag_map(metac_entry_tag_t *p_default_tag) {
     metac_tag_map_entry_category_mask_t mask = 
         METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) | 
-        METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+        METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
         METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member);
 
     return metac_new_tag_map_ex(1, (metac_tag_map_entry_t[]){{.mask = mask, .p_ext_map = NULL}}, p_default_tag);
@@ -166,8 +166,8 @@ metac_entry_tag_t * metac_tag_map_tag(metac_tag_map_t * p_tag_map, metac_entry_t
         case METAC_KND_variable:
             mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable);
             break;
-        case METAC_KND_subprogram_parameter:
-            mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter);
+        case METAC_KND_func_parameter:
+            mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter);
             break;
     }
 
