@@ -650,7 +650,7 @@ metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     return p_entry->func_parameter_info.type;
 }
 
-metac_flag_t metac_entry_has_load_of_parameter(metac_entry_t *p_entry) {
+metac_flag_t metac_entry_has_parameter_load(metac_entry_t *p_entry) {
     _check_(p_entry == NULL, 0);
     return
         metac_entry_has_parameters(p_entry) != 0 ||

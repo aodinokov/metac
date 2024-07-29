@@ -22,7 +22,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
         int state = metac_recursive_iterator_get_state(p_iter);
 
         metac_kind_t final_kind;
-        if (metac_value_kind(p) != METAC_KND_func_parameter || metac_value_has_load_of_parameter(p) == 0) {
+        if (metac_value_kind(p) != METAC_KND_func_parameter || metac_value_has_parameter_load(p) == 0) {
             final_kind = metac_value_final_kind(p, NULL);
         } else {
             final_kind = METAC_KND_func_parameter;    // unspecified and va_arg;
@@ -473,11 +473,11 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
             switch(state) {
                 case METAC_R_ITER_start: {
                     metac_flag_t failure = 0;
-                    assert(metac_value_has_load_of_parameter(p) != 0);
+                    assert(metac_value_has_parameter_load(p) != 0);
 
-                    metac_num_t mcount = metac_value_load_of_parameter_count(p);
+                    metac_num_t mcount = metac_value_parameter_load_count(p);
                     for (metac_num_t i = 0; i < mcount; ++i) {
-                        metac_value_t * p_param_val = metac_value_load_of_parameter_value(p, i);
+                        metac_value_t * p_param_val = metac_value_parameter_load_value(p, i);
                         if (p_param_val == NULL) {
                             failure = 1;
                             break;

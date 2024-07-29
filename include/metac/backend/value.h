@@ -48,30 +48,30 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
     metac_tag_map_t * p_tag_map);
 void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 
-typedef struct metac_value_load_of_parameter metac_value_load_of_parameter_t;
-typedef struct metac_value_load_of_subprogram metac_value_load_of_subprogram_t;
+typedef struct metac_value_parameter_load metac_value_parameter_load_t;
+typedef struct metac_value_func_load metac_value_func_load_t;
 
-metac_value_load_of_parameter_t * metac_new_load_of_parameter(metac_num_t values_count);
-metac_flag_t metac_load_of_parameter_delete(metac_value_load_of_parameter_t * p_param_load);
-metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id);
-metac_value_t * metac_load_of_parameter_new_value(metac_value_load_of_parameter_t * p_param_load,
+metac_value_parameter_load_t * metac_new_parameter_load(metac_num_t values_count);
+metac_flag_t metac_parameter_load_delete(metac_value_parameter_load_t * p_param_load);
+metac_value_t * metac_parameter_load_value(metac_value_parameter_load_t * p_param_load, metac_num_t id);
+metac_value_t * metac_parameter_load_new_value(metac_value_parameter_load_t * p_param_load,
     metac_num_t id,
     metac_entry_t *p_entry,
     metac_num_t size);
-metac_num_t metac_load_of_parameter_value_count(metac_value_load_of_parameter_t * p_param_load);
-metac_value_t * metac_load_of_parameter_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id);
-metac_value_t * metac_load_of_parameter_set_value(metac_value_load_of_parameter_t * p_param_load, metac_num_t id, metac_value_t * p_value);
+metac_num_t metac_parameter_load_value_count(metac_value_parameter_load_t * p_param_load);
+metac_value_t * metac_parameter_load_value(metac_value_parameter_load_t * p_param_load, metac_num_t id);
+metac_value_t * metac_parameter_load_set_value(metac_value_parameter_load_t * p_param_load, metac_num_t id, metac_value_t * p_value);
 
-metac_value_load_of_subprogram_t * metac_new_load_of_subprogram(metac_num_t values_count);
-metac_flag_t metac_load_of_subprogram_delete(metac_value_load_of_subprogram_t * p_subprog_load);
-metac_value_t * metac_load_of_subprogram_param_new_value(metac_value_load_of_subprogram_t * p_subprog_load,
+metac_value_func_load_t * metac_new_func_load(metac_num_t values_count);
+metac_flag_t metac_func_load_delete(metac_value_func_load_t * p_subprog_load);
+metac_value_t * metac_func_load_param_new_value(metac_value_func_load_t * p_subprog_load,
     metac_num_t id,
     metac_entry_t *p_entry,
     metac_num_t size);
-metac_value_t * metac_load_of_subprogram_param_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_num_t id);
-metac_value_t * metac_load_of_subprogram_param_set_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_num_t id, metac_value_t * p_value);
-metac_num_t metac_load_of_subprogram_param_value_count(metac_value_load_of_subprogram_t * p_subprog_load);
-metac_value_t * metac_load_of_subprogram_result_value(metac_value_load_of_subprogram_t * p_subprog_load);
-metac_flag_t metac_load_of_subprogram_set_result_value(metac_value_load_of_subprogram_t * p_subprog_load, metac_value_t * p_value);
+metac_value_t * metac_func_load_param_value(metac_value_func_load_t * p_subprog_load, metac_num_t id);
+metac_value_t * metac_func_load_param_set_value(metac_value_func_load_t * p_subprog_load, metac_num_t id, metac_value_t * p_value);
+metac_num_t metac_func_load_param_value_count(metac_value_func_load_t * p_subprog_load);
+metac_value_t * metac_func_load_result_value(metac_value_func_load_t * p_subprog_load);
+metac_flag_t metac_func_load_set_result_value(metac_value_func_load_t * p_subprog_load, metac_value_t * p_value);
 
 #endif

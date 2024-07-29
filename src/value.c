@@ -660,38 +660,38 @@ char *metac_value_pointer_string(metac_value_t * p_val) {
 
 // special type of value - parameters of functions. we have a special load for it and need to cleanup addr
 // when delete such objects
-metac_flag_t metac_value_has_load_of_parameter(metac_value_t * p_val) {
+metac_flag_t metac_value_has_parameter_load(metac_value_t * p_val) {
     _check_(p_val == NULL, 0);
     _check_(p_val->p_entry == NULL, 0);
-    return metac_entry_has_load_of_parameter(p_val->p_entry);
+    return metac_entry_has_parameter_load(p_val->p_entry);
 }
 
-metac_num_t metac_value_load_of_parameter_count(metac_value_t * p_val) {
-    _check_(metac_entry_has_load_of_parameter(p_val->p_entry) == 0, 0);
+metac_num_t metac_value_parameter_load_count(metac_value_t * p_val) {
+    _check_(metac_entry_has_parameter_load(p_val->p_entry) == 0, 0);
 
     if (metac_entry_has_parameters(p_val->p_entry) != 0) {
-        metac_value_load_of_subprogram_t * p_pload = p_val->addr;
+        metac_value_func_load_t * p_pload = p_val->addr;
         _check_(p_pload == NULL, 0);
-        return metac_load_of_subprogram_param_value_count(p_pload);
+        return metac_func_load_param_value_count(p_pload);
     }
-    metac_value_load_of_parameter_t * p_pload = p_val->addr;
+    metac_value_parameter_load_t * p_pload = p_val->addr;
 
     _check_(p_pload == NULL, 0);
-    return metac_load_of_parameter_value_count(p_pload);
+    return metac_parameter_load_value_count(p_pload);
 }
 
-metac_value_t * metac_value_load_of_parameter_value(metac_value_t * p_val, metac_num_t id) {
-    _check_(metac_entry_has_load_of_parameter(p_val->p_entry) == 0, 0);
+metac_value_t * metac_value_parameter_load_value(metac_value_t * p_val, metac_num_t id) {
+    _check_(metac_entry_has_parameter_load(p_val->p_entry) == 0, 0);
 
     if (metac_entry_has_parameters(p_val->p_entry) != 0) {
-        metac_value_load_of_subprogram_t * p_pload = p_val->addr;
+        metac_value_func_load_t * p_pload = p_val->addr;
         _check_(p_pload == NULL, 0);
-        return metac_load_of_subprogram_param_value(p_pload, id);
+        return metac_func_load_param_value(p_pload, id);
     }
-    metac_value_load_of_parameter_t * p_pload = p_val->addr;
+    metac_value_parameter_load_t * p_pload = p_val->addr;
 
     _check_(p_pload == NULL, 0);
-    return metac_load_of_parameter_value(p_pload, id);
+    return metac_parameter_load_value(p_pload, id);
 }
 
 static metac_value_t * metac_init_value(metac_value_t * p_val, metac_entry_t *p_entry, void * addr) {
@@ -777,16 +777,16 @@ void * metac_value_addr(metac_value_t * p_val) {
 }
 
 void metac_value_delete(metac_value_t * p_val) {
-    if (metac_value_has_load_of_parameter(p_val)){
+    if (metac_value_has_parameter_load(p_val)){
         if (metac_entry_has_parameters(p_val->p_entry) != 0) {
-            metac_value_load_of_subprogram_t * p_in_subprog_load = metac_value_addr(p_val);
+            metac_value_func_load_t * p_in_subprog_load = metac_value_addr(p_val);
             if (p_in_subprog_load != NULL) {
-                metac_load_of_subprogram_delete(p_in_subprog_load);
+                metac_func_load_delete(p_in_subprog_load);
             }
         } else {
-            metac_value_load_of_parameter_t * p_in_para_load = metac_value_addr(p_val);
+            metac_value_parameter_load_t * p_in_para_load = metac_value_addr(p_val);
             if (p_in_para_load != NULL) {
-                metac_load_of_parameter_delete(p_in_para_load);
+                metac_parameter_load_delete(p_in_para_load);
             }
         }
     }

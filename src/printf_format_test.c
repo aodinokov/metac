@@ -148,11 +148,11 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
         fail_unless(tcs[tc_inx].p_parsed_value != NULL, "tc %d: parsed_value is null", tc_inx);
-        fail_unless(metac_value_load_of_parameter_count(tcs[tc_inx].p_parsed_value) == tcs[tc_inx].expected_sz);
+        fail_unless(metac_value_parameter_load_count(tcs[tc_inx].p_parsed_value) == tcs[tc_inx].expected_sz);
 
         
         for (int i = 0; i < tcs[tc_inx].expected_sz; ++i) {
-            metac_value_t * p = metac_value_load_of_parameter_value(tcs[tc_inx].p_parsed_value, i);
+            metac_value_t * p = metac_value_parameter_load_value(tcs[tc_inx].p_parsed_value, i);
             fail_unless(p != NULL, "tc %d.%d, p is null", tc_inx, i);
             char *s = metac_value_string_ex(p, METAC_WMODE_deep, NULL);
             fail_unless(s != NULL);
