@@ -123,6 +123,15 @@ for building map we may also have 3 types of how we want to treat pointers:
 We want to deliver this original function that builds that data as a part of the API.
 it may be used for further implementations like json serialization.
 
+There more considerations if we now speak about values with parameters
+(list of args and result of function).
+we may want to support it , but in order to do so we need to make sure that 
+value_memory_map supports that.
+it seems like we always create struct metac_memory_entry * p_memory_entry = metac_new_memory_entry(p, sz, 0);
+even for base_types.
+so our memory entry will be with value of type with parameters.
+we'll need to filter those things out. we also can provide sz as 0. or we need to create a flag to
+pseudo entry
 */
 
 /* get n'th parent (to work with loop_level) */
