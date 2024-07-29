@@ -467,7 +467,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
             }
         }
         case METAC_KND_func_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
-        //case METAC_KND_subroutine_type:
+        case METAC_KND_subroutine_type:
         case METAC_KND_subprogram: {
             // TODO: support arguments
             switch(state) {
@@ -575,6 +575,22 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 metac_recursive_iterator_set_state(p_iter, 2); // failure cleanup
                                 continue;   
                             }
+                        }
+                        metac_recursive_iterator_done(p_iter, out);
+                        continue;
+                    }
+
+                    if (final_kind == METAC_KND_subroutine_type) {  // subroutines are always called via ptrs
+                        // TODO: for now that's ok, but maybe we'll need to instruct pointers
+                        // of certain types to have a function call and it will produce
+                        // value with params and result
+                        char *prev_out = out;
+                        out = dsprintf("(%s)(%s)",
+                            metac_entry_name(metac_value_entry(p)),
+                            prev_out==NULL?"":prev_out
+                        );
+                        if (prev_out) {
+                            free(prev_out);
                         }
                         metac_recursive_iterator_done(p_iter, out);
                         continue;

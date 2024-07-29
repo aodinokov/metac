@@ -367,9 +367,9 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         }
                         for (int i = 0; i < p->subprogram_info.parameters_count; ++i) {
                             if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
-                                if (p->subprogram_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
-                                    p->subprogram_info.parameters[i].subprogram_parameter_info.type != NULL) {
-                                    metac_recursive_iterator_create_and_append_dep(p_iter, p->subprogram_info.parameters[i].subprogram_parameter_info.type);
+                                if (p->subprogram_info.parameters[i].func_parameter_info.unspecified_parameters == 0 &&
+                                    p->subprogram_info.parameters[i].func_parameter_info.type != NULL) {
+                                    metac_recursive_iterator_create_and_append_dep(p_iter, p->subprogram_info.parameters[i].func_parameter_info.type);
                                 }
                             }
                         }
@@ -390,8 +390,8 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         for (int i = 0; i < p->subprogram_info.parameters_count; ++i) {
                             if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
                                 char *param = NULL;
-                                if (p->subprogram_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
-                                    p->subprogram_info.parameters[i].subprogram_parameter_info.type != NULL) {
+                                if (p->subprogram_info.parameters[i].func_parameter_info.unspecified_parameters == 0 &&
+                                    p->subprogram_info.parameters[i].func_parameter_info.type != NULL) {
                                     char * param_type_pattern = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, NULL, NULL);
                                     if (param_type_pattern == NULL) {
                                         failure = 1;
@@ -401,7 +401,7 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                                     param = trim_trailing_spaces(dsprintf(param_type_pattern,
                                         (p->subprogram_info.parameters[i].name != NULL)?p->subprogram_info.parameters[i].name:""));
                                     free(param_type_pattern);
-                                }else if (p->subprogram_info.parameters[i].subprogram_parameter_info.unspecified_parameters != 0) {
+                                }else if (p->subprogram_info.parameters[i].func_parameter_info.unspecified_parameters != 0) {
                                     param = strdup("...");
                                 }
                                 // param has to be non NULL
@@ -479,9 +479,9 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         }
                         for (int i = 0; i < p->subroutine_type_info.parameters_count; ++i) {
                             if (p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter) {
-                                if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
-                                    p->subroutine_type_info.parameters[i].subprogram_parameter_info.type != NULL) {
-                                    metac_recursive_iterator_create_and_append_dep(p_iter, p->subroutine_type_info.parameters[i].subprogram_parameter_info.type);
+                                if (p->subroutine_type_info.parameters[i].func_parameter_info.unspecified_parameters == 0 &&
+                                    p->subroutine_type_info.parameters[i].func_parameter_info.type != NULL) {
+                                    metac_recursive_iterator_create_and_append_dep(p_iter, p->subroutine_type_info.parameters[i].func_parameter_info.type);
                                 }
                             }
                         }
@@ -502,8 +502,8 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                         for (int i = 0; i < p->subroutine_type_info.parameters_count; ++i) {
                             assert(p->subprogram_info.parameters[i].kind == METAC_KND_func_parameter);
                             char *param = NULL;
-                            if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters == 0 &&
-                                p->subroutine_type_info.parameters[i].subprogram_parameter_info.type != NULL) {
+                            if (p->subroutine_type_info.parameters[i].func_parameter_info.unspecified_parameters == 0 &&
+                                p->subroutine_type_info.parameters[i].func_parameter_info.type != NULL) {
                                 char * param_type_pattern = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, NULL, NULL);
                                 if (param_type_pattern == NULL) {
                                     failure = 1;
@@ -512,7 +512,7 @@ char * metac_entry_cdecl(metac_entry_t * p_entry) {
                                 // we don't have param name, put space there
                                 param = trim_trailing_spaces(dsprintf(param_type_pattern,""));
                                 free(param_type_pattern);
-                            }else if (p->subroutine_type_info.parameters[i].subprogram_parameter_info.unspecified_parameters != 0) {
+                            }else if (p->subroutine_type_info.parameters[i].func_parameter_info.unspecified_parameters != 0) {
                                 param = strdup("...");
                             }
                             // param has to be non NULL

@@ -123,7 +123,7 @@ int metac_entry_byte_size(metac_entry_t *p_entry, metac_size_t *p_sz) {
             p_entry = p_entry->variable_info.type;
             continue;
         case METAC_KND_func_parameter:
-            p_entry = p_entry->subprogram_parameter_info.type;
+            p_entry = p_entry->func_parameter_info.type;
             continue;
         case METAC_KND_member:
             p_entry = p_entry->member_info.type;
@@ -177,10 +177,10 @@ metac_entry_t * metac_entry_final_entry(metac_entry_t *p_entry, metac_quals_t * 
             p_entry = p_entry->variable_info.type;
             break;
         case METAC_KND_func_parameter:
-            if (p_entry->subprogram_parameter_info.unspecified_parameters != 0) {
+            if (p_entry->func_parameter_info.unspecified_parameters != 0) {
                 return p_entry; // this is the final entry then ??? maybe return NULL
             }
-            p_entry = p_entry->subprogram_parameter_info.type;
+            p_entry = p_entry->func_parameter_info.type;
             break;
         case METAC_KND_member:
             p_entry = p_entry->member_info.type;
@@ -539,7 +539,12 @@ metac_flag_t metac_entry_has_parameters(metac_entry_t * p_entry) {
 metac_num_t metac_entry_parameters_count(metac_entry_t *p_entry) {
     metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
     _check_(p_final_entry == NULL, -(EINVAL));
-    return p_final_entry->subprogram_info.parameters_count;
+    if (p_final_entry->kind == METAC_KND_subprogram) {
+        return p_final_entry->subprogram_info.parameters_count;
+    } else if (p_final_entry->kind == METAC_KND_subroutine_type) {
+        return p_final_entry->subroutine_type_info.parameters_count;
+    }
+    return -(EINVAL);
 }
 
 metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_t name) {
@@ -547,11 +552,20 @@ metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_
     _check_(p_final_entry == NULL, -(EINVAL));
     metac_num_t par_count = metac_entry_parameters_count(p_entry);
     _check_(par_count < 0, -(EFAULT));
-    for (metac_num_t i = 0; i < par_count; ++i) {
-        if (p_final_entry->subprogram_info.parameters[i].name != NULL &&
-            strcmp(p_final_entry->subprogram_info.parameters[i].name, name) == 0) {
-                return i;
-            }
+    if (p_final_entry->kind == METAC_KND_subprogram) {
+        for (metac_num_t i = 0; i < par_count; ++i) {
+            if (p_final_entry->subprogram_info.parameters[i].name != NULL &&
+                strcmp(p_final_entry->subprogram_info.parameters[i].name, name) == 0) {
+                    return i;
+                }
+        }
+    } else if (p_final_entry->kind == METAC_KND_subroutine_type) {
+        for (metac_num_t i = 0; i < par_count; ++i) {
+            if (p_final_entry->subroutine_type_info.parameters[i].name != NULL &&
+                strcmp(p_final_entry->subroutine_type_info.parameters[i].name, name) == 0) {
+                    return i;
+                }
+        }
     }
     return -(ENOENT);
 }
@@ -559,8 +573,14 @@ metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_
 metac_entry_t * metac_entry_by_paremeter_id(metac_entry_t *p_entry, metac_num_t param_id) {
     metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
     _check_(p_final_entry == NULL, NULL);
-    _check_(param_id < 0 || param_id >= p_final_entry->subprogram_info.parameters_count, NULL);
-    return  &p_final_entry->subprogram_info.parameters[param_id];
+    if (p_final_entry->kind == METAC_KND_subprogram) {
+        _check_(param_id < 0 || param_id >= p_final_entry->subprogram_info.parameters_count, NULL);
+        return  &p_final_entry->subprogram_info.parameters[param_id];
+    } else if (p_final_entry->kind == METAC_KND_subroutine_type) {
+        _check_(param_id < 0 || param_id >= p_final_entry->subroutine_type_info.parameters_count, NULL);
+        return  &p_final_entry->subroutine_type_info.parameters[param_id];
+    }
+    return NULL;
 }
 
 metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids) {
@@ -604,15 +624,15 @@ metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry) {
 
 metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry) {
     _check_(p_entry == NULL || metac_entry_kind(p_entry) != METAC_KND_func_parameter, 0);
-    return p_entry->subprogram_parameter_info.unspecified_parameters;
+    return p_entry->func_parameter_info.unspecified_parameters;
 }
 
 metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry) {
     _check_(p_entry == NULL, 0);
     _check_(metac_entry_kind(p_entry) != METAC_KND_func_parameter, 0);
-    _check_(p_entry->subprogram_parameter_info.unspecified_parameters != 0, 0);
+    _check_(p_entry->func_parameter_info.unspecified_parameters != 0, 0);
     
-    char * cdecl = metac_entry_cdecl(p_entry->subprogram_parameter_info.type);
+    char * cdecl = metac_entry_cdecl(p_entry->func_parameter_info.type);
     _check_(cdecl == NULL, 0);
     int cmp_res = strcmp(cdecl, "va_list %s");
     if (cmp_res != 0) { // linux
@@ -626,8 +646,8 @@ metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry) {
 metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     _check_(p_entry == NULL, NULL);
     _check_(metac_entry_kind(p_entry) != METAC_KND_func_parameter, NULL);
-    _check_(p_entry->subprogram_parameter_info.unspecified_parameters != 0, NULL);
-    return p_entry->subprogram_parameter_info.type;
+    _check_(p_entry->func_parameter_info.unspecified_parameters != 0, NULL);
+    return p_entry->func_parameter_info.type;
 }
 
 metac_flag_t metac_entry_has_load_of_parameter(metac_entry_t *p_entry) {

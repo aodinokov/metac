@@ -669,13 +669,21 @@ METAC_START_TEST(array_len_sanity) {
 
 // function pointer tests
 #undef METAC_NEW_VALUE_WITH_ARGS_PTR
-#define METAC_NEW_VALUE_WITH_ARGS_PTR(_p_tag_map_, _ptr_init_expression_, _ptr_name_, _args_...) ({ \
-        WITH_METAC_DECLLOC(dec, _ptr_init_expression_); \
-        metac_new_value_with_parameters(_p_tag_map_, METAC_ENTRY_FROM_DECLLOC(dec, _ptr_name_), _args_); \
+#define METAC_NEW_VALUE_WITH_ARGS_PTR(_p_tag_map_, _type_, _val_, _args_...) ({ \
+        WITH_METAC_DECLLOC(dec, _type_ * p = _val_); \
+        metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
+        metac_value_t * p_res = NULL; \
+        if (p_entry) { \
+            p_res = metac_new_value_with_parameters(_p_tag_map_, metac_entry_pointer_entry(p_entry), _args_); \
+        } \
+        p_res; \
     })
 
-#if 0
+#if 1
 METAC_START_TEST(base_type_args_to_value_ptr) {
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = NULL;
+
     char arg_00 = 0;
     unsigned char arg_01 = 1;
     short arg_02 = 2;
@@ -696,24 +704,35 @@ METAC_START_TEST(base_type_args_to_value_ptr) {
 
     metac_value_t *p_val;
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(NULL,
-        test_function_with_base_args_t * p = &test_function_with_base_args,
-        p,
+    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(
+        NULL,
+        test_function_with_base_args_t,
+        &test_function_with_base_args,
         arg_00, arg_01, arg_02, arg_03, arg_04,
         arg_05, arg_06, arg_07, arg_08, arg_09, 
         arg_10, arg_11, arg_12, arg_13, arg_14,
         arg_15, arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
+
+    expected_s = "(test_function_with_base_args_t)(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, true, 11.000000, 12.000000, 13.000000, 14.000000 - I * 14.000000, 15.000000 - I * 15.000000, 16.000000 + I * 116.000000)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
     metac_value_delete(p_val);
 
-    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(NULL, 
-        test_function_with_base_args_ptr_t * p = &test_function_with_base_args_ptr,
-        p,
+    p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(
+        NULL, 
+        test_function_with_base_args_ptr_t,
+        &test_function_with_base_args_ptr,
         &arg_00, &arg_01, &arg_02, &arg_03, &arg_04,
         &arg_05, &arg_06, &arg_07, &arg_08, &arg_09, 
         &arg_10, &arg_11, &arg_12, &arg_13, &arg_14,
         &arg_15, &arg_16);
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
+    // types are diffenent on differnt platforms (some don't have actual long double complex) - we can't
+    // test sting
     metac_value_delete(p_val);
 }END_TEST
 #endif 

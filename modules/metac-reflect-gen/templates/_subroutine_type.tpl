@@ -19,7 +19,7 @@ static struct metac_entry {{ $i }} = {
 {{-                indent 20 (include "metac_reflect_gen.name_mixin" $val) }}
                 .parents_count = 1,
                 .parents = (metac_entry_t*[]){ &{{ $i }}, },
-                .subprogram_parameter_info = {
+                .func_parameter_info = {
 {{-            with $val.UnspecifiedParam -}}
 {{-              if eq (toJson .) "true"  }}
                     .unspecified_parameters = 1,

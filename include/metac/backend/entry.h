@@ -169,7 +169,7 @@ struct metac_entry {
          /* .kind == METAC_KND_variable */
         struct variable_info variable_info;
         /* .kind = METAC_KND_func_parameter */
-        struct metac_type_parameter_info subprogram_parameter_info;
+        struct metac_type_parameter_info func_parameter_info;
         /* .kind == METAC_KND_subprogram */
         struct subprogram_info subprogram_info;
         /* .kind == METAC_KND_lex_block */

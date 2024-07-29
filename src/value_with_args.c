@@ -414,7 +414,7 @@ static metac_value_t * _new_value_with_parameters(metac_tag_map_t * p_tag_map, m
 
         metac_kind_t final_kind = metac_value_final_kind(p, NULL);
         switch(final_kind) {
-            //case METAC_KND_subroutine_type: // TODO: try to support them as well
+            case METAC_KND_subroutine_type:
             case METAC_KND_subprogram: {
                 _handle_subprogram(p_iter, p, state, final_kind, p_tag_map, p_va_list_container);
                 continue;
