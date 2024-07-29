@@ -536,6 +536,14 @@ metac_flag_t metac_entry_has_parameters(metac_entry_t * p_entry) {
     return _entry_with_paremeter_info(p_entry) != NULL;
 }
 
+metac_flag_t metac_entry_has_parameter_load(metac_entry_t *p_entry) {
+    _check_(p_entry == NULL, 0);
+    return
+        metac_entry_has_parameters(p_entry) != 0 ||
+        // parameter load can also be in unspec parameter or va_list, but we don't know count/type
+        metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0;
+}
+
 metac_num_t metac_entry_parameters_count(metac_entry_t *p_entry) {
     metac_entry_t * p_final_entry = _entry_with_paremeter_info(p_entry);
     _check_(p_final_entry == NULL, -(EINVAL));
@@ -648,12 +656,5 @@ metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     _check_(metac_entry_kind(p_entry) != METAC_KND_func_parameter, NULL);
     _check_(p_entry->func_parameter_info.unspecified_parameters != 0, NULL);
     return p_entry->func_parameter_info.type;
-}
-
-metac_flag_t metac_entry_has_parameter_load(metac_entry_t *p_entry) {
-    _check_(p_entry == NULL, 0);
-    return
-        metac_entry_has_parameters(p_entry) != 0 ||
-        metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0;
 }
 

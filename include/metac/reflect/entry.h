@@ -233,7 +233,7 @@ typedef struct {
 metac_entry_t * metac_entry_by_member_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids, metac_num_t ids_count);
 
 /**
- * @brief check if final entry is function (METAC_KND_subroutine)
+ * @brief check if final entry is function (METAC_KND_subroutine) or METAC_KND_subroutine_type from which can be fn ptrs
 */
 metac_flag_t metac_entry_has_parameters(metac_entry_t * p_entry);
 /**

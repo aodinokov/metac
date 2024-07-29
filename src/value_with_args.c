@@ -453,33 +453,3 @@ metac_value_t * metac_new_value_with_vparameters(metac_tag_map_t * p_tag_map, me
     va_end(cntr.parameters);
     return p_val;
 }
-
-static metac_entry_t * _value_with_subprogram_info(metac_value_t *p_val) {
-    _check_(p_val == NULL, NULL);
-    
-    metac_entry_t * p_final_entry = metac_entry_final_entry(metac_value_entry(p_val), NULL);
-    _check_(p_final_entry == NULL, NULL);
-    _check_(metac_entry_kind(p_final_entry) != METAC_KND_subprogram, NULL);
-
-    return p_final_entry;
-}
-
-metac_flag_t metac_value_has_parameters(metac_value_t * p_val) {
-    return _value_with_subprogram_info(p_val) != NULL;
-}
-
-metac_num_t metac_value_parameters_count(metac_value_t *p_val) {
-    return metac_entry_parameters_count(_value_with_subprogram_info(p_val));
-}
-
-metac_value_t * metac_value_by_parameter_id(metac_value_t *p_val, metac_num_t paremeter_id) {
-    metac_entry_t * p_final_entry = _value_with_subprogram_info(p_val);
-    _check_(p_final_entry == NULL, NULL);
-    _check_(paremeter_id < 0 || paremeter_id >= metac_entry_parameters_count(p_final_entry), NULL);
-    metac_entry_t * p_param_entry = metac_entry_by_paremeter_id(p_final_entry, paremeter_id);
-    _check_(p_param_entry == NULL, NULL);
-
-    metac_value_func_load_t * p_subprog_load = metac_value_addr(p_val);
-    _check_(p_subprog_load == NULL, NULL);
-    return metac_func_load_param_value(p_subprog_load, paremeter_id);
-}
