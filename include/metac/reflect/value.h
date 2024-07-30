@@ -78,9 +78,8 @@ metac_entry_t * metac_value_entry(metac_value_t * p_val);
 /** @brief get value's address of memory it points  */
 void * metac_value_addr(metac_value_t * p_val);
 /** @brief make a copy ov value  */
-static inline metac_value_t * metac_new_value_from_value(metac_value_t * p_val) {
-    return metac_new_value(metac_value_entry(p_val), metac_value_addr(p_val));
-}
+metac_value_t * metac_new_value_from_value(metac_value_t * p_val);
+
 /* deep functions and their shorter versions */
 
 /** @brief print value data in c format

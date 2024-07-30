@@ -286,6 +286,11 @@ static int _identify_allocatable_entries(struct metac_memory_map * p_map) {
         struct metac_memory_entry * p_current_entry = hashmapGet(p_map->p_addr_ptr_val_to_memory_entry, p_current);
         assert(p_current_entry != NULL);
 
+        if (p_current_entry->byte_size <= 0) {
+            // artificial elements, like param/function loads
+            continue;
+        }
+
         if (p_main == NULL) {
             p_main = p_current;
             p_main_entry = p_current_entry;
@@ -346,7 +351,13 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
         p = (metac_value_t *)metac_recursive_iterator_next(p_iter)) {
         int state = metac_recursive_iterator_get_state(p_iter);
 
-        metac_kind_t final_kind = metac_value_final_kind(p, NULL);
+        metac_kind_t final_kind;
+        if (metac_value_kind(p) != METAC_KND_func_parameter || metac_value_has_parameter_load(p) == 0) {
+            final_kind = metac_value_final_kind(p, NULL);
+        } else {
+            final_kind = METAC_KND_func_parameter;    // unspecified and va_arg;
+        }
+
         switch(final_kind) {
         case METAC_KND_enumeration_type:
         case METAC_KND_base_type: {
@@ -739,6 +750,101 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
                     }
 
                     metac_recursive_iterator_done(p_iter, p_memory_entry);
+                    continue;
+                }
+            }
+        }
+        case METAC_KND_func_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
+        case METAC_KND_subroutine_type:
+        case METAC_KND_subprogram: {
+            switch(state) {
+                case METAC_R_ITER_start: {
+                    metac_flag_t failure = 0;
+                    assert(metac_value_has_parameter_load(p) != 0);
+
+                    metac_num_t children_count = 0;
+
+                    metac_num_t mcount = metac_value_parameter_load_count(p);
+                    children_count += mcount;
+                    for (metac_num_t i = 0; i < mcount; ++i) {
+                        // we're making copy because memmap deletes all values
+                        metac_value_t * p_param_val = metac_new_value_from_value(metac_value_parameter_load_value(p, i));
+                        if (p_param_val == NULL) {
+                            failure = 1;
+                            break;
+                        }
+                        metac_recursive_iterator_create_and_append_dep(p_iter, p_param_val);
+                    }
+                    if (failure != 0) {
+                        metac_recursive_iterator_set_state(p_iter, 2);  /* failure cleanup */
+                        continue;  
+                    }
+                    // TODO: if there is a result, add it as a lask child
+
+                    struct metac_memory_entry * p_memory_entry = metac_new_memory_entry(p, 0, children_count);
+                    if (p_memory_entry == NULL) {
+                        metac_recursive_iterator_set_state(p_iter, 2);  // failure cleanup
+                        continue;                 
+                    }
+
+                    metac_recursive_iterator_set_context(p_iter, p_memory_entry);
+                    metac_recursive_iterator_set_state(p_iter, 1);
+                    continue;
+                }
+                case 1: {
+                    struct metac_memory_entry * p_memory_entry = (struct metac_memory_entry *)metac_recursive_iterator_get_context(p_iter);
+                    assert(p_memory_entry != NULL);
+
+                    metac_num_t children_count = 0;
+                    metac_flag_t failure = 0;
+
+                    while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                        metac_value_t * p_memb_val = NULL;
+                        struct metac_memory_entry * p_member_memory_entry = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_memb_val, NULL);
+                        if (p_member_memory_entry == NULL) {
+                            if (p_memb_val != NULL) {
+                                metac_value_delete(p_memb_val);
+                            }
+                            failure = 1;
+                            break;
+                        }
+
+                        p_memory_entry->pp_children[children_count] = p_member_memory_entry;
+                        p_member_memory_entry->p_parent = p_memory_entry;
+                        ++children_count;
+                    }
+                    if (failure != 0) {
+                        metac_recursive_iterator_set_state(p_iter, 2);  // failure cleanup
+                        continue;
+                    }
+                    metac_recursive_iterator_done(p_iter, p_memory_entry);
+                    continue;
+                }
+                case 2: 
+                default: {
+                    /* failure cleanup*/
+                    while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                        metac_value_t * p_memb_val = NULL;
+                        struct metac_memory_entry * p_member_memory_entry = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_memb_val, NULL);
+                        if (p_member_memory_entry == NULL) {
+                            if (p_memb_val != NULL) {
+                                metac_value_delete(p_memb_val);
+                            }
+                        }else {
+                            metac_memory_entry_delete(p_member_memory_entry);
+                        }
+                    }
+
+                    struct metac_memory_entry * p_memory_entry = (struct metac_memory_entry *)metac_recursive_iterator_get_context(p_iter);
+                    if (p_memory_entry != NULL) {
+                        // p_in stil must exist if we fail
+                        if (p_memory_entry->p_val == p) {
+                            p_memory_entry->p_val = NULL;
+                        }
+                        metac_memory_entry_delete(p_memory_entry);
+                    }
+
+                    metac_recursive_iterator_fail(p_iter);
                     continue;
                 }
             }

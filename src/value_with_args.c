@@ -12,9 +12,14 @@
 #define VA_ARG_IN_VA_ARG 1
 #endif
 
+typedef struct metac_param {
+    metac_num_t size;   // if size is not 0: this was created by metac_parameter_load_new_value
+    metac_value_t * p_val;
+} metac_param_t;
+
 typedef struct metac_value_parameter_load {
-    metac_num_t values_count;
-    metac_value_t ** values;
+    metac_num_t params_count;
+    metac_param_t * params;
 } metac_value_parameter_load_t;
 
 typedef struct metac_value_func_load {
@@ -22,57 +27,58 @@ typedef struct metac_value_func_load {
     metac_value_t * result;
 } metac_value_func_load_t;
 
-metac_value_parameter_load_t * metac_new_parameter_load(metac_num_t values_count) {
-    _check_(values_count < 0, NULL);
+metac_value_parameter_load_t * metac_new_parameter_load(metac_num_t params_count) {
+    _check_(params_count < 0, NULL);
 
     metac_value_parameter_load_t * p_param_load = calloc(1, sizeof(metac_value_parameter_load_t));
     _check_(p_param_load == NULL, NULL);
 
-    if (values_count > 0) {
-        p_param_load->values = calloc(values_count, sizeof(metac_value_t *));
-        if (p_param_load->values == NULL) {
+    if (params_count > 0) {
+        p_param_load->params = calloc(params_count, sizeof(metac_param_t));
+        if (p_param_load->params == NULL) {
             free(p_param_load);
             return NULL;
         }
     }
-    p_param_load->values_count = values_count;
+    p_param_load->params_count = params_count;
     return p_param_load;
 }
 
 metac_num_t metac_parameter_load_value_count(metac_value_parameter_load_t * p_param_load) {
     _check_(p_param_load == NULL, 0);
-    return p_param_load->values_count;
+    return p_param_load->params_count;
 }
 
 metac_value_t * metac_parameter_load_value(metac_value_parameter_load_t * p_param_load, metac_num_t id) {
-    _check_(id < 0 || id >= p_param_load->values_count , NULL);
-    return p_param_load->values[id];
+    _check_(id < 0 || id >= p_param_load->params_count , NULL);
+    return p_param_load->params[id].p_val;
 }
 
 metac_value_t * metac_parameter_load_set_value(metac_value_parameter_load_t * p_param_load, metac_num_t id, metac_value_t * p_value) {
-    _check_(id < 0 || id >= p_param_load->values_count , NULL);
-    p_param_load->values[id] = p_value;
-    return p_param_load->values[id];
+    _check_(id < 0 || id >= p_param_load->params_count , NULL);
+    p_param_load->params[id].size = 0;
+    p_param_load->params[id].p_val = p_value;
+    return p_param_load->params[id].p_val;
 }
 
 metac_value_t * metac_parameter_load_new_value(metac_value_parameter_load_t * p_param_load,
     metac_num_t id,
     metac_entry_t *p_entry,
     metac_num_t size) {
-    _check_(id < 0 || id >= p_param_load->values_count , NULL);
+    _check_(id < 0 || id >= p_param_load->params_count , NULL);
     _check_(p_entry == NULL, NULL);
-    _check_(p_param_load->values[id] != NULL, NULL); // already exists
+    _check_(p_param_load->params[id].p_val != NULL, NULL); // already exists
 
     metac_value_t *p_value = NULL;
     if (metac_entry_has_parameter_load(p_entry) != 0) {// create another metac_value_parameter_load_t * - size is number of subaargs
-        metac_value_parameter_load_t * p_in_para_load = metac_new_parameter_load(size);
-        if (p_in_para_load == NULL) {
+        metac_value_parameter_load_t * p_in_param_load = metac_new_parameter_load(size);
+        if (p_in_param_load == NULL) {
             return NULL;
         }
 
-        p_value = metac_new_value(p_entry, p_in_para_load);
+        p_value = metac_new_value(p_entry, p_in_param_load);
         if (p_value == NULL) {
-            metac_parameter_load_delete(p_in_para_load);
+            metac_parameter_load_delete(p_in_param_load);
         }
     } else { // allocate memory with correct size;
         void * addr = calloc(1, size);
@@ -84,13 +90,48 @@ metac_value_t * metac_parameter_load_new_value(metac_value_parameter_load_t * p_
             free(addr);
         }
     }
-    p_param_load->values[id] = p_value;
+    p_param_load->params[id].size = size;
+    p_param_load->params[id].p_val = p_value;
     return p_value;
+}
+
+metac_value_parameter_load_t * metac_parameter_load_copy(metac_value_parameter_load_t * p_param_load) {
+    _check_(p_param_load == NULL, NULL);
+    metac_num_t i, count = metac_parameter_load_value_count(p_param_load);
+    metac_value_parameter_load_t * p_param_load_copy = metac_new_parameter_load(count);
+    _check_(p_param_load == NULL, NULL);
+
+    for (i = 0; i< count; ++i) {
+        if (p_param_load->params[i].size <= 0) {
+            p_param_load_copy->params[i].size = p_param_load->params[i].size;
+            p_param_load_copy->params[i].p_val = metac_new_value_from_value(p_param_load->params[i].p_val);
+        } else {
+            if (metac_entry_has_parameter_load(metac_value_entry(p_param_load->params[i].p_val)) != 0) {
+                p_param_load_copy->params[i].size = p_param_load->params[i].size;
+                p_param_load_copy->params[i].p_val = metac_new_value_from_value(p_param_load->params[i].p_val);
+            } else {
+                p_param_load_copy->params[i].size = p_param_load->params[i].size;
+
+                void * addr = calloc(1, p_param_load_copy->params[i].size);
+                if (addr != NULL) {
+                    memcpy(addr, metac_value_addr(p_param_load->params[i].p_val), p_param_load_copy->params[i].size);
+                    p_param_load_copy->params[i].p_val = metac_new_value(metac_value_entry(p_param_load->params[i].p_val), addr);
+                }
+            }
+        }
+
+        if (p_param_load->params[i].p_val != NULL && p_param_load_copy->params[i].p_val == NULL) {
+            metac_parameter_load_delete(p_param_load_copy);
+            return NULL;
+        }
+    }
+
+    return p_param_load_copy;
 }
 
 metac_flag_t metac_parameter_load_delete(metac_value_parameter_load_t * p_param_load) {
     _check_(p_param_load == NULL, 0);
-    for (metac_num_t id = 0; id < p_param_load->values_count; ++id) {
+    for (metac_num_t id = 0; id < p_param_load->params_count; ++id) {
         metac_value_t * p_value  = metac_parameter_load_value(p_param_load, id);
         if (p_value == NULL) {
             continue;
@@ -107,19 +148,19 @@ metac_flag_t metac_parameter_load_delete(metac_value_parameter_load_t * p_param_
         metac_value_delete(p_value);
     }
     
-    if (p_param_load->values != NULL) {
-        free(p_param_load->values);
+    if (p_param_load->params != NULL) {
+        free(p_param_load->params);
     }
     free(p_param_load);
     return 1;
 }
 
-metac_value_func_load_t * metac_new_func_load(metac_num_t values_count) {
+metac_value_func_load_t * metac_new_func_load(metac_num_t params_count) {
 
     metac_value_func_load_t * p_subprog_load = calloc(1, sizeof(metac_value_func_load_t));
     _check_(p_subprog_load == NULL, NULL);
 
-    p_subprog_load->parameters = metac_new_parameter_load(values_count);
+    p_subprog_load->parameters = metac_new_parameter_load(params_count);
     if (p_subprog_load->parameters == NULL) {
         free(p_subprog_load);
         return NULL;
@@ -164,6 +205,25 @@ metac_value_t * metac_func_load_param_new_value(metac_value_func_load_t * p_subp
     _check_(p_subprog_load == NULL, NULL);
     _check_(p_subprog_load->parameters == NULL, NULL);
     return metac_parameter_load_new_value(p_subprog_load->parameters, id, p_entry, size);
+}
+
+metac_value_func_load_t * metac_func_load_copy(metac_value_func_load_t * p_subprog_load) {
+    _check_(p_subprog_load == NULL, NULL);
+    metac_value_func_load_t * p_subprog_load_copy = calloc(1, sizeof(metac_value_func_load_t));
+    _check_(p_subprog_load_copy == NULL, NULL);
+
+    if (p_subprog_load->parameters != NULL) { 
+        p_subprog_load_copy->parameters = metac_parameter_load_copy(p_subprog_load->parameters);
+    }
+    if (p_subprog_load->result != NULL) {
+        p_subprog_load_copy->result = metac_new_value_from_value(p_subprog_load->result);
+    }
+    if ((p_subprog_load->parameters != NULL && p_subprog_load_copy->parameters == NULL)||
+        (p_subprog_load->result != NULL && p_subprog_load_copy->result == NULL)) {
+        metac_func_load_delete(p_subprog_load_copy);
+        return NULL;
+    }
+    return p_subprog_load_copy;
 }
 
 metac_flag_t metac_func_load_delete(metac_value_func_load_t * p_subprog_load) {

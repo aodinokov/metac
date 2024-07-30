@@ -466,10 +466,9 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                 }
             }
         }
-        case METAC_KND_func_parameter:// this is only it's unspecified param // TODO: we need also va_arg here
+        case METAC_KND_func_parameter:// this is only it's unspecified param
         case METAC_KND_subroutine_type:
         case METAC_KND_subprogram: {
-            // TODO: support arguments
             switch(state) {
                 case METAC_R_ITER_start: {
                     metac_flag_t failure = 0;

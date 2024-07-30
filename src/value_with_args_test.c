@@ -12,6 +12,7 @@
 #include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
+#include "value_deep.c"
 #include "value_string.c"
 
 #include "value_with_args.c"
@@ -679,7 +680,6 @@ METAC_START_TEST(array_len_sanity) {
         p_res; \
     })
 
-#if 1
 METAC_START_TEST(base_type_args_to_value_ptr) {
     char *s, *expected_s;
     metac_tag_map_t * p_tagmap = NULL;
@@ -735,4 +735,35 @@ METAC_START_TEST(base_type_args_to_value_ptr) {
     // test sting
     metac_value_delete(p_val);
 }END_TEST
-#endif 
+
+#if 1
+METAC_START_TEST(args_deep_compare_sanity) {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+    int eq;
+    metac_value_t * p_val1, *p_val2;
+
+    int * test_arr1 = (int[]){0, 1, 2, 3};
+    int * test_arr2 = (int[]){0, 1, 2, 3};
+    p_val1 = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_array_len, test_arr1, 4);
+    fail_unless(p_val1 != NULL);
+    p_val2 = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_array_len, test_arr2, 4);
+    fail_unless(p_val2 != NULL);
+
+    eq = metac_value_equal_ex(p_val1, p_val2, NULL, p_tagmap);
+    fail_unless(eq == 1, "expected values equal, got %d", eq);
+
+    metac_value_delete(p_val2);
+    
+    // changing arg
+    test_arr2[0] = 1;
+    p_val2 = METAC_NEW_VALUE_WITH_ARGS_FN(p_tagmap, test_array_len, test_arr2, 4);
+    fail_unless(p_val2 != NULL);
+
+    eq = metac_value_equal_ex(p_val1, p_val2, NULL, p_tagmap);
+    fail_unless(eq == 0, "expected values NON equal, got %d", eq);
+
+    metac_value_delete(p_val1);
+
+    metac_tag_map_delete(p_tagmap);
+}
+#endif

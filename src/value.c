@@ -777,6 +777,28 @@ void * metac_value_addr(metac_value_t * p_val) {
     return p_val->addr;
 }
 
+metac_value_t * metac_new_value_from_value(metac_value_t * p_val) {
+    void * addr = metac_value_addr(p_val);
+
+    if (metac_value_has_parameter_load(p_val)) {
+        if (metac_entry_has_parameters(p_val->p_entry) != 0) {
+            metac_value_func_load_t * p_in_subprog_load = addr;
+            if (p_in_subprog_load != NULL) {
+                addr = (void*)metac_func_load_copy(p_in_subprog_load);
+            }
+        } else {
+            metac_value_parameter_load_t * p_in_para_load = addr;
+            if (p_in_para_load != NULL) {
+                addr = (void*)metac_parameter_load_copy(p_in_para_load);
+            }
+        }
+        if (addr == NULL) {
+            return NULL;
+        }
+    }
+    return metac_new_value(metac_value_entry(p_val), addr);
+}
+
 void metac_value_delete(metac_value_t * p_val) {
     if (metac_value_has_parameter_load(p_val)){
         // cleanup load
