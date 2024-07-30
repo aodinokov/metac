@@ -762,6 +762,8 @@ METAC_START_TEST(args_deep_compare_sanity) {
     eq = metac_value_equal_ex(p_val1, p_val2, NULL, p_tagmap);
     fail_unless(eq == 0, "expected values NON equal, got %d", eq);
 
+    metac_value_delete(p_val2);
+
     metac_value_delete(p_val1);
 
     metac_tag_map_delete(p_tagmap);
