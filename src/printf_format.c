@@ -174,7 +174,7 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
 
     metac_num_t parameters_count = metac_count_format_specifiers(format);
 
-    metac_value_parameter_load_t * p_pload = metac_new_parameter_load(parameters_count);
+    metac_parameter_storage_t * p_pload = metac_new_parameter_storage(parameters_count);
     if (p_pload == NULL) {
         return NULL;
     }
@@ -195,9 +195,9 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, p), NULL);
 
                         if (p == NULL) { // use std ptr approach
-                            metac_value_t * p_param_value = metac_parameter_load_new_value(p_pload, param_id, p_param_entry, sizeof(p));
+                            metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(p));
                             if (p_param_value == NULL) {
-                                metac_parameter_load_delete(p_pload);
+                                metac_parameter_storage_delete(p_pload);
                                 return NULL;
                             }
                             void * p_param_value_ptr = metac_value_addr(p_param_value);
@@ -209,10 +209,10 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                                 return NULL;
                             }
 
-                            metac_value_t * p_param_value = metac_parameter_load_new_value(p_pload, param_id, p_param_with_len_entry, len+1);
+                            metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_with_len_entry, len+1);
                             metac_entry_delete(p_param_with_len_entry);
                             if (p_param_value == NULL) {
-                                metac_parameter_load_delete(p_pload);
+                                metac_parameter_storage_delete(p_pload);
                                 return NULL;
                             }
                             void * p_param_value_ptr = metac_value_addr(p_param_value);
@@ -224,9 +224,9 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
 #define _process(_type_, _va_arg_type) { \
                         WITH_METAC_DECLLOC(decl, _type_ dummy = NULL); \
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
-                        metac_value_t * p_param_value = metac_parameter_load_new_value(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(dummy)); \
                         if (p_param_value == NULL) { \
-                            metac_parameter_load_delete(p_pload); \
+                            metac_parameter_storage_delete(p_pload); \
                             return NULL; \
                         } \
                         void * p_param_value_ptr = metac_value_addr(p_param_value); \
@@ -256,9 +256,9 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
 #define _process(_type_, _va_arg_type) { \
                         WITH_METAC_DECLLOC(decl, _type_ dummy = 0); \
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
-                        metac_value_t * p_param_value = metac_parameter_load_new_value(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(dummy)); \
                         if (p_param_value == NULL) { \
-                            metac_parameter_load_delete(p_pload); \
+                            metac_parameter_storage_delete(p_pload); \
                             return NULL; \
                         } \
                         _type_ * p_param_value_ptr = metac_value_addr(p_param_value); \
@@ -324,7 +324,7 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                     break;
 #undef _process
                 default: {
-                        metac_parameter_load_delete(p_pload);
+                        metac_parameter_storage_delete(p_pload);
                         return NULL;
                     }
                 }
@@ -338,7 +338,7 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
     if (p_pload != NULL) {
         p_return_value = metac_new_value(p_va_list_entry, p_pload);
         if (p_return_value == NULL) {
-            metac_parameter_load_delete(p_pload);
+            metac_parameter_storage_delete(p_pload);
         }
     }
     return p_return_value;

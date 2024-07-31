@@ -413,8 +413,8 @@ int metac_handle_count_by(metac_value_walker_hierarchy_t *p_hierarchy, metac_val
                 return 0;
             }
         } else if (metac_value_has_parameter_load(p_parent_val) != 0) {
-            for (metac_num_t i = 0; i < metac_value_parameter_load_count(p_parent_val); ++i) {
-                metac_value_t *p_sibling_val = metac_value_parameter_load_value(p_parent_val, i);
+            for (metac_num_t i = 0; i < metac_value_parameter_count(p_parent_val); ++i) {
+                metac_value_t *p_sibling_val = metac_value_parameter_item(p_parent_val, i);
                 if (metac_value_name(p_sibling_val) == NULL ||
                     strcmp(metac_value_name(p_sibling_val), p_cnxt->counter_sibling_entry_name) !=0 ) {
                     continue;
@@ -760,7 +760,7 @@ int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, meta
     }
     metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
     metac_entry_t *p_va_list_entry = metac_entry_by_paremeter_id(metac_value_entry(p_val), p_ev->va_list_param_id);
-    metac_value_t *p_param_val = metac_value_parameter_load_value(p_val, p_ev->va_list_param_id -1 /* use previous param */);
+    metac_value_t *p_param_val = metac_value_parameter_item(p_val, p_ev->va_list_param_id -1 /* use previous param */);
 
     if (p_va_list_entry == NULL) {
         return -(EINVAL);

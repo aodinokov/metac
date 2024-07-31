@@ -516,8 +516,8 @@ METAC_START_TEST(va_arg_to_value) {
 
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
         metac_num_t i = 0;
-        for (int arg_id = 0; arg_id < metac_value_parameter_load_count(tcs[tc_inx].p_parsed_value); ++arg_id) {
-            metac_value_t * va_arg_parsed = metac_value_parameter_load_value(tcs[tc_inx].p_parsed_value, arg_id);
+        for (int arg_id = 0; arg_id < metac_value_parameter_count(tcs[tc_inx].p_parsed_value); ++arg_id) {
+            metac_value_t * va_arg_parsed = metac_value_parameter_item(tcs[tc_inx].p_parsed_value, arg_id);
             fail_unless(va_arg_parsed != NULL, "tc %d.%d, va_arg_parsed is null", tc_inx, i);
             if (metac_value_has_parameter_load(va_arg_parsed) == 0) { //simple parameter
                 fail_unless(i < tcs[tc_inx].expected_sz, "tc %d: counter %d is bigger than expected %d", tc_inx, i, tcs[tc_inx].expected_sz);
@@ -528,8 +528,8 @@ METAC_START_TEST(va_arg_to_value) {
                 free(s);
                 ++i;
             } else {
-                for (int sub_arg_id = 0;  sub_arg_id < metac_value_parameter_load_count(va_arg_parsed); ++sub_arg_id) {
-                    metac_value_t * va_subarg_parsed = metac_value_parameter_load_value(va_arg_parsed, sub_arg_id);
+                for (int sub_arg_id = 0;  sub_arg_id < metac_value_parameter_count(va_arg_parsed); ++sub_arg_id) {
+                    metac_value_t * va_subarg_parsed = metac_value_parameter_item(va_arg_parsed, sub_arg_id);
                     fail_unless(va_subarg_parsed != NULL, "tc %d.%d, va_subarg_parsed is null", tc_inx, i);
 
                     fail_unless(metac_value_has_parameter_load(va_subarg_parsed) == 0);

@@ -764,11 +764,11 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
 
                     metac_num_t children_count = 0;
 
-                    metac_num_t mcount = metac_value_parameter_load_count(p);
+                    metac_num_t mcount = metac_value_parameter_count(p);
                     children_count += mcount;
                     for (metac_num_t i = 0; i < mcount; ++i) {
                         // we're making copy because memmap deletes all values
-                        metac_value_t * p_param_val = metac_new_value_from_value(metac_value_parameter_load_value(p, i));
+                        metac_value_t * p_param_val = metac_new_value_from_value(metac_value_parameter_item(p, i));
                         if (p_param_val == NULL) {
                             failure = 1;
                             break;
