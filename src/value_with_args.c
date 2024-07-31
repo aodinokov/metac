@@ -66,6 +66,7 @@ metac_value_t * metac_parameter_storage_new_item(metac_parameter_storage_t * p_p
 
     metac_value_t *p_value = NULL;
     if (metac_entry_has_parameter_load(p_entry) != 0) {// create another metac_parameter_storage_t * - size is number of subaargs
+        // this code in this branch isn't used
         metac_parameter_storage_t * p_in_param_load = metac_new_parameter_storage(size);
         if (p_in_param_load == NULL) {
             return NULL;
