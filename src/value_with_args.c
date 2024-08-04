@@ -297,19 +297,16 @@ static void _handle_subprogram(
 #endif
 
                 if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
-                    if (local != 0){va_end(local_cntr.parameters);}
+                    if (local != 0){
+                        va_end(local_cntr.parameters);
+                    }
 
                     metac_recursive_iterator_fail(p_iter);
                     return;
                 }
-                if (local != 0){va_end(local_cntr.parameters);}
-
-                if (ev.p_return_value == NULL) {
-                    metac_recursive_iterator_fail(p_iter);
-                    return;
+                if (local != 0){
+                    va_end(local_cntr.parameters);
                 }
-                assert(0);
-                // TODO: metac_parameter_storage_set_item(p_subprog_load, i, ev.p_return_value);
             }
         } else { /* normal param */
             void * addr = NULL;

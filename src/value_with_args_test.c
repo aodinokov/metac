@@ -305,7 +305,6 @@ METAC_START_TEST(array_to_value) {
     METAC_VALUE_WITH_ARGS_DELETE(p_val);
 }END_TEST
 
-#if 0
 
 void test_function_with_va_list(const char * format, va_list vl) {
     vprintf(format, vl);
@@ -533,11 +532,12 @@ METAC_START_TEST(va_arg_to_value) {
     for (int tc_inx = 0; tc_inx < sizeof(tcs)/sizeof(tcs[0]); tc_inx++) {
         metac_num_t i = 0;
         for (int arg_id = 0; arg_id < metac_value_parameter_count(tcs[tc_inx].p_parsed_value); ++arg_id) {
-            metac_value_t * va_arg_parsed = metac_value_parameter_item(tcs[tc_inx].p_parsed_value, arg_id);
+            metac_value_t * va_arg_parsed = metac_value_parameter_new_item(tcs[tc_inx].p_parsed_value, arg_id);
             fail_unless(va_arg_parsed != NULL, "tc %d.%d, va_arg_parsed is null", tc_inx, i);
             if (metac_value_has_parameter_load(va_arg_parsed) == 0) { //simple parameter
                 fail_unless(i < tcs[tc_inx].expected_sz, "tc %d: counter %d is bigger than expected %d", tc_inx, i, tcs[tc_inx].expected_sz);
                 char *s = metac_value_string_ex(va_arg_parsed, METAC_WMODE_deep, p_tag_map);
+                metac_value_delete(va_arg_parsed);
                 fail_unless(s != NULL);
                 fail_unless(strcmp(tcs[tc_inx].expected_s[i], s) == 0, "tc %d.%d, expected %s, got %s",
                     tc_inx, i, tcs[tc_inx].expected_s[i], s);
@@ -545,13 +545,14 @@ METAC_START_TEST(va_arg_to_value) {
                 ++i;
             } else {
                 for (int sub_arg_id = 0;  sub_arg_id < metac_value_parameter_count(va_arg_parsed); ++sub_arg_id) {
-                    metac_value_t * va_subarg_parsed = metac_value_parameter_item(va_arg_parsed, sub_arg_id);
+                    metac_value_t * va_subarg_parsed = metac_value_parameter_new_item(va_arg_parsed, sub_arg_id);
                     fail_unless(va_subarg_parsed != NULL, "tc %d.%d, va_subarg_parsed is null", tc_inx, i);
 
                     fail_unless(metac_value_has_parameter_load(va_subarg_parsed) == 0);
 
                     fail_unless(i < tcs[tc_inx].expected_sz, "tc %d: counter %d is bigger than expected %d", tc_inx, i, tcs[tc_inx].expected_sz);
                     char *s = metac_value_string_ex(va_subarg_parsed, METAC_WMODE_deep, p_tag_map);
+                    metac_value_delete(va_subarg_parsed);
                     fail_unless(s != NULL);
                     fail_unless(strcmp(tcs[tc_inx].expected_s[i], s) == 0, "tc %d.%d, expected %s, got %s",
                         tc_inx, i, tcs[tc_inx].expected_s[i], s);
@@ -561,7 +562,7 @@ METAC_START_TEST(va_arg_to_value) {
             }
         }
 
-        metac_value_delete(tcs[tc_inx].p_parsed_value);
+        METAC_VALUE_WITH_ARGS_DELETE(tcs[tc_inx].p_parsed_value);
     }
 
     metac_tag_map_delete(p_tag_map);
@@ -585,7 +586,7 @@ METAC_START_TEST(va_arg_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
@@ -611,7 +612,7 @@ METAC_START_TEST(va_list_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
     WITH_VA_LIST_CONTAINER(c, 
         p_val = METAC_NEW_VALUE_WITH_ARGS_FOR_FN(p_tagmap, test_function_with_va_list, "%d %ld", VA_LIST((int)5, (long int)-100));
@@ -626,7 +627,7 @@ METAC_START_TEST(va_list_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
     WITH_VA_LIST_CONTAINER(c, 
         p_val = METAC_NEW_VALUE_WITH_ARGS_FOR_FN(p_tagmap, test_function_with_va_list, "%p", VA_LIST((void *)NULL));
@@ -641,7 +642,7 @@ METAC_START_TEST(va_list_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
 #undef VA_LIST
     metac_tag_map_delete(p_tagmap);
@@ -664,7 +665,7 @@ METAC_START_TEST(array_len_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
 
     int test_arr2[] = {0, 1, 2, 3, 4};
@@ -677,7 +678,7 @@ METAC_START_TEST(array_len_sanity) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
 
     metac_tag_map_delete(p_tagmap);
@@ -687,11 +688,12 @@ METAC_START_TEST(array_len_sanity) {
 // function pointer tests
 #undef METAC_NEW_VALUE_WITH_ARGS_PTR
 #define METAC_NEW_VALUE_WITH_ARGS_PTR(_p_tag_map_, _type_, _val_, _args_...) ({ \
+        metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         WITH_METAC_DECLLOC(dec, _type_ * p = _val_); \
         metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
         metac_value_t * p_res = NULL; \
-        if (p_entry) { \
-            p_res = metac_new_value_with_parameters(_p_tag_map_, metac_entry_pointer_entry(p_entry), _args_); \
+        if (p_entry != NULL && p_param_storage != NULL) { \
+            p_res = metac_new_value_with_parameters(p_param_storage, _p_tag_map_, metac_entry_pointer_entry(p_entry), _args_); \
         } \
         p_res; \
     })
@@ -736,7 +738,7 @@ METAC_START_TEST(base_type_args_to_value_ptr) {
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 
     p_val = METAC_NEW_VALUE_WITH_ARGS_PTR(
         NULL, 
@@ -749,7 +751,7 @@ METAC_START_TEST(base_type_args_to_value_ptr) {
     fail_unless(p_val != NULL, "failed to collect args of test_function_with_base_args");
     // types are diffenent on differnt platforms (some don't have actual long double complex) - we can't
     // test sting
-    metac_value_delete(p_val);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
 }END_TEST
 
 #if 1
@@ -768,7 +770,7 @@ METAC_START_TEST(args_deep_compare_sanity) {
     eq = metac_value_equal_ex(p_val1, p_val2, NULL, p_tagmap);
     fail_unless(eq == 1, "expected values equal, got %d", eq);
 
-    metac_value_delete(p_val2);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val2);
     
     // changing arg
     test_arr2[0] = 1;
@@ -778,12 +780,10 @@ METAC_START_TEST(args_deep_compare_sanity) {
     eq = metac_value_equal_ex(p_val1, p_val2, NULL, p_tagmap);
     fail_unless(eq == 0, "expected values NON equal, got %d", eq);
 
-    metac_value_delete(p_val2);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val2);
 
-    metac_value_delete(p_val1);
+    METAC_VALUE_WITH_ARGS_DELETE(p_val1);
 
     metac_tag_map_delete(p_tagmap);
 }
-#endif
-
 #endif

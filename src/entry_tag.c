@@ -791,7 +791,10 @@ int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, meta
         return -(EINVAL);
     }
 
-    assert(0);
-    //p_ev->p_return_value = metac_new_value_vprintf_ex(format, p_va_list_entry, p_ev->p_va_list_container->parameters);
-    return 0;
+    metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_ev->p_return_value);
+    if (p_param_storage == NULL) {
+        return -(EINVAL);
+    }
+
+    return metac_store_vprintf_params(p_param_storage, format, p_ev->p_va_list_container->parameters);
 }

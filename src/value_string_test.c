@@ -652,7 +652,6 @@ METAC_START_TEST(test9_satnity) {
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
-#if 0
 void test_function_for_subrouting_sanity1(
     int a) {
     return;
@@ -666,11 +665,15 @@ void test_function_for_subrouting_sanity2(
 METAC_GSYM_LINK(test_function_for_subrouting_sanity2);
 
 METAC_START_TEST(subrouting_sanity) {
+    metac_parameter_storage_t * p_param_storage;
     metac_value_t * p_val;
     char *s, *expected_s;
     metac_tag_map_t * p_tagmap = NULL;
+     
+    p_param_storage = metac_new_parameter_storage(); 
+    fail_unless(p_param_storage != NULL);
 
-    p_val = metac_new_value_with_parameters(p_tagmap, 
+    p_val = metac_new_value_with_parameters(p_param_storage, p_tagmap, 
         METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity1), 10);
     fail_unless(p_val != NULL);
 
@@ -682,7 +685,9 @@ METAC_START_TEST(subrouting_sanity) {
 
     metac_value_delete(p_val);
 
-    p_val = metac_new_value_with_parameters(p_tagmap, 
+    metac_parameter_storage_cleanup(p_param_storage);
+
+    p_val = metac_new_value_with_parameters(p_param_storage, p_tagmap, 
         METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity2), 10, -5);
     fail_unless(p_val != NULL);
 
@@ -693,5 +698,5 @@ METAC_START_TEST(subrouting_sanity) {
     free(s);
 
     metac_value_delete(p_val);
+    metac_parameter_storage_delete(p_param_storage);
 }END_TEST
-#endif
