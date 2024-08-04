@@ -676,7 +676,7 @@ metac_num_t metac_value_parameter_count(metac_value_t * p_val) {
     return metac_parameter_storage_size(p_pload);
 }
 
-metac_value_t * metac_value_parameter_item(metac_value_t * p_val, metac_num_t id) {
+metac_value_t * metac_value_parameter_new_item(metac_value_t * p_val, metac_num_t id) {
     _check_(metac_entry_has_parameter_load(p_val->p_entry) == 0, 0);
 
  
@@ -684,7 +684,7 @@ metac_value_t * metac_value_parameter_item(metac_value_t * p_val, metac_num_t id
     metac_parameter_storage_t * p_pload = p_val->addr;
 
     _check_(p_pload == NULL, 0);
-    return metac_parameter_storage_item(p_pload, id);
+    return metac_parameter_storage_new_param_value(p_pload, id);
 }
 
 static metac_value_t * metac_init_value(metac_value_t * p_val, metac_entry_t *p_entry, void * addr) {
@@ -772,27 +772,10 @@ void * metac_value_addr(metac_value_t * p_val) {
 metac_value_t * metac_new_value_from_value(metac_value_t * p_val) {
     void * addr = metac_value_addr(p_val);
 
-    if (metac_value_has_parameter_load(p_val)) {
-
-        metac_parameter_storage_t * p_in_para_load = addr;
-        if (p_in_para_load != NULL) {
-            addr = (void*)metac_parameter_storage_copy(p_in_para_load);
-        }
-        if (addr == NULL) {
-            return NULL;
-        }
-    }
     return metac_new_value(metac_value_entry(p_val), addr);
 }
 
 void metac_value_delete(metac_value_t * p_val) {
-    if (metac_value_has_parameter_load(p_val)){
-        // cleanup load
-        metac_parameter_storage_t * p_in_para_load = metac_value_addr(p_val);
-        if (p_in_para_load != NULL) {
-            metac_parameter_storage_delete(p_in_para_load);
-        }
-    }
     // cleanup entry if it's dynamic (init creates a copy of dynamic entries)
     if (metac_entry_is_dynamic(p_val->p_entry)!=0){
         metac_entry_delete(p_val->p_entry);

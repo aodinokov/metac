@@ -39,8 +39,9 @@ typedef struct metac_printf_specifier {
 
 size_t metac_parse_format_specifier(const char *format, size_t *pos, metac_printf_specifier_t *p_specifier);
 size_t metac_count_format_specifiers(const char *format);
-metac_value_t * metac_new_value_printf(const char * format, ...);
-metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters);
-metac_value_t * metac_new_value_vprintf_ex(const char * format, metac_entry_t * p_va_list_entry, va_list parameters);
+int metac_store_printf_params(metac_parameter_storage_t * p_pload, const char * format, ...);
+int metac_store_vprintf_params(metac_parameter_storage_t * p_pload, const char * format, va_list parameters);
+metac_entry_t * metac_store_printf_params_entry(); // returns p_entry for ...
+metac_entry_t * metac_store_vprintf_params_entry(); // returns p_entry for va_list parameters
 
 #endif

@@ -1,11 +1,12 @@
 #include "metac/reflect.h"
 #include "metac/backend/helpers.h"
 #include "metac/backend/iterator.h"
+#include "metac/backend/list.h"
 #include "metac/backend/value.h"
 
 #include <assert.h> /*assert*/
 #include <errno.h>  /*EINVAL... */
-#include <string.h> /*strcmp*/
+#include <string.h> /*strcmp, memcpy*/
 
 // disable this to avoid supporting of this feature
 #ifndef VA_ARG_IN_VA_ARG
@@ -13,142 +14,209 @@
 #endif
 
 typedef struct metac_parameter {
-    metac_num_t size;   // if size is not 0: this was created by metac_parameter_storage_new_item
-    metac_value_t * p_val;
+    metac_num_t size;
+    metac_entry_t *p_entry;
+    void * addr;
+
+    LIST_ENTRY(metac_parameter) links;
 } metac_parameter_t;
 
+LIST_HEAD(metac_parameter_storage_list, metac_parameter);
 typedef struct metac_parameter_storage {
-    metac_num_t params_count;
-    metac_parameter_t * params;
+    struct metac_parameter_storage_list list;
+    metac_num_t list_size;  // cache
+    struct metac_parameter * p_last_added_param;  // cache to add to the end of the list;
 } metac_parameter_storage_t;
 
-metac_parameter_storage_t * metac_new_parameter_storage(metac_num_t params_count) {
-    _check_(params_count < 0, NULL);
+metac_parameter_storage_t * metac_new_parameter_storage() {
+    metac_parameter_storage_t * p_param_storage = calloc(1, sizeof(*p_param_storage));
+    _check_(p_param_storage == NULL, NULL);
 
-    metac_parameter_storage_t * p_param_load = calloc(1, sizeof(metac_parameter_storage_t));
-    _check_(p_param_load == NULL, NULL);
+    LIST_INIT(&p_param_storage->list);
+    p_param_storage->list_size = 0;
+    p_param_storage->p_last_added_param = NULL;
 
-    if (params_count > 0) {
-        p_param_load->params = calloc(params_count, sizeof(metac_parameter_t));
-        if (p_param_load->params == NULL) {
-            free(p_param_load);
+    return p_param_storage;
+}
+
+void metac_parameter_storage_cleanup(metac_parameter_storage_t * p_param_storage) {
+    if (p_param_storage == NULL) {
+        return;
+    }
+
+    while (!LIST_EMPTY(&p_param_storage->list)) {
+        metac_parameter_t * p_param = LIST_FIRST(&p_param_storage->list);
+        if (p_param->size == 0) {
+            assert(p_param);
+            metac_entry_t * p_entry = p_param->p_entry;
+
+            metac_parameter_storage_t * p_inner_param_storage = (metac_parameter_storage_t *)p_param->addr;
+            if (p_inner_param_storage != NULL) {
+                metac_parameter_storage_delete(p_inner_param_storage);
+            }
+        } else {
+            free (p_param->addr);
+        }
+
+        if (metac_entry_is_dynamic(p_param->p_entry)!=0){
+            metac_entry_delete(p_param->p_entry);
+        }
+
+        LIST_REMOVE(p_param, links);
+        free(p_param);
+    }
+    p_param_storage->list_size = 0;
+    p_param_storage->p_last_added_param = NULL;
+}
+
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_storage) {
+    if (p_param_storage == NULL) {
+        return;
+    }
+
+    metac_parameter_storage_cleanup(p_param_storage);
+
+    free(p_param_storage);
+}
+
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_storage) {
+    _check_(p_param_storage == NULL, 0);
+    return p_param_storage->list_size;
+}
+
+metac_parameter_t * _parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_storage,
+    metac_num_t size,
+    metac_entry_t *p_entry,
+    void * addr) {
+    _check_(p_param_storage == NULL, NULL);
+
+    metac_parameter_t * p_param = calloc(1, sizeof(*p_param));
+    _check_(p_param == NULL, NULL);
+
+    metac_entry_t *p_entry_copy = NULL;
+    if (metac_entry_is_dynamic(p_entry) != 0) {
+        p_entry_copy = metac_new_entry(p_entry);
+        if (p_entry != NULL && p_entry_copy == NULL) {
+            free(p_param);
             return NULL;
         }
     }
-    p_param_load->params_count = params_count;
-    return p_param_load;
+
+    p_param->size = size;
+    p_param->addr = addr;
+    if (p_entry_copy != NULL) {
+        p_param->p_entry = p_entry_copy;
+    } else {
+        p_param->p_entry = p_entry;
+    }
+
+    // add to the end of list
+    if (p_param_storage->p_last_added_param == NULL) {
+        LIST_INSERT_HEAD(&p_param_storage->list, p_param, links);
+    } else {
+        LIST_INSERT_AFTER(p_param_storage->p_last_added_param, p_param, links);
+    }
+    ++p_param_storage->list_size;
+    p_param_storage->p_last_added_param = p_param;
+
+    return p_param;
 }
 
-metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load) {
-    _check_(p_param_load == NULL, 0);
-    return p_param_load->params_count;
-}
-
-metac_value_t * metac_parameter_storage_item(metac_parameter_storage_t * p_param_load, metac_num_t id) {
-    _check_(id < 0 || id >= p_param_load->params_count , NULL);
-    return p_param_load->params[id].p_val;
-}
-
-metac_value_t * metac_parameter_storage_set_item(metac_parameter_storage_t * p_param_load, metac_num_t id, metac_value_t * p_value) {
-    _check_(id < 0 || id >= p_param_load->params_count , NULL);
-    p_param_load->params[id].size = 0;
-    p_param_load->params[id].p_val = p_value;
-    return p_param_load->params[id].p_val;
-}
-
-metac_value_t * metac_parameter_storage_new_item(metac_parameter_storage_t * p_param_load,
-    metac_num_t id,
+int metac_parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_storage,
     metac_entry_t *p_entry,
     metac_num_t size) {
-    _check_(id < 0 || id >= p_param_load->params_count , NULL);
-    _check_(p_entry == NULL, NULL);
-    _check_(p_param_load->params[id].p_val != NULL, NULL); // already exists
-
-    metac_value_t *p_value = NULL;
-    if (metac_entry_has_parameter_load(p_entry) != 0) {// create another metac_parameter_storage_t * - size is number of subaargs
-        // this code in this branch isn't used
-        metac_parameter_storage_t * p_in_param_load = metac_new_parameter_storage(size);
-        if (p_in_param_load == NULL) {
-            return NULL;
-        }
-
-        p_value = metac_new_value(p_entry, p_in_param_load);
-        if (p_value == NULL) {
-            metac_parameter_storage_delete(p_in_param_load);
-        }
-    } else { // allocate memory with correct size;
-        void * addr = calloc(1, size);
-        if (addr == NULL) {
-            return NULL;
-        }
-        p_value = metac_new_value(p_entry, addr);
-        if (p_value == NULL) {
-            free(addr);
-        }
-    }
-    p_param_load->params[id].size = size;
-    p_param_load->params[id].p_val = p_value;
-    return p_value;
-}
-
-metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_load) {
-    _check_(p_param_load == NULL, NULL);
-    metac_num_t i, count = metac_parameter_storage_size(p_param_load);
-    metac_parameter_storage_t * p_param_load_copy = metac_new_parameter_storage(count);
-    _check_(p_param_load == NULL, NULL);
-
-    for (i = 0; i< count; ++i) {
-        if (p_param_load->params[i].size <= 0) {
-            p_param_load_copy->params[i].size = p_param_load->params[i].size;
-            p_param_load_copy->params[i].p_val = metac_new_value_from_value(p_param_load->params[i].p_val);
-        } else {
-            if (metac_entry_has_parameter_load(metac_value_entry(p_param_load->params[i].p_val)) != 0) {
-                p_param_load_copy->params[i].size = p_param_load->params[i].size;
-                p_param_load_copy->params[i].p_val = metac_new_value_from_value(p_param_load->params[i].p_val);
-            } else {
-                p_param_load_copy->params[i].size = p_param_load->params[i].size;
-
-                void * addr = calloc(1, p_param_load_copy->params[i].size);
-                if (addr != NULL) {
-                    memcpy(addr, metac_value_addr(p_param_load->params[i].p_val), p_param_load_copy->params[i].size);
-                    p_param_load_copy->params[i].p_val = metac_new_value(metac_value_entry(p_param_load->params[i].p_val), addr);
-                }
-            }
-        }
-
-        if (p_param_load->params[i].p_val != NULL && p_param_load_copy->params[i].p_val == NULL) {
-            metac_parameter_storage_delete(p_param_load_copy);
-            return NULL;
-        }
-    }
-
-    return p_param_load_copy;
-}
-
-metac_flag_t metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load) {
-    _check_(p_param_load == NULL, 0);
-    for (metac_num_t id = 0; id < p_param_load->params_count; ++id) {
-        metac_value_t * p_value  = metac_parameter_storage_item(p_param_load, id);
-        if (p_value == NULL) {
-            continue;
-        }
-        metac_entry_t * p_entry = metac_value_entry(p_value);
-
-        if (metac_entry_has_parameter_load(p_entry) == 0) {
-            void * addr = metac_value_addr(p_value);
-            if (addr != NULL) {
-                free(addr);
-            }
-        } // don't do anything otherwise - metac_value_delete will take case of metac_parameter_storage_t
-
-        metac_value_delete(p_value);
-    }
     
-    if (p_param_load->params != NULL) {
-        free(p_param_load->params);
+    _check_(p_param_storage == NULL, -(EINVAL));
+    _check_(p_entry == NULL || size <= 0, -(EINVAL));
+
+    void * addr = calloc(1, size);
+    _check_(addr == NULL, -(ENOMEM));
+
+    metac_parameter_t * p_param = _parameter_storage_append_by_buffer(p_param_storage,
+        size,
+        p_entry,
+        addr);
+
+    if (p_param == NULL) {
+        free(addr);
+        return -(EFAULT);
     }
-    free(p_param_load);
-    return 1;
+
+    return 0;
+}
+
+int metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry) {
+
+    assert(metac_entry_is_unspecified_parameter(p_entry) != 0 || metac_entry_is_va_list_parameter(p_entry) != 0);
+
+    metac_parameter_storage_t * p_inner_param_storage = metac_new_parameter_storage();
+    _check_(p_entry == NULL, -(ENOMEM));
+
+    metac_parameter_t * p_param = _parameter_storage_append_by_buffer(p_param_storage,
+        0,
+        p_entry,
+        p_inner_param_storage);
+
+    if (p_param == NULL) {
+        metac_parameter_storage_delete(p_inner_param_storage);
+        return -(EFAULT);
+    }
+
+    return 0;
+}
+
+int _parameter_storage_copy(metac_parameter_storage_t * p_copy_param_storage, metac_parameter_storage_t * p_param_storage) {
+    metac_parameter_t * p_param = NULL;
+    LIST_FOREACH(p_param, &p_param_storage->list, links) {
+        if (p_param->size != 0) {
+            if (metac_parameter_storage_append_by_buffer(p_copy_param_storage, 
+                p_param->p_entry, p_param->size) != 0) {
+                return -(EFAULT);
+            }
+            assert(p_copy_param_storage->p_last_added_param != NULL);
+            assert(p_copy_param_storage->p_last_added_param->addr != NULL);
+            assert(p_copy_param_storage->p_last_added_param->size == p_param->size);
+            memcpy(p_copy_param_storage->p_last_added_param->addr, p_param->addr, p_param->size);
+        } else {
+            if (metac_parameter_storage_append_by_parameter_storage(p_copy_param_storage,
+                p_param->p_entry) != 0) {
+                return -(EFAULT);
+            }
+            assert(p_copy_param_storage->p_last_added_param != NULL);
+            assert(p_copy_param_storage->p_last_added_param->addr != NULL);
+            assert(p_copy_param_storage->p_last_added_param->size == p_param->size);
+            metac_parameter_storage_t * p_inner_param_storage = (metac_parameter_storage_t *)p_param->addr;
+            metac_parameter_storage_t * p_inner_copy_param_storage = (metac_parameter_storage_t *)p_copy_param_storage->p_last_added_param->addr;
+            if (_parameter_storage_copy(p_inner_copy_param_storage, p_inner_param_storage) != 0) {
+                return -(EFAULT);
+            }
+        }
+    }
+    return 0;
+}
+
+metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_storage) {
+    _check_(p_param_storage == NULL, NULL);
+    metac_parameter_storage_t * p_copy_param_storage = metac_new_parameter_storage();
+    _check_(p_copy_param_storage == NULL, NULL);
+    if (_parameter_storage_copy(p_copy_param_storage, p_param_storage) != 0) {
+        metac_parameter_storage_delete(p_copy_param_storage);
+        return NULL;
+    }
+    return p_copy_param_storage;
+}
+
+metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id) {
+    metac_num_t current = 0;
+    metac_parameter_t * p_param = NULL;
+    LIST_FOREACH(p_param, &p_param_storage->list, links) {
+        if (id == current) {
+            return metac_new_value(p_param->p_entry, p_param->addr);
+        }
+        ++current;
+    }
+    return NULL;
 }
 
 #if VA_ARG_IN_VA_ARG != 0
@@ -193,11 +261,18 @@ static void _handle_subprogram(
                 metac_recursive_iterator_fail(p_iter);
                 return;
             }
+
+            if (metac_parameter_storage_append_by_parameter_storage(p_subprog_load, p_param_entry) != 0){
+                metac_recursive_iterator_fail(p_iter);
+                return;   
+            }
+
             // handle va_paremeter as event
             metac_value_event_t ev = {
                 .type = METAC_RQVST_va_list,
                 .va_list_param_id = i,  // TODO: to remove?
-                .p_va_list_param_entry = p_param_entry,
+                // .p_va_list_param_entry = p_param_entry,
+                .p_return_value = metac_parameter_storage_new_param_value(p_subprog_load, i),
                 .p_va_list_container = p_va_list_container,
             };
 
@@ -234,7 +309,8 @@ static void _handle_subprogram(
                     metac_recursive_iterator_fail(p_iter);
                     return;
                 }
-                metac_parameter_storage_set_item(p_subprog_load, i, ev.p_return_value);
+                assert(0);
+                // TODO: metac_parameter_storage_set_item(p_subprog_load, i, ev.p_return_value);
             }
         } else { /* normal param */
             void * addr = NULL;
@@ -257,12 +333,17 @@ static void _handle_subprogram(
 #define _base_type_paremeter_(_type_, _va_type_, _pseudoname_) \
                 do { \
                     if (addr == NULL && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_subprog_load, i, p_param_entry, sizeof(_type_)); \
+                        if (metac_parameter_storage_append_by_buffer(p_subprog_load, p_param_entry, sizeof(_type_)) != 0) { \
+                            metac_recursive_iterator_fail(p_iter); \
+                            return; \
+                        } \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_subprog_load, i); \
                         if (p_param_value == NULL) { \
                             metac_recursive_iterator_fail(p_iter); \
                             return; \
                         } \
                         addr = metac_value_addr(p_param_value); \
+                        metac_value_delete(p_param_value); \
                         if (addr != NULL) { \
                             _type_ val = va_arg(p_va_list_container->parameters, _va_type_); \
                             memcpy(addr, &val, sizeof(val)); \
@@ -291,12 +372,17 @@ static void _handle_subprogram(
             } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
                 do {
                     if (addr == NULL ) {
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_subprog_load, i, p_param_entry, sizeof(void *));
+                        if (metac_parameter_storage_append_by_buffer(p_subprog_load, p_param_entry, sizeof(void *)) != 0) {
+                            metac_recursive_iterator_fail(p_iter);
+                            return;
+                        }
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_subprog_load, i);
                         if (p_param_value == NULL) {
                             metac_recursive_iterator_fail(p_iter);
                             return;
                         }
                         addr = metac_value_addr(p_param_value);
+                        metac_value_delete(p_param_value);
 
                         if (addr != NULL) {
                             void * val = va_arg(p_va_list_container->parameters, void *);
@@ -308,12 +394,17 @@ static void _handle_subprogram(
 #define _enum_paremeter_(_type_, _va_type_) \
                 do { \
                     if (addr == NULL && param_byte_sz == sizeof(_type_)) { \
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_subprog_load, i, p_param_entry, sizeof(_type_)); \
+                        if (metac_parameter_storage_append_by_buffer(p_subprog_load, p_param_entry, sizeof(_type_)) != 0) { \
+                            metac_recursive_iterator_fail(p_iter); \
+                            return; \
+                        } \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_subprog_load, i); \
                         if (p_param_value == NULL) { \
                             metac_recursive_iterator_fail(p_iter); \
                             return; \
                         } \
                         addr = metac_value_addr(p_param_value); \
+                        metac_value_delete(p_param_value); \
                         if (addr != NULL) { \
                             _type_ val = va_arg(p_va_list_container->parameters, _va_type_); \
                             memcpy(addr, &val, sizeof(val)); \
@@ -332,12 +423,18 @@ static void _handle_subprogram(
                         /*  NOTE: we can't call calloc AFTER metac_entry_struct_va_paremeter, we can only copy data.
                             calloc, printf and other functions damage the data 
                         */
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_subprog_load, i, p_param_entry, param_byte_sz);
+                        if (metac_parameter_storage_append_by_buffer(p_subprog_load, p_param_entry, param_byte_sz) != 0) {
+                            metac_recursive_iterator_fail(p_iter);
+                            return;
+                        }
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_subprog_load, i);
+
                         if (p_param_value == NULL) {
                             metac_recursive_iterator_fail(p_iter);
                             return;
                         }
                         addr = metac_value_addr(p_param_value);
+                        metac_value_delete(p_param_value);
 
                         if (addr != NULL) {
                             void * val = metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container);
@@ -363,7 +460,7 @@ static void _handle_subprogram(
 static metac_value_t * _new_value_with_parameters(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, struct va_list_container *p_va_list_container) {
     _check_(p_entry == NULL || metac_entry_has_parameters(p_entry) == 0, NULL);
 
-    metac_parameter_storage_t * p_subprog_load =  metac_new_parameter_storage(metac_entry_parameters_count(p_entry));
+    metac_parameter_storage_t * p_subprog_load =  metac_new_parameter_storage();
     _check_(p_subprog_load == NULL, NULL);
     metac_value_t * p_val = metac_new_value(p_entry, p_subprog_load);
     if (p_val == NULL) {

@@ -476,7 +476,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
 
                     metac_num_t mcount = metac_value_parameter_count(p);
                     for (metac_num_t i = 0; i < mcount; ++i) {
-                        metac_value_t * p_param_val = metac_value_parameter_item(p, i);
+                        metac_value_t * p_param_val = metac_value_parameter_new_item(p, i);
                         if (p_param_val == NULL) {
                             failure = 1;
                             break;
@@ -500,12 +500,14 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         assert(p_param_val != NULL);
 
                         if (param_out == NULL) {
+                            metac_value_delete(p_param_val);
                             failure = 1;
                             break;
                         }
                        
                         if (final_kind == METAC_KND_func_parameter) { // building va_list or ...
                             char * param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
+                            metac_value_delete(p_param_val);
                             if (param_cdecl == NULL) {
                                 free(out);
                                 failure = 1;
@@ -540,6 +542,8 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 free(prev_out);
                             }
                         } else { // building part of fn call - append value
+                            metac_value_delete(p_param_val);
+
                             char *prev_out = out;
                             out = dsprintf("%s%s%s",
                                 prev_out == NULL?"":prev_out, /*must include , at the end */
@@ -612,6 +616,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                     while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
                         metac_value_t * p_param_val;
                         char * el_out = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_param_val, NULL);
+                        metac_value_delete(p_param_val);
                         if (el_out != NULL) {
                             free(el_out);
                         }

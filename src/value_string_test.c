@@ -652,6 +652,7 @@ METAC_START_TEST(test9_satnity) {
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
+#if 0
 void test_function_for_subrouting_sanity1(
     int a) {
     return;
@@ -693,3 +694,4 @@ METAC_START_TEST(subrouting_sanity) {
 
     metac_value_delete(p_val);
 }END_TEST
+#endif

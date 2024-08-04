@@ -111,7 +111,7 @@ typedef struct{
     metac_value_t *p_return_value;                  /**< for METAC_RQVST_union_member, 
                                                          METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
     metac_num_t va_list_param_id;                   /**< get from here the id of va_arg in case METAC_RQVST_va_list*/
-    metac_entry_t * p_va_list_param_entry;
+    // metac_entry_t * p_va_list_param_entry;
     struct va_list_container * p_va_list_container; /**< pointer to va_list to handle case METAC_RQVST_va_list*/
 }metac_value_event_t;
 

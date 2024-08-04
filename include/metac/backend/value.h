@@ -50,19 +50,19 @@ void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 
 typedef struct metac_parameter_storage metac_parameter_storage_t;
 
-metac_parameter_storage_t * metac_new_parameter_storage(metac_num_t values_count);
+metac_parameter_storage_t * metac_new_parameter_storage();
 metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_load);
-metac_flag_t metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
 
 metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
-metac_value_t * metac_parameter_storage_item(metac_parameter_storage_t * p_param_load, metac_num_t id);
 
+metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id);
 
-metac_value_t * metac_parameter_storage_new_item(metac_parameter_storage_t * p_param_load,
-    metac_num_t id,
+int metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry);
+int metac_parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_storage,
     metac_entry_t *p_entry,
     metac_num_t size);
-metac_value_t * metac_parameter_storage_set_item(metac_parameter_storage_t * p_param_load, metac_num_t id, metac_value_t * p_value);
 
 /*
 some thougths

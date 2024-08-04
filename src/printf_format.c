@@ -10,6 +10,7 @@
 #include "metac/backend/value.h"
 
 #include <assert.h>
+#include <errno.h>  /*EINVAL... */
 #include <stdio.h>
 #include <string.h> /*strlen*/
 #include <ctype.h>
@@ -122,62 +123,55 @@ size_t metac_count_format_specifiers(const char *format) {
     return num_specifiers;
 }
 
-static metac_value_t * _new_value_from_format_specifier(const char * format, metac_entry_t * p_va_list_entry, struct va_list_container * p_cntr);
+static int _new_value_from_format_specifier(metac_parameter_storage_t * p_pload, const char * format, struct va_list_container * p_cntr);
 
-metac_value_t * metac_new_value_vprintf_ex(const char * format, metac_entry_t * p_va_list_entry, va_list parameters) {
+
+int metac_store_vprintf_params(metac_parameter_storage_t * p_pload, const char * format, va_list parameters) {
     struct va_list_container cntr = {};
 
     va_copy(cntr.parameters, parameters);
-    metac_value_t * p_value = _new_value_from_format_specifier(format, p_va_list_entry, &cntr);
+    int res = _new_value_from_format_specifier(p_pload, format, &cntr);
     va_end(cntr.parameters);
 
-    return p_value;
+    return res;
 }
+METAC_GSYM_LINK(metac_store_vprintf_params);
 
-METAC_GSYM_LINK_DECLARE(metac_new_value_vprintf);
-metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters) {
-    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_vprintf);
+metac_entry_t * metac_store_vprintf_params_entry() {
+    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_store_vprintf_params);
     assert(
         p_fn_entry != NULL &&
         metac_entry_has_parameters(p_fn_entry) != 0 &&
-        metac_entry_parameters_count(p_fn_entry) == 2);
-    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
-
-    return metac_new_value_vprintf_ex(format, p_va_list_entry, parameters);
+        metac_entry_parameters_count(p_fn_entry) == 3);
+    return metac_entry_by_paremeter_id(p_fn_entry, 2);
 }
-METAC_GSYM_LINK(metac_new_value_vprintf);
 
-METAC_GSYM_LINK_DECLARE(metac_new_value_printf);
-metac_value_t * metac_new_value_printf(const char * format, ...) {
-    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_new_value_printf);
-    assert(
-        p_fn_entry != NULL &&
-        metac_entry_has_parameters(p_fn_entry) != 0 &&
-        metac_entry_parameters_count(p_fn_entry) == 2);
-    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_fn_entry, 1);
-
+int metac_store_printf_params(metac_parameter_storage_t * p_pload, const char * format, ...) {
     struct va_list_container cntr = {};
 
     va_start(cntr.parameters, format);
-    metac_value_t * p_value = _new_value_from_format_specifier(format, p_va_list_entry, &cntr);
+    int res = _new_value_from_format_specifier(p_pload, format, &cntr);
     va_end(cntr.parameters);
 
-    return p_value;
+    return res;
 }
-METAC_GSYM_LINK(metac_new_value_printf);
+METAC_GSYM_LINK(metac_store_printf_params);
 
-static metac_value_t * _new_value_from_format_specifier(const char * format, metac_entry_t * p_va_list_entry, struct va_list_container * p_cntr) {
-    if (p_va_list_entry == NULL ||
-        metac_entry_has_parameter_load(p_va_list_entry) == 0) {
-        return NULL;
+metac_entry_t * metac_store_printf_params_entry() {
+    metac_entry_t *p_fn_entry = METAC_GSYM_LINK_ENTRY(metac_store_printf_params);
+    assert(
+        p_fn_entry != NULL &&
+        metac_entry_has_parameters(p_fn_entry) != 0 &&
+        metac_entry_parameters_count(p_fn_entry) == 3);
+    return metac_entry_by_paremeter_id(p_fn_entry, 2);
+}
+
+static int _new_value_from_format_specifier(metac_parameter_storage_t * p_pload, const char * format, struct va_list_container * p_cntr) {
+    if (p_pload == NULL) {
+        return -(EINVAL);
     }
 
     metac_num_t parameters_count = metac_count_format_specifiers(format);
-
-    metac_parameter_storage_t * p_pload = metac_new_parameter_storage(parameters_count);
-    if (p_pload == NULL) {
-        return NULL;
-    }
 
     metac_num_t param_id = 0;
     size_t pos = 0;
@@ -195,27 +189,33 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, p), NULL);
 
                         if (p == NULL) { // use std ptr approach
-                            metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(p));
+                            if (metac_parameter_storage_append_by_buffer(p_pload, p_param_entry, sizeof(p)) != 0) {
+                                return -(EFAULT);
+                            }
+                            metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_pload, param_id);
                             if (p_param_value == NULL) {
-                                metac_parameter_storage_delete(p_pload);
-                                return NULL;
+                                return -(EFAULT);
                             }
                             void * p_param_value_ptr = metac_value_addr(p_param_value);
+                            metac_value_delete(p_param_value);
                             memcpy(p_param_value_ptr, &p, sizeof(p));
                         }else{
                             size_t len = strlen(p);
                             metac_entry_t * p_param_with_len_entry = metac_new_element_count_entry(p_param_entry, len+1);
                             if (p_param_with_len_entry == NULL) {
-                                return NULL;
+                                return -(EFAULT);
                             }
 
-                            metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_with_len_entry, len+1);
+                            if (metac_parameter_storage_append_by_buffer(p_pload, p_param_with_len_entry, sizeof(p)) != 0) {
+                                return -(EFAULT);
+                            }
+                            metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_pload, param_id);
                             metac_entry_delete(p_param_with_len_entry);
                             if (p_param_value == NULL) {
-                                metac_parameter_storage_delete(p_pload);
-                                return NULL;
+                                return -(EFAULT);
                             }
                             void * p_param_value_ptr = metac_value_addr(p_param_value);
+                            metac_value_delete(p_param_value);
                             memcpy(p_param_value_ptr, p, len+1);
                         }
                     }
@@ -224,12 +224,15 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
 #define _process(_type_, _va_arg_type) { \
                         WITH_METAC_DECLLOC(decl, _type_ dummy = NULL); \
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        if (metac_parameter_storage_append_by_buffer(p_pload, p_param_entry, sizeof(dummy)) != 0) { \
+                            return -(EFAULT); \
+                        } \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_pload, param_id); \
                         if (p_param_value == NULL) { \
-                            metac_parameter_storage_delete(p_pload); \
-                            return NULL; \
+                            return -(EFAULT); \
                         } \
                         void * p_param_value_ptr = metac_value_addr(p_param_value); \
+                        metac_value_delete(p_param_value); \
                         void * p = (_type_)va_arg(p_cntr->parameters, void*); \
                         memcpy(p_param_value_ptr, &p, sizeof(p)); \
                     }
@@ -248,7 +251,7 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                     } else if (dummy_specifier.arg_len == psal_ll) {
                         _process(long long*, void*);
                     } else {
-                        return NULL;
+                        return -(EFAULT);
                     }
                     break;
 #undef _process
@@ -256,12 +259,15 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
 #define _process(_type_, _va_arg_type) { \
                         WITH_METAC_DECLLOC(decl, _type_ dummy = 0); \
                         metac_entry_t * p_param_entry = metac_entry_final_entry(METAC_ENTRY_FROM_DECLLOC(decl, dummy), NULL); \
-                        metac_value_t * p_param_value = metac_parameter_storage_new_item(p_pload, param_id, p_param_entry, sizeof(dummy)); \
+                        if (metac_parameter_storage_append_by_buffer(p_pload, p_param_entry, sizeof(dummy)) != 0) { \
+                            return -(EFAULT); \
+                        } \
+                        metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_pload, param_id); \
                         if (p_param_value == NULL) { \
-                            metac_parameter_storage_delete(p_pload); \
-                            return NULL; \
+                            return -(EFAULT); \
                         } \
                         _type_ * p_param_value_ptr = metac_value_addr(p_param_value); \
+                        metac_value_delete(p_param_value); \
                         *p_param_value_ptr = (_type_)va_arg(p_cntr->parameters, _va_arg_type); \
                     }
                     break;
@@ -282,10 +288,10 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                             } else if (dummy_specifier.arg_len == psal_ll) {
                                 _process(long long, long long);
                             } else {
-                                return NULL;
+                                return -(EFAULT);
                             }
                         } else {
-                            return NULL;
+                            return -(EFAULT);
                         }
                     }
                     break;
@@ -305,7 +311,7 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                         } else if (dummy_specifier.arg_len == psal_ll) {
                             _process(unsigned long long, unsigned long long);
                         } else {
-                            return NULL;
+                            return -(EFAULT);
                         }
                     }
                     break;
@@ -318,14 +324,13 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
                         } else if (dummy_specifier.arg_len == psal_L) {
                             _process(long double, long double);
                         } else {
-                            return NULL;
+                            return -(EFAULT);
                         }
                     }
                     break;
 #undef _process
                 default: {
-                        metac_parameter_storage_delete(p_pload);
-                        return NULL;
+                        return -(EFAULT);
                     }
                 }
             }
@@ -334,12 +339,5 @@ static metac_value_t * _new_value_from_format_specifier(const char * format, met
         ++pos;
     }
 
-    metac_value_t * p_return_value = NULL;
-    if (p_pload != NULL) {
-        p_return_value = metac_new_value(p_va_list_entry, p_pload);
-        if (p_return_value == NULL) {
-            metac_parameter_storage_delete(p_pload);
-        }
-    }
-    return p_return_value;
+    return 0;
 }

@@ -414,16 +414,19 @@ int metac_handle_count_by(metac_value_walker_hierarchy_t *p_hierarchy, metac_val
             }
         } else if (metac_value_has_parameter_load(p_parent_val) != 0) {
             for (metac_num_t i = 0; i < metac_value_parameter_count(p_parent_val); ++i) {
-                metac_value_t *p_sibling_val = metac_value_parameter_item(p_parent_val, i);
+                metac_value_t *p_sibling_val = metac_value_parameter_new_item(p_parent_val, i);
                 if (metac_value_name(p_sibling_val) == NULL ||
                     strcmp(metac_value_name(p_sibling_val), p_cnxt->counter_sibling_entry_name) !=0 ) {
+                    metac_value_delete(p_sibling_val);
                     continue;
                 }
                 metac_num_t content_len = 0;
                 if (metac_value_num(p_sibling_val, &content_len) != 0) {
+                    metac_value_delete(p_sibling_val);
                     return -(EFAULT);
                 }
-                p_ev->p_return_value =  metac_new_element_count_value(p_val, content_len);
+                metac_value_delete(p_sibling_val);
+                p_ev->p_return_value = metac_new_element_count_value(p_val, content_len);
                 return 0;
             }
         } else {
@@ -760,7 +763,7 @@ int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, meta
     }
     metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
     metac_entry_t *p_va_list_entry = metac_entry_by_paremeter_id(metac_value_entry(p_val), p_ev->va_list_param_id);
-    metac_value_t *p_param_val = metac_value_parameter_item(p_val, p_ev->va_list_param_id -1 /* use previous param */);
+    metac_value_t *p_param_val = metac_value_parameter_new_item(p_val, p_ev->va_list_param_id -1 /* use previous param */);
 
     if (p_va_list_entry == NULL) {
         return -(EINVAL);
@@ -771,20 +774,24 @@ int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, meta
     }
 
     if (metac_value_is_pointer(p_param_val) == 0) {
+        metac_value_delete(p_param_val);
         return -(EINVAL);
     }
 
     // extract pointer
     char * format = NULL;
     if (metac_value_pointer(p_param_val, (void **)&format) != 0) {
+        metac_value_delete(p_param_val);
         return -(EINVAL);
     }
+    metac_value_delete(p_param_val);
     /* potentially we could check if that is char *, but this is optional*/
 
     if (format == NULL) {
         return -(EINVAL);
     }
 
-    p_ev->p_return_value = metac_new_value_vprintf_ex(format, p_va_list_entry, p_ev->p_va_list_container->parameters);
+    assert(0);
+    //p_ev->p_return_value = metac_new_value_vprintf_ex(format, p_va_list_entry, p_ev->p_va_list_container->parameters);
     return 0;
 }

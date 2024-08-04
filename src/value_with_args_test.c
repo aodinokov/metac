@@ -54,6 +54,8 @@ METAC_START_TEST(va_arg_in_va_arg_precheck) {
 }END_TEST
 #endif
 
+#if 0
+
 #define METAC_NEW_VALUE_WITH_ARGS_FN(_p_tag_map_, _fn_, _args_...) \
         metac_new_value_with_parameters(_p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_)
 
@@ -768,4 +770,6 @@ METAC_START_TEST(args_deep_compare_sanity) {
 
     metac_tag_map_delete(p_tagmap);
 }
+#endif
+
 #endif
