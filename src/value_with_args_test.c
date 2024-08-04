@@ -537,7 +537,6 @@ METAC_START_TEST(va_arg_to_value) {
             if (metac_value_has_parameter_load(va_arg_parsed) == 0) { //simple parameter
                 fail_unless(i < tcs[tc_inx].expected_sz, "tc %d: counter %d is bigger than expected %d", tc_inx, i, tcs[tc_inx].expected_sz);
                 char *s = metac_value_string_ex(va_arg_parsed, METAC_WMODE_deep, p_tag_map);
-                metac_value_delete(va_arg_parsed);
                 fail_unless(s != NULL);
                 fail_unless(strcmp(tcs[tc_inx].expected_s[i], s) == 0, "tc %d.%d, expected %s, got %s",
                     tc_inx, i, tcs[tc_inx].expected_s[i], s);
@@ -560,6 +559,7 @@ METAC_START_TEST(va_arg_to_value) {
                     ++i;
                 }
             }
+            metac_value_delete(va_arg_parsed);
         }
 
         METAC_VALUE_WITH_ARGS_DELETE(tcs[tc_inx].p_parsed_value);

@@ -274,6 +274,10 @@ static void _handle_subprogram(
                 .p_return_value = metac_parameter_storage_new_param_value(p_subprog_load, i),
                 .p_va_list_container = p_va_list_container,
             };
+            if (ev.p_return_value == NULL) {
+                metac_recursive_iterator_fail(p_iter);
+                return;
+            }
 
             metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, p_param_entry);
             
@@ -300,6 +304,8 @@ static void _handle_subprogram(
                     if (local != 0){
                         va_end(local_cntr.parameters);
                     }
+                    metac_value_delete(ev.p_return_value);
+
 
                     metac_recursive_iterator_fail(p_iter);
                     return;
@@ -307,6 +313,7 @@ static void _handle_subprogram(
                 if (local != 0){
                     va_end(local_cntr.parameters);
                 }
+                metac_value_delete(ev.p_return_value);
             }
         } else { /* normal param */
             void * addr = NULL;
