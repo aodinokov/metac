@@ -66,13 +66,13 @@ struct metac_call {
 };
 
 static void _args(metac_entry_t *p_entry, struct va_list_container *p_va_list_container) {
-    if (p_entry == NULL || metac_entry_has_paremeters(p_entry) == 0) {
+    if (p_entry == NULL || metac_entry_has_parameters(p_entry) == 0) {
         return;
     }
     // we need to calculate buffer size first.
     metac_size_t all_param_byte_sz = 0;
 
-    for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
+    for (int i = 0; i < metac_entry_parameters_count(p_entry); ++i) {
         metac_entry_t * p_param_entry = metac_entry_by_paremeter_id(p_entry, i);
         if (metac_entry_is_parameter(p_param_entry) == 0) {
             // something is wrong
@@ -158,7 +158,7 @@ static void _args(metac_entry_t *p_entry, struct va_list_container *p_va_list_co
 #endif
 
 static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry,  metac_value_t * p_res, struct va_list_container *p_va_list_container) {
-    if (p_entry == NULL || metac_entry_has_paremeters(p_entry) == 0) {
+    if (p_entry == NULL || metac_entry_has_parameters(p_entry) == 0) {
         return;
     }
 
@@ -170,7 +170,7 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
 
     char buf[128];
 
-    for (int i = 0; i < metac_entry_paremeters_count(p_entry); ++i) {
+    for (int i = 0; i < metac_entry_parameters_count(p_entry); ++i) {
 
         if (i > 0) {
             printf(", ");
@@ -207,7 +207,7 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
 #define _base_type_arg_(_type_, _va_type_, _pseudoname_) \
             do { \
                 if (addr == NULL && strcmp(param_base_type_name, #_pseudoname_) == 0 && param_byte_sz == sizeof(_type_)) { \
-                    _type_ val = va_arg(p_va_list_container->args, _va_type_); \
+                    _type_ val = va_arg(p_va_list_container->parameters, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     addr = &buf[0]; \
                 } \
@@ -234,7 +234,7 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
         } else if (metac_entry_is_pointer(p_param_type_entry) != 0) {
             do {
                 if (addr == NULL ) {
-                    void * val = va_arg(p_va_list_container->args, void *);
+                    void * val = va_arg(p_va_list_container->parameters, void *);
                     memcpy(buf, &val, sizeof(val));
                     addr = &buf[0];
                 }
@@ -243,7 +243,7 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
 #define _enum_arg_(_type_, _va_type_) \
             do { \
                 if (addr == NULL && param_byte_sz == sizeof(_type_)) { \
-                    _type_ val = va_arg(p_va_list_container->args, _va_type_); \
+                    _type_ val = va_arg(p_va_list_container->parameters, _va_type_); \
                     memcpy(buf, &val, sizeof(val)); \
                     addr = &buf[0]; \
                 } \
@@ -271,7 +271,6 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
                             break;
                         }
                         memcpy(addr, val, param_byte_sz);
-                        printf("val: %p\n", val);
                     } else {
                         void * val = metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container);
                         if (val == NULL) {
@@ -337,15 +336,15 @@ static void _vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, meta
 
 void vprint_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry,  metac_value_t * p_res, va_list args) {
     struct va_list_container cntr = {};
-    va_copy(cntr.args, args);
+    va_copy(cntr.parameters, args);
     _vprint_args(p_tag_map, calling, p_entry, p_res, &cntr);
-    va_end(cntr.args);
+    va_end(cntr.parameters);
 }
 
 void print_args(metac_tag_map_t * p_tag_map, metac_flag_t calling, metac_entry_t *p_entry, metac_value_t * p_res, ...) {
     struct va_list_container cntr = {};
-    va_start(cntr.args, p_res);
+    va_start(cntr.parameters, p_res);
     _vprint_args(p_tag_map, calling, p_entry, p_res, &cntr);
-    va_end(cntr.args);
+    va_end(cntr.parameters);
     return;
 }

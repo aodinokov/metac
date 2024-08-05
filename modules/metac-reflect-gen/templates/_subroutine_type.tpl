@@ -12,15 +12,21 @@ static struct metac_entry {{ $i }} = {
     .subroutine_type_info = {
 {{-          indent 8 (include "metac_reflect_gen.type" $v.Type) }}
         .parameters_count = {{ len $v.Param }},
-        .parameters = (struct metac_type_subroutine_type_parameter[]){
+        .parameters = (struct metac_entry[]){
 {{-          range $_,$val := $v.Param }}
             {
+                .kind = METAC_KND_func_parameter,
+{{-                indent 20 (include "metac_reflect_gen.name_mixin" $val) }}
+                .parents_count = 1,
+                .parents = (metac_entry_t*[]){ &{{ $i }}, },
+                .func_parameter_info = {
 {{-            with $val.UnspecifiedParam -}}
 {{-              if eq (toJson .) "true"  }}
-                .unspecified_parameters = 1,
+                    .unspecified_parameters = 1,
 {{-              end -}}
 {{-            end }}
-{{-            indent 16 (include "metac_reflect_gen.type" $val.Type) }}
+{{-            indent 20 (include "metac_reflect_gen.type" $val.Type) }}
+                },
             },
 {{-          end }}
         },

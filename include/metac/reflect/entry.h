@@ -69,6 +69,9 @@ metac_entry_t * metac_entry_final_entry(metac_entry_t *p_entry, metac_quals_t * 
  * @brief create dynamically allocated entry and copy data from original
  */
 metac_entry_t * metac_new_entry(metac_entry_t * p_entry_from);
+
+/** @brief creates new value with overriden element count. useful for flexible arrays if we got actual len */
+metac_entry_t * metac_new_element_count_entry(metac_entry_t *p_entry_from, metac_num_t count);
 /**
  * @brief returns non-zero if entry was created with metac_new_entry
  */
@@ -230,15 +233,15 @@ typedef struct {
 metac_entry_t * metac_entry_by_member_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids, metac_num_t ids_count);
 
 /**
- * @brief check if final entry is function (METAC_KND_subroutine)
+ * @brief check if final entry is function (METAC_KND_subroutine) or METAC_KND_subroutine_type from which can be fn ptrs
 */
-metac_flag_t metac_entry_has_paremeters(metac_entry_t * p_entry);
+metac_flag_t metac_entry_has_parameters(metac_entry_t * p_entry);
 /**
  * @brief return number of parameters. Negative value is errno
 */
-metac_num_t metac_entry_paremeters_count(metac_entry_t *p_entry);
+metac_num_t metac_entry_parameters_count(metac_entry_t *p_entry);
 /**
- * @brief returns pointer to the parameter entry (kind==METAC_KND_member) by param_id which is in range [0; metac_entry_paremeters_count -1]
+ * @brief returns pointer to the parameter entry (kind==METAC_KND_member) by param_id which is in range [0; metac_entry_parameters_count -1]
 */
 metac_entry_t * metac_entry_by_paremeter_id(metac_entry_t *p_entry, metac_num_t param_id);
 /**
@@ -256,13 +259,19 @@ metac_num_t metac_entry_paremeter_name_to_id(metac_entry_t *p_entry, metac_name_
 metac_entry_t * metac_entry_by_parameter_ids(metac_entry_t * p_entry, metac_flag_t final, metac_entry_id_t* p_ids);
 
 /**
- * @brief check if entry is subprogram parameter (kind==METAC_KND_subprogram_parameter)
+ * @brief check if entry is subprogram parameter (kind==METAC_KND_func_parameter)
 */
 metac_flag_t metac_entry_is_parameter(metac_entry_t * p_entry);
 /**
- * @brief check if parameter is ... (va_arg)
+ * @brief check if parameter is ...
 */
 metac_flag_t metac_entry_is_unspecified_parameter(metac_entry_t * p_entry);
+
+/**
+ * @brief check if parameter is va_list
+*/
+metac_flag_t metac_entry_is_va_list_parameter(metac_entry_t * p_entry);
+
 /**
  * @brief returns type of argument
 */
@@ -277,5 +286,10 @@ metac_flag_t metac_entry_has_result(metac_entry_t * p_entry);
  * @brief returns type which the function returns
 */
 metac_entry_t * metac_entry_result_type(metac_entry_t * p_entry);
+
+/**
+ * @brief returns true if entry is subprogram or va_arg (both can have several parameters)
+*/
+metac_flag_t metac_entry_has_parameter_load(metac_entry_t *p_entry);
 
 #endif

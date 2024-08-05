@@ -54,20 +54,43 @@ go_test:
 endif
 .PHONY: go_test
 
+libmetac_no_reflect+= \
+	src/entry.c \
+	src/entry_cdecl.c \
+	src/entry_db.c \
+	src/entry_tag.c \
+	src/hashmap.c \
+	src/iterator.c \
+	src/value.c \
+	src/value_base_type.c \
+	src/value_deep.c \
+	src/value_string.c \
+	src/value_with_args.c
+libmetac_reflect+= \
+	src/printf_format.c
+libmetac+=$(libmetac_no_reflect) $(libmetac_reflect)
+
 gl_rules+= \
-	src/libmetac.a
+	src/libmetac.a \
+	src/_meta_libmetac \
+	src/libmetac.reflect.c
 TPL-src/libmetac.a+=a_target
 IN-src/libmetac.a+= \
-	src/entry.o \
-	src/entry_cdecl.o \
-	src/entry_db.o \
-	src/entry_tag.o \
-	src/hashmap.o \
-	src/iterator.o \
-	src/value.o \
-	src/value_base_type.o \
-	src/value_deep.o \
-	src/value_string.o
+	$(libmetac:%.c=%.o) \
+	src/libmetac.reflect.o
+INCFLAGS-src/libmetac.a+=-DMETAC_MODULE_NAME=libmetac
+# this is to genearte
+TPL-src/_meta_libmetac+=bin_target
+IN-src/_meta_libmetac= \
+	$(libmetac_no_reflect:%.c=%.o) \
+	$(libmetac_reflect:%.c=%.meta.o) \
+	src/_module.o
+INCFLAGS-src/_meta_libmetac+=-DMETAC_MODULE_NAME=libmetac
+POST-src/_meta_libmetac=$(METAC_POST_META)
+
+TPL-src/libmetac.reflect.c+=metac_target
+METACFLAGS-src/libmetac.reflect.c+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
+IN-src/libmetac.reflect.c=src/_meta_libmetac
 
 $(foreach t,$(gl_rules),$(call meta_rules,$(shell pwd),$(t)))
 ifeq ($(M),)

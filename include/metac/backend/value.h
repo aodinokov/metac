@@ -48,4 +48,82 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
     metac_tag_map_t * p_tag_map);
 void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 
-#endif 
+typedef struct metac_parameter_storage metac_parameter_storage_t;
+
+metac_parameter_storage_t * metac_new_parameter_storage();
+int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage);
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
+
+metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id);
+
+int metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry);
+int metac_parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry,
+    metac_num_t size);
+
+/*
+some thougths
+metac_parameter_storage_t * metac_new_parameter_storage();
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+
+metac_parameter_storage_cleanup(metac_parameter_storage_t * p_param_load) // reset internal list
+metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_load); // ??? why do we need this? - deep copy will use this to copy structure
+
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
+metac_value_t * metac_parameter_storage_item(metac_parameter_storage_t * p_param_load, metac_num_t id); -> new_item
+
+metac_value_t * metac_parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_load,
+    metac_entry_t *p_entry,
+    metac_num_t size); -> this will create a value which we need to delete? probably we jsut need to split this
+    put here flag and if ok - call metac_value_t * metac_parameter_storage_item(
+
+metac_value_t * metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_t * p_param_load,
+    metac_entry_t *p_entry);
+
+Then
+metac_value_t * metac_new_value_with_parameters(metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...) ->
+metac_value_t * metac_new_value(metac_entry_t * p_entry, (void*)p_param_load); +
+
+metac_value_parameters_process(p_val, metac_tag_map_t * p_tag_map, ...);
+
+
+and
+metac_value_t * metac_new_value_printf(const char * format, ...);
+metac_value_t * metac_new_value_vprintf(const char * format, va_list parameters);
+metac_value_t * metac_new_value_vprintf_ex(const char * format, metac_entry_t * p_va_list_entry, va_list parameters);
+>
+metac_value_t * metac_new_value(metac_entry_t * p_entry, (void*)p_param_load); + (p_entry - va_list or ...)
+
+metac_value_printf_parameters_process(p_val, const char * format, ...)
+
+
+copy will look like
+
+metac_value_t * src = metac_new_value(metac_entry_t * p_entry, (void*)p_param_load); +
+metac_value_t * dst = metac_new_value(metac_entry_t * p_entry, (void*)p_param_load);
+
+metac_value_parameters_process(src, metac_tag_map_t * p_tag_map, ...);
+
+metac_copy_ex(dst, src);
+
+dst will have everythong copied and arg modification won't affect this values...
+metac_delete_ex(dst) will clean all allocated things
+
+metac_parameter_storage_delete or clean (if we want to reuse) to cleanup params
+
+
+we can remove then treating for addr ptr from value.c:
+    if (metac_value_has_parameter_load(p_val)){
+        // cleanup load
+        metac_parameter_storage_t * p_in_para_load = metac_value_addr(p_val);
+        if (p_in_para_load != NULL) {
+            metac_parameter_storage_delete(p_in_para_load);
+        }
+    }
+
+*/
+
+#endif

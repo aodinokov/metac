@@ -78,9 +78,8 @@ metac_entry_t * metac_value_entry(metac_value_t * p_val);
 /** @brief get value's address of memory it points  */
 void * metac_value_addr(metac_value_t * p_val);
 /** @brief make a copy ov value  */
-static inline metac_value_t * metac_new_value_from_value(metac_value_t * p_val) {
-    return metac_new_value(metac_value_entry(p_val), metac_value_addr(p_val));
-}
+metac_value_t * metac_new_value_from_value(metac_value_t * p_val);
+
 /* deep functions and their shorter versions */
 
 /** @brief print value data in c format
@@ -363,5 +362,27 @@ int metac_value_set_ldouble_complex(metac_value_t * p_val, long double complex v
 
 /** @brief read any numberic from char to unsigned long long into num_t */
 int metac_value_num(metac_value_t * p_val, metac_num_t * p_var);
+
+/** @brief subprograms/subroutines and va_list arguments are such types - created by metac_new_value_printf and etc 
+ * subporgrams and subrountines are entry which have parameters defined.
+ * but there are also unspecified params and va_lists which may have parameter load.
+ * see the difference in metac_entry_has_parameters and metac_entry_has_parameter_load.
+ * This function has a proper name and it handles both types
+*/
+metac_flag_t metac_value_has_parameter_load(metac_value_t * p_val);
+/** @brief get number of args of such value subtype */
+metac_num_t metac_value_parameter_count(metac_value_t * p_val);
+/** @brief get each subvalue of such value subtype */
+metac_value_t * metac_value_parameter_new_item(metac_value_t * p_val, metac_num_t id);
+
+typedef struct metac_parameter_storage metac_parameter_storage_t;
+
+metac_parameter_storage_t * metac_new_parameter_storage();
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
+metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id);
+
+metac_value_t * metac_new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...);
+metac_value_t * metac_new_value_with_vparameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters);
 
 #endif

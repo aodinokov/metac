@@ -92,21 +92,27 @@ to create it partially and link the second layer to the original and have a defa
 it's better alsoway have null default tag on module-specific map.
  */
 
-/* event for callback */
 /** @brief value object declaraion (hidden implementation )*/
 typedef struct metac_value metac_value_t;
+
+/* event for callback */
 
 /** @brief event types from deep functions (when deep function needs some insight on what to do) */
 typedef enum {
     METAC_RQVST_union_member = 1,   /**< return value union member to continue */
     METAC_RQVST_flex_array_count,   /**< return metac_new_element_count_value of flex array with proper len */
     METAC_RQVST_pointer_array_count,/**< return metac_new_element_count_value of pointer with proper len */
+    METAC_RQVST_va_list,            /**< return */
 }metac_value_event_type_t;
 
 /** @brief event structure which includes type and plase where the hanlder needs to put return value */
 typedef struct{
-    metac_value_event_type_t type;  /**< type of event*/
-    metac_value_t *p_return_value;  /**< for METAC_RQVST_union_member, METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
+    metac_value_event_type_t type;                  /**< type of event*/
+    metac_value_t *p_return_value;                  /**< for METAC_RQVST_union_member, 
+                                                         METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
+    metac_num_t va_list_param_id;                   /**< get from here the id of va_arg in case METAC_RQVST_va_list*/
+    // metac_entry_t * p_va_list_param_entry;
+    struct va_list_container * p_va_list_container; /**< pointer to va_list to handle case METAC_RQVST_va_list*/
 }metac_value_event_t;
 
 typedef struct metac_value_walker_hierarchy metac_value_walker_hierarchy_t;
@@ -133,7 +139,7 @@ typedef struct metac_tag_map metac_tag_map_t;
 /** @brief tagmap entry categories */
 typedef enum {
     METAC_TEC_variable = 0,         /**< corresponds to METAC_KND_variable */
-    METAC_TEC_subprogram_parameter, /**< corresponds to METAC_KND_subprogram_parameter*/
+    METAC_TEC_func_parameter, /**< corresponds to METAC_KND_func_parameter*/
     METAC_TEC_member,               /**< corresponds to METAC_KND_member */
     METAC_TEC_final,                /**< can be base_type, enum, pointer, array, structure/union/class)*/
 }metac_tag_map_entry_category_t;
@@ -188,7 +194,7 @@ void metac_tag_map_delete(metac_tag_map_t * p_tag_map);
  * @brief creates tagmap with 1 category
  *      with mask =
  *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) | 
- *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+ *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
  *          METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member);
  */
 metac_tag_map_t * metac_new_tag_map(metac_entry_tag_t *p_default_tag);
@@ -416,5 +422,15 @@ struct metac_ptr_cast_context * metac_new_ptr_cast_context(
 void metac_ptr_cast_context_delete(void *p_context);
 /** @brief internal implementation */
 int metac_handle_ptr_cast(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
+
+/**
+ * @brief instruct metac_new_value_with_parameters or metac_new_value_with_vparameters that the argument is variadic and
+ * can be handled based on the previous argument that is pritnf format string
+*/
+#define METAC_FORMAT_BASED_VA_ARG() \
+    .handler = metac_handle_printf_format,
+
+/** @brief internal implementation */
+int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
 
 #endif

@@ -1,7 +1,9 @@
 #include "metac/test.h"
 
 #include "entry.c"
+#include "entry_cdecl.c"
 #include "entry_db.c"
+#include "iterator.c"
 
 METAC_START_TEST(test_metac_entry_by_member_ids) {
     WITH_METAC_DECLLOC(loc, 
@@ -64,3 +66,17 @@ METAC_START_TEST(test_metac_entry_by_member_ids) {
         strcmp(p_res_entry->name, "long int")==0, "expected long int, got %s", p_res_entry->name);
 
 }END_TEST
+
+void _test_va_list_arg(char * format, va_list arg) {
+    return;
+}
+METAC_GSYM_LINK(_test_va_list_arg);
+METAC_START_TEST(test_va_list_arg) {
+    metac_entry_t *p_entry = METAC_GSYM_LINK_ENTRY(_test_va_list_arg);
+    fail_unless(p_entry != NULL);
+    fail_unless(metac_entry_has_parameters(p_entry) != 0);
+    fail_unless(metac_entry_parameters_count(p_entry) == 2);
+    
+    metac_entry_t * p_va_list_entry = metac_entry_by_paremeter_id(p_entry, 1);
+    fail_unless(metac_entry_is_va_list_parameter(p_va_list_entry) != 0);
+}

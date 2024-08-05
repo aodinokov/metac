@@ -1,9 +1,15 @@
 #include "metac/test.h"
 
 #include "entry.c"
+#include "entry_cdecl.c"
+#include "entry_db.c"
+#include "entry_tag.c"
+#include "hashmap.c"
 #include "iterator.c"
+#include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
+#include "value_with_args.c"
 
 int arr_test1[] = {1,2,3,4,5};
 METAC_GSYM_LINK(arr_test1);

@@ -3,6 +3,7 @@
 #include "metac/reflect/value.h"
 
 #include "metac/backend/hashmap.h"
+#include "metac/backend/printf_format.h" /* metac_new_value_vprintf_ex */
 #include "metac/backend/value.h" /* for handlers we need metac_value_walker_hierarchy_level */
 
 #include <assert.h> /* assert */
@@ -144,7 +145,7 @@ metac_tag_map_t * metac_new_tag_map_ex(metac_num_t categories_count, metac_tag_m
 metac_tag_map_t * metac_new_tag_map(metac_entry_tag_t *p_default_tag) {
     metac_tag_map_entry_category_mask_t mask = 
         METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) | 
-        METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+        METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
         METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member);
 
     return metac_new_tag_map_ex(1, (metac_tag_map_entry_t[]){{.mask = mask, .p_ext_map = NULL}}, p_default_tag);
@@ -165,8 +166,8 @@ metac_entry_tag_t * metac_tag_map_tag(metac_tag_map_t * p_tag_map, metac_entry_t
         case METAC_KND_variable:
             mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable);
             break;
-        case METAC_KND_subprogram_parameter:
-            mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter);
+        case METAC_KND_func_parameter:
+            mask += METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter);
             break;
     }
 
@@ -390,25 +391,46 @@ int metac_handle_count_by(metac_value_walker_hierarchy_t *p_hierarchy, metac_val
         metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
         metac_value_t *p_parent_val = metac_value_walker_hierarchy_value(p_hierarchy, 1);
 
-        if (p_val == NULL || p_parent_val == NULL || metac_value_has_members(p_parent_val) == 0) {
+        if (p_val == NULL || p_parent_val == NULL) {
             return -(EFAULT);
         }
 
-        for (metac_num_t i = 0; i < metac_value_member_count(p_parent_val); ++i) {
-            metac_value_t *p_sibling_val = metac_new_value_by_member_id(p_parent_val, i);
-            if (metac_value_name(p_sibling_val) == NULL ||
-                strcmp(metac_value_name(p_sibling_val), p_cnxt->counter_sibling_entry_name) !=0 ) {
+        if (metac_value_has_members(p_parent_val) != 0) {
+            for (metac_num_t i = 0; i < metac_value_member_count(p_parent_val); ++i) {
+                metac_value_t *p_sibling_val = metac_new_value_by_member_id(p_parent_val, i);
+                if (metac_value_name(p_sibling_val) == NULL ||
+                    strcmp(metac_value_name(p_sibling_val), p_cnxt->counter_sibling_entry_name) !=0 ) {
+                    metac_value_delete(p_sibling_val);
+                    continue;
+                }
+                metac_num_t content_len = 0;
+                if (metac_value_num(p_sibling_val, &content_len) != 0) {
+                    metac_value_delete(p_sibling_val);
+                    return -(EFAULT);
+                }
                 metac_value_delete(p_sibling_val);
-                continue;
+                p_ev->p_return_value =  metac_new_element_count_value(p_val, content_len);
+                return 0;
             }
-            metac_num_t content_len = 0;
-            if (metac_value_num(p_sibling_val, &content_len) != 0) {
+        } else if (metac_value_has_parameter_load(p_parent_val) != 0) {
+            for (metac_num_t i = 0; i < metac_value_parameter_count(p_parent_val); ++i) {
+                metac_value_t *p_sibling_val = metac_value_parameter_new_item(p_parent_val, i);
+                if (metac_value_name(p_sibling_val) == NULL ||
+                    strcmp(metac_value_name(p_sibling_val), p_cnxt->counter_sibling_entry_name) !=0 ) {
+                    metac_value_delete(p_sibling_val);
+                    continue;
+                }
+                metac_num_t content_len = 0;
+                if (metac_value_num(p_sibling_val, &content_len) != 0) {
+                    metac_value_delete(p_sibling_val);
+                    return -(EFAULT);
+                }
                 metac_value_delete(p_sibling_val);
-                return -(EFAULT);
+                p_ev->p_return_value = metac_new_element_count_value(p_val, content_len);
+                return 0;
             }
-            metac_value_delete(p_sibling_val);
-            p_ev->p_return_value =  metac_new_element_count_value(p_val, content_len);
-            return 0;
+        } else {
+            return -(EFAULT);
         }
     }    
     return 0;
@@ -728,4 +750,51 @@ int metac_handle_ptr_cast(metac_value_walker_hierarchy_t *p_hierarchy, metac_val
         }
     }
     return 0;
+}
+
+int metac_handle_printf_format(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
+    if (p_ev == NULL) {
+        return -(EINVAL);
+    }
+    if (p_ev->type != METAC_RQVST_va_list ||
+        p_ev->p_va_list_container == NULL ||
+        metac_value_walker_hierarchy_level(p_hierarchy) < 0) {
+        return -(EINVAL);
+    }
+    metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
+    metac_entry_t *p_va_list_entry = metac_entry_by_paremeter_id(metac_value_entry(p_val), p_ev->va_list_param_id);
+    metac_value_t *p_param_val = metac_value_parameter_new_item(p_val, p_ev->va_list_param_id -1 /* use previous param */);
+
+    if (p_va_list_entry == NULL) {
+        return -(EINVAL);
+    }
+
+    if (p_param_val == NULL) {
+        return -(EINVAL);
+    }
+
+    if (metac_value_is_pointer(p_param_val) == 0) {
+        metac_value_delete(p_param_val);
+        return -(EINVAL);
+    }
+
+    // extract pointer
+    char * format = NULL;
+    if (metac_value_pointer(p_param_val, (void **)&format) != 0) {
+        metac_value_delete(p_param_val);
+        return -(EINVAL);
+    }
+    metac_value_delete(p_param_val);
+    /* potentially we could check if that is char *, but this is optional*/
+
+    if (format == NULL) {
+        return -(EINVAL);
+    }
+
+    metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_ev->p_return_value);
+    if (p_param_storage == NULL) {
+        return -(EINVAL);
+    }
+
+    return metac_store_vprintf_params(p_param_storage, format, p_ev->p_va_list_container->parameters);
 }

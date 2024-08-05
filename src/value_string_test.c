@@ -8,9 +8,10 @@
 #include "entry_tag.c"
 #include "iterator.c"
 #include "hashmap.c"
+#include "printf_format.c"
 #include "value.c"
 #include "value_base_type.c"
-
+#include "value_with_args.c"
 
 #include "value_string.c"
 
@@ -137,7 +138,7 @@ METAC_GSYM_LINK(test5);
 
 METAC_TAG_MAP_NEW(new_t5_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -206,7 +207,7 @@ METAC_GSYM_LINK(test6);
 
 METAC_TAG_MAP_NEW(new_t6_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -360,7 +361,7 @@ METAC_GSYM_LINK(test7);
 
 METAC_TAG_MAP_NEW(new_t7_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -624,7 +625,7 @@ char * test9 = "some data";
 METAC_GSYM_LINK(test9);
 METAC_TAG_MAP_NEW(new_t9_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
-            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_subprogram_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
     /* start tags for all types */
@@ -649,4 +650,53 @@ METAC_START_TEST(test9_satnity) {
 
     metac_value_delete(p_val);
     metac_tag_map_delete(p_tagmap);
+}END_TEST
+
+void test_function_for_subrouting_sanity1(
+    int a) {
+    return;
+}
+METAC_GSYM_LINK(test_function_for_subrouting_sanity1);
+
+void test_function_for_subrouting_sanity2(
+    int a, short b) {
+    return;
+}
+METAC_GSYM_LINK(test_function_for_subrouting_sanity2);
+
+METAC_START_TEST(subrouting_sanity) {
+    metac_parameter_storage_t * p_param_storage;
+    metac_value_t * p_val;
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = NULL;
+     
+    p_param_storage = metac_new_parameter_storage(); 
+    fail_unless(p_param_storage != NULL);
+
+    p_val = metac_new_value_with_parameters(p_param_storage, p_tagmap, 
+        METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity1), 10);
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_for_subrouting_sanity1(10)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+
+    metac_parameter_storage_cleanup(p_param_storage);
+
+    p_val = metac_new_value_with_parameters(p_param_storage, p_tagmap, 
+        METAC_GSYM_LINK_ENTRY(test_function_for_subrouting_sanity2), 10, -5);
+    fail_unless(p_val != NULL);
+
+    expected_s = "test_function_for_subrouting_sanity2(10, -5)";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    metac_value_delete(p_val);
+    metac_parameter_storage_delete(p_param_storage);
 }END_TEST

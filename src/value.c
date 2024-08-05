@@ -1,6 +1,7 @@
 #include "metac/backend/entry.h"
 #include "metac/backend/helpers.h"
 #include "metac/backend/iterator.h"
+#include "metac/backend/value.h"
 #include "metac/endian.h"
 #include "metac/reflect.h"
 
@@ -657,6 +658,35 @@ char *metac_value_pointer_string(metac_value_t * p_val) {
     return dsprintf("%p", v);
 }
 
+// special type of value - parameters of functions. we have a special load for it and need to cleanup addr
+// when delete such objects
+metac_flag_t metac_value_has_parameter_load(metac_value_t * p_val) {
+    _check_(p_val == NULL, 0);
+    _check_(p_val->p_entry == NULL, 0);
+    return metac_entry_has_parameter_load(p_val->p_entry);
+}
+
+metac_num_t metac_value_parameter_count(metac_value_t * p_val) {
+    _check_(metac_entry_has_parameter_load(p_val->p_entry) == 0, 0);
+
+
+    metac_parameter_storage_t * p_pload = p_val->addr;
+    // we have checked metac_entry_has_parameter_load in the beginning, so it's unspecified or va_list
+    _check_(p_pload == NULL, 0);
+    return metac_parameter_storage_size(p_pload);
+}
+
+metac_value_t * metac_value_parameter_new_item(metac_value_t * p_val, metac_num_t id) {
+    _check_(metac_entry_has_parameter_load(p_val->p_entry) == 0, 0);
+
+ 
+    // we have checked metac_entry_has_parameter_load in the beginning, so it's unspecified or va_list
+    metac_parameter_storage_t * p_pload = p_val->addr;
+
+    _check_(p_pload == NULL, 0);
+    return metac_parameter_storage_new_param_value(p_pload, id);
+}
+
 static metac_value_t * metac_init_value(metac_value_t * p_val, metac_entry_t *p_entry, void * addr) {
     assert(p_val != NULL);
 
@@ -706,36 +736,27 @@ metac_value_t * metac_new_element_count_value(metac_value_t *p_val, metac_num_t 
     _check_(metac_entry_kind(p_final_entry) != METAC_KND_array_type && metac_entry_kind(p_final_entry) != METAC_KND_pointer_type, NULL);
 
     void * p_addr = p_val->addr;
-    metac_entry_t * p_element_type_entry = NULL;
     switch (metac_entry_kind(p_final_entry))
     {
     case METAC_KND_array_type:
-        p_element_type_entry = metac_entry_element_entry(p_final_entry);
         break;
     case METAC_KND_pointer_type:
-        p_element_type_entry = metac_entry_pointer_entry(p_final_entry);
         p_addr = *((void**)p_addr);
         _check_(p_addr == NULL, NULL);
         break;
     default:
         return NULL;
     }
-    _check_(p_element_type_entry == NULL, NULL);
 
-    metac_entry_t * p_new_entry = (metac_entry_t[]){{
-        .dynamically_allocated = 1, /* this will make metac_new_value to create a copy*/
-        .kind = METAC_KND_array_type,
-        .name = 0,
-        .parents_count = 0,
-        .array_type_info = {
-            .type = p_element_type_entry,
-            .count = count,
-            .lower_bound = 0,
-            .p_stride_bit_size = NULL,
-        },
-    }};
+    metac_entry_t *p_new_entry = metac_new_element_count_entry(metac_value_entry(p_val), count);
+    if (p_new_entry == NULL) {
+        return NULL;
+    }
 
-    return metac_new_value(p_new_entry, p_addr);
+    metac_value_t *p_new_val = metac_new_value(p_new_entry, p_addr);
+    metac_entry_delete(p_new_entry);
+
+    return p_new_val;
 }
 
 metac_entry_t * metac_value_entry(metac_value_t * p_val) {
@@ -748,9 +769,17 @@ void * metac_value_addr(metac_value_t * p_val) {
     return p_val->addr;
 }
 
+metac_value_t * metac_new_value_from_value(metac_value_t * p_val) {
+    void * addr = metac_value_addr(p_val);
+
+    return metac_new_value(metac_value_entry(p_val), addr);
+}
+
 void metac_value_delete(metac_value_t * p_val) {
-    if ( metac_entry_is_dynamic(p_val->p_entry)!=0){
+    // cleanup entry if it's dynamic (init creates a copy of dynamic entries)
+    if (metac_entry_is_dynamic(p_val->p_entry)!=0){
         metac_entry_delete(p_val->p_entry);
     }
+    // clean our mem
     free(p_val);
 }

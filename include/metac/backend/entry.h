@@ -44,14 +44,6 @@ struct array_type_info {
     metac_bound_t lower_bound; /* min index in subrange (typically 0) */
     metac_size_t *p_stride_bit_size; /* not sure what it is, but it's said "number of bits to hold each element" */
 };
-struct subroutine_type_info {
-    metac_entry_t *type; /* function return type (NULL if void) */
-    metac_num_t parameters_count; /* number of parameters */
-    struct metac_type_subroutine_type_parameter {
-        metac_flag_t unspecified_parameters; /* if 1 - after that it's possible to have a lot of arguments... */
-        metac_entry_t *type; /* parameter type */
-    } *parameters;
-};
 struct hierarchy_item {
     metac_entry_t *link; /* link to the actual object (variable, subroutine, )*/
     // where is it declared in cu (if present)
@@ -92,8 +84,7 @@ struct lex_block_info {
     metac_num_t hierarchy_items_count;
     struct hierarchy_item *hierarchy_items;
 };
-
-struct metac_type_subprogram_parameter_info {
+struct metac_type_parameter_info {
     metac_flag_t unspecified_parameters; /* if 1 - after that it's possible to have a lot of arguments... */
     metac_entry_t *type; /* parameter type */
 };
@@ -108,6 +99,13 @@ struct subprogram_info {
     metac_num_t hierarchy_items_count;
     struct hierarchy_item *hierarchy_items;
 };
+struct subroutine_type_info {
+    metac_entry_t *type; /* function return type (NULL if void) */
+    metac_num_t parameters_count; /* number of parameters */
+
+    metac_entry_t *parameters;  // will use metac_type_parameter_info
+};
+
 struct namespace_info {
     metac_num_t imported_modules_count;
     metac_entry_t **imported_modules;
@@ -170,8 +168,8 @@ struct metac_entry {
         struct structure_type_info structure_type_info;
          /* .kind == METAC_KND_variable */
         struct variable_info variable_info;
-        /* .kind = METAC_KND_subprogram_parameter */
-        struct metac_type_subprogram_parameter_info subprogram_parameter_info;
+        /* .kind = METAC_KND_func_parameter */
+        struct metac_type_parameter_info func_parameter_info;
         /* .kind == METAC_KND_subprogram */
         struct subprogram_info subprogram_info;
         /* .kind == METAC_KND_lex_block */

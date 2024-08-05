@@ -21,7 +21,13 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
         p = (metac_value_t *)metac_recursive_iterator_next(p_iter)) {
         int state = metac_recursive_iterator_get_state(p_iter);
 
-        metac_kind_t final_kind = metac_value_final_kind(p, NULL);
+        metac_kind_t final_kind;
+        if (metac_value_kind(p) != METAC_KND_func_parameter || metac_value_has_parameter_load(p) == 0) {
+            final_kind = metac_value_final_kind(p, NULL);
+        } else {
+            final_kind = METAC_KND_func_parameter;    // unspecified and va_arg;
+        }
+         
         switch(final_kind) {
         case METAC_KND_base_type: {
             char * out = metac_value_base_type_string(p);
@@ -458,7 +464,166 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                     metac_recursive_iterator_fail(p_iter);
                     continue; 
                 }
+            }
+        }
+        case METAC_KND_func_parameter:// this is only it's unspecified param
+        case METAC_KND_subroutine_type:
+        case METAC_KND_subprogram: {
+            switch(state) {
+                case METAC_R_ITER_start: {
+                    metac_flag_t failure = 0;
+                    assert(metac_value_has_parameter_load(p) != 0);
 
+                    metac_num_t mcount = metac_value_parameter_count(p);
+                    for (metac_num_t i = 0; i < mcount; ++i) {
+                        metac_value_t * p_param_val = metac_value_parameter_new_item(p, i);
+                        if (p_param_val == NULL) {
+                            failure = 1;
+                            break;
+                        }
+                        metac_recursive_iterator_create_and_append_dep(p_iter, p_param_val);
+                    }
+                    if (failure != 0) {
+                        metac_recursive_iterator_set_state(p_iter, 2);  /* failure cleanup */
+                        continue;  
+                    }
+                    metac_recursive_iterator_set_state(p_iter, 1);
+                    continue;
+                }
+                case 1: {
+                    metac_flag_t failure = 0;
+                    char * out = NULL;
+
+                    while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                        metac_value_t * p_param_val;
+                        char * param_out = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_param_val, NULL);
+                        assert(p_param_val != NULL);
+
+                        if (param_out == NULL) {
+                            metac_value_delete(p_param_val);
+                            failure = 1;
+                            break;
+                        }
+                       
+                        if (final_kind == METAC_KND_func_parameter) { // building va_list or ...
+                            char * param_cdecl = metac_entry_cdecl(metac_value_entry(p_param_val));
+                            metac_value_delete(p_param_val);
+                            if (param_cdecl == NULL) {
+                                free(out);
+                                failure = 1;
+                                break;
+                            }
+
+                            char * param_type = dsprintf(param_cdecl, "");
+                            free(param_cdecl);
+                            if (param_type == NULL) {
+                                free(out);
+                                failure = 1;
+                                break;
+                            }
+                            // trim trailing spaces if any
+                            size_t param_type_len = strlen(param_type);
+                            while (param_type_len > 0 && param_type[param_type_len - 1] == ' ') {
+                                param_type[param_type_len - 1] = 0,
+                                --param_type_len;
+                            }
+
+
+                            char *prev_out = out;
+                            out = dsprintf("%s%s(%s)%s",
+                                prev_out == NULL?"":prev_out, /*must include , at the end */
+                                prev_out == NULL?"":", ",
+                                param_type,
+                                param_out
+                            );
+                            free(param_type);
+                            free(param_out);
+                            if (prev_out) {
+                                free(prev_out);
+                            }
+                        } else { // building part of fn call - append value
+                            metac_value_delete(p_param_val);
+
+                            char *prev_out = out;
+                            out = dsprintf("%s%s%s",
+                                prev_out == NULL?"":prev_out, /*must include , at the end */
+                                prev_out == NULL?"":", ",
+                                param_out
+                            );
+                            free(param_out);
+                            if (prev_out) {
+                                free(prev_out);
+                            }
+                        }
+
+                        if (out == NULL) {
+                            failure = 1;
+                            break; 
+                        }
+                    }
+                    if (failure != 0) {
+                        if (out != NULL) {
+                            free(out);
+                        }
+                        metac_recursive_iterator_set_state(p_iter, 2); // failure cleanup
+                        continue;
+                    }
+
+                    if (final_kind == METAC_KND_func_parameter) {
+                        if (metac_entry_is_va_list_parameter(metac_value_entry(p))!=0) { // wrap with VA_LIST()
+                            char *prev_out = out;
+                            out = dsprintf("VA_LIST(%s)",prev_out);
+                            free(prev_out);
+                            if (out == NULL) {
+                                metac_recursive_iterator_set_state(p_iter, 2); // failure cleanup
+                                continue;   
+                            }
+                        }
+                        metac_recursive_iterator_done(p_iter, out);
+                        continue;
+                    }
+
+                    if (final_kind == METAC_KND_subroutine_type) {  // subroutines are always called via ptrs
+                        // TODO: for now that's ok, but maybe we'll need to instruct pointers
+                        // of certain types to have a function call and it will produce
+                        // value with params and result
+                        char *prev_out = out;
+                        out = dsprintf("(%s)(%s)",
+                            metac_entry_name(metac_value_entry(p)),
+                            prev_out==NULL?"":prev_out
+                        );
+                        if (prev_out) {
+                            free(prev_out);
+                        }
+                        metac_recursive_iterator_done(p_iter, out);
+                        continue;
+                    }
+
+                    char *prev_out = out;
+                    out = dsprintf("%s(%s)",
+                        metac_entry_name(metac_value_entry(p)),
+                        prev_out==NULL?"":prev_out
+                    );
+                    if (prev_out) {
+                        free(prev_out);
+                    }
+                    metac_recursive_iterator_done(p_iter, out);
+                    continue;
+                }
+                case 2: 
+                default: {
+                    /* failure cleanup*/
+                    while(metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                        metac_value_t * p_param_val;
+                        char * el_out = metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_param_val, NULL);
+                        metac_value_delete(p_param_val);
+                        if (el_out != NULL) {
+                            free(el_out);
+                        }
+                    }
+                    metac_recursive_iterator_fail(p_iter);
+                    continue; 
+                }
             }
         }
         default: {
