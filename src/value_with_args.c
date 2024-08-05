@@ -166,45 +166,34 @@ int metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_
     return 0;
 }
 
-int _parameter_storage_copy(metac_parameter_storage_t * p_copy_param_storage, metac_parameter_storage_t * p_param_storage) {
+int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage) {
     metac_parameter_t * p_param = NULL;
-    LIST_FOREACH(p_param, &p_param_storage->list, links) {
+    LIST_FOREACH(p_param, &p_src_param_storage->list, links) {
         if (p_param->size != 0) {
-            if (metac_parameter_storage_append_by_buffer(p_copy_param_storage, 
+            if (metac_parameter_storage_append_by_buffer(p_dst_param_storage, 
                 p_param->p_entry, p_param->size) != 0) {
                 return -(EFAULT);
             }
-            assert(p_copy_param_storage->p_last_added_param != NULL);
-            assert(p_copy_param_storage->p_last_added_param->addr != NULL);
-            assert(p_copy_param_storage->p_last_added_param->size == p_param->size);
-            memcpy(p_copy_param_storage->p_last_added_param->addr, p_param->addr, p_param->size);
+            assert(p_dst_param_storage->p_last_added_param != NULL);
+            assert(p_dst_param_storage->p_last_added_param->addr != NULL);
+            assert(p_dst_param_storage->p_last_added_param->size == p_param->size);
+            memcpy(p_dst_param_storage->p_last_added_param->addr, p_param->addr, p_param->size);
         } else {
-            if (metac_parameter_storage_append_by_parameter_storage(p_copy_param_storage,
+            if (metac_parameter_storage_append_by_parameter_storage(p_dst_param_storage,
                 p_param->p_entry) != 0) {
                 return -(EFAULT);
             }
-            assert(p_copy_param_storage->p_last_added_param != NULL);
-            assert(p_copy_param_storage->p_last_added_param->addr != NULL);
-            assert(p_copy_param_storage->p_last_added_param->size == p_param->size);
+            assert(p_dst_param_storage->p_last_added_param != NULL);
+            assert(p_dst_param_storage->p_last_added_param->addr != NULL);
+            assert(p_dst_param_storage->p_last_added_param->size == p_param->size);
             metac_parameter_storage_t * p_inner_param_storage = (metac_parameter_storage_t *)p_param->addr;
-            metac_parameter_storage_t * p_inner_copy_param_storage = (metac_parameter_storage_t *)p_copy_param_storage->p_last_added_param->addr;
-            if (_parameter_storage_copy(p_inner_copy_param_storage, p_inner_param_storage) != 0) {
+            metac_parameter_storage_t * p_inner_dst_param_storage = (metac_parameter_storage_t *)p_dst_param_storage->p_last_added_param->addr;
+            if (metac_parameter_storage_copy(p_inner_param_storage, p_inner_dst_param_storage) != 0) {
                 return -(EFAULT);
             }
         }
     }
     return 0;
-}
-
-metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_storage) {
-    _check_(p_param_storage == NULL, NULL);
-    metac_parameter_storage_t * p_copy_param_storage = metac_new_parameter_storage();
-    _check_(p_copy_param_storage == NULL, NULL);
-    if (_parameter_storage_copy(p_copy_param_storage, p_param_storage) != 0) {
-        metac_parameter_storage_delete(p_copy_param_storage);
-        return NULL;
-    }
-    return p_copy_param_storage;
 }
 
 metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id) {

@@ -51,7 +51,7 @@ void metac_value_memory_map_delete(struct metac_memory_map * p_map);
 typedef struct metac_parameter_storage metac_parameter_storage_t;
 
 metac_parameter_storage_t * metac_new_parameter_storage();
-metac_parameter_storage_t * metac_parameter_storage_copy(metac_parameter_storage_t * p_param_load);
+int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage);
 void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
 
 metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);

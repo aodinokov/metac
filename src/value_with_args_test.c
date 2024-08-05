@@ -754,7 +754,6 @@ METAC_START_TEST(base_type_args_to_value_ptr) {
     METAC_VALUE_WITH_ARGS_DELETE(p_val);
 }END_TEST
 
-#if 1
 METAC_START_TEST(args_deep_compare_sanity) {
     metac_tag_map_t * p_tagmap = va_args_tag_map();
     int eq;
@@ -785,5 +784,49 @@ METAC_START_TEST(args_deep_compare_sanity) {
     METAC_VALUE_WITH_ARGS_DELETE(p_val1);
 
     metac_tag_map_delete(p_tagmap);
-}
-#endif
+}END_TEST
+
+
+METAC_START_TEST(args_deep_copy_and_delete_sanity) {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+    metac_value_t * p_val1, *p_val2;
+    metac_parameter_storage_t * p_param_storage;
+    char *s, *expected_s;
+
+    int * test_arr1 = (int[]){0, 1, 2, 3};
+    p_val1 = METAC_NEW_VALUE_WITH_ARGS_FOR_FN(p_tagmap, test_array_len, test_arr1, 4);
+    fail_unless(p_val1 != NULL);
+
+    expected_s = "test_array_len((int []){0, 1, 2, 3,}, 4)";
+    s = metac_value_string_ex(p_val1, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    p_param_storage = metac_new_parameter_storage();
+    p_val2 = metac_new_value(METAC_GSYM_LINK_ENTRY(test_array_len), p_param_storage);
+
+    fail_unless(metac_value_copy_ex(p_val1, p_val2, NULL, NULL, NULL, p_tagmap) == p_val2);
+
+    s = metac_value_string_ex(p_val2, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    test_arr1[0] = 1;
+
+    // the ideat is that the change in the p_val args won't affect the string, because all artguments are copied with deep-copy
+    s = metac_value_string_ex(p_val2, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    // we need to cleanup allocated by deep copy memory
+    fail_unless(metac_value_free_ex(p_val2, NULL, NULL, p_tagmap) == 1);
+
+    METAC_VALUE_WITH_ARGS_DELETE(p_val2);
+
+    METAC_VALUE_WITH_ARGS_DELETE(p_val1);
+
+    metac_tag_map_delete(p_tagmap);
+}END_TEST

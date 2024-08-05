@@ -32,7 +32,7 @@
             "name": "(lldb) Launch - Macos",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/printf_format_test",
+            "program": "${fileDirname}/value_with_args_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

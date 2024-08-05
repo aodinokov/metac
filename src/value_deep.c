@@ -1179,6 +1179,27 @@ metac_value_t *metac_value_copy_ex(metac_value_t * p_src_val, metac_value_t * p_
                         default:
                             break;
                     }
+                } else if (metac_value_has_parameter_load(p->p_val)) {
+                    metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p->p_val);
+                    metac_parameter_storage_t * p_dst_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_dst_val);
+                    if (metac_parameter_storage_size(p_dst_param_storage) > 0) {
+                        // can't copy to non-empty (TODO: btw maybe it will be interesting feature later?)
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;
+                    }
+                    if (metac_parameter_storage_copy(p_param_storage, p_dst_param_storage) !=0) {
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;   
+                    }
+
+                    for (metac_num_t i = 0; i < p->children_count; ++i) {
+                        if (p->pp_children[i] != NULL) {
+                            p->pp_children[i]->private_data = metac_parameter_storage_new_param_value(p_dst_param_storage, i);
+                            metac_recursive_iterator_create_and_append_dep(p_iter, p->pp_children[i]);
+                        }
+                    }
+                    metac_recursive_iterator_set_state(p_iter, 1);
+                    continue;
                 }
                 /* complex types will be covered here: */
                 for (metac_num_t i = 0; i < p->children_count; ++i) {
