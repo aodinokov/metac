@@ -16,6 +16,8 @@ INPUT += main.dox
 INPUT += include/metac
 INPUT += include/metac/reflect
 INPUT += include/metac/backend/iterator.h
+INPUT += include/metac/backend/printf_format.h
+INPUT += include/metac/backend/va_list_ex.h
 
 INPUT += src/
 EXCLUDE_PATTERNS += *.d

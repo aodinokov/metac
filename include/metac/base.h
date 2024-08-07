@@ -77,6 +77,29 @@ typedef uint64_t metac_size_t;
 typedef uint64_t metac_offset_t;
 
 
+/** @brief an artifitial type that allows to store values of function parameters
+ * this is one of the base types which allows the library to work with functions
+ * that's the reason it's added to base.h 
+ */
+typedef struct metac_parameter_storage metac_parameter_storage_t;
+
+/** @brief create metac_parameter_storage_t 
+ * parameters can be converted to metac_value_t and back. see functions:
+ * `metac_parameter_storage_append_by_parameter_storage`,
+ * `metac_parameter_storage_append_by_buffer`,
+ * `metac_parameter_storage_new_param_value`,
+ * `metac_new_value_with_parameters` and
+ * `metac_new_value_with_vparameters` which are part of `metac/reflect/value.h`.
+ */
+metac_parameter_storage_t * metac_new_parameter_storage();
+/** @brief copy all internals of one metac_parameter_storage_t to another metac_parameter_storage_t */
+int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage);
+/** @brief delete metac_parameter_storage_t (calls cleanup prior to deletion) */
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+/** @brief get number of parameters in metac_parameter_storage_t */
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
+
+
 #ifdef __cplusplus
 }
 #endif

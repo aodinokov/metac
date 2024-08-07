@@ -109,9 +109,9 @@ typedef enum {
 typedef struct{
     metac_value_event_type_t type;                  /**< type of event*/
     metac_value_t *p_return_value;                  /**< for METAC_RQVST_union_member, 
-                                                         METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count */
+                                                        METAC_RQVST_flex_array_count and METAC_RQVST_pointer_array_count.
+                                                        METAC_RQVST_va_list uses it to pass param_storage to the callback*/
     metac_num_t va_list_param_id;                   /**< get from here the id of va_arg in case METAC_RQVST_va_list*/
-    // metac_entry_t * p_va_list_param_entry;
     struct va_list_container * p_va_list_container; /**< pointer to va_list to handle case METAC_RQVST_va_list*/
 }metac_value_event_t;
 
@@ -301,7 +301,7 @@ metac_name_t metac_entry_tag_string_lookup(metac_entry_tag_t *p_tag, metac_name_
 
 /* some reference handlers */
 /**
- * @brief link flexible array or pointer in the struct with the field that provides its length
+ * @brief link flexible array or pointer in the struct with the field OR in the function with the parameter that provides its length
  * @param _fld_ sibling fieldname where length is located
 */
 #define METAC_COUNT_BY(_fld_) \
