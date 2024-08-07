@@ -41,7 +41,7 @@ static inline void va_list_container_start(void** pp, struct va_list_container *
 /** @brief macro to get va_list from container and protect it with alloca 
  * alternativly we could use 2 alloca - first is to get the original stack addr
  * and second is to cover pp value (which is the top of the used by va_list_container_start stack)
- * this will be more precise 
+ * this will be more precise. that approach will require padding bigger by the size we're allocating first time.
 */
 #define VA_LIST_CONTAINER(_name_, _args_...) ({ \
         void* pp = NULL; \
