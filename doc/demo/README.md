@@ -985,4 +985,247 @@ METAC_START_TEST(deep_test) {
 ```
 This test passes successfully.
 
+#### Work with function parameters
+    
+In contrast to the rest of this document we're going to use a separate example to demonstrate ability to parse parameters of functions. 
+
+**Note:** The same will work for function pointers.
+
+The example will have a goal to print all parameters which the function accepts and result which the function returns (if any). In order to keep the list of arguments Metac introduces a special type called `metac_parameter_storage_t`. The internals of this type isn't exposed to the user, but it goes with the list of basic functions to create/copy/cleanup/delete:
+
+```C
+/** @brief copy all internals of one metac_parameter_storage_t to another metac_parameter_storage_t */
+int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage);
+/** @brief clean metac_parameter_storage_t all internal information, but preserve metac_parameter_storage_t */
+void metac_parameter_storage_cleanup(metac_parameter_storage_t * p_param_storage);
+/** @brief delete metac_parameter_storage_t (calls cleanup prior to deletion) */
+void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
+/** @brief get number of parameters in metac_parameter_storage_t */
+metac_num_t metac_parameter_storage_size(metac_parameter_storage_t * p_param_load);
+```
+
+This set of functions is put into `metac/base.h` to emphasize that this is a foundation object type which is needed to store function parameters. The user should think about this as of analog of `va_list` type. Unfortunately it's not possible to use `va_list` to store list of arguments because of the following reasons: it doesn't keep its size, it's very fragile to work with and finally there is no possibility to create/modify `va_list` except by creating some hacks (e.g. see [va_list_ex.h](/include/metac/backend/va_list_ex.h), but it is only used for testing purposes). `metac_parameter_storage_t` has some extra API to manipulate the parameters list and even a function which will create `metac_value_t` out of parameter:
+
+```C
+/** @brief extra function to append the parameter storage with inner parameter storage.
+ * useful for cases when you have va_list or unspecified parameter 
+ */
+int metac_parameter_storage_append_by_parameter_storage(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry);
+/** @brief extra function to append the parameter storage with the buffer to store date of the parameter 
+ */
+int metac_parameter_storage_append_by_buffer(metac_parameter_storage_t * p_param_storage,
+    metac_entry_t *p_entry,
+    metac_num_t size);
+
+/** @brief extra function to convert n-th parameter of parameter storage to metac_value_t */
+metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id);
+```
+Though it's not necssary to work with those functions directly in most cases. There are 2 additional functions which represent the high-level API and can be used to fill in `metac_parameter_storage_t` and even create a wrapping `metac_value_t` to be used in deep print/copy/compare/delete functions. For `metac_value_t` which kind is subprogram(that means it is a function) or subroutine (that means that it represents the type of pointer to a function) or va_list/unspecified( or `...` ) parameter `metac_parameter_storage_t *` must be put as addr parameter. This is exactly what the following 2 function do:
+
+```C
+/** @brief function will parse all parameters added as ... based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
+   tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
+metac_value_t * metac_new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...);
+/** @brief function will parse all parameters added as `va_list parameters` based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
+   tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
+metac_value_t * metac_new_value_with_vparameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters);
+```
+
+Let's create a small example to see how to use those 2 highlevel functions. Let's say we have a test function and main function that calls that function:
+
+```C
+int test_function1_with_args(int a, short b){
+    return a + b + 6;
+}
+
+int main() {
+    printf("fn returned: %i\n", test_function1_with_args(10, 22));
+    return 0;
+}
+```
+
+We can store it's arguments into a single `metac_value_t` if we modify this code like this:
+
+```C
+#include "metac/reflect.h"
+#include <stdlib.h> /*free*/
+
+#define METAC_WRAP_FN_RES(_tag_map_, _fn_, _args_...) ({ \
+        metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
+        if (p_param_storage != NULL) { \
+            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        } \
+        _fn_(_args_);\
+})
+
+int test_function1_with_args(int a, short b){
+    return a + b + 6;
+}
+METAC_GSYM_LINK(test_function1_with_args);
+
+int main() {
+    metac_value_t * p_val = NULL;
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(NULL, test_function1_with_args, 10, 22));
+    if (p_val != NULL) {
+        char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, NULL);
+        if (s != NULL) {
+            printf("captured %s\n", s);
+            free(s);
+        }
+        metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_val);
+        metac_parameter_storage_delete(p_param_storage);
+        metac_value_delete(p_val);
+    }
+    return 0;
+}
+```
+
+If we run this the output will be:
+```bash
+step_06 % ./param_demo
+fn returned: 38
+captured test_function1_with_args(10, 22)
+```
+
+The code above along with Makefile is available in the folder [step_06](step_06/).
+
+As we can see `p_val` contains information about function and its argument which were used. `p_val` was set by the macros
+`METAC_WRAP_FN_RES` which performs 3 things:
+
+1. create `metac_parameter_storage_t`
+2. put all parameters provided to macro into that `metac_parameter_storage_t` and wrap it by `metac_value_t`. All of this is done by `metac_new_value_with_parameters` function.
+3. call the `_fn_` with the same parameters and return the result.
+
+`metac_new_value_with_parameters` supports different types of parameters:
+
+1. base types (e.g. char, int, and etc)
+2. enums
+3. structs
+3. pointers (that includes arrays, because in C if the used puts array as parameter the function receives pointer to the first element)
+4. unspecified parameters (`...`) and va_lists. Due to the fact that there is no way to understand the numbrer of parameters inside sich parameters `metac_new_value_with_parameters` needs non-NULL parameter `p_tag_map` to be set in this case.
+
+Let's update our code to show how to work with unspecified parameters:
+
+```C
+...
+int my_printf(const char * format, ...) {
+    va_list l;
+    va_start(l, format);
+    int res = vprintf(format, l);
+    va_end(l);
+    return res;
+}
+METAC_GSYM_LINK(my_printf);
+
+METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
+    /* start tags for all types */
+
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(my_printf))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "format"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
+            METAC_FORMAT_BASED_VA_ARG()
+        )
+    METAC_TAG_MAP_ENTRY_END
+
+METAC_TAG_MAP_END
+
+
+int main() {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+    metac_value_t * p_val = NULL;
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, my_printf, "%d %d\n", 10, 22));
+    if (p_val != NULL) {
+        char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+        if (s != NULL) {
+            printf("captured %s\n", s);
+            free(s);
+        }
+        metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_val);
+        metac_parameter_storage_delete(p_param_storage);
+        metac_value_delete(p_val);
+    }
+
+    metac_tag_map_delete(p_tagmap);
+    return 0;
+}
+```
+
+If we run this example available in the folder [step_07](step_07/), we'll see:
+
+```bash
+step_07 % ./param_demo
+10 22
+fn returned: 6
+captured my_printf((const char []){'%', 'd', ' ', '%', 'd', 10, 0,}, (int)10, (int)22)
+```
+
+We already familiar with `tag_map` concept. To tell that parameter `...` is defined by the previous argument we used the folowing lines:
+```C
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
+            METAC_FORMAT_BASED_VA_ARG()
+```
+The current implementation of `METAC_FORMAT_BASED_VA_ARG` is always to get the previous parameter and to treat it as printf-format string.
+
+Important notes:
+
+1. `metac_parameter_storage_t` allocates only memory for the parameter itself. If the parameter is a pointer and the function changed the argument stored by that pointer it doesn't affect anyhow `metac_parameter_storage_t`. If we call `metac_value_string_ex` after the actual function call for the created by `metac_new_value_with_parameters` value - we'll see the updated value.
+2. If we want to keep the values of parameters, including all values of pointer parameters, we can use deep copy function. This may be consideres as a snapshot of the parameters values. For that purpose we must create another empty `metac_parameter_storage_t`, create `metac_valut_t` which will use that `metac_parameter_storage_t` as address and subprogram or subroutine `metac_entry_t` as entry. Below we can see the example taken from the [test](/src/value_with_args_test.c). Please note that to cleanup all values to which pointer parameters pointed it is necessary to use deep free function `metac_value_free_ex`.
+
+```C
+METAC_START_TEST(args_deep_copy_and_delete_sanity) {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+    metac_value_t * p_val1, *p_val2;
+    metac_parameter_storage_t * p_param_storage;
+    char *s, *expected_s;
+
+    int * test_arr1 = (int[]){0, 1, 2, 3};
+    p_val1 = METAC_NEW_VALUE_WITH_ARGS_FOR_FN(p_tagmap, test_array_len, test_arr1, 4);
+    fail_unless(p_val1 != NULL);
+
+    expected_s = "test_array_len((int []){0, 1, 2, 3,}, 4)";
+    s = metac_value_string_ex(p_val1, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    p_param_storage = metac_new_parameter_storage();
+    p_val2 = metac_new_value(METAC_GSYM_LINK_ENTRY(test_array_len), p_param_storage);
+
+    fail_unless(metac_value_copy_ex(p_val1, p_val2, NULL, NULL, NULL, p_tagmap) == p_val2);
+
+    s = metac_value_string_ex(p_val2, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    test_arr1[0] = 1;
+
+    // the ideat is that the change in the p_val args won't affect the string, because all artguments are copied with deep-copy
+    s = metac_value_string_ex(p_val2, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL);
+    fail_unless(strcmp(s, expected_s) == 0, "got %s, expected %s", s, expected_s);
+    free(s);
+
+    // we need to cleanup allocated by deep copy memory
+    fail_unless(metac_value_free_ex(p_val2, NULL, NULL, p_tagmap) == 1);
+
+    METAC_VALUE_WITH_ARGS_DELETE(p_val2);
+
+    METAC_VALUE_WITH_ARGS_DELETE(p_val1);
+
+    metac_tag_map_delete(p_tagmap);
+}END_TEST
+```
+3. The demonstrated method can be used to identify if arguments were changed during the call. For this purpose it will be necessary to create a value with the arguments and make a deep copy of it before the call. After the call the first value will contain the modified values and the second value will contain the snapshotted prior to the call values. If deep equial function shows the difference - the parameters were modified during the call.
+
+More examples on the function parameters can be found [here](/examples/c_print_args/) and in the [tests](/src/value_with_args_test.c). That includes all types of arguments and work with pointers of functions.
+
 We were able to go through the main concepts, caveates and solutions offered by Metac. Thanks for reading!

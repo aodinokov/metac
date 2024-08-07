@@ -94,6 +94,8 @@ typedef struct metac_parameter_storage metac_parameter_storage_t;
 metac_parameter_storage_t * metac_new_parameter_storage();
 /** @brief copy all internals of one metac_parameter_storage_t to another metac_parameter_storage_t */
 int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage, metac_parameter_storage_t * p_dst_param_storage);
+/** @brief clean metac_parameter_storage_t all internal information, but preserve metac_parameter_storage_t */
+void metac_parameter_storage_cleanup(metac_parameter_storage_t * p_param_storage);
 /** @brief delete metac_parameter_storage_t (calls cleanup prior to deletion) */
 void metac_parameter_storage_delete(metac_parameter_storage_t * p_param_load);
 /** @brief get number of parameters in metac_parameter_storage_t */

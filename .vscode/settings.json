@@ -74,6 +74,7 @@
         "va_list_ex.h": "c",
         "stdarg.h": "c",
         "_module.h": "c",
-        "locale": "c"
+        "locale": "c",
+        "print_args.h": "c"
     }
 }
