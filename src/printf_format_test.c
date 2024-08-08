@@ -150,7 +150,7 @@ METAC_START_TEST(test_parse_va_list_per_format_specifier) {
         {
             .p_parsed_value = STORE("%s %s", "some", "test"),
             .expected_sz = 2,
-            .expected_s = (char *[]){"{'s', 'o', 'm', 'e', 0,}", "{'t', 'e', 's', 't', 0,}"},
+            .expected_s = (char *[]){"\"some\"", "\"test\""},
         },
         {
             .p_parsed_value = STORE("%s %s", NULL, NULL),

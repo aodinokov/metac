@@ -4,11 +4,112 @@
 #include "metac/backend/value.h"
 
 #include <assert.h>
+#include <ctype.h> /*isprint*/
 
 #ifndef dsprintf
 dsprintf_render_with_buf(64)
 #define dsprintf(_x_...) dsprintf64( _x_)
 #endif
+
+static char * _dprintable_string(metac_value_t * p_array_val) {
+    if (p_array_val == NULL || metac_value_has_elements(p_array_val) ==0 ) {
+        return NULL;
+    }
+
+    char * p_string = (char*)metac_value_addr(p_array_val);
+    if (p_string == NULL) {
+        return NULL;
+    }
+
+    metac_entry_t * p_element_final_entry = metac_entry_final_entry(metac_entry_element_entry(metac_value_entry(p_array_val)), NULL);
+    if (p_element_final_entry == NULL) {
+        return NULL;
+    }
+
+    if (metac_entry_is_base_type(p_element_final_entry) == 0 ||
+        strcmp(metac_entry_base_type_name(p_element_final_entry),"char") != 0) {
+        return NULL;
+    }
+
+    metac_num_t len = metac_value_element_count(p_array_val);
+    if (len < 2) {
+        return NULL;
+    }
+
+    if (p_string[len - 1] != 0) {
+        return NULL;
+    }
+
+    struct {
+        char in;
+        char out;
+    }special_chars[] = {
+        {.in = '\n', .out = 'n'},
+        {.in = '\r', .out = 'r'},
+        {.in = '\t', .out = 't'},
+        {.in = '\v', .out = 'v'},
+        {.in = '\b', .out = 'b'},
+        {.in = '\f', .out = 'f'},
+        {.in = '\a', .out = 'a'},
+        {.in = '\\', .out = '\\'},
+        {.in = '\'', .out = '\''},
+        {.in = '\"', .out = '\"'},
+        {.in = '\?', .out = '\?'},
+    };
+
+    metac_num_t alloc_len = 1;  // 0 at the end
+    for (metac_num_t i = 0 ; i < (len - 1); ++i) {
+        int k = 0;
+        for (k = 0; k < sizeof(special_chars)/sizeof(special_chars[0]); ++k) {
+            if (p_string[i] == special_chars[k].in) {
+                printf("yes %d\n", k);
+                alloc_len += 2;
+                break;
+            }
+        }
+        if (k < sizeof(special_chars)/sizeof(special_chars[0])) {
+            continue;
+        }
+        if (isprint(p_string[i]) != 0) {
+            ++alloc_len;
+            continue;
+        }
+        return NULL;
+    }
+
+    char * res = calloc(alloc_len, sizeof(char));
+    if (res == NULL) {
+        return NULL;
+    }
+    metac_num_t j = 0;
+    for (metac_num_t i = 0 ; i < (len - 1); ++i) {
+        int k = 0;
+        for (k = 0; k < sizeof(special_chars)/sizeof(special_chars[0]); ++k) {
+            if (p_string[i] == special_chars[k].in) {
+                res[j] = '\\'; res[j+1] = special_chars[k].out;
+                j+=2;
+                break;
+            }
+        }
+        if (k < sizeof(special_chars)/sizeof(special_chars[0])) {
+            continue;
+        }
+        if (isprint(p_string[i]) != 0) {
+            res[j] = p_string[i];
+            ++j;
+            continue;
+        }
+        // must not be here
+        assert(0);
+    }
+
+    res[j] = 0;
+    ++j;
+
+    assert(j == alloc_len);
+
+    return res;
+}
 
 char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmode, metac_tag_map_t * p_tag_map) {
     if (p_val == NULL) {
@@ -180,7 +281,15 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 metac_recursive_iterator_fail(p_iter);
                                 continue;
                             }
-                            char *out = dsprintf("(%s)%s", p_flex_arr_type, arr_out);
+
+                            // to cover strings we don't need to print type
+                            char * out = NULL;
+                            if (arr_out != NULL && arr_out[0] != 0 && arr_out[0] == '"') {
+                                out = dsprintf("%s", arr_out);
+                            } else {
+                                out = dsprintf("(%s)%s", p_flex_arr_type, arr_out);
+                            }
+
                             free(arr_out);
                             free(p_flex_arr_type);
                             if (out == NULL) {
@@ -377,6 +486,22 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         p_local = p_non_flexible;
                     }
 
+                    // special case - char * with printable symbols and 0 as the last symbol
+                    char * printable_string = _dprintable_string(p_local);
+                    if (printable_string != NULL) {
+                        char * out = dsprintf("\"%s\"", printable_string);
+                        free(printable_string);
+                        if (out != NULL) {
+                            // cleanup
+                            if (p_non_flexible != NULL) {
+                                metac_value_delete(p_non_flexible);
+                                p_local = p;
+                            }
+                            metac_recursive_iterator_done(p_iter, out);
+                            continue;
+                        }
+                    }
+
                     metac_num_t mcount = metac_value_element_count(p_local);
                     for (metac_num_t i = 0; i < mcount; ++i) {
                         metac_value_t * p_el_val = metac_new_value_by_element_id(p_local, i);
@@ -386,7 +511,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                         }
                         metac_recursive_iterator_create_and_append_dep(p_iter, p_el_val);
                     }
-                    if (p_non_flexible) {
+                    if (p_non_flexible != NULL) {
                         metac_value_delete(p_non_flexible);
                         p_local = p;
                     }
@@ -530,12 +655,21 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
 
 
                             char *prev_out = out;
-                            out = dsprintf("%s%s(%s)%s",
-                                prev_out == NULL?"":prev_out, /*must include , at the end */
-                                prev_out == NULL?"":", ",
-                                param_type,
-                                param_out
-                            );
+                            // if param_out is string - it will start from "" - we don't need type in that case
+                            if (param_out != NULL && param_out[0] != 0 && param_out[0] == '"') {
+                                out = dsprintf("%s%s%s",
+                                    prev_out == NULL?"":prev_out, /*must include , at the end */
+                                    prev_out == NULL?"":", ",
+                                    param_out
+                                );
+                            } else {
+                                out = dsprintf("%s%s(%s)%s",
+                                    prev_out == NULL?"":prev_out, /*must include , at the end */
+                                    prev_out == NULL?"":", ",
+                                    param_type,
+                                    param_out
+                                );
+                            }
                             free(param_type);
                             free(param_out);
                             if (prev_out) {
