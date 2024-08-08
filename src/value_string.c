@@ -62,7 +62,6 @@ static char * _dprintable_string(metac_value_t * p_array_val) {
         int k = 0;
         for (k = 0; k < sizeof(special_chars)/sizeof(special_chars[0]); ++k) {
             if (p_string[i] == special_chars[k].in) {
-                printf("yes %d\n", k);
                 alloc_len += 2;
                 break;
             }
