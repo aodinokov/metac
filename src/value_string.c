@@ -40,21 +40,34 @@ static char * _dprintable_string(metac_value_t * p_array_val) {
         return NULL;
     }
 
+    struct {
+        char in;
+        char out;
+    }special_chars[] = {
+        {.in = '\n', .out = 'n'},
+        {.in = '\r', .out = 'r'},
+        {.in = '\t', .out = 't'},
+        {.in = '\v', .out = 'v'},
+        {.in = '\b', .out = 'b'},
+        {.in = '\f', .out = 'f'},
+        {.in = '\a', .out = 'a'},
+        {.in = '\\', .out = '\\'},
+        {.in = '\'', .out = '\''},
+        {.in = '\"', .out = '\"'},
+        {.in = '\?', .out = '\?'},
+    };
+
     metac_num_t alloc_len = 1;  // 0 at the end
     for (metac_num_t i = 0 ; i < (len - 1); ++i) {
-        if (p_string[i] == '\n' ||
-            p_string[i] == '\r' ||
-            p_string[i] == '\t' ||
-            p_string[i] == '\v' ||
-            p_string[i] == '\b' ||
-            p_string[i] == '\f' ||
-            p_string[i] == '\a' ||
-            p_string[i] == '\\' ||
-            p_string[i] == '\'' ||
-            p_string[i] == '\"' ||
-            p_string[i] == '\?') {
-
-            alloc_len += 2;
+        int k = 0;
+        for (k = 0; k < sizeof(special_chars)/sizeof(special_chars[0]); ++k) {
+            if (p_string[i] == special_chars[k].in) {
+                printf("yes %d\n", k);
+                alloc_len += 2;
+                break;
+            }
+        }
+        if (k < sizeof(special_chars)/sizeof(special_chars[0])) {
             continue;
         }
         if (isprint(p_string[i]) != 0) {
@@ -70,62 +83,17 @@ static char * _dprintable_string(metac_value_t * p_array_val) {
     }
     metac_num_t j = 0;
     for (metac_num_t i = 0 ; i < (len - 1); ++i) {
-        if (p_string[i] == '\n') {
-            res[j] = '\\'; res[j+1] = 'n';
-            j+=2;
+        int k = 0;
+        for (k = 0; k < sizeof(special_chars)/sizeof(special_chars[0]); ++k) {
+            if (p_string[i] == special_chars[k].in) {
+                res[j] = '\\'; res[j+1] = special_chars[k].out;
+                j+=2;
+                break;
+            }
+        }
+        if (k < sizeof(special_chars)/sizeof(special_chars[0])) {
             continue;
         }
-        if (p_string[i] == '\r') {
-            res[j] = '\\'; res[j+1] = 'r';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\t') {
-            res[j] = '\\'; res[j+1] = 't';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\v') {
-            res[j] = '\\'; res[j+1] = 'v';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\b') {
-            res[j] = '\\'; res[j+1] = 'b';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\f') {
-            res[j] = '\\'; res[j+1] = 'f';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\a') {
-            res[j] = '\\'; res[j+1] = 'a';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\\') {
-            res[j] = '\\'; res[j+1] = '\\';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\'') {
-            res[j] = '\\'; res[j+1] = '\'';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\"') {
-            res[j] = '\\'; res[j+1] = '\"';
-            j+=2;
-            continue;
-        }
-        if (p_string[i] == '\?') {
-            res[j] = '\\'; res[j+1] = '\?';
-            j+=2;
-            continue;
-        }
-
         if (isprint(p_string[i]) != 0) {
             res[j] = p_string[i];
             ++j;
