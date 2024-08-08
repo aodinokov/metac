@@ -46,7 +46,7 @@ struct metac_entry *{{ $resNameMacro }}({{ $var.Name }}) = &{{$h.Id}};
 {{-     if or (eq $h.Kind "Namespace") -}}
 {{-       if eq $h.Kind "Namespace" -}}
 {{-         $var := index $metaDb.Namespaces $h.Id  -}}
-{{-         $_ := include "metac_reflect_gen.build_requests_hierarchy" (dict "metaDb" $metaDb "hierarchy" $var.Hierarchy "resName" $resName) -}}
+{{-         $_ := include "metac_reflect_gen.build_requests_hierarchy" (dict "metaDb" $metaDb "hierarchy" $var.Hierarchy "resName" $resName "path" (list)) -}}
 {{-       end -}}
 {{-     end -}}
 {{-   end -}}

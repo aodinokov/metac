@@ -464,6 +464,81 @@ func (builder *MetaDbBuilder) processTypedef(cu *CompileUnit, parent ICommon, in
 	return index, nil
 }
 
+func (builder *MetaDbBuilder) processClassType(cu *CompileUnit, parent ICommon, index *IndexEntry) (*IndexEntry, error) {
+	structType := StructType{Tag: string(index.Entry.Tag), CommonType: CommonType{Parents: []*CommonLink{{p: parent}}}}
+	index.cu = cu
+	index.Set(&structType)
+	structType.fromEntry(index.Entry)
+
+	for _, childOffset := range index.Entry.Children {
+		childEntry, ok := builder.data.Entries[childOffset]
+		if !ok {
+			return nil, fmt.Errorf("wasn't able to find child entry with offset %d", childOffset)
+		}
+		switch childEntry.Tag {
+		case "Member":
+			structField := StructField{}
+
+			// read member type
+			ttype, ok := childEntry.Val("Type").(dwarfy.Offset)
+			if !ok {
+				return nil, fmt.Errorf("couldn't read Type attribute for member offset %d", childOffset)
+			}
+			// make sure that the underlaying type is created
+			val, err := builder.processTypeEntry(ttype)
+			if err != nil {
+				return nil, err
+			}
+			structField.Type.Set(val)
+
+			// read optional params
+			name, ok := childEntry.Val("Name").(string)
+			if ok {
+				structField.Name = &name
+			}
+			byteSize, ok := childEntry.Val("ByteSize").(int64)
+			if ok {
+				structField.ByteSize = &byteSize
+			}
+			bitOffset, ok := childEntry.Val("BitOffset").(int64)
+			if ok {
+				structField.BitOffset = &bitOffset
+				if structField.ByteSize == nil {
+					return nil, fmt.Errorf("DWARF3 BitOffset field must go with ByteSize. which isn't true for member offset %d", childOffset)
+				}
+			}
+			dataBitOffset, ok := childEntry.Val("DataBitOffset").(int64)
+			if ok {
+				structField.DataBitOffset = &dataBitOffset
+			}
+			bitSize, ok := childEntry.Val("BitSize").(int64)
+			if ok {
+				structField.BitSize = &bitSize
+			}
+
+			// read member offset - mandatory for structs if fields are not set via dataBitOffset
+			structField.ByteOffset, ok = childEntry.Val("DataMemberLoc").(int64)
+			if !ok && structField.DataBitOffset == nil {
+				continue //skip it for now
+				//return nil, fmt.Errorf("couldn't read DataMemberLoc attribute for member offset %d", childOffset)
+			}
+
+			structType.Fields = append(structType.Fields, &structField)
+		case "Inheritance":
+		case "TemplateValueParameter":
+		case "TemplateTypeParameter":
+		default:
+			indx, err := builder.processEntry(cu, index, childOffset)
+			if err != nil {
+				return nil, err
+			}
+			structType.Hierarchy = append(structType.Hierarchy, newHierarchyItemFromIndex(indx))
+		}
+
+	}
+	return index, nil
+}
+
 func (builder *MetaDbBuilder) processStructType(cu *CompileUnit, parent ICommon, index *IndexEntry) (*IndexEntry, error) {
 	structType := StructType{Tag: string(index.Entry.Tag), CommonType: CommonType{Parents: []*CommonLink{{p: parent}}}}
 	index.cu = cu
@@ -519,10 +594,13 @@ func (builder *MetaDbBuilder) processStructType(cu *CompileUnit, parent ICommon,
 			// read member offset - mandatory for structs if fields are not set via dataBitOffset
 			structField.ByteOffset, ok = childEntry.Val("DataMemberLoc").(int64)
 			if !ok && index.Entry.Tag != "UnionType" && structField.DataBitOffset == nil {
-				return nil, fmt.Errorf("couldn't read DataMemberLoc attribute for member offset %d", childOffset)
+				continue // TODO: separate cu of C and C++ types
+//				return nil, fmt.Errorf("couldn't read DataMemberLoc attribute for member offset %d", childOffset)
 			}
 
 			structType.Fields = append(structType.Fields, &structField)
+		case "Inheritance":
+		case "TemplateValueParameter":
 		case "TemplateTypeParameter":
 		default:
 			indx, err := builder.processEntry(cu, index, childOffset)
@@ -759,7 +837,7 @@ func (builder *MetaDbBuilder) processEntry(cu *CompileUnit, parent ICommon, offs
 	case "PackedType":
 		_, err = builder.processQualType(cu, parent, index)
 	case "ClassType":
-		fallthrough
+		_, err = builder.processClassType(cu, parent, index)
 	case "StructType":
 		fallthrough
 	case "UnionType":

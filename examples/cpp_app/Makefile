@@ -15,8 +15,8 @@ test:
 rules+= \
 	target \
 	cpp_app.reflect.cpp \
-	cpp_app
-#	_meta_cpp_app
+	cpp_app \
+	_meta_cpp_app
 
 
 TPL-target:=phony_target
@@ -32,7 +32,7 @@ POST-_meta_cpp_app=$(METAC_POST_META)
 
 TPL-cpp_app:=bin_target
 CC-cpp_app=g++
-IN-cpp_app=$(in-cpp_app) _cpp_app.reflect.o
+IN-cpp_app=$(in-cpp_app) cpp_app.reflect.o
 
 TPL-cpp_app.reflect.cpp:=metac_target
 METACFLAGS-cpp_app.reflect.cpp+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
