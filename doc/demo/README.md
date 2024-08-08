@@ -816,7 +816,7 @@ METAC_TAG_MAP_END
 The result is:
 ```bash
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,},},},}, expected (null)
+/home/test/metac/doc/demo/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = "Joe", .lastname = "Doe", .age = 43, .marital_status = msMarried,},},},}, expected (null)
 ```
 
 That now works as expected. We just need to add `expected_string` value for each case:
@@ -831,7 +831,7 @@ That now works as expected. We just need to add `expected_string` value for each
                 .marital_status = msMarried,
             }},
             .expected_err = 0,
-            .expected_string = "(db_t []){{.count = 1, .data = {{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,},},},}",
+            .expected_string = "(db_t []){{.count = 1, .data = {{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}",
         },
         {
             .p_in = (person_t[]){{
@@ -842,8 +842,8 @@ That now works as expected. We just need to add `expected_string` value for each
             }},
             .expected_err = 0,
             .expected_string = "(db_t []){{.count = 2, .data = {"
-                "{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,}, "
-                "{.firstname = (char []){'J', 'a', 'n', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 34, .marital_status = msMarried,},"
+                "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+                "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,},"
             "},},}",
         },
         {
@@ -855,9 +855,9 @@ That now works as expected. We just need to add `expected_string` value for each
             }},
             .expected_err = 0,
             .expected_string = "(db_t []){{.count = 3, .data = {"
-                "{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,}, "
-                "{.firstname = (char []){'J', 'a', 'n', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 34, .marital_status = msMarried,}, "
-                "{.firstname = (char []){'J', 'a', 'c', 'k', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 3, .marital_status = msSingle,},"
+                "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+                "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,}, "
+                "{.firstname = \"Jack\", .lastname = \"Doe\", .age = 3, .marital_status = msSingle,},"
             "},},}",
         },
 ...
@@ -944,7 +944,7 @@ METAC_START_TEST(deep_test) {
     char * str = NULL, * expected_str = NULL;
 
     str = metac_value_string_ex(p_db_backup_value, METAC_WMODE_deep, p_tag_map);
-    expected_str = "(db_t []){{.count = 1, .data = {{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,},},},}";
+    expected_str = "(db_t []){{.count = 1, .data = {{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}";
 
     fail_unless(str != NULL && strcmp(str, expected_str) == 0, "got %s, expected %s", str, expected_str);
     free(str);
@@ -962,8 +962,8 @@ METAC_START_TEST(deep_test) {
 
     str = metac_value_string_ex(p_db_backup_value, METAC_WMODE_deep, p_tag_map);
     expected_str = "(db_t []){{.count = 2, .data = {"
-        "{.firstname = (char []){'J', 'o', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 43, .marital_status = msMarried,}, "
-        "{.firstname = (char []){'J', 'a', 'n', 'e', 0,}, .lastname = (char []){'D', 'o', 'e', 0,}, .age = 34, .marital_status = msMarried,},"
+        "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+        "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,},"
     "},},}";
 
     fail_unless(str != NULL && strcmp(str, expected_str) == 0, "got %s, expected %s", str, expected_str);
@@ -1164,7 +1164,7 @@ If we run this example available in the folder [step_07](step_07/), we'll see:
 step_07 % ./param_demo
 10 22
 fn returned: 6
-captured my_printf((const char []){'%', 'd', ' ', '%', 'd', 10, 0,}, (int)10, (int)22)
+captured my_printf("%d %d\n", (int)10, (int)22)
 ```
 
 We already familiar with `tag_map` concept. To tell that parameter `...` is defined by the previous argument we used the folowing lines:
