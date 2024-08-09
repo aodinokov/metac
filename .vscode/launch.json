@@ -32,7 +32,7 @@
             "name": "(lldb) Launch - Macos",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/value_with_args_test",
+            "program": "${fileDirname}/c_ffi_call",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
