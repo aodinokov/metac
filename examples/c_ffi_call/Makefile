@@ -37,12 +37,12 @@ rules+=\
 	main.reflect.c
 
 TPL-c_ffi_call:=bin_target
-IN-c_ffi_call=main.o main.reflect.o
+IN-c_ffi_call=main.o value_ffi.o main.reflect.o
 LDFLAGS-c_ffi_call=-Lsrc -lmetac $(FFI_LDFLAGS)
 DEPS-c_ffi_call=src/libmetac.a
 
 TPL-_meta_c_ffi_call:=bin_target
-IN-_meta_c_ffi_call=main.meta.o
+IN-_meta_c_ffi_call=main.meta.o value_ffi.o
 LDFLAGS-_meta_c_ffi_call=-Lsrc -lmetac $(FFI_LDFLAGS)
 DEPS-_meta_c_ffi_call=src/libmetac.a
 POST-_meta_c_ffi_call=$(METAC_POST_META)
