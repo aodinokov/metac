@@ -9,7 +9,7 @@
         metac_value_t * p_val = NULL; \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
-            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+            p_val = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _tag_map_, _args_); \
         } \
         if (p_val != NULL) { \
             char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, _tag_map_); \
@@ -35,7 +35,7 @@
         metac_value_t * p_val = NULL; \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
-            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+            p_val = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _tag_map_, _args_); \
         } \
         if (p_val != NULL) { \
             char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, _tag_map_); \

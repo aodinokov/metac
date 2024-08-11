@@ -55,12 +55,12 @@ METAC_START_TEST(va_arg_in_va_arg_precheck) {
 #endif
 
 #define METAC_NEW_VALUE_WITH_ARGS_FOR_FN(_p_tag_map_, _fn_, _args_...) ({ \
-    metac_value_t * p_val = NULL; \
+    metac_value_t * p_rval = NULL; \
     metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
     if (p_param_storage != NULL) { \
-        p_val = metac_new_value_with_parameters(p_param_storage, _p_tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+        p_rval = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _p_tag_map_, _args_); \
     } \
-    p_val; \
+    p_rval; \
 })
 
 #define METAC_VALUE_WITH_ARGS_DELETE(_p_val_) do { \
@@ -693,7 +693,7 @@ METAC_START_TEST(array_len_sanity) {
         metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
         metac_value_t * p_res = NULL; \
         if (p_entry != NULL && p_param_storage != NULL) { \
-            p_res = metac_new_value_with_parameters(p_param_storage, _p_tag_map_, metac_entry_pointer_entry(p_entry), _args_); \
+            p_res = metac_value_parameter_wrap(metac_new_value(metac_entry_pointer_entry(p_entry), p_param_storage), _p_tag_map_, _args_); \
         } \
         p_res; \
     })

@@ -4,7 +4,7 @@
 #define METAC_WRAP_FN_RES(_tag_map_, _fn_, _args_...) ({ \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
-            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+            p_val = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _tag_map_, _args_); \
         } \
         _fn_(_args_);\
 })

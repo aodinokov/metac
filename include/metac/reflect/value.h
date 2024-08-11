@@ -392,9 +392,9 @@ metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_
 
 /** @brief function will parse all parameters added as ... based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
    tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
-metac_value_t * metac_new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...);
+metac_value_t * metac_value_parameter_wrap(metac_value_t * p_val,metac_tag_map_t * p_tag_map, ...);
 /** @brief function will parse all parameters added as `va_list parameters` based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
    tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
-metac_value_t * metac_new_value_with_vparameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters);
+metac_value_t * metac_value_parameter_vwrap(metac_value_t * p_val,metac_tag_map_t * p_tag_map, va_list parameters);
 
 #endif

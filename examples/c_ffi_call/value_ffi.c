@@ -102,7 +102,16 @@ static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
     return -(ENOTSUP);
 }
 
-void metac_value_with_call_parameters_delete(metac_value_t * p_param_value) {
+metac_value_t * metac_new_value_with_call_params(metac_entry_t *p_entry) {
+    metac_value_t * p_val = NULL;
+    metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage();
+    if (p_param_storage != NULL) {
+        p_val = metac_new_value(p_entry, p_param_storage);
+    }
+    return p_val;
+}
+
+void metac_value_with_call_params_delete(metac_value_t * p_param_value) {
     metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_param_value);
     metac_value_delete(p_param_value);
     metac_parameter_storage_delete(p_param_storage);
