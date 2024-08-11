@@ -24,8 +24,8 @@ static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype) {
         _process_(uint, ffi_type_uint);
         _process_(long, ffi_type_slong);
         _process_(ulong, ffi_type_ulong);
-        _process_(llong, ffi_type_slong); // TODO: check
-        _process_(ullong, ffi_type_ulong); // TODO: check
+        _process_(llong, ffi_type_slong);
+        _process_(ullong, ffi_type_ulong);
         _process_(bool, ffi_type_uchar);
         _process_(float, ffi_type_float);
         _process_(double, ffi_type_double);
@@ -98,7 +98,13 @@ static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
             return 0;
         }
     }
-    // TODO: set ptr, array, struct?
+    if (metac_value_is_pointer(p_val) != 0) {
+        void * v = (void * )arg;
+        if (metac_value_set_pointer(p_val, v) == 0) {
+            return 0;
+        }
+    }
+    // TODO: set array, struct?
     return -(ENOTSUP);
 }
 

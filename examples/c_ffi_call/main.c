@@ -16,6 +16,7 @@ METAC_GSYM_LINK(test_function1_with_args);
 
 int main() {
     metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(NULL, 
+        METAC_GSYM_LINK_ENTRY(test_function1_with_args), 
         test_function1_with_args, -100, 200, 0.1, xTwo);
 
     if (p_params_val != NULL) {

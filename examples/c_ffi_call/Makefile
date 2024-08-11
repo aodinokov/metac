@@ -51,3 +51,7 @@ TPL-main.reflect.c:=metac_target
 METACFLAGS-main.reflect.c+=run metac-reflect-gen $(METAC_OVERRIDE_IN_TYPE)
 IN-main.reflect.c=_meta_c_ffi_call
 
+#link tests with libmetac
+LDFLAGS-value_ffi_test=-Lsrc -lmetac $(FFI_LDFLAGS)
+DEPS-value_ffi_test=src/libmetac.a
+
