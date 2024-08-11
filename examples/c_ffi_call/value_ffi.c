@@ -7,30 +7,6 @@
 #include <ffi.h>
 #include <stdlib.h> /*calloc, free*/
 
-
-// int _call_val(void (*fn)(void),/* metac_value_t * p_val*/ int a, short b) {
-//     ffi_cif cif;
-//     ffi_type *args[] = {
-//         &ffi_type_sint,
-//         &ffi_type_sshort
-//     };
-    
-//     /* Initialize the cif */
-//     if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 2, 
-// 		       &ffi_type_sint, args) == FFI_OK) {
-
-//         ffi_arg rc;
-
-//         void *values[] = {
-//             &a, &b,
-//         };
-
-//         ffi_call(&cif, fn, &rc, values);
-//         return (int)rc;
-//     }
-//     return -1;
-// }
-
 static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype) {
 
     if (metac_value_is_base_type(p_val) != 0) {
@@ -126,7 +102,13 @@ static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
     return -(ENOTSUP);
 }
 
-metac_value_t * metac_new_value_call_result(metac_value_t * p_param_storage_val) {
+void metac_value_with_call_parameters_delete(metac_value_t * p_param_value) {
+    metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_param_value);
+    metac_value_delete(p_param_value);
+    metac_parameter_storage_delete(p_param_storage);
+}
+
+metac_value_t * metac_new_value_with_call_result(metac_value_t * p_param_storage_val) {
     _check_(
         p_param_storage_val == NULL ||
         metac_value_has_parameter_load(p_param_storage_val) == 0, NULL);
@@ -158,7 +140,7 @@ metac_value_t * metac_new_value_call_result(metac_value_t * p_param_storage_val)
     return p_res_value;
 }
 
-void metac_value_call_result_delete(metac_value_t * p_res_value) {
+void metac_value_with_call_result_delete(metac_value_t * p_res_value) {
     if (p_res_value == NULL) {
         return;
     }
