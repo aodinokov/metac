@@ -27,7 +27,17 @@ int main() {
             free(s);
         }
 
-        metac_value_call(p_val, (void (*)(void))test_function1_with_args);
+        metac_value_t *p_res_val = metac_new_value_call_result(p_val);
+        if (metac_value_call(p_val, (void (*)(void))test_function1_with_args, p_res_val) == 0) {
+            if (p_res_val != NULL) {
+                s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+                if (s != NULL) {
+                    printf("returned %s\n", s);
+                    free(s);
+                }
+            }
+        }
+        metac_value_call_result_delete(p_res_val);
 
         METAC_CLEAN_PARAMS(p_val);
     }

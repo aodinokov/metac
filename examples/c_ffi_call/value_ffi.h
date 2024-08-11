@@ -20,4 +20,7 @@
         metac_parameter_storage_delete(p_param_storage); \
     } while(0)
 
-metac_value_t * metac_value_call(metac_value_t * p_param_val, void (*fn)(void));
+metac_value_t * metac_new_value_call_result(metac_value_t * p_param_storage_val);
+void metac_value_call_result_delete(metac_value_t * p_res_value);
+
+int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value);
