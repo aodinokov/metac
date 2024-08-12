@@ -6,8 +6,9 @@
 #include <errno.h>
 #include <ffi.h>
 #include <stdlib.h> /*calloc, free*/
+#include <string.h>
 
-static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype) {
+static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype, ffi_type * p_buf) {
 
     if (metac_value_is_base_type(p_val) != 0) {
 
@@ -52,12 +53,23 @@ static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype) {
         _process_(long long, ffi_type_slong);
 #undef _process_
     } else if (
-        metac_value_is_pointer(p_val) != 0 ||
-        metac_value_has_elements(p_val) != 0 /*array*/) {
+        metac_value_is_pointer(p_val) != 0) {
         *pp_rtype = &ffi_type_pointer;
-    } else { //TODO: struct
-
-            return -(ENOTSUP);
+    } else if (metac_value_has_members(p_val)) {
+        metac_size_t sz = 0;
+        if (metac_entry_byte_size(metac_value_entry(p_val), &sz) != 0) {
+            return -(EFAULT);
+        }
+        p_buf->size = sz;
+        p_buf->alignment = 0;
+        p_buf->type = FFI_TYPE_STRUCT;
+        // need https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
+        // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622 unions )
+        *pp_rtype = p_buf;
+    } else {
+            //https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L509
+            // metac_value_has_elements(p_val) != 0 /*array*/
+         return -(ENOTSUP);
     }
     return 0;
 }
@@ -103,6 +115,9 @@ static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
         if (metac_value_set_pointer(p_val, v) == 0) {
             return 0;
         }
+    }
+    if (metac_value_has_members(p_val) != 0) {
+        return 0;
     }
     // TODO: set array, struct?
     return -(ENOTSUP);
@@ -175,6 +190,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
 
     ffi_cif cif;
     ffi_type * rtype = NULL;
+    ffi_type rtype_buf = {0, };
     ffi_arg rc;
 
     if (metac_entry_has_result(p_param_storage_entry) != 0) {
@@ -182,7 +198,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
             return -(EINVAL);
         }
 
-        int fill_in_res = _val_to_ffi_type(p_res_value, &rtype);
+        int fill_in_res = _val_to_ffi_type(p_res_value, &rtype, &rtype_buf);
         if (fill_in_res != 0) {
             return -(EFAULT);
         }
@@ -209,11 +225,17 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     // ffi handles variadic and non-variadic in different way
     if (variadic_param_count < 0) { // non variadic fn
         // types
-        ffi_type **args = NULL;
+        //ffi_type **args = NULL;
+        ffi_type * arg_type_buf = NULL;
         // vals
         void **values = NULL;
 
         if (param_count > 0) {
+            arg_type_buf = alloca(param_count * sizeof(ffi_type));
+            if (arg_type_buf == NULL) {
+                return -(EFAULT);
+            }
+            memset(arg_type_buf, 0, param_count * sizeof(ffi_type));
             args = calloc(param_count, sizeof(ffi_type *));
             if (args == NULL) {
                 return -(EFAULT);
@@ -231,7 +253,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
                     return -(EFAULT);
                 }
                 // fill in type
-                int fill_in_res = _val_to_ffi_type(p_param_val, &args[i]);
+                int fill_in_res = _val_to_ffi_type(p_param_val, &args[i], &arg_type_buf[i]);
                 if (fill_in_res != 0) {
                     metac_value_delete(p_param_val);
                     free(values);

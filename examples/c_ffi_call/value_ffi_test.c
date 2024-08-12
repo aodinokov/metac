@@ -134,25 +134,27 @@ typedef enum test_enum_08 {
     e08_end = 0x1000000000,
 }test_enum_08_t;
 
-void test_function_with_enum_args(
+test_enum_08_t test_function_with_enum_args(
     enum test_enum_01 arg_00,
     enum test_enum_02 arg_01,
     enum test_enum_04 arg_02,
     test_enum_08_t arg_03) {
     snprintf(called, sizeof(called),
-        "test_function_with_enum_args");
-    return;
+        "test_function_with_enum_args %hhx %hx %x %lx", 
+            arg_00, arg_01, arg_02, arg_03);
+    return arg_03;
 }
 METAC_GSYM_LINK(test_function_with_enum_args);
 
-void test_function_with_enum_args_ptr(
+test_enum_08_t * test_function_with_enum_args_ptr(
     enum test_enum_01 * arg_00,
     enum test_enum_02 * arg_01,
     enum test_enum_04 * arg_02,
     test_enum_08_t * arg_03) {
     snprintf(called, sizeof(called),
-        "test_function_with_enum_args_ptr");
-    return;
+        "test_function_with_enum_args_ptr %hhx %hx %x %lx", 
+            *arg_00, *arg_01, *arg_02, *arg_03);
+    return arg_03;
 }
 METAC_GSYM_LINK(test_function_with_enum_args_ptr);
 
@@ -161,13 +163,16 @@ typedef struct {
     int arr[10];
 } test_struct_t;
 
-void test_function_with_struct_args(
+test_struct_t test_function_with_struct_args(
     test_struct_t arg_00,
     test_struct_t * arg_01,
     test_struct_t ** arg_02) {
     snprintf(called, sizeof(called),
-        "test_function_with_struct_args");
-    return;
+        "test_function_with_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
+            arg_00.a, arg_00.arr[0], arg_00.arr[1],
+            arg_01->a, arg_01->arr[0], arg_01->arr[1],
+            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
+    return arg_00;
 }
 METAC_GSYM_LINK(test_function_with_struct_args);
 
@@ -300,6 +305,75 @@ METAC_START_TEST(test_ffi_base_type) {
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
 
     _CALL_PROCESS_END
+
+
+}END_TEST
+
+METAC_START_TEST(test_ffi_enum_type) {
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    enum test_enum_01 arg_00 = e01_end;
+    enum test_enum_02 arg_01 = e02_end;
+    enum test_enum_04 arg_02 = e04_end;
+    enum test_enum_08 arg_03 = e08_end;
+
+    _CALL_PROCESS_FN(NULL, test_function_with_enum_args,
+        arg_00, arg_01, arg_02, arg_03)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_enum_args 1 100 100000 1000000000";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "e08_end";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(NULL, test_function_with_enum_args_ptr,
+        &arg_00, &arg_01, &arg_02, &arg_03)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_enum_args_ptr 1 100 100000 1000000000";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "(test_enum_08_t []){e08_end,}";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    _CALL_PROCESS_END
+}END_TEST
+
+METAC_START_TEST(test_ffi_struct_type) {
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    test_struct_t arg_00 = {.a = 1, .arr = {0,}};
+    test_struct_t * arg_01 = &arg_00;
+    test_struct_t ** arg_02 = &arg_01;
+    for (int i=0; i < sizeof(arg_00.arr)/sizeof(arg_00.arr[0]); ++i){
+        arg_00.arr[i] = i;
+    }
+    arg_00.a = sizeof(arg_00.arr)/sizeof(arg_00.arr[0]);
+
+    // _CALL_PROCESS_FN(NULL, test_function_with_struct_args,
+    //     arg_00, arg_01, arg_02)
+    //     fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+    //     expected_called = "";
+    //     fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+    //     expected = "";
+    //     s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+    //     fail_unless(s != NULL);
+    //     fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    // _CALL_PROCESS_END
 
 
 }END_TEST
