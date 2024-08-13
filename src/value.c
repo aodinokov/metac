@@ -265,12 +265,13 @@ metac_flag_t metac_value_is_base_type(metac_value_t *p_val) {
 }
 
 int metac_value_check_base_type(metac_value_t * p_val, metac_name_t type_name, metac_encoding_t encoding, metac_size_t var_size) {
-    metac_entry_t * p_final_entry = _value_with_base_type_info(p_val);
-    if (p_final_entry == NULL) {
+    metac_entry_t * p_entry = metac_value_entry(p_val);
+    if (p_entry == NULL) {
         return -(EINVAL);
     }
 
-    int err = metac_entry_check_base_type(p_final_entry, type_name, encoding, var_size);
+    // this funciton check final_entry
+    int err = metac_entry_check_base_type(p_entry, type_name, encoding, var_size);
     if (err != 0) {
         return err;
     }

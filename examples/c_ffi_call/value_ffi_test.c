@@ -134,7 +134,7 @@ typedef enum test_enum_08 {
     e08_end = 0x1000000000,
 }test_enum_08_t;
 
-test_enum_08_t test_function_with_enum_args(
+enum test_enum_04 test_function_with_enum_args(
     enum test_enum_01 arg_00,
     enum test_enum_02 arg_01,
     enum test_enum_04 arg_02,
@@ -142,11 +142,11 @@ test_enum_08_t test_function_with_enum_args(
     snprintf(called, sizeof(called),
         "test_function_with_enum_args %hhx %hx %x %lx", 
             arg_00, arg_01, arg_02, arg_03);
-    return arg_03;
+    return arg_02;
 }
 METAC_GSYM_LINK(test_function_with_enum_args);
 
-test_enum_08_t * test_function_with_enum_args_ptr(
+enum test_enum_04 * test_function_with_enum_args_ptr(
     enum test_enum_01 * arg_00,
     enum test_enum_02 * arg_01,
     enum test_enum_04 * arg_02,
@@ -154,7 +154,7 @@ test_enum_08_t * test_function_with_enum_args_ptr(
     snprintf(called, sizeof(called),
         "test_function_with_enum_args_ptr %hhx %hx %x %lx", 
             *arg_00, *arg_01, *arg_02, *arg_03);
-    return arg_03;
+    return arg_02;
 }
 METAC_GSYM_LINK(test_function_with_enum_args_ptr);
 
@@ -313,6 +313,7 @@ METAC_START_TEST(test_ffi_enum_type) {
     char * s = NULL;
     char * expected = NULL;
     char * expected_called = NULL;
+    char calling[256];
 
     enum test_enum_01 arg_00 = e01_end;
     enum test_enum_02 arg_01 = e02_end;
@@ -323,10 +324,13 @@ METAC_START_TEST(test_ffi_enum_type) {
         arg_00, arg_01, arg_02, arg_03)
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-        expected_called = "test_function_with_enum_args 1 100 100000 1000000000";
+        snprintf(calling, sizeof(calling),
+            "test_function_with_enum_args %hhx %hx %x %lx", 
+            arg_00, arg_01, arg_02, arg_03);
+        expected_called = calling;
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-        expected = "e08_end";
+        expected = "e04_end";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
@@ -337,10 +341,13 @@ METAC_START_TEST(test_ffi_enum_type) {
         &arg_00, &arg_01, &arg_02, &arg_03)
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-        expected_called = "test_function_with_enum_args_ptr 1 100 100000 1000000000";
+        snprintf(calling, sizeof(calling),
+            "test_function_with_enum_args_ptr %hhx %hx %x %lx", 
+            arg_00, arg_01, arg_02, arg_03);
+        expected_called = calling;
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-        expected = "(test_enum_08_t []){e08_end,}";
+        expected = "(enum test_enum_04 []){e04_end,}";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);

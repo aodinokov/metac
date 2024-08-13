@@ -8,12 +8,13 @@
 #include <stdlib.h> /*calloc, free*/
 #include <string.h>
 
-static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype, ffi_type * p_buf) {
+// convert function parameters types to ffi_type (metac->ffi)
+static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 
-    if (metac_value_is_base_type(p_val) != 0) {
+    if (metac_entry_is_base_type(p_entry) != 0) {
 
 #define _process_(_metac_type_, _ffi_type_) \
-        if (metac_value_is_##_metac_type_(p_val)) { \
+        if (metac_entry_is_##_metac_type_(p_entry)) { \
             *pp_rtype = &_ffi_type_; \
         } 
 
@@ -35,9 +36,9 @@ static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype, ffi_typ
         _process_(double_complex, ffi_type_complex_double);
         _process_(ldouble_complex, ffi_type_complex_longdouble);
 #undef _process_
-    } else if (metac_value_is_enumeration(p_val) != 0) {
+    } else if (metac_entry_is_enumeration(p_entry) != 0) {
         metac_size_t param_byte_sz = 0;
-        if (metac_entry_byte_size(metac_value_entry(p_val), &param_byte_sz) != 0) {
+        if (metac_entry_byte_size(p_entry, &param_byte_sz) != 0) {
             return -(EFAULT);
         }
 
@@ -53,19 +54,19 @@ static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype, ffi_typ
         _process_(long long, ffi_type_slong);
 #undef _process_
     } else if (
-        metac_value_is_pointer(p_val) != 0) {
+        metac_entry_is_pointer(p_entry) != 0) {
         *pp_rtype = &ffi_type_pointer;
-    } else if (metac_value_has_members(p_val)) {
+    } else if (metac_entry_has_members(p_entry)) {
         metac_size_t sz = 0;
-        if (metac_entry_byte_size(metac_value_entry(p_val), &sz) != 0) {
+        if (metac_entry_byte_size(p_entry, &sz) != 0) {
             return -(EFAULT);
         }
-        p_buf->size = sz;
-        p_buf->alignment = 0;
-        p_buf->type = FFI_TYPE_STRUCT;
+        // p_buf->size = sz;
+        // p_buf->alignment = 0;
+        // p_buf->type = FFI_TYPE_STRUCT;
         // need https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
         // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622 unions )
-        *pp_rtype = p_buf;
+        // *pp_rtype = p_buf;
     } else {
             //https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L509
             // metac_value_has_elements(p_val) != 0 /*array*/
@@ -74,6 +75,7 @@ static int _val_to_ffi_type(metac_value_t * p_val, ffi_type ** pp_rtype, ffi_typ
     return 0;
 }
 
+// convert ffi returned value to metac_value
 static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
     if (p_val == NULL) {
         return -(EINVAL);
@@ -190,7 +192,6 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
 
     ffi_cif cif;
     ffi_type * rtype = NULL;
-    ffi_type rtype_buf = {0, };
     ffi_arg rc;
 
     if (metac_entry_has_result(p_param_storage_entry) != 0) {
@@ -198,7 +199,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
             return -(EINVAL);
         }
 
-        int fill_in_res = _val_to_ffi_type(p_res_value, &rtype, &rtype_buf);
+        int fill_in_res = _val_to_ffi_type(metac_value_entry(p_res_value), &rtype);
         if (fill_in_res != 0) {
             return -(EFAULT);
         }
@@ -207,7 +208,6 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     metac_num_t param_count  = metac_value_parameter_count(p_param_storage_val);
     metac_num_t variadic_param_count = -1; // fn is variadic if >=0 (0 is extreme case e.g. printf("string"))
 
-    ffi_type **args = NULL;
     if (param_count > 0) { // check the last param if it's variadic
         metac_value_t * p_last_param_val = metac_value_parameter_new_item(p_param_storage_val, param_count - 1);
         if (p_last_param_val == NULL) { /* something went wrong */
@@ -224,18 +224,12 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
 
     // ffi handles variadic and non-variadic in different way
     if (variadic_param_count < 0) { // non variadic fn
-        // types
-        //ffi_type **args = NULL;
-        ffi_type * arg_type_buf = NULL;
+        // args
+        ffi_type **args = NULL;
         // vals
         void **values = NULL;
 
         if (param_count > 0) {
-            arg_type_buf = alloca(param_count * sizeof(ffi_type));
-            if (arg_type_buf == NULL) {
-                return -(EFAULT);
-            }
-            memset(arg_type_buf, 0, param_count * sizeof(ffi_type));
             args = calloc(param_count, sizeof(ffi_type *));
             if (args == NULL) {
                 return -(EFAULT);
@@ -253,7 +247,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
                     return -(EFAULT);
                 }
                 // fill in type
-                int fill_in_res = _val_to_ffi_type(p_param_val, &args[i], &arg_type_buf[i]);
+                int fill_in_res = _val_to_ffi_type(metac_value_entry(p_param_val), &args[i]);
                 if (fill_in_res != 0) {
                     metac_value_delete(p_param_val);
                     free(values);
