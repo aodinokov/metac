@@ -16,6 +16,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 #define _process_(_metac_type_, _ffi_type_) \
         if (metac_entry_is_##_metac_type_(p_entry)) { \
             *pp_rtype = &_ffi_type_; \
+            return 0; \
         } 
 
         _process_(char, ffi_type_schar);
@@ -45,6 +46,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 #define _process_(_type_size_, _ffi_type_) \
         if (param_byte_sz == sizeof(_type_size_)) { \
             *pp_rtype = &_ffi_type_; \
+            return 0; \
         } 
 
         _process_(char, ffi_type_schar);
@@ -56,73 +58,143 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
     } else if (
         metac_entry_is_pointer(p_entry) != 0) {
         *pp_rtype = &ffi_type_pointer;
+        return 0;
     } else if (metac_entry_has_members(p_entry)) {
-        metac_size_t sz = 0;
-        if (metac_entry_byte_size(p_entry, &sz) != 0) {
+        // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
+        metac_num_t memb_count = metac_entry_member_count(p_entry);
+
+        // if p_entry is union - select largest element and skip others
+        if (metac_entry_kind(metac_entry_final_entry(p_entry, NULL)) == METAC_KND_union_type && memb_count > 0) {
+            metac_entry_t * p_largest_entry = NULL;
+            metac_size_t largest_sz = 0, sz = 0;
+            for (metac_num_t i = 0; i < memb_count; ++i) {
+                metac_entry_t * p_memb_entry = metac_entry_by_member_id(p_entry, i);
+                if (p_memb_entry == NULL) {
+                    return -(EFAULT);
+                }
+                if (metac_entry_byte_size(p_memb_entry, &sz) != 0) {
+                    return -(EFAULT);
+                }
+                if (p_largest_entry == NULL || sz > largest_sz) { 
+                    p_largest_entry = p_memb_entry;
+                }
+            }
+            assert(p_largest_entry != NULL);
+            return _val_to_ffi_type(p_largest_entry, pp_rtype);
+        }
+
+        ffi_type * p_tmp = calloc(1, sizeof(ffi_type));
+        if (p_tmp == NULL) {
+            return -(ENOMEM);
+        }
+        p_tmp->elements = calloc(memb_count + 1 /* for NULL */, sizeof(ffi_type *));
+        if (p_tmp->elements == NULL) {
+            free(p_tmp);
+            return -(ENOMEM);
+        }
+        p_tmp->size = p_tmp->alignment = 0;
+        p_tmp->type = FFI_TYPE_STRUCT;
+
+        metac_num_t memb_id = 0; // this is actual id, we're ignoring fields with the same offset
+        metac_offset_t last_offset = 0;
+        for (metac_num_t i = 0; i < memb_count; ++i) {
+
+            metac_entry_t *p_memb_entry = metac_entry_by_member_id(p_entry, i);
+            if (p_memb_entry == NULL) {
+                free(p_tmp->elements);
+                free(p_tmp);
+                return -(EFAULT);
+            }
+
+            // handle bitfields - ignore multiple entries by the same byte offset (they all will have the same type)
+            struct metac_member_raw_location_info bitfields_raw_info;
+            if (metac_entry_member_raw_location_info(p_memb_entry, &bitfields_raw_info) != 0) {
+                free(p_tmp->elements);
+                free(p_tmp);
+                return -(EFAULT);
+            }
+            if (bitfields_raw_info.p_bit_offset == NULL && /* member of the struct. addr points to the beginning of the struct */
+                bitfields_raw_info.p_bit_size == NULL &&
+                bitfields_raw_info.p_data_bit_offset == NULL) { /* not a bit field */
+
+                last_offset = bitfields_raw_info.byte_offset;
+            } else { // bitfield
+                metac_offset_t byte_offset = 0, bit_offset = 0, bit_size = 0;
+                if (metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0) {
+                    free(p_tmp->elements);
+                    free(p_tmp);
+                    return -(EFAULT);
+                }
+                if (i != 0 || last_offset == byte_offset) {
+                    continue; // just skip this element
+                }
+                last_offset = byte_offset;
+            }
+
+            if (_val_to_ffi_type(p_memb_entry, &p_tmp->elements[memb_id]) != 0) {
+                free(p_tmp->elements);
+                free(p_tmp);
+                return -(EFAULT);
+            }
+            ++memb_id;
+        }
+        p_tmp->elements[memb_id] = NULL;
+        *pp_rtype = p_tmp;
+        return 0;
+    } else if (metac_entry_has_elements(p_entry) != 0) {
+        // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L509
+        metac_num_t el_count = metac_entry_element_count(p_entry);
+        if (el_count < 0) { // flexible, we have to consider as 0 len
+            el_count = 0;
+        }
+        metac_entry_t * p_el_entry = metac_entry_element_entry(p_entry);
+        if (p_el_entry == NULL) {
             return -(EFAULT);
         }
-        // p_buf->size = sz;
-        // p_buf->alignment = 0;
-        // p_buf->type = FFI_TYPE_STRUCT;
-        // need https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
-        // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622 unions )
-        // *pp_rtype = p_buf;
+
+        ffi_type * p_tmp = calloc(1, sizeof(ffi_type));
+        if (p_tmp == NULL) {
+            return -(ENOMEM);
+        }
+        p_tmp->elements = calloc(el_count + 1 /* for NULL */, sizeof(ffi_type *));
+        if (p_tmp->elements == NULL) {
+            free(p_tmp);
+            return -(ENOMEM);
+        }
+        p_tmp->size = p_tmp->alignment = 0;
+        p_tmp->type = FFI_TYPE_STRUCT;
+
+        metac_num_t el_id = 0;
+        for (metac_num_t i = 0; i < el_count; ++i) {
+            if (_val_to_ffi_type(p_el_entry, &p_tmp->elements[el_id]) != 0) {
+                free(p_tmp->elements);
+                free(p_tmp);
+                return -(EFAULT);
+            }
+            ++el_id;
+        }
+        p_tmp->elements[el_id] = NULL;
+        *pp_rtype = p_tmp;
+        return 0;
     } else {
-            //https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L509
-            // metac_value_has_elements(p_val) != 0 /*array*/
          return -(ENOTSUP);
     }
     return 0;
 }
 
-// convert ffi returned value to metac_value
-static int _ffi_arg_to_value(ffi_arg arg, metac_value_t * p_val) {
-    if (p_val == NULL) {
-        return -(EINVAL);
+void _cleanup_ffi_type(ffi_type * p_rtype) {
+    if (p_rtype == NULL) {
+        return;
     }
-    if (metac_value_is_base_type(p_val) != 0) {
-#define _process_(_type_, _pseudoname_) \
-        do { \
-            if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
-                _type_ v = (_type_)arg; \
-                if (metac_value_set_##_pseudoname_(p_val, v) == 0) { \
-                    return 0;\
-                } \
-            } \
-        } while(0)
-
-        _process_(bool, bool);
-        _process_(char, char);
-        _process_(unsigned char, uchar);
-        _process_(short, short);
-        _process_(unsigned short, ushort);
-        _process_(int, int);
-        _process_(unsigned int, uint);
-        _process_(long, long);
-        _process_(unsigned long, ulong);
-        _process_(long long, llong);
-        _process_(unsigned long long, ullong);
-
-#undef _process_
-        return -(ENOTSUP);
-    }
-    if (metac_value_is_enumeration(p_val) != 0) {
-        metac_const_value_t v = (metac_const_value_t)arg;
-        if (metac_value_set_enumeration(p_val, v) == 0) {
-            return 0;
+    if (p_rtype->type == FFI_TYPE_STRUCT) {
+        metac_num_t i = 0;
+        while (p_rtype->elements[i] != NULL) {
+            _cleanup_ffi_type(p_rtype->elements[i]);
+            ++i;
         }
+        free(p_rtype->elements);
+        free(p_rtype);
     }
-    if (metac_value_is_pointer(p_val) != 0) {
-        void * v = (void * )arg;
-        if (metac_value_set_pointer(p_val, v) == 0) {
-            return 0;
-        }
-    }
-    if (metac_value_has_members(p_val) != 0) {
-        return 0;
-    }
-    // TODO: set array, struct?
-    return -(ENOTSUP);
 }
 
 metac_value_t * metac_new_value_with_call_params(metac_entry_t *p_entry) {
@@ -243,6 +315,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
                 metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
                 if (p_param_val == NULL) {
                     free(values);
+                    for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
                     free(args);
                     return -(EFAULT);
                 }
@@ -251,6 +324,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
                 if (fill_in_res != 0) {
                     metac_value_delete(p_param_val);
                     free(values);
+                    for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
                     free(args);
                     return fill_in_res;
                 }
@@ -265,24 +339,22 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
         if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, param_count, rtype, args) != FFI_OK) {
 
             free(values);
+            for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
             free(args);
             return -(EFAULT);
         }
 
         ffi_call(&cif, fn,
-            (metac_entry_has_result(p_param_storage_entry) == 0)?NULL:&rc,
+            (metac_entry_has_result(p_param_storage_entry) == 0 || p_res_value == NULL)?
+                NULL:metac_value_addr(p_res_value),
             values);
 
         free(values);
+        for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
         free(args);
     } else {
         // TODO: variadic
         return -(ENOTSUP);
-    }
-
-    if (metac_entry_has_result(p_param_storage_entry) != 0 && p_res_value != NULL) {
-        int conv = _ffi_arg_to_value(rc, p_res_value);
-        assert(conv == 0);
     }
     
     return 0;

@@ -5,7 +5,7 @@
 #include "value_ffi.c"
 
 
-// const arg count tests data //
+// const arg count tests data
 static char called[256];
 int test_function_with_base_args(
     char arg_00,
@@ -305,8 +305,6 @@ METAC_START_TEST(test_ffi_base_type) {
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
 
     _CALL_PROCESS_END
-
-
 }END_TEST
 
 METAC_START_TEST(test_ffi_enum_type) {
@@ -368,19 +366,19 @@ METAC_START_TEST(test_ffi_struct_type) {
     }
     arg_00.a = sizeof(arg_00.arr)/sizeof(arg_00.arr[0]);
 
-    // _CALL_PROCESS_FN(NULL, test_function_with_struct_args,
-    //     arg_00, arg_01, arg_02)
-    //     fail_unless(res == 0, "Call wasn't successful, expected successful");
+    _CALL_PROCESS_FN(NULL, test_function_with_struct_args,
+        arg_00, arg_01, arg_02)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-    //     expected_called = "";
-    //     fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+        expected_called = "test_function_with_struct_args 10 0 1, 10 0 1, 10 0 1";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-    //     expected = "";
-    //     s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
-    //     fail_unless(s != NULL);
-    //     fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        expected = "{.a = 10, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,},}";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
 
-    // _CALL_PROCESS_END
-
-
+    _CALL_PROCESS_END
 }END_TEST
+
+//TODO: test unions, unions hierarchy, unions/structs, arrays, flexible arrays, structs with bitfields
