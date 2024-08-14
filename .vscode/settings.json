@@ -75,6 +75,7 @@
         "stdarg.h": "c",
         "_module.h": "c",
         "locale": "c",
-        "print_args.h": "c"
+        "print_args.h": "c",
+        "bitset": "c"
     }
 }

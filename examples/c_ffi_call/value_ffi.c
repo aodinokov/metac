@@ -15,7 +15,12 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 
 #define _process_(_metac_type_, _ffi_type_) \
         if (metac_entry_is_##_metac_type_(p_entry)) { \
-            *pp_rtype = &_ffi_type_; \
+            ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type)); \
+            if (p_ffi_type == NULL) { \
+                return -ENOMEM; \
+            } \
+            memcpy(p_ffi_type, &_ffi_type_, sizeof(ffi_type)); \
+            *pp_rtype = p_ffi_type; \
             return 0; \
         } 
 
@@ -45,7 +50,12 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 
 #define _process_(_type_size_, _ffi_type_) \
         if (param_byte_sz == sizeof(_type_size_)) { \
-            *pp_rtype = &_ffi_type_; \
+            ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type)); \
+            if (p_ffi_type == NULL) { \
+                return -ENOMEM; \
+            } \
+            memcpy(p_ffi_type, &_ffi_type_, sizeof(ffi_type)); \
+            *pp_rtype = p_ffi_type; \
             return 0; \
         } 
 
@@ -57,7 +67,12 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 #undef _process_
     } else if (
         metac_entry_is_pointer(p_entry) != 0) {
-        *pp_rtype = &ffi_type_pointer;
+        ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type));
+        if (p_ffi_type == NULL) {
+            return -ENOMEM;
+        }
+        memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
+        *pp_rtype = p_ffi_type;
         return 0;
     } else if (metac_entry_has_members(p_entry)) {
         // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
@@ -83,6 +98,11 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             return _val_to_ffi_type(p_largest_entry, pp_rtype);
         }
 
+        metac_size_t e_sz = 0;
+        if (metac_entry_byte_size(p_entry, &e_sz) != 0) {
+            return -(EFAULT);
+        }
+
         ffi_type * p_tmp = calloc(1, sizeof(ffi_type));
         if (p_tmp == NULL) {
             return -(ENOMEM);
@@ -92,11 +112,12 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             free(p_tmp);
             return -(ENOMEM);
         }
-        p_tmp->size = p_tmp->alignment = 0;
+        p_tmp->size = e_sz;
+        p_tmp->alignment = 0;
         p_tmp->type = FFI_TYPE_STRUCT;
 
         metac_num_t memb_id = 0; // this is actual id, we're ignoring fields with the same offset
-        metac_offset_t last_offset = 0;
+        metac_offset_t current_offset, last_offset = 0;
         for (metac_num_t i = 0; i < memb_count; ++i) {
 
             metac_entry_t *p_memb_entry = metac_entry_by_member_id(p_entry, i);
@@ -117,7 +138,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 bitfields_raw_info.p_bit_size == NULL &&
                 bitfields_raw_info.p_data_bit_offset == NULL) { /* not a bit field */
 
-                last_offset = bitfields_raw_info.byte_offset;
+                current_offset = bitfields_raw_info.byte_offset;
             } else { // bitfield
                 metac_offset_t byte_offset = 0, bit_offset = 0, bit_size = 0;
                 if (metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0) {
@@ -125,10 +146,11 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                     free(p_tmp);
                     return -(EFAULT);
                 }
-                if (i != 0 || last_offset == byte_offset) {
-                    continue; // just skip this element
-                }
-                last_offset = byte_offset;
+                current_offset = byte_offset;
+            }
+
+            if (i != 0 && last_offset == current_offset) {
+                continue; // just skip this element
             }
 
             if (_val_to_ffi_type(p_memb_entry, &p_tmp->elements[memb_id]) != 0) {
@@ -136,6 +158,27 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 free(p_tmp);
                 return -(EFAULT);
             }
+
+            // metac_size_t sz = 0;
+            // if (metac_entry_byte_size(p_memb_entry, &sz) == 0 && sz != 0) {
+            //     if (sz > p_tmp->elements[memb_id]->size) {
+            //         p_tmp->elements[memb_id]->size = p_tmp->elements[memb_id]->alignment = sz;
+            //     }
+            // }
+
+            // metac_size_t alignment = 0;
+            // if (metac_entry_member_alignment(p_memb_entry, &alignment) == 0) {
+            //     p_tmp->elements[memb_id]->alignment = alignment;
+            //     printf(" memb_id %d set member-based alignment %d\n", (int)memb_id, (int) alignment);
+            // } 
+            // else {
+            //     if (metac_entry_alignment(p_memb_entry, &alignment) == 0) {
+            //         p_tmp->elements[memb_id]->alignment = alignment;
+            //         printf(" memb_id %d set final entry-based alignment %d\n", (int)memb_id, (int) alignment);
+            //     }
+            // }
+
+            last_offset = current_offset;
             ++memb_id;
         }
         p_tmp->elements[memb_id] = NULL;
@@ -152,6 +195,11 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             return -(EFAULT);
         }
 
+        metac_size_t e_sz = 0;
+        if (metac_entry_byte_size(p_entry, &e_sz) != 0) {
+            return -(EFAULT);
+        }
+
         ffi_type * p_tmp = calloc(1, sizeof(ffi_type));
         if (p_tmp == NULL) {
             return -(ENOMEM);
@@ -161,7 +209,8 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             free(p_tmp);
             return -(ENOMEM);
         }
-        p_tmp->size = p_tmp->alignment = 0;
+        p_tmp->size = e_sz;
+        p_tmp->alignment = 0;
         p_tmp->type = FFI_TYPE_STRUCT;
 
         metac_num_t el_id = 0;
@@ -186,15 +235,16 @@ void _cleanup_ffi_type(ffi_type * p_rtype) {
     if (p_rtype == NULL) {
         return;
     }
-    if (p_rtype->type == FFI_TYPE_STRUCT) {
+    if (p_rtype->type == FFI_TYPE_STRUCT && p_rtype->elements != NULL) {
         metac_num_t i = 0;
         while (p_rtype->elements[i] != NULL) {
             _cleanup_ffi_type(p_rtype->elements[i]);
             ++i;
         }
         free(p_rtype->elements);
-        free(p_rtype);
+        p_rtype->elements = NULL;
     }
+    free(p_rtype);
 }
 
 metac_value_t * metac_new_value_with_call_params(metac_entry_t *p_entry) {
@@ -344,9 +394,9 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
             return -(EFAULT);
         }
 
+        void * addr = metac_value_addr(p_res_value);
         ffi_call(&cif, fn,
-            (metac_entry_has_result(p_param_storage_entry) == 0 || p_res_value == NULL)?
-                NULL:metac_value_addr(p_res_value),
+            (metac_entry_has_result(p_param_storage_entry) == 0 || p_res_value == NULL)?NULL:addr,
             values);
 
         free(values);

@@ -36,6 +36,7 @@ func (m *MixinDeclaration) isDeclaration() bool {
 
 type MixinByteSize struct {
 	ByteSize *int64 `json:",omitempty" yaml:",omitempty"`
+	Alignment *int64 `json:",omitempty" yaml:",omitempty"`
 }
 
 func (m *MixinByteSize) fromEntry(entry *dwarfy.Entry) error {
@@ -43,8 +44,14 @@ func (m *MixinByteSize) fromEntry(entry *dwarfy.Entry) error {
 	if ok {
 		m.ByteSize = &byteSize
 	}
+	// alignment goes together with size
+	alignment, ok := entry.Val("Alignment").(int64)
+	if ok {
+		m.Alignment = &alignment
+	}
 	return nil
 }
+
 
 type MixinObject struct {
 	External    *bool   `json:",omitempty" yaml:",omitempty"`

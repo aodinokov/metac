@@ -25,7 +25,8 @@ static struct metac_entry {{ $i }} = {
 {{-          end -}}
 {{-          if ne $declaraion true }}
     .structure_type_info = {
-{{-            indent 8 (include "metac_reflect_gen.byte_size_mixin" $v) }}
+{{-            indent 8 (include "metac_reflect_gen.byte_size_mixin" $v) -}}
+{{-            indent 8 (include "metac_reflect_gen.alignment_mixin" $v) }}
         .p_va_arg_fn = {{ $i }}_va_arg,
 {{-            if ne (len $v.Fields) 0 }}
         .members_count = {{ len $v.Fields }},
@@ -40,6 +41,9 @@ static struct metac_entry {{ $i }} = {
 {{-                indent 20 (include "metac_reflect_gen.type" $val.Type) -}}
 {{-                with $val.ByteSize }}
                     .p_byte_size = (metac_size_t[]){ {{ . }},},
+{{-                end }}
+{{-                with $val.Alignment }}
+                    .p_alignment = (metac_size_t[]){ {{ . }},},
 {{-                end }}
 {{-                if ne 0 $val.ByteOffset }}
                     .byte_offset = {{ $val.ByteOffset }},

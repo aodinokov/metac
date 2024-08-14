@@ -176,6 +176,25 @@ test_struct_t test_function_with_struct_args(
 }
 METAC_GSYM_LINK(test_function_with_struct_args);
 
+// test the same but with aligned struct
+typedef struct {
+    short a;
+    __attribute__((aligned(32))) int arr[10];
+} test_aligned_struct_t;
+
+test_aligned_struct_t test_function_with_aligned_struct_args(
+    test_aligned_struct_t arg_00,
+    test_aligned_struct_t * arg_01,
+    test_aligned_struct_t ** arg_02) {
+    snprintf(called, sizeof(called),
+        "test_function_with_aligned_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
+            arg_00.a, arg_00.arr[0], arg_00.arr[1],
+            arg_01->a, arg_01->arr[0], arg_01->arr[1],
+            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
+    return arg_00;
+}
+METAC_GSYM_LINK(test_function_with_aligned_struct_args);
+
 typedef int test_1d_array_t[15];
 typedef int test_2d_array_t[3][5];
 
@@ -251,6 +270,7 @@ METAC_START_TEST(test_ffi_base_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 
@@ -268,6 +288,7 @@ METAC_START_TEST(test_ffi_base_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 
@@ -286,6 +307,7 @@ METAC_START_TEST(test_ffi_base_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 
@@ -303,6 +325,7 @@ METAC_START_TEST(test_ffi_base_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
@@ -332,6 +355,7 @@ METAC_START_TEST(test_ffi_enum_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 
@@ -349,6 +373,7 @@ METAC_START_TEST(test_ffi_enum_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
@@ -377,8 +402,45 @@ METAC_START_TEST(test_ffi_struct_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
 
-//TODO: test unions, unions hierarchy, unions/structs, arrays, flexible arrays, structs with bitfields
+METAC_START_TEST(test_ffi_aligned_struct_type) {
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    // printf("sz %d vs sz %d\n", (int)sizeof(test_aligned_struct_t), (int)sizeof(test_struct_t));
+    // printf("off 0 %p vs off 0 %p\n", &((test_aligned_struct_t*)NULL)->arr[0], &((test_struct_t*)NULL)->arr[0]);
+    // printf("off 1 %p vs off 1 %p\n", &((test_aligned_struct_t*)NULL)->arr[1], &((test_struct_t*)NULL)->arr[1]);
+
+    fail_unless(sizeof(test_aligned_struct_t) != sizeof(test_struct_t), "size must be different");
+
+
+    test_aligned_struct_t arg_00 = {.a = 1, .arr = {0,}};
+    test_aligned_struct_t * arg_01 = &arg_00;
+    test_aligned_struct_t ** arg_02 = &arg_01;
+    for (int i=0; i < sizeof(arg_00.arr)/sizeof(arg_00.arr[0]); ++i){
+        arg_00.arr[i] = i;
+    }
+    arg_00.a = sizeof(arg_00.arr)/sizeof(arg_00.arr[0]);
+
+    _CALL_PROCESS_FN(NULL, test_function_with_aligned_struct_args,
+        arg_00, arg_01, arg_02)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_aligned_struct_args 10 0 1, 10 0 1, 10 0 1";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "{.a = 10, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,},}";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    _CALL_PROCESS_END
+}END_TEST
+
+
+//TODO: test unions, unions hierarchy, unions/structs, arrays, flexible arrays, structs with bitfields, aligned structs.

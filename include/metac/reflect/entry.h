@@ -31,6 +31,14 @@ metac_name_t metac_entry_name(metac_entry_t * p_entry);
 int metac_entry_byte_size(metac_entry_t *p_entry, metac_size_t *p_sz);
 
 /**
+ * @brief Check if final entry has alignment (typcially structs). to get alignment of member use metac_entry_member_alignment.
+ * @param p_entry - entry
+ * @param p_alignment - address of the memory where the calculated value is stored, can be NULL.
+ * @returns negative - errno in case of error. 0 - if alignment is written.
+ */
+int metac_entry_alignment(metac_entry_t *p_entry, metac_size_t *p_alignment);
+
+/**
  * @brief Number of parents of the entry
  * Entries typically stored in hierarchy. top level is compile unit (CU). 
  * If the same type is met in several CU - it will have several parents - each hiearchy for each CU.
@@ -234,6 +242,11 @@ int metac_entry_member_raw_location_info(metac_entry_t *p_entry, struct metac_me
  * This information must be used in combination with type of the member which can be byte, word, dword,....
 */
 int metac_entry_member_bitfield_offsets(metac_entry_t *p_memb_entry, metac_offset_t *p_byte_offset, metac_offset_t *p_bit_offset, metac_offset_t *p_bit_size);
+
+/**
+ * @brief returns 0 if member has alignment and if p_alignment isn't NULL, stores the value there
+*/
+int metac_entry_member_alignment(metac_entry_t *p_entry, metac_size_t *p_alignment);
 
 /** @brief struct which is used by metac_entry_by_member_ids to locate member on arbitrary level of structure/union */
 typedef struct {

@@ -331,6 +331,8 @@ static metac_entry_t * _entry_with_struct_info(metac_entry_t *p_entry) {
     return p_final_entry;
 }
 
+
+
 void * metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container) {
     metac_entry_t * p_final_entry = _entry_with_struct_info(p_entry);
     _check_(p_final_entry == NULL || p_final_entry->structure_type_info.p_va_arg_fn == NULL, NULL);
@@ -450,6 +452,19 @@ int metac_entry_member_bitfield_offsets(metac_entry_t *p_memb_entry,
         *p_bit_offset = _data_bit_offset & 0x7;
     }
 
+    return 0;
+}
+
+int metac_entry_member_alignment(metac_entry_t *p_entry, metac_size_t *p_alignment) {
+    _check_(p_entry == NULL, -(EINVAL));
+    _check_(metac_entry_kind(p_entry) != METAC_KND_member, -(EINVAL));
+
+    if (p_entry->member_info.p_alignment == NULL) {
+        return -(EFAULT);
+    }
+    if (p_alignment != NULL) {
+        *p_alignment = *p_entry->member_info.p_alignment;
+    }
     return 0;
 }
 
@@ -658,3 +673,15 @@ metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     return p_entry->func_parameter_info.type;
 }
 
+int metac_entry_alignment(metac_entry_t *p_entry, metac_size_t *p_alignment) {
+    _check_(p_entry == NULL, -(EINVAL));
+    _check_(metac_entry_has_members(p_entry) == 0, -(EINVAL));
+
+    if (p_entry->structure_type_info.p_alignment == NULL) {
+        return -(EFAULT);
+    }
+    if (p_alignment != NULL) {
+        *p_alignment = *p_entry->structure_type_info.p_alignment;
+    }
+    return 0;
+}
