@@ -412,12 +412,7 @@ METAC_START_TEST(test_ffi_aligned_struct_type) {
     char * expected = NULL;
     char * expected_called = NULL;
 
-    // printf("sz %d vs sz %d\n", (int)sizeof(test_aligned_struct_t), (int)sizeof(test_struct_t));
-    // printf("off 0 %p vs off 0 %p\n", &((test_aligned_struct_t*)NULL)->arr[0], &((test_struct_t*)NULL)->arr[0]);
-    // printf("off 1 %p vs off 1 %p\n", &((test_aligned_struct_t*)NULL)->arr[1], &((test_struct_t*)NULL)->arr[1]);
-
     fail_unless(sizeof(test_aligned_struct_t) != sizeof(test_struct_t), "size must be different");
-
 
     test_aligned_struct_t arg_00 = {.a = 1, .arr = {0,}};
     test_aligned_struct_t * arg_01 = &arg_00;

@@ -8,6 +8,32 @@
 #include <stdlib.h> /*calloc, free*/
 #include <string.h>
 
+/**
+ * \page ffi_call FFI call example
+ * 
+ * some thoughts on ffi.
+ * 
+ * it seems that there are some different ways to set the size of structures.
+ * the [documentation](https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L509) suggests
+ * setting both struct size and alignment to zero and to set elements sizes.
+ * 
+ * this approach worked well until we started working with aligned struct members and aligned
+ * structures. we're using members which are standard types. and it seems like because of that
+ * ffi couldn't calculate the proper size of structs/arrays.
+ * 
+ * we ended up with setting struct/array size. we still set elements, but
+ * most likely for aligned cases their offset won't be correct.
+ * right now all tests with aligned structures of data pass ok, even without
+ * setting the correct offset.
+ * 
+ * Anyway, [here is](https://github.com/libffi/libffi/blob/8e3ef965c2d0015ed129a06d0f11f30c2120a413/testsuite/libffi.call/va_struct1.c)
+ * and example of how to check the offset after alignment is set.
+ * For now we see couple of TODO in the code below, but since everything works ok the code is kept as-is.
+ * may be in future we can make it ideal.
+ * 
+*/
+
+
 // convert function parameters types to ffi_type (metac->ffi)
 static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 
@@ -112,7 +138,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             free(p_tmp);
             return -(ENOMEM);
         }
-        p_tmp->size = e_sz;
+        p_tmp->size = e_sz;     // it appeared that this is enough to make struct work. TODO: alginment of memebers
         p_tmp->alignment = 0;
         p_tmp->type = FFI_TYPE_STRUCT;
 
@@ -159,25 +185,6 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 return -(EFAULT);
             }
 
-            // metac_size_t sz = 0;
-            // if (metac_entry_byte_size(p_memb_entry, &sz) == 0 && sz != 0) {
-            //     if (sz > p_tmp->elements[memb_id]->size) {
-            //         p_tmp->elements[memb_id]->size = p_tmp->elements[memb_id]->alignment = sz;
-            //     }
-            // }
-
-            // metac_size_t alignment = 0;
-            // if (metac_entry_member_alignment(p_memb_entry, &alignment) == 0) {
-            //     p_tmp->elements[memb_id]->alignment = alignment;
-            //     printf(" memb_id %d set member-based alignment %d\n", (int)memb_id, (int) alignment);
-            // } 
-            // else {
-            //     if (metac_entry_alignment(p_memb_entry, &alignment) == 0) {
-            //         p_tmp->elements[memb_id]->alignment = alignment;
-            //         printf(" memb_id %d set final entry-based alignment %d\n", (int)memb_id, (int) alignment);
-            //     }
-            // }
-
             last_offset = current_offset;
             ++memb_id;
         }
@@ -209,7 +216,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
             free(p_tmp);
             return -(ENOMEM);
         }
-        p_tmp->size = e_sz;
+        p_tmp->size = e_sz; // it appeared that this is enough to make struct work. TODO: alginment of memebers
         p_tmp->alignment = 0;
         p_tmp->type = FFI_TYPE_STRUCT;
 
@@ -407,5 +414,6 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
         return -(ENOTSUP);
     }
     
+    _cleanup_ffi_type(rtype);
     return 0;
 }
