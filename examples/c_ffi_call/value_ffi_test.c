@@ -176,29 +176,35 @@ test_struct_t test_function_with_struct_args(
 }
 METAC_GSYM_LINK(test_function_with_struct_args);
 
-// test the same but with aligned struct
+// test the same but with aligned member
 typedef struct {
     short a;
     __attribute__((aligned(32))) int arr[10];
-} test_aligned_struct_t;
+} test_aligned_memb_struct_t;
 
-test_aligned_struct_t test_function_with_aligned_struct_args(
-    test_aligned_struct_t arg_00,
-    test_aligned_struct_t * arg_01,
-    test_aligned_struct_t ** arg_02) {
+test_aligned_memb_struct_t test_function_with_aligned_memb_struct_args(
+    test_aligned_memb_struct_t arg_00,
+    test_aligned_memb_struct_t * arg_01,
+    test_aligned_memb_struct_t ** arg_02) {
     snprintf(called, sizeof(called),
-        "test_function_with_aligned_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
+        "test_function_with_aligned_memb_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
             arg_00.a, arg_00.arr[0], arg_00.arr[1],
             arg_01->a, arg_01->arr[0], arg_01->arr[1],
             (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
     return arg_00;
 }
-METAC_GSYM_LINK(test_function_with_aligned_struct_args);
+METAC_GSYM_LINK(test_function_with_aligned_memb_struct_args);
 
-typedef int test_1d_array_t[15];
+// test the same but with aligned struct
+typedef struct {
+    short a;
+    int arr[10];
+} __attribute__((aligned(32))) test_aligned_struct_t;
+
+typedef test_aligned_struct_t test_1d_array_t[15];
 typedef int test_2d_array_t[3][5];
 
-void test_function_with_array_args(
+test_1d_array_t * test_function_with_array_args(
     test_1d_array_t arg_00,
     test_1d_array_t * arg_01,
     test_1d_array_t ** arg_02,
@@ -206,8 +212,12 @@ void test_function_with_array_args(
     test_2d_array_t * arg_04,
     test_2d_array_t ** arg_05) {
     snprintf(called, sizeof(called),
-        "test_function_with_array_args");
-    return;
+        "test_function_with_array_args %d %d %d %d %d %d %d %d, %d %d %d %d %d %d",
+            (int)arg_00[0].a, (int)arg_00[0].arr[0], (int)arg_00[0].arr[1], (int)arg_00[0].arr[9],
+            (int)arg_00[14].a, (int)arg_00[14].arr[0], (int)arg_00[14].arr[1], (int)arg_00[14].arr[9],
+            arg_03[0][0], arg_03[0][1], arg_03[0][2],
+            arg_03[2][2], arg_03[2][3], arg_03[2][4]);
+    return arg_01;
 }
 METAC_GSYM_LINK(test_function_with_array_args);
 ////
@@ -407,26 +417,26 @@ METAC_START_TEST(test_ffi_struct_type) {
     _CALL_PROCESS_END
 }END_TEST
 
-METAC_START_TEST(test_ffi_aligned_struct_type) {
+METAC_START_TEST(test_ffi_aligned_memb_struct_type) {
     char * s = NULL;
     char * expected = NULL;
     char * expected_called = NULL;
 
-    fail_unless(sizeof(test_aligned_struct_t) != sizeof(test_struct_t), "size must be different");
+    fail_unless(sizeof(test_aligned_memb_struct_t) != sizeof(test_struct_t), "size must be different");
 
-    test_aligned_struct_t arg_00 = {.a = 1, .arr = {0,}};
-    test_aligned_struct_t * arg_01 = &arg_00;
-    test_aligned_struct_t ** arg_02 = &arg_01;
+    test_aligned_memb_struct_t arg_00 = {.a = 1, .arr = {0,}};
+    test_aligned_memb_struct_t * arg_01 = &arg_00;
+    test_aligned_memb_struct_t ** arg_02 = &arg_01;
     for (int i=0; i < sizeof(arg_00.arr)/sizeof(arg_00.arr[0]); ++i){
         arg_00.arr[i] = i;
     }
     arg_00.a = sizeof(arg_00.arr)/sizeof(arg_00.arr[0]);
 
-    _CALL_PROCESS_FN(NULL, test_function_with_aligned_struct_args,
+    _CALL_PROCESS_FN(NULL, test_function_with_aligned_memb_struct_args,
         arg_00, arg_01, arg_02)
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-        expected_called = "test_function_with_aligned_struct_args 10 0 1, 10 0 1, 10 0 1";
+        expected_called = "test_function_with_aligned_memb_struct_args 10 0 1, 10 0 1, 10 0 1";
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
         expected = "{.a = 10, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,},}";
@@ -437,5 +447,55 @@ METAC_START_TEST(test_ffi_aligned_struct_type) {
     _CALL_PROCESS_END
 }END_TEST
 
+METAC_START_TEST(test_function_with_array) {
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
 
-//TODO: test unions, unions hierarchy, unions/structs, arrays, flexible arrays, structs with bitfields, aligned structs.
+    test_1d_array_t arg_00 = {{.a = 0, .arr = {0,}}, {.a = 0, .arr = {0,}}, };
+    test_1d_array_t * arg_01 = &arg_00;
+    test_1d_array_t ** arg_02 = &arg_01;
+    test_2d_array_t arg_03 = {{1,2,3,4,5}, {6,7,8,9,10}, {11,12,13,14,15}};
+    test_2d_array_t * arg_04 = &arg_03;
+    test_2d_array_t ** arg_05 = &arg_04;
+
+    for (int i=0; i < sizeof(arg_00)/sizeof(arg_00[0]); ++i){
+        arg_00[i].a = i;
+        for (int j=0; j< sizeof(arg_00[i].arr)/sizeof(arg_00[i].arr[0]); ++j) {
+            arg_00[i].arr[j] = i+j;
+        }
+    }
+
+    _CALL_PROCESS_FN(NULL, test_function_with_array_args,
+        arg_00, arg_01, arg_02, arg_03, arg_04, arg_05)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_array_args 0 0 1 9 14 14 15 23, 1 2 3 13 14 15";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "(test_1d_array_t []){{"
+            "{.a = 0, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,},}, "
+            "{.a = 1, .arr = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10,},}, "
+            "{.a = 2, .arr = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11,},}, "
+            "{.a = 3, .arr = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12,},}, "
+            "{.a = 4, .arr = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13,},}, "
+            "{.a = 5, .arr = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14,},}, "
+            "{.a = 6, .arr = {6, 7, 8, 9, 10, 11, 12, 13, 14, 15,},}, "
+            "{.a = 7, .arr = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16,},}, "
+            "{.a = 8, .arr = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17,},}, "
+            "{.a = 9, .arr = {9, 10, 11, 12, 13, 14, 15, 16, 17, 18,},}, "
+            "{.a = 10, .arr = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19,},}, "
+            "{.a = 11, .arr = {11, 12, 13, 14, 15, 16, 17, 18, 19, 20,},}, "
+            "{.a = 12, .arr = {12, 13, 14, 15, 16, 17, 18, 19, 20, 21,},}, "
+            "{.a = 13, .arr = {13, 14, 15, 16, 17, 18, 19, 20, 21, 22,},}, "
+            "{.a = 14, .arr = {14, 15, 16, 17, 18, 19, 20, 21, 22, 23,},},"
+        "},}";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    _CALL_PROCESS_END
+}END_TEST
+
+
+//TODO: test unions, unions hierarchy, unions/structs, flexible arrays, structs with bitfields
