@@ -53,6 +53,31 @@
             ]
         },
         {
+            "name": "(gdb) Launch - Windows",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/value_ffi_test.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [{"name":"CK_FORK","value":"no"}],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "c:\\msys64\\mingw64\\bin\\gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "Launch Package",
             "type": "go",
             "request": "launch",
