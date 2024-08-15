@@ -336,7 +336,7 @@ metac_value_t * metac_new_value_with_call_result(metac_value_t * p_param_storage
         }
         _check_(res_sz <= 0, NULL);
 
-        void * p_res_mem = calloc(1, res_sz); // make alloca maybe
+        void * p_res_mem = calloc(1, res_sz<sizeof(ffi_arg)?sizeof(ffi_arg):res_sz);
         p_res_value = metac_new_value(p_res_entry, p_res_mem);
         if (p_res_value == NULL) {
             free(p_res_mem);
