@@ -165,24 +165,44 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 bitfields_raw_info.p_data_bit_offset == NULL) { /* not a bit field */
 
                 current_offset = bitfields_raw_info.byte_offset;
-            } else { // bitfield
+
+                if (_val_to_ffi_type(p_memb_entry, &p_tmp->elements[memb_id]) != 0) {
+                    free(p_tmp->elements);
+                    free(p_tmp);
+                    return -(EFAULT);
+                }
+            } else { // bitfields
                 metac_offset_t byte_offset = 0, bit_offset = 0, bit_size = 0;
                 if (metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0) {
                     free(p_tmp->elements);
                     free(p_tmp);
                     return -(EFAULT);
                 }
+                //printf("%d byte_offset %d\n", i, (int)byte_offset);
                 current_offset = byte_offset;
-            }
 
-            if (i != 0 && last_offset == current_offset) {
-                continue; // just skip this element
-            }
-
-            if (_val_to_ffi_type(p_memb_entry, &p_tmp->elements[memb_id]) != 0) {
-                free(p_tmp->elements);
-                free(p_tmp);
-                return -(EFAULT);
+                if (i != 0 && last_offset == current_offset && (bit_offset + bit_size)/8 == 0) {
+                    //printf("skip %d\n", i);
+                    continue; // just skip this element
+                }
+                // simulate based on bit_size
+#define _process_(_type_size_, _ffi_type_) \
+                    if ((bit_size/8 + 1) == sizeof(_type_size_)) { \
+                        /*printf("bit_size %d simulating %s\n", (int)bit_size, #_type_size_);*/ \
+                        p_tmp->elements[memb_id] = calloc(1, sizeof(ffi_type)); \
+                        if (p_tmp->elements[memb_id] == NULL) { \
+                            free(p_tmp->elements); \
+                            free(p_tmp); \
+                            return -ENOMEM; \
+                        } \
+                        memcpy(p_tmp->elements[memb_id], &_ffi_type_, sizeof(ffi_type)); \
+                    } 
+                    _process_(char, ffi_type_schar);
+                    _process_(short, ffi_type_sshort);
+                    _process_(int, ffi_type_sint);
+                    _process_(long, ffi_type_slong);
+                    _process_(long long, ffi_type_slong);
+#undef _process_
             }
 
             last_offset = current_offset;
@@ -203,7 +223,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
         }
 
         metac_size_t e_sz = 0;
-        if (metac_entry_byte_size(p_entry, &e_sz) != 0) {
+        if (el_count != 0 && metac_entry_byte_size(p_entry, &e_sz) != 0) {
             return -(EFAULT);
         }
 

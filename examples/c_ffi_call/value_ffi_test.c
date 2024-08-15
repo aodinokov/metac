@@ -4,9 +4,31 @@
 
 #include "value_ffi.c"
 
-
 // const arg count tests data
-static char called[256];
+static char called[1024];
+
+#define _CALL_PROCESS_FN(_tag_map_, _fn_, _args_...) { \
+    called[0] = 0; \
+    metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(_fn_); \
+    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, p_entry, _fn_, _args_); \
+    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
+    int res = metac_value_call(p_params_val, (void (*)(void)) _fn_, p_res_val);
+
+#define _CALL_PROCESS_FN_PTR(_tag_map_, _type_, _fn_, _args_...) { \
+    called[0] = 0; \
+    WITH_METAC_DECLLOC(dec, _type_ * p = _fn_); \
+    metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
+    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, metac_entry_pointer_entry(p_entry), _fn_, _args_); \
+    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
+    int res = metac_value_call(p_params_val, (void (*)(void)) p, p_res_val);
+
+
+#define _CALL_PROCESS_END \
+        metac_value_with_call_result_delete(p_res_val); \
+        metac_value_with_call_params_delete(p_params_val); \
+    }
+
+// test base types
 int test_function_with_base_args(
     char arg_00,
     unsigned char arg_01,
@@ -111,138 +133,6 @@ typedef int * test_function_with_base_args_ptr_t(char * arg_00,
     double complex *arg_15,
     long double complex *arg_16);
 
-enum test_enum_01 {
-    e01_0 = 0,
-    e01_end = 1,
-};
-
-enum test_enum_02 {
-    e02_0 = 0,
-    e02_1 = 1,
-    e02_end = 0x100,
-};
-
-enum test_enum_04 {
-    e04_0 = 0,
-    e04_1 = 1,
-    e04_end = 0x100000,
-};
-
-typedef enum test_enum_08 {
-    e08_0 = 0,
-    e08_1 = 1,
-    e08_end = 0x1000000000,
-}test_enum_08_t;
-
-enum test_enum_04 test_function_with_enum_args(
-    enum test_enum_01 arg_00,
-    enum test_enum_02 arg_01,
-    enum test_enum_04 arg_02,
-    test_enum_08_t arg_03) {
-    snprintf(called, sizeof(called),
-        "test_function_with_enum_args %hhx %hx %x %lx", 
-            arg_00, arg_01, arg_02, arg_03);
-    return arg_02;
-}
-METAC_GSYM_LINK(test_function_with_enum_args);
-
-enum test_enum_04 * test_function_with_enum_args_ptr(
-    enum test_enum_01 * arg_00,
-    enum test_enum_02 * arg_01,
-    enum test_enum_04 * arg_02,
-    test_enum_08_t * arg_03) {
-    snprintf(called, sizeof(called),
-        "test_function_with_enum_args_ptr %hhx %hx %x %lx", 
-            *arg_00, *arg_01, *arg_02, *arg_03);
-    return arg_02;
-}
-METAC_GSYM_LINK(test_function_with_enum_args_ptr);
-
-typedef struct {
-    short a;
-    int arr[10];
-} test_struct_t;
-
-test_struct_t test_function_with_struct_args(
-    test_struct_t arg_00,
-    test_struct_t * arg_01,
-    test_struct_t ** arg_02) {
-    snprintf(called, sizeof(called),
-        "test_function_with_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
-            arg_00.a, arg_00.arr[0], arg_00.arr[1],
-            arg_01->a, arg_01->arr[0], arg_01->arr[1],
-            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
-    return arg_00;
-}
-METAC_GSYM_LINK(test_function_with_struct_args);
-
-// test the same but with aligned member
-typedef struct {
-    short a;
-    __attribute__((aligned(32))) int arr[10];
-} test_aligned_memb_struct_t;
-
-test_aligned_memb_struct_t test_function_with_aligned_memb_struct_args(
-    test_aligned_memb_struct_t arg_00,
-    test_aligned_memb_struct_t * arg_01,
-    test_aligned_memb_struct_t ** arg_02) {
-    snprintf(called, sizeof(called),
-        "test_function_with_aligned_memb_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
-            arg_00.a, arg_00.arr[0], arg_00.arr[1],
-            arg_01->a, arg_01->arr[0], arg_01->arr[1],
-            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
-    return arg_00;
-}
-METAC_GSYM_LINK(test_function_with_aligned_memb_struct_args);
-
-// test the same but with aligned struct
-typedef struct {
-    short a;
-    int arr[10];
-} __attribute__((aligned(32))) test_aligned_struct_t;
-
-typedef test_aligned_struct_t test_1d_array_t[15];
-typedef int test_2d_array_t[3][5];
-
-test_1d_array_t * test_function_with_array_args(
-    test_1d_array_t arg_00,
-    test_1d_array_t * arg_01,
-    test_1d_array_t ** arg_02,
-    test_2d_array_t arg_03,
-    test_2d_array_t * arg_04,
-    test_2d_array_t ** arg_05) {
-    snprintf(called, sizeof(called),
-        "test_function_with_array_args %d %d %d %d %d %d %d %d, %d %d %d %d %d %d",
-            (int)arg_00[0].a, (int)arg_00[0].arr[0], (int)arg_00[0].arr[1], (int)arg_00[0].arr[9],
-            (int)arg_00[14].a, (int)arg_00[14].arr[0], (int)arg_00[14].arr[1], (int)arg_00[14].arr[9],
-            arg_03[0][0], arg_03[0][1], arg_03[0][2],
-            arg_03[2][2], arg_03[2][3], arg_03[2][4]);
-    return arg_01;
-}
-METAC_GSYM_LINK(test_function_with_array_args);
-////
-
-#define _CALL_PROCESS_FN(_tag_map_, _fn_, _args_...) { \
-    called[0] = 0; \
-    metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(_fn_); \
-    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, p_entry, _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
-    int res = metac_value_call(p_params_val, (void (*)(void)) _fn_, p_res_val);
-
-#define _CALL_PROCESS_FN_PTR(_tag_map_, _type_, _fn_, _args_...) { \
-    called[0] = 0; \
-    WITH_METAC_DECLLOC(dec, _type_ * p = _fn_); \
-    metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
-    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, metac_entry_pointer_entry(p_entry), _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
-    int res = metac_value_call(p_params_val, (void (*)(void)) p, p_res_val);
-
-
-#define _CALL_PROCESS_END \
-        metac_value_with_call_result_delete(p_res_val); \
-        metac_value_with_call_params_delete(p_params_val); \
-    }
-
 METAC_START_TEST(test_ffi_base_type) {
     char * s = NULL;
     char * expected = NULL;
@@ -340,6 +230,54 @@ METAC_START_TEST(test_ffi_base_type) {
     _CALL_PROCESS_END
 }END_TEST
 
+// test enums
+enum test_enum_01 {
+    e01_0 = 0,
+    e01_end = 1,
+};
+
+enum test_enum_02 {
+    e02_0 = 0,
+    e02_1 = 1,
+    e02_end = 0x100,
+};
+
+enum test_enum_04 {
+    e04_0 = 0,
+    e04_1 = 1,
+    e04_end = 0x100000,
+};
+
+typedef enum test_enum_08 {
+    e08_0 = 0,
+    e08_1 = 1,
+    e08_end = 0x1000000000,
+}test_enum_08_t;
+
+enum test_enum_04 test_function_with_enum_args(
+    enum test_enum_01 arg_00,
+    enum test_enum_02 arg_01,
+    enum test_enum_04 arg_02,
+    test_enum_08_t arg_03) {
+    snprintf(called, sizeof(called),
+        "test_function_with_enum_args %hhx %hx %x %lx", 
+            arg_00, arg_01, arg_02, arg_03);
+    return arg_02;
+}
+METAC_GSYM_LINK(test_function_with_enum_args);
+
+enum test_enum_04 * test_function_with_enum_args_ptr(
+    enum test_enum_01 * arg_00,
+    enum test_enum_02 * arg_01,
+    enum test_enum_04 * arg_02,
+    test_enum_08_t * arg_03) {
+    snprintf(called, sizeof(called),
+        "test_function_with_enum_args_ptr %hhx %hx %x %lx", 
+            *arg_00, *arg_01, *arg_02, *arg_03);
+    return arg_02;
+}
+METAC_GSYM_LINK(test_function_with_enum_args_ptr);
+
 METAC_START_TEST(test_ffi_enum_type) {
     char * s = NULL;
     char * expected = NULL;
@@ -388,6 +326,25 @@ METAC_START_TEST(test_ffi_enum_type) {
     _CALL_PROCESS_END
 }END_TEST
 
+// test struct
+typedef struct {
+    short a;
+    int arr[10];
+} test_struct_t;
+
+test_struct_t test_function_with_struct_args(
+    test_struct_t arg_00,
+    test_struct_t * arg_01,
+    test_struct_t ** arg_02) {
+    snprintf(called, sizeof(called),
+        "test_function_with_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
+            arg_00.a, arg_00.arr[0], arg_00.arr[1],
+            arg_01->a, arg_01->arr[0], arg_01->arr[1],
+            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
+    return arg_00;
+}
+METAC_GSYM_LINK(test_function_with_struct_args);
+
 METAC_START_TEST(test_ffi_struct_type) {
     char * s = NULL;
     char * expected = NULL;
@@ -416,6 +373,25 @@ METAC_START_TEST(test_ffi_struct_type) {
 
     _CALL_PROCESS_END
 }END_TEST
+
+// test the same but with aligned member
+typedef struct {
+    short a;
+    __attribute__((aligned(32))) int arr[10];
+} test_aligned_memb_struct_t;
+
+test_aligned_memb_struct_t test_function_with_aligned_memb_struct_args(
+    test_aligned_memb_struct_t arg_00,
+    test_aligned_memb_struct_t * arg_01,
+    test_aligned_memb_struct_t ** arg_02) {
+    snprintf(called, sizeof(called),
+        "test_function_with_aligned_memb_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
+            arg_00.a, arg_00.arr[0], arg_00.arr[1],
+            arg_01->a, arg_01->arr[0], arg_01->arr[1],
+            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
+    return arg_00;
+}
+METAC_GSYM_LINK(test_function_with_aligned_memb_struct_args);
 
 METAC_START_TEST(test_ffi_aligned_memb_struct_type) {
     char * s = NULL;
@@ -446,6 +422,31 @@ METAC_START_TEST(test_ffi_aligned_memb_struct_type) {
 
     _CALL_PROCESS_END
 }END_TEST
+
+// test the same but with aligned struct and put inside array
+typedef struct {
+    short a;
+    int arr[10];
+} __attribute__((aligned(32))) test_aligned_struct_t;
+typedef test_aligned_struct_t test_1d_array_t[15];
+typedef int test_2d_array_t[3][5];
+
+test_1d_array_t * test_function_with_array_args(
+    test_1d_array_t arg_00,
+    test_1d_array_t * arg_01,
+    test_1d_array_t ** arg_02,
+    test_2d_array_t arg_03,
+    test_2d_array_t * arg_04,
+    test_2d_array_t ** arg_05) {
+    snprintf(called, sizeof(called),
+        "test_function_with_array_args %d %d %d %d %d %d %d %d, %d %d %d %d %d %d",
+            (int)arg_00[0].a, (int)arg_00[0].arr[0], (int)arg_00[0].arr[1], (int)arg_00[0].arr[9],
+            (int)arg_00[14].a, (int)arg_00[14].arr[0], (int)arg_00[14].arr[1], (int)arg_00[14].arr[9],
+            arg_03[0][0], arg_03[0][1], arg_03[0][2],
+            arg_03[2][2], arg_03[2][3], arg_03[2][4]);
+    return arg_01;
+}
+METAC_GSYM_LINK(test_function_with_array_args);
 
 METAC_START_TEST(test_function_with_array) {
     char * s = NULL;
@@ -498,4 +499,109 @@ METAC_START_TEST(test_function_with_array) {
 }END_TEST
 
 
-//TODO: test unions, unions hierarchy, unions/structs, flexible arrays, structs with bitfields
+//unions hierarchy
+typedef union {
+    union {
+        int a_int;
+        char a_char;
+    } a;
+    union {
+        long b_long;
+        char b_char;
+    } b;
+}test_union_hierarchy_t;
+
+//stucts with unions
+typedef struct {
+    union {
+        int a_int;
+        char a_char;
+    } a;
+    union {
+        long b_long;
+        char b_char;
+    } b;
+}test_struct_with_union_t;
+
+// struct with bitfields
+typedef struct {
+    long lng01:5;
+    long lng02:18;
+    long lng03:5;
+    long :0;// next long 
+    long lng11:5;
+    long lng12:14;
+    long lng13:5;
+}test_struct_with_bitfields_t;
+
+// flexible arrays
+typedef struct {
+    int len;
+    int arr[];
+}test_struct_with_flexarr_t;
+
+test_struct_with_bitfields_t test_function_with_extra_cases(
+    test_union_hierarchy_t arg_00,
+    test_struct_with_union_t arg_01,
+    test_struct_with_bitfields_t arg_02,
+    test_struct_with_flexarr_t arg_03) {
+    WITH_METAC_DECLLOC(decl,
+        test_union_hierarchy_t * p_arg_00 = &arg_00;
+        test_struct_with_union_t * p_arg_01 = &arg_01;
+        test_struct_with_bitfields_t * p_arg_02 = &arg_02;
+        test_struct_with_flexarr_t * p_arg_03 = &arg_03
+    );
+    metac_value_t
+        * p_v_02 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_02),
+        * p_v_03 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_03);
+    fail_unless(p_v_02 != NULL && p_v_03 != NULL);
+    char
+        * s_02 = metac_value_string_ex(p_v_02, METAC_WMODE_deep, NULL),
+        * s_03 = metac_value_string_ex(p_v_03, METAC_WMODE_deep, NULL);
+    fail_unless(s_02 != NULL && s_03 != NULL);
+
+    char s1 =
+    snprintf(called, sizeof(called),
+        "test_function_with_extra_cases %d %d %ld %s %s", 
+        arg_00.a.a_int,
+        arg_01.a.a_int, arg_01.b.b_long,
+        s_02, s_03);
+
+    free(s_03);
+    free(s_02);
+
+
+    metac_value_delete(p_v_03);
+    metac_value_delete(p_v_02);
+
+    
+    return arg_02;
+}
+METAC_GSYM_LINK(test_function_with_extra_cases);
+
+METAC_START_TEST(test_function_with_extra) {
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    test_union_hierarchy_t arg_00 = { .a = {.a_int = 55,},};
+    test_struct_with_union_t arg_01 = {.a = {.a_int = 55}, .b = {.b_long = 5555}};
+    test_struct_with_bitfields_t arg_02 = {.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13};
+    test_struct_with_flexarr_t arg_03 = {.len = 1};
+
+    _CALL_PROCESS_FN(NULL, test_function_with_extra_cases,
+        arg_00, arg_01, arg_02, arg_03)
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_extra_cases 55 55 5555 "
+            "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,},} "
+            "(test_struct_with_flexarr_t []){{.len = 1, .arr = {},},}";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,}";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+
+    _CALL_PROCESS_END
+}END_TEST
