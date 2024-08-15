@@ -508,7 +508,7 @@ typedef union {
     union {
         long b_long;
         char b_char;
-        char _padding_[15]; // to make it work
+        //char _padding_[15]; // to make it work
     } b;
 }test_union_hierarchy_t;
 
@@ -522,7 +522,7 @@ typedef struct {
         long b_long;
         char b_char;
     } b;
-    char _padding_[15]; // to make it work
+    //char _padding_[15]; // to make it work
 }test_struct_with_union_t;
 
 // struct with bitfields
@@ -534,13 +534,13 @@ typedef struct {
     long lng11:5;
     long lng12:14;
     long lng13:5;
-    char _padding_; //to make it work
+    //char _padding_; //to make it work
 }test_struct_with_bitfields_t;
 
 // flexible arrays
 typedef struct {
     int len;
-    char _padding_[7]; // to make it work
+    //char _padding_[7]; // to make it work
     int arr[]; // 0,1,3,7 - don't work 2,4,5,6... 15 - works,, so basically 1,2,4,8 
 }test_struct_with_flexarr_t;
 
@@ -607,11 +607,17 @@ METAC_START_TEST(test_function_with_extra) {
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
         expected_called = "test_function_with_extra_cases 55 55 5555 "
-            "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13, ._padding_ = 0,},} "
-            "(test_struct_with_flexarr_t []){{.len = 1, ._padding_ = {0, 0, 0, 0, 0, 0, 0,}, .arr = {},},}";
+            "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,"
+            //" ._padding_ = 0,"
+            "},} "
+            "(test_struct_with_flexarr_t []){{.len = 1,"
+            //" ._padding_ = {0, 0, 0, 0, 0, 0, 0,},"
+            " .arr = {},},}";
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-        expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13, ._padding_ = 0,}";
+        expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,"
+            //" ._padding_ = 0,"
+            "}";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
