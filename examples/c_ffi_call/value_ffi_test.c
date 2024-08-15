@@ -329,7 +329,7 @@ METAC_START_TEST(test_ffi_enum_type) {
 // test struct
 typedef struct {
     short a;
-    int arr[10];
+    int arr[30];
 } test_struct_t;
 
 test_struct_t test_function_with_struct_args(
@@ -338,9 +338,9 @@ test_struct_t test_function_with_struct_args(
     test_struct_t ** arg_02) {
     snprintf(called, sizeof(called),
         "test_function_with_struct_args %hi %i %i, %hi %i %i, %hi %i %i",
-            arg_00.a, arg_00.arr[0], arg_00.arr[1],
-            arg_01->a, arg_01->arr[0], arg_01->arr[1],
-            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[1]);
+            arg_00.a, arg_00.arr[0], arg_00.arr[29],
+            arg_01->a, arg_01->arr[0], arg_01->arr[29],
+            (*arg_02)->a, (*arg_02)->arr[0], (*arg_02)->arr[29]);
     return arg_00;
 }
 METAC_GSYM_LINK(test_function_with_struct_args);
@@ -362,10 +362,10 @@ METAC_START_TEST(test_ffi_struct_type) {
         arg_00, arg_01, arg_02)
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-        expected_called = "test_function_with_struct_args 10 0 1, 10 0 1, 10 0 1";
+        expected_called = "test_function_with_struct_args 30 0 29, 30 0 29, 30 0 29";
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-        expected = "{.a = 10, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,},}";
+        expected = "{.a = 30, .arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,},}";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);

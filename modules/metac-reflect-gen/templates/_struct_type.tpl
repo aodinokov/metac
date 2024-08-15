@@ -10,6 +10,18 @@
 // size {{ $sz }}
 static metac_flag_t {{ $i }}_va_arg(struct va_list_container *p_va_list_container, void * buf) {
     if (p_va_list_container != NULL && buf != NULL) {
+{{- /* 
+
+This code is done this way in order to avoid an issue faced with Windows: 
+if the structure has size 1,2,4 or 8 (potentially 16 for some platforms)
+va_arg(p_va_list_container->parameters, char[<size>]) just fails.
+but it works for other sizes.
+Also it workes ok for Linux and Mac. for now only Windows has this issue.
+the WA demonstrated here works ok for our tests.
+
+In general it appears that va_list is very specific to platform
+and has many issues when you try to use it for structures (not pointers).
+*/ -}}
 {{-            if eq "1" $sz }}
         uint8_t data = va_arg(p_va_list_container->parameters, int);
         memcpy(buf, &data, {{ . }});
