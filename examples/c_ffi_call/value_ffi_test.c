@@ -419,6 +419,7 @@ METAC_START_TEST(test_ffi_aligned_memb_struct_type) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
@@ -494,6 +495,7 @@ METAC_START_TEST(test_function_with_array) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
@@ -531,9 +533,9 @@ typedef struct {
     long lng02:18;
     long lng03:5;
     long :0;// next long 
-    long lng11:5;
-    long lng12:14;
-    long lng13:5;
+    long lng11:7;
+    long lng12:16;
+    long lng13:30;
     //char _padding_; //to make it work
 }test_struct_with_bitfields_t;
 
@@ -595,7 +597,7 @@ METAC_START_TEST(test_function_with_extra) {
 
     test_union_hierarchy_t arg_00 = { .a = {.a_int = 55,},};
     test_struct_with_union_t arg_01 = {.a = {.a_int = 55}, .b = {.b_long = 5555}};
-    test_struct_with_bitfields_t arg_02 = {.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13};
+    test_struct_with_bitfields_t arg_02 = {.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13l};
     test_struct_with_flexarr_t arg_03 = {.len = 1};
 
     _CALL_PROCESS_FN(NULL, test_function_with_extra_cases,
@@ -621,6 +623,7 @@ METAC_START_TEST(test_function_with_extra) {
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
 
     _CALL_PROCESS_END
 }END_TEST
