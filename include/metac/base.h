@@ -4,6 +4,7 @@
 #include <stdio.h>  /* NULL */
 #include <stdarg.h> /* va_list */
 #include <stdint.h> /* int8_t, uint8_t, uint64_t */
+#include <string.h> /* memcpy */
 #include <inttypes.h> /* PRId64, ...*/
 #include <stdbool.h> /* bool */
 #include <complex.h> /* complex */

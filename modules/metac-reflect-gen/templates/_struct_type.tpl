@@ -4,15 +4,46 @@
 {{-     if not (eq 0 (len $map)) }}
 /* {{ $key }} */
 {{-        range $i,$v := $map -}}
-{{-          $declaraion := false }}
-static void * {{ $i }}_va_arg(struct va_list_container *p_va_list_container) {
-{{-   with $v.ByteSize }}
-    if (p_va_list_container != NULL) {
-        return (void*) va_arg(p_va_list_container->parameters, char[{{ . }}]);
+{{-          $declaraion := false -}}
+{{-          with $v.ByteSize -}}
+{{-            $sz := toJson . }}
+// size {{ $sz }}
+static metac_flag_t {{ $i }}_va_arg(struct va_list_container *p_va_list_container, void * buf) {
+    if (p_va_list_container != NULL && buf != NULL) {
+{{-            if eq "1" $sz }}
+        uint8_t data = va_arg(p_va_list_container->parameters, int);
+        memcpy(buf, &data, {{ . }});
+        return 1;
+{{-            else if eq "2" $sz }}
+        uint16_t data = va_arg(p_va_list_container->parameters, int);
+        memcpy(buf, &data, {{ . }});
+        return 1;
+{{-            else if eq "4" $sz }}
+        uint32_t data = va_arg(p_va_list_container->parameters, uint32_t);
+        memcpy(buf, &data, {{ . }});
+        return 1;
+{{-            else if eq "8" $sz }}
+        uint64_t data = va_arg(p_va_list_container->parameters, uint64_t);
+        memcpy(buf, &data, {{ . }});
+        return 1;
+{{-            else }}
+        long long data;
+        if (sizeof(data) == {{ . }}) {
+            data = va_arg(p_va_list_container->parameters, long long);
+            memcpy(buf, &data, {{ . }});
+            return 1;
+        }
+        void * p = (void*) va_arg(p_va_list_container->parameters, char[{{ . }}]);
+        if (p == NULL) {
+            return 0;
+        }
+        memcpy(buf, p, {{ . }});
+        return 1;
+{{-            end }}
     }
-{{-   end }}
-    return NULL;
+    return 0;
 }
+{{-          end }}
 static struct metac_entry {{ $i }} = {
     .kind = METAC_KND_{{ snakecase $v.Tag }},
 {{-          indent 4 (include "metac_reflect_gen.name_mixin" $v) -}}

@@ -429,13 +429,11 @@ static void _handle_subprogram(
                         metac_value_delete(p_param_value);
 
                         if (addr != NULL) {
-                            void * val = metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container);
-                            if (val == NULL) {
+                            if (metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container, addr) == 0) {
                                 free(addr);
                                 addr = NULL;
                                 break;
                             }
-                            memcpy(addr, val, param_byte_sz);
                         }
                     }
                 } while(0);
