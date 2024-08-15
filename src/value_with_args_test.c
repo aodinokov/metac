@@ -830,3 +830,115 @@ METAC_START_TEST(args_deep_copy_and_delete_sanity) {
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
+
+
+#if 0
+// some ffi related tests
+//unions hierarchy
+typedef union {
+    union {
+        int a_int;
+        char a_char;
+    } a;
+    union {
+        long b_long;
+        char b_char;
+    } b;
+}test_union_hierarchy_t;
+
+//stucts with unions
+typedef struct {
+    union {
+        int a_int;
+        char a_char;
+    } a;
+    union {
+        long b_long;
+        char b_char;
+    } b;
+}test_struct_with_union_t;
+
+// struct with bitfields
+typedef struct {
+    long lng01:5;
+    long lng02:18;
+    long lng03:5;
+    long :0;// next long 
+    long lng11:5;
+    long lng12:14;
+    long lng13:5;
+}test_struct_with_bitfields_t;
+
+// flexible arrays
+typedef struct {
+    int len;
+    int arr[];
+}test_struct_with_flexarr_t;
+
+// const arg count tests data
+static char called[1024];
+
+test_struct_with_bitfields_t test_function_with_extra_cases(
+    test_union_hierarchy_t arg_00,
+    test_struct_with_union_t arg_01,
+    test_struct_with_bitfields_t arg_02,
+    test_struct_with_flexarr_t arg_03) {
+    WITH_METAC_DECLLOC(decl,
+        test_union_hierarchy_t * p_arg_00 = &arg_00;
+        test_struct_with_union_t * p_arg_01 = &arg_01;
+        test_struct_with_bitfields_t * p_arg_02 = &arg_02;
+        test_struct_with_flexarr_t * p_arg_03 = &arg_03
+    );
+    metac_value_t
+        * p_v_02 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_02),
+        * p_v_03 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_03);
+    fail_unless(p_v_02 != NULL && p_v_03 != NULL);
+    char
+        * s_02 = metac_value_string_ex(p_v_02, METAC_WMODE_deep, NULL),
+        * s_03 = metac_value_string_ex(p_v_03, METAC_WMODE_deep, NULL);
+    fail_unless(s_02 != NULL && s_03 != NULL);
+
+    char s1 =
+    snprintf(called, sizeof(called),
+        "test_function_with_extra_cases %d %d %ld %s %s", 
+        arg_00.a.a_int,
+        arg_01.a.a_int, arg_01.b.b_long,
+        s_02, s_03);
+
+    free(s_03);
+    free(s_02);
+
+
+    metac_value_delete(p_v_03);
+    metac_value_delete(p_v_02);
+
+    
+    return arg_02;
+}
+METAC_GSYM_LINK(test_function_with_extra_cases);
+
+
+METAC_START_TEST(function_with_extra_cases) {
+    metac_value_t * p_val;
+    char *s, *expected_s;
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+    test_union_hierarchy_t arg_00 = { .a = {.a_int = 55,},};
+    test_struct_with_union_t arg_01 = {.a = {.a_int = 55}, .b = {.b_long = 5555}};
+    test_struct_with_bitfields_t arg_02 = {.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13};
+    test_struct_with_flexarr_t arg_03 = {.len = 1};
+
+    p_val = METAC_NEW_VALUE_WITH_ARGS_FOR_FN(p_tagmap, test_function_with_extra_cases,
+        arg_00, arg_01, arg_02, arg_03);
+    fail_unless(p_val != NULL);
+
+    expected_s = "";
+    s  = metac_value_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
+    fail_unless(s != NULL, "got NULL");
+    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    free(s);
+
+    METAC_VALUE_WITH_ARGS_DELETE(p_val);
+    metac_tag_map_delete(p_tagmap);
+}END_TEST
+#endif

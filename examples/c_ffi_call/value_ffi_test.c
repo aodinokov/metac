@@ -508,6 +508,7 @@ typedef union {
     union {
         long b_long;
         char b_char;
+        char _padding_[15]; // to make it work
     } b;
 }test_union_hierarchy_t;
 
@@ -521,6 +522,7 @@ typedef struct {
         long b_long;
         char b_char;
     } b;
+    char _padding_[15]; // to make it work
 }test_struct_with_union_t;
 
 // struct with bitfields
@@ -532,12 +534,14 @@ typedef struct {
     long lng11:5;
     long lng12:14;
     long lng13:5;
+    char _padding_; //to make it work
 }test_struct_with_bitfields_t;
 
 // flexible arrays
 typedef struct {
     int len;
-    int arr[];
+    char _padding_[7]; // to make it work
+    int arr[]; // 0,1,3,7 - don't work 2,4,5,6... 15 - works,, so basically 1,2,4,8 
 }test_struct_with_flexarr_t;
 
 test_struct_with_bitfields_t test_function_with_extra_cases(
@@ -546,26 +550,31 @@ test_struct_with_bitfields_t test_function_with_extra_cases(
     test_struct_with_bitfields_t arg_02,
     test_struct_with_flexarr_t arg_03) {
     WITH_METAC_DECLLOC(decl,
-        test_union_hierarchy_t * p_arg_00 = &arg_00;
-        test_struct_with_union_t * p_arg_01 = &arg_01;
         test_struct_with_bitfields_t * p_arg_02 = &arg_02;
         test_struct_with_flexarr_t * p_arg_03 = &arg_03
     );
     metac_value_t
         * p_v_02 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_02),
         * p_v_03 = METAC_VALUE_FROM_DECLLOC(decl, p_arg_03);
-    fail_unless(p_v_02 != NULL && p_v_03 != NULL);
+    fail_unless(
+        p_v_02 != NULL &&
+        p_v_03 != NULL
+    );
     char
         * s_02 = metac_value_string_ex(p_v_02, METAC_WMODE_deep, NULL),
         * s_03 = metac_value_string_ex(p_v_03, METAC_WMODE_deep, NULL);
-    fail_unless(s_02 != NULL && s_03 != NULL);
+    fail_unless(
+        s_02 != NULL && 
+        s_03 != NULL
+    );
 
     char s1 =
     snprintf(called, sizeof(called),
         "test_function_with_extra_cases %d %d %ld %s %s", 
         arg_00.a.a_int,
         arg_01.a.a_int, arg_01.b.b_long,
-        s_02, s_03);
+        s_02,
+        s_03);
 
     free(s_03);
     free(s_02);
@@ -590,15 +599,19 @@ METAC_START_TEST(test_function_with_extra) {
     test_struct_with_flexarr_t arg_03 = {.len = 1};
 
     _CALL_PROCESS_FN(NULL, test_function_with_extra_cases,
-        arg_00, arg_01, arg_02, arg_03)
+        arg_00, 
+        arg_01, 
+        arg_02, 
+        arg_03
+    )
         fail_unless(res == 0, "Call wasn't successful, expected successful");
 
         expected_called = "test_function_with_extra_cases 55 55 5555 "
-            "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,},} "
-            "(test_struct_with_flexarr_t []){{.len = 1, .arr = {},},}";
+            "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13, ._padding_ = 0,},} "
+            "(test_struct_with_flexarr_t []){{.len = 1, ._padding_ = {0, 0, 0, 0, 0, 0, 0,}, .arr = {},},}";
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-        expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,}";
+        expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13, ._padding_ = 0,}";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
         fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);

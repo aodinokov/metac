@@ -57,6 +57,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/value_ffi_test.exe",
+            //"${fileDirname}/value_with_args_test.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
