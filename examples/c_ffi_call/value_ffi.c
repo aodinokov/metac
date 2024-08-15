@@ -183,6 +183,12 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                             memcpy(p_tmp->elements[memb_id], &_ffi_type_, sizeof(ffi_type)); \
                             delta -= sizeof(_type_size_); \
                             ++memb_id; \
+                            if (memb_id == memb_count+1) { \
+                                /* this must not happen */ \
+                                free(p_tmp->elements); \
+                                free(p_tmp); \
+                                return -(EFAULT); \
+                            } \
                             continue; \
                         }
                         _process_(long long, ffi_type_slong);
