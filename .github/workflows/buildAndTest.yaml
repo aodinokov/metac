@@ -7,7 +7,7 @@ jobs:
     # also has go-lang for linux: https://go.dev/dl/
     # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
     # The host should always be Linux.
-    runs-on: ubuntu_latest
+    runs-on: ubuntu-22.04
     name: Build on ubuntu_latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,14 @@ jobs:
 
           # Set an output parameter `uname` for use in subsequent steps
           run: |
+            DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive apt-get install curl -y
+
+            curl -fsSL -o go.tar.gz https://go.dev/dl/go1.23.0.linux-s390x.tar.gz &&
+              tar -C /usr/local -xzf go.tar.gz
+            export PATH=$PATH:/usr/local/go/bin
+
             uname -a
+            # this doesn't work (line 4: GITHUB_OUTPUT: unbound variable) echo uname::test >> $GITHUB_OUTPUT
             echo ::set-output name=uname::$(uname -a)
 
       - name: Get the output
