@@ -136,14 +136,20 @@ static int _entry_bitfield_read(metac_entry_t *p_memb_entry, void * base_addr, v
         memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
         base_addr = buf;
     } else {
-        assert(metac_entry_parent_count(p_memb_entry) == 1);
-        metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
-        assert(p_memb_parent != NULL);
-        metac_size_t parent_byte_size = 0;
-        _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
-        assert(parent_byte_size > 0);
-        base_addr += parent_byte_size - byte_offset;
+        // assert(metac_entry_parent_count(p_memb_entry) == 1);
+        // metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
+        // assert(p_memb_parent != NULL);
+        // metac_size_t parent_byte_size = 0;
+        // _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
+        // assert(parent_byte_size > 0);
+        // base_addr += parent_byte_size - byte_offset;
+        base_addr += byte_offset;
+        bit_offset = 8*var_size - (bit_offset + bit_size);
     }
+
+                // printf("read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset, 
+                //     (int)((1 << bit_size) - 1), 
+                //     (int)(data >> bit_offset) & ((1 << bit_size) - 1)); 
 
 #define _read_(_type_) \
     do{ \
@@ -197,13 +203,15 @@ static int _entry_bitfield_write(metac_entry_t *p_memb_entry, void * base_addr, 
         memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
         base_addr = buf;
     } else {
-        assert(metac_entry_parent_count(p_memb_entry) == 1);
-        metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
-        assert(p_memb_parent != NULL);
-        metac_size_t parent_byte_size = 0;
-        _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
-        assert(parent_byte_size > 0);
-        base_addr += parent_byte_size - byte_offset;
+        // assert(metac_entry_parent_count(p_memb_entry) == 1);
+        // metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
+        // assert(p_memb_parent != NULL);
+        // metac_size_t parent_byte_size = 0;
+        // _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
+        // assert(parent_byte_size > 0);
+        // base_addr += parent_byte_size - byte_offset;
+        base_addr += byte_offset;
+        bit_offset = 8*var_size - (bit_offset + bit_size);
     }
 
 #define _write_(_type_) \

@@ -38,7 +38,9 @@ jobs:
             go test -cover ./...
             go build
 
-            make test all || true #cat src/value_base_type_test.reflect.c
+            make $(pwd)/src/value_bitfields_test && ./src/value_bitfields_test || true
+            # cat src/value_bitfields_test.reflect.c
+            # make test all || true #cat src/value_base_type_test.reflect.c
 
             # this doesn't work (line 4: GITHUB_OUTPUT: unbound variable) echo uname::test >> $GITHUB_OUTPUT
             echo ::set-output name=uname::$(uname -a)
