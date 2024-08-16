@@ -17,7 +17,124 @@
 
 #include "value_with_args.c"
 
+/*
+some platforms have issues with passing 
+structures via va_list. it was found that
+linux, macos and windows do this in a different manner.
+if this test fails, it will be a root-case of failing of many other
+test cases. try to fix this test-case first and make the related changes
+in the actual code.
+*/
+void _check_magic(uint8_t * ptr, size_t sz) {
+    fail_unless(ptr != NULL);
+    for (size_t i = 0; i < sz; ++i) {
+        fail_unless(ptr[i] == 0x5a);
+    }
+}
+void _set_magic(uint8_t * ptr, size_t sz) {
+    memset(ptr, 0x5a, sz);
+    _check_magic(ptr, sz);
+}
+
+void struct_in_va_arg(int count, ...) {
+    struct va_list_container in_cntr;
+    va_start(in_cntr.parameters, count);
+    uint8_t buf[128];
+    for (int i = 0; i < count; ++i) {
+        int sz = va_arg(in_cntr.parameters, int);
+        // this mimicks modules/metac-reflect-gen/templates/_struct_type.tpl
+        switch(sz) {
+            case 1:{
+                uint8_t data = va_arg(in_cntr.parameters, int);
+                memcpy(buf, &data, sizeof(data));
+                _check_magic(&buf[0], sizeof(data));
+                continue;
+            }
+            case 2: {
+                uint16_t data = va_arg(in_cntr.parameters, int);
+                memcpy(buf, &data, sizeof(data));
+                _check_magic(&buf[0], sizeof(data));
+                continue;
+            }
+            case 4: {
+                uint32_t data = va_arg(in_cntr.parameters, uint32_t);
+                memcpy(buf, &data, sizeof(data));
+                _check_magic(&buf[0], sizeof(data));
+                continue;
+            }
+            case 8: {
+                uint64_t data = va_arg(in_cntr.parameters, uint64_t);
+                memcpy(buf, &data, sizeof(data));
+                _check_magic(&buf[0], sizeof(data));
+                continue;
+                break;
+            }
+            default: {
+                if (sizeof(long long) == sz) {
+                    long long data = va_arg(in_cntr.parameters, long long);
+                    memcpy(buf, &data, sizeof(data));
+                    _check_magic(&buf[0], sizeof(data));
+                    continue;
+                }
+                /* 
+                have to hardcode some cases (this can't be done in generic way, that's why we generate )
+                static metac_flag_t {{ $i }}_va_arg(struct va_list_container *p_va_list_container, void * buf) 
+                */
+                switch(sz) {
+#define _case_(_sz_) \
+                    case _sz_: { \
+                        void * p = (void*) va_arg(in_cntr.parameters, char[_sz_]); \
+                        memcpy(buf, p, sz); \
+                        _check_magic(&buf[0], _sz_); \
+                        continue; \
+                    }
+                    _case_(3)
+                    _case_(5)
+                    _case_(7)
+                    _case_(16)
+                    _case_(128)
+#undef _case_
+                    default:
+                        fail_unless(0, "please add case for %d", (int)sz);
+                }
+            }
+        }
+    }
+    va_end(in_cntr.parameters);
+}
+
+METAC_START_TEST(struct_in_va_arg_precheck) {
+    struct _tst_sz1{ uint8_t a; } sz1; fail_unless(sizeof(sz1) == 1); _set_magic((uint8_t *)&sz1, sizeof(sz1));
+    struct _tst_sz2{ uint16_t a; } sz2; fail_unless(sizeof(sz2) == 2);  _set_magic((uint8_t *)&sz2, sizeof(sz2));
+    struct _tst_sz3{ uint8_t a[3]; } sz3; fail_unless(sizeof(sz3) == 3);  _set_magic((uint8_t *)&sz3, sizeof(sz3));
+    struct _tst_sz4{ uint32_t a; } sz4; fail_unless(sizeof(sz4) == 4);  _set_magic((uint8_t *)&sz4, sizeof(sz4));
+    struct _tst_sz5{ uint8_t a[5]; } sz5; fail_unless(sizeof(sz5) == 5);  _set_magic((uint8_t *)&sz5, sizeof(sz5));
+    struct _tst_sz7{ uint8_t a[7]; } sz7; fail_unless(sizeof(sz7) == 7);  _set_magic((uint8_t *)&sz7, sizeof(sz7));
+    struct _tst_sz8{ uint8_t a[8]; } sz8; fail_unless(sizeof(sz8) == 8);  _set_magic((uint8_t *)&sz8, sizeof(sz8));
+    struct _tst_sz16{ uint8_t a[16]; } sz16; fail_unless(sizeof(sz16) == 16);  _set_magic((uint8_t *)&sz16, sizeof(sz16));
+    struct _tst_sz128{ uint8_t a[128]; } sz128; fail_unless(sizeof(sz128) == 128);  _set_magic((uint8_t *)&sz128, sizeof(sz128));
+    struct_in_va_arg(9, 
+        sizeof(sz1), sz1,
+        sizeof(sz2), sz2,
+        sizeof(sz3), sz3,
+        sizeof(sz4), sz4,
+        sizeof(sz5), sz5,
+        sizeof(sz7), sz7,
+        sizeof(sz8), sz8,
+        sizeof(sz16), sz16,
+        sizeof(sz128), sz128);
+}END_TEST
+
+
 #if VA_ARG_IN_VA_ARG != 0
+/*
+some platforms have issues with passing 
+va_list via va_list. it was found that
+linux, macos and windows do this in a different manner.
+if this test fails, it will be a root-case of failing of many other
+test cases. try to fix this test-case first and make the related changes
+in the actual code.
+*/
 void va_arg_in_va_arg_lvl_3(int expected, ...) {
     struct va_list_container in_cntr;
     va_start(in_cntr.parameters, expected);
