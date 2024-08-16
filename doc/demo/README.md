@@ -1026,10 +1026,10 @@ Though it's not necssary to work with those functions directly in most cases. Th
 ```C
 /** @brief function will parse all parameters added as ... based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
    tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
-metac_value_t * metac_new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...);
+metac_value_t * metac_value_parameter_wrap(metac_value_t * p_val,metac_tag_map_t * p_tag_map, ...);
 /** @brief function will parse all parameters added as `va_list parameters` based on the parameter list given in p_entry (must be subprogram or subroutine), put them into p_subprog_load and will create a wrapping metac_value_t
    tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
-metac_value_t * metac_new_value_with_vparameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters);
+metac_value_t * metac_value_parameter_vwrap(metac_value_t * p_val,metac_tag_map_t * p_tag_map, va_list parameters);
 ```
 
 Let's create a small example to see how to use those 2 highlevel functions. Let's say we have a test function and main function that calls that function:
@@ -1054,7 +1054,7 @@ We can store it's arguments into a single `metac_value_t` if we modify this code
 #define METAC_WRAP_FN_RES(_tag_map_, _fn_, _args_...) ({ \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
-            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+            p_val = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _tag_map_, _args_); \
         } \
         _fn_(_args_);\
 })
@@ -1103,7 +1103,7 @@ As we can see `p_val` contains information about function and its argument which
 2. enums
 3. structs
 3. pointers (that includes arrays, because in C if the used puts array as parameter the function receives pointer to the first element)
-4. unspecified parameters (`...`) and va_lists. Due to the fact that there is no way to understand the numbrer of parameters inside sich parameters `metac_new_value_with_parameters` needs non-NULL parameter `p_tag_map` to be set in this case.
+4. unspecified parameters (`...`) and va_lists. Due to the fact that there is no way to understand the numbrer of parameters inside sich parameters `metac_value_parameter_wrap` needs non-NULL parameter `p_tag_map` to be set in this case.
 
 Let's update our code to show how to work with unspecified parameters:
 
@@ -1176,7 +1176,7 @@ The current implementation of `METAC_FORMAT_BASED_VA_ARG` is always to get the p
 
 Important notes:
 
-1. `metac_parameter_storage_t` allocates only memory for the parameter itself. If the parameter is a pointer and the function changed the argument stored by that pointer it doesn't affect anyhow `metac_parameter_storage_t`. If we call `metac_value_string_ex` after the actual function call for the created by `metac_new_value_with_parameters` value - we'll see the updated value.
+1. `metac_parameter_storage_t` allocates only memory for the parameter itself. If the parameter is a pointer and the function changed the argument stored by that pointer it doesn't affect anyhow `metac_parameter_storage_t`. If we call `metac_value_string_ex` after the actual function call for the created by `metac_value_parameter_wrap` value - we'll see the updated value.
 2. If we want to keep the values of parameters, including all values of pointer parameters, we can use deep copy function. This may be consideres as a snapshot of the parameters values. For that purpose we must create another empty `metac_parameter_storage_t`, create `metac_valut_t` which will use that `metac_parameter_storage_t` as address and subprogram or subroutine `metac_entry_t` as entry. Below we can see the example taken from the [test](/src/value_with_args_test.c). Please note that to cleanup all values to which pointer parameters pointed it is necessary to use deep free function `metac_value_free_ex`.
 
 ```C

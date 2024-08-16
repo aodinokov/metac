@@ -8,7 +8,7 @@
 
 #include "metac/reflect.h"
 
-typedef void* (*va_arg_t)(struct va_list_container *p_va_list_container);
+typedef metac_flag_t(*va_arg_t)(struct va_list_container *p_va_list_container, void * buf);
 
 // NOTE: C++ doesn't treat structs the same way as C if we define struct inside anonymous union
 
@@ -55,6 +55,7 @@ struct metac_member_info { /* define separatelly to make C and C++ behave the sa
     metac_entry_t *type; /* type of the member (mandatory) */
 
     metac_size_t *p_byte_size; /* sometimes it's provided, can be taken from type if not. Can be NULL */
+    metac_size_t *p_alignment; /* alignment of the field. Can be NULL */
     metac_offset_t byte_offset; /* location - offset in bytes (mandatory only for structure members, but 0 is ok if not defined) */
     metac_offset_t *p_data_bit_offset; /* data bit offset - new field in DWARF4 instead of p_bit_offset */
     metac_offset_t *p_bit_offset; /* bit offset - used only when bits were specified. Can be NULL */
@@ -62,6 +63,7 @@ struct metac_member_info { /* define separatelly to make C and C++ behave the sa
 };
 struct structure_type_info { // fits to all Classes, Structs and Unions
     metac_size_t byte_size; /* size of the structure in bytes */
+    metac_size_t *p_alignment; /* alignment of the struct. Can be NULL */
 
     va_arg_t p_va_arg_fn;   /* function which is needed to get extract this structure from va_list */
 

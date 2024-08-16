@@ -500,6 +500,10 @@ func (builder *MetaDbBuilder) processStructType(cu *CompileUnit, parent ICommon,
 			if ok {
 				structField.ByteSize = &byteSize
 			}
+			alignment, ok := childEntry.Val("Alignment").(int64)
+			if ok {
+				structField.Alignment = &alignment
+			}
 			bitOffset, ok := childEntry.Val("BitOffset").(int64)
 			if ok {
 				structField.BitOffset = &bitOffset

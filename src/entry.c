@@ -331,11 +331,13 @@ static metac_entry_t * _entry_with_struct_info(metac_entry_t *p_entry) {
     return p_final_entry;
 }
 
-void * metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container) {
+
+
+metac_flag_t metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container, void * buf) {
     metac_entry_t * p_final_entry = _entry_with_struct_info(p_entry);
-    _check_(p_final_entry == NULL || p_final_entry->structure_type_info.p_va_arg_fn == NULL, NULL);
+    _check_(p_final_entry == NULL || p_final_entry->structure_type_info.p_va_arg_fn == NULL, 0);
     
-    return p_final_entry->structure_type_info.p_va_arg_fn(p_va_list_container);
+    return p_final_entry->structure_type_info.p_va_arg_fn(p_va_list_container, buf);
 }
 
 metac_flag_t metac_entry_has_members(metac_entry_t *p_entry) {
@@ -657,4 +659,3 @@ metac_entry_t * metac_entry_parameter_entry(metac_entry_t *p_entry) {
     _check_(p_entry->func_parameter_info.unspecified_parameters != 0, NULL);
     return p_entry->func_parameter_info.type;
 }
-

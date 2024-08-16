@@ -429,13 +429,11 @@ static void _handle_subprogram(
                         metac_value_delete(p_param_value);
 
                         if (addr != NULL) {
-                            void * val = metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container);
-                            if (val == NULL) {
+                            if (metac_entry_struct_va_arg(p_param_type_entry, p_va_list_container, addr) == 0) {
                                 free(addr);
                                 addr = NULL;
                                 break;
                             }
-                            memcpy(addr, val, param_byte_sz);
                         }
                     }
                 } while(0);
@@ -449,14 +447,8 @@ static void _handle_subprogram(
     metac_recursive_iterator_done(p_iter, NULL);
 }
 
-static metac_value_t * _new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, struct va_list_container *p_va_list_container) {
-    _check_(p_entry == NULL || metac_entry_has_parameters(p_entry) == 0, NULL);
-    _check_(p_subprog_load == NULL, NULL);
-
-    metac_value_t * p_val = metac_new_value(p_entry, p_subprog_load);
-    if (p_val == NULL) {
-        return NULL;
-    }
+static metac_value_t * _value_parameter_wrap(metac_value_t * p_val, metac_tag_map_t * p_tag_map, struct va_list_container *p_va_list_container) {
+    _check_(p_val == NULL || metac_entry_has_parameters(metac_value_entry(p_val)) == 0, NULL);
 
     // we need to wrap our code into iterator to be able to reuse p_tag_map.
     // actually there is no iteration - we'll have only main p_val
@@ -494,18 +486,18 @@ static metac_value_t * _new_value_with_parameters(metac_parameter_storage_t * p_
     return p_val;
 }
 
-metac_value_t * metac_new_value_with_parameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, ...) {
+metac_value_t * metac_value_parameter_wrap(metac_value_t * p_val, metac_tag_map_t * p_tag_map, ...) {
     struct va_list_container cntr = {};
-    va_start(cntr.parameters, p_entry);
-    metac_value_t * p_val = _new_value_with_parameters(p_subprog_load, p_tag_map, p_entry, &cntr);
+    va_start(cntr.parameters, p_tag_map);
+    metac_value_t * p_rval = _value_parameter_wrap(p_val, p_tag_map, &cntr);
     va_end(cntr.parameters);
-    return p_val;
+    return p_rval;
 }
 
-metac_value_t * metac_new_value_with_vparameters(metac_parameter_storage_t * p_subprog_load, metac_tag_map_t * p_tag_map, metac_entry_t * p_entry, va_list parameters) {
+metac_value_t * metac_value_parameter_vwrap(metac_value_t * p_val, metac_tag_map_t * p_tag_map, va_list parameters) {
     struct va_list_container cntr = {};
     va_copy(cntr.parameters, parameters);
-    metac_value_t * p_val = _new_value_with_parameters(p_subprog_load, p_tag_map, p_entry, &cntr);
+    metac_value_t * p_rval = _value_parameter_wrap(p_val, p_tag_map, &cntr);
     va_end(cntr.parameters);
-    return p_val;
+    return p_rval;
 }

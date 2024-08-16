@@ -96,6 +96,7 @@ metac_flag_t metac_entry_is_base_type(metac_entry_t *p_entry);
  * @param p_sz - address of the memory where the calculated value is stored, can't be NULL.
  * @returns negative - errno in case of error. 0 - otherwise.
 */
+
 int metac_entry_base_type_byte_size(metac_entry_t *p_entry, metac_size_t *p_sz);
 /**
  * @brief Returns entry encoding (see metac/const.h all METAC_ENC_) to p_enc if final entry is base type
@@ -108,6 +109,25 @@ int metac_entry_base_type_encoding(metac_entry_t *p_entry, metac_encoding_t *p_e
  * @brief checks that base_type_name, encoding and size are as expected. Returns negative errno if something isn't expected
  */
 int metac_entry_check_base_type(metac_entry_t *p_entry, metac_name_t expected_name, metac_encoding_t expected_encoding, metac_size_t expected_size);
+
+/* per base type check using metac_value_check_base_type */
+metac_flag_t metac_entry_is_char(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_uchar(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_short(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_ushort(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_int(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_uint(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_long(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_ulong(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_llong(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_ullong(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_bool(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_float(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_double(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_ldouble(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_float_complex(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_double_complex(metac_entry_t * p_entry);
+metac_flag_t metac_entry_is_ldouble_complex(metac_entry_t * p_entry);
 
 /**
  * @brief check if final entry is a pointer of some type
@@ -172,9 +192,9 @@ metac_name_t metac_entry_enumeration_to_name(metac_entry_t * p_entry, metac_cons
 metac_flag_t metac_entry_has_members(metac_entry_t *p_entry);
 
 /**
- * @brief performs analog of va_arg(*p_va_list, this struct)
+ * @brief performs analog of va_arg(*p_va_list, this struct), but it copies data to buf of size of struct
 */
-void * metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container);
+metac_flag_t metac_entry_struct_va_arg(metac_entry_t *p_entry, struct va_list_container *p_va_list_container, void * buf);
 
 /**
  * @brief returns number of members of the structure/union. Negative value is errno

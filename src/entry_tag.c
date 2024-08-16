@@ -512,12 +512,27 @@ int metac_handle_container_of(metac_value_walker_hierarchy_t *p_hierarchy, metac
     return 0;
 }
 
+struct metac_union_member_select_by_context * metac_new_union_member_permanent_selection(metac_num_t permanent_id) {
+    struct metac_union_member_select_by_context * p_cnxt = calloc(1, sizeof(*p_cnxt));
+    if (p_cnxt == NULL) {
+        return NULL;
+    }
+
+    p_cnxt->mode = unsConstant;
+    p_cnxt->permanent_id = permanent_id;
+
+    return p_cnxt;
+}
+
 struct metac_union_member_select_by_context * metac_new_union_member_select_by_context(metac_name_t sibling_fieldname,
     struct metac_union_member_select_by_case * p_cases, size_t case_sz) {
     struct metac_union_member_select_by_context * p_cnxt = calloc(1, sizeof(*p_cnxt));
     if (p_cnxt == NULL) {
         return NULL;
     }
+
+    p_cnxt->mode = unsSelectByField;
+
     if (sibling_fieldname != NULL) {
         p_cnxt->sibling_selector_fieldname = strdup(sibling_fieldname);
         if (p_cnxt->sibling_selector_fieldname == NULL) {
@@ -556,7 +571,7 @@ void metac_union_member_select_by_context_delete(void *p_context) {
 
 }
 
-int metac_handle_union_member_select_by(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
+int metac_handle_union_member_select(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context) {
     if (p_ev == NULL) {
         return -(EINVAL);
     }
@@ -564,57 +579,76 @@ int metac_handle_union_member_select_by(metac_value_walker_hierarchy_t *p_hierar
         metac_value_walker_hierarchy_level(p_hierarchy) > 0) {
 
         struct metac_union_member_select_by_context *p_cnxt = (struct metac_union_member_select_by_context *)p_context;
-        if (p_cnxt == NULL ||
-            p_cnxt->sibling_selector_fieldname == NULL ||
-            strcmp(p_cnxt->sibling_selector_fieldname, "") == 0) {
+        if (p_cnxt == NULL) {
             return -(EINVAL);
         }
 
-        metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
-        metac_value_t *p_parent_val = metac_value_walker_hierarchy_value(p_hierarchy, 1);
-        if (p_val == NULL || p_parent_val == NULL || 
-            metac_value_has_members(p_val) == 0 ||
-            metac_value_has_members(p_parent_val) == 0) {
-            return -(EINVAL);
-        }
+        switch (p_cnxt->mode) {
+            case unsSelectByField: {
 
-        for (metac_num_t i = 0; i < metac_value_member_count(p_parent_val); ++i) {
-            metac_value_t *p_sibling_val = metac_new_value_by_member_id(p_parent_val, i);
-            if (metac_value_name(p_sibling_val) == NULL ||
-                strcmp(metac_value_name(p_sibling_val),p_cnxt->sibling_selector_fieldname) !=0 ) {
-                metac_value_delete(p_sibling_val);
-                continue;
-            }
+                if (p_cnxt->sibling_selector_fieldname == NULL ||
+                    strcmp(p_cnxt->sibling_selector_fieldname, "") == 0) {
+                    return -(EINVAL);
+                }
 
-            metac_num_t id;
-            if (metac_value_num(p_sibling_val, &id) != 0) {
-                metac_value_delete(p_sibling_val);
-                return -(EFAULT);
-            }   
-            metac_value_delete(p_sibling_val);
-            /* val contains the value read from sibling field */
-            if (p_cnxt->cases_count > 0) {
-                metac_flag_t id_converted = 0;
-                for (metac_num_t i = 0; i < p_cnxt->cases_count; ++i) {
-                    if (p_cnxt->p_cases[i].fld_val == id) {
-                        if (p_cnxt->p_cases[i].union_fld_name != NULL) {
-                            id = metac_entry_member_name_to_id(metac_value_entry(p_val), p_cnxt->p_cases[i].union_fld_name);
-                            if (id < 0) {
-                                return -(EFAULT);
-                            }
-                        } else {
-                            id = p_cnxt->p_cases[i].union_fld_id;
-                        }
-                        id_converted = 1;
-                        break;
+                metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
+                metac_value_t *p_parent_val = metac_value_walker_hierarchy_value(p_hierarchy, 1);
+                if (p_val == NULL || p_parent_val == NULL || 
+                    metac_value_has_members(p_val) == 0 ||
+                    metac_value_has_members(p_parent_val) == 0) {
+                    return -(EINVAL);
+                }
+
+                for (metac_num_t i = 0; i < metac_value_member_count(p_parent_val); ++i) {
+                    metac_value_t *p_sibling_val = metac_new_value_by_member_id(p_parent_val, i);
+                    if (metac_value_name(p_sibling_val) == NULL ||
+                        strcmp(metac_value_name(p_sibling_val),p_cnxt->sibling_selector_fieldname) !=0 ) {
+                        metac_value_delete(p_sibling_val);
+                        continue;
                     }
-                }
-                if (id_converted == 0) {
-                    return -(ENOENT);
+
+                    metac_num_t id;
+                    if (metac_value_num(p_sibling_val, &id) != 0) {
+                        metac_value_delete(p_sibling_val);
+                        return -(EFAULT);
+                    }   
+                    metac_value_delete(p_sibling_val);
+                    /* val contains the value read from sibling field */
+                    if (p_cnxt->cases_count > 0) {
+                        metac_flag_t id_converted = 0;
+                        for (metac_num_t i = 0; i < p_cnxt->cases_count; ++i) {
+                            if (p_cnxt->p_cases[i].fld_val == id) {
+                                if (p_cnxt->p_cases[i].union_fld_name != NULL) {
+                                    id = metac_entry_member_name_to_id(metac_value_entry(p_val), p_cnxt->p_cases[i].union_fld_name);
+                                    if (id < 0) {
+                                        return -(EFAULT);
+                                    }
+                                } else {
+                                    id = p_cnxt->p_cases[i].union_fld_id;
+                                }
+                                id_converted = 1;
+                                break;
+                            }
+                        }
+                        if (id_converted == 0) {
+                            return -(ENOENT);
+                        }
+                    }
+                    p_ev->p_return_value = metac_new_value_by_member_id(p_val, id);
+                    return 0;
                 }
             }
-            p_ev->p_return_value = metac_new_value_by_member_id(p_val, id);
-            return 0;
+            break;
+            case unsConstant: {
+                metac_value_t *p_val = metac_value_walker_hierarchy_value(p_hierarchy, 0);
+                if (p_val == NULL || 
+                    metac_value_has_members(p_val) == 0) {
+                    return -(EINVAL);
+                }
+                p_ev->p_return_value = metac_new_value_by_member_id(p_val, p_cnxt->permanent_id);
+                return 0;
+            }
+            break;
         }
     }
     return 0;

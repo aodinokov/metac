@@ -19,6 +19,12 @@
 {{-   end -}}
 {{- end -}}
 
+{{- define "metac_reflect_gen.alignment_mixin" -}}
+{{-   with .Alignment }}
+.p_alignment = (metac_size_t[]){ {{ . }},},
+{{-   end -}}
+{{- end -}}
+
 {{- define "metac_reflect_gen.obj_mixin" -}}
 {{- $gen := false -}}
 {{-   with .External -}}

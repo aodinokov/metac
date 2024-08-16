@@ -188,6 +188,12 @@ func (e *EnumerationType) Signature(comparable bool) (string, error) {
 	if e.isDeclaration() {
 		return "", fmt.Errorf("can't create comparable signature from declaration")
 	}
+	if e.ByteSize != nil {
+		signature += fmt.Sprintf("ByteSize:%d,", *e.ByteSize)
+	}
+	if e.Alignment != nil {
+		signature += fmt.Sprintf("Alignment:%d,", *e.Alignment)
+	}
 	signature += "Enumberators:("
 	for _, v := range e.Enumerators {
 		signature += "(" + v.Key + ":" + fmt.Sprintf("%d", v.Val) + "),"
@@ -495,6 +501,7 @@ type StructField struct {
 	Type CommonLink
 
 	ByteSize *int64 `json:"bytesize,omitempty" yaml:"bytesize,omitempty"` // will be if defined
+	Alignment *int64 `json:",omitempty" yaml:",omitempty"`
 
 	ByteOffset    int64  `json:"byteoffset,omitempty" yaml:"byteoffset,omitempty"`       // mutually exclusive with the next
 	DataBitOffset *int64 `json:"databitoffset,omitempty" yaml:"databitoffset,omitempty"` // nil if not a bit field
@@ -542,6 +549,12 @@ func (s *StructType) Signature(comparable bool) (string, error) {
 	if s.isDeclaration() {
 		return "", fmt.Errorf("can't create comparable signature from declaration")
 	}
+	if s.ByteSize != nil {
+		signature += fmt.Sprintf("ByteSize:%d,", *s.ByteSize)
+	}
+	if s.Alignment != nil {
+		signature += fmt.Sprintf("Alignment:%d,", *s.Alignment)
+	}
 	if len(s.Fields) > 0 {
 		signature += "Fields:("
 		for _, p := range s.Fields {
@@ -556,6 +569,9 @@ func (s *StructType) Signature(comparable bool) (string, error) {
 					return "", err
 				}
 				signature += x + "),"
+			}
+			if p.Alignment != nil {
+				signature += fmt.Sprintf("Alignment:%d,", *p.Alignment)
 			}
 			if p.BitSize != nil {
 				signature += "BitSize:" + fmt.Sprintf("%d", *p.BitSize) + ","

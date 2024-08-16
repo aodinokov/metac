@@ -122,12 +122,19 @@ static int _entry_bitfield_read(metac_entry_t *p_memb_entry, void * base_addr, v
     metac_offset_t byte_offset;
     metac_offset_t bit_offset;
     metac_offset_t bit_size;
+    uint8_t buf[16];
 
     _check_(metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0, -(EINVAL));
 
      /* TODO: Caution: this has been tested only with little-endian machines*/
     if (IS_LITTLE_ENDIAN) {
         base_addr += byte_offset;
+        // read only number of bytes that we really need
+        // TODO: make it without extra copy if possible
+        // TODO: need to make it for both endians
+        assert(bit_size != 0);
+        memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
+        base_addr = buf;
     } else {
         assert(metac_entry_parent_count(p_memb_entry) == 1);
         metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
@@ -174,12 +181,21 @@ static int _entry_bitfield_write(metac_entry_t *p_memb_entry, void * base_addr, 
     metac_offset_t byte_offset;
     metac_offset_t bit_offset;
     metac_offset_t bit_size;
+    void * base_addr_orig = NULL;
+    uint8_t buf[16];
 
     _check_(metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0, -(EINVAL));
 
      /* TODO: Caution: this has been tested only with little-endian machines*/
     if (IS_LITTLE_ENDIAN) {
         base_addr += byte_offset;
+        // write only number of bytes that we really need
+        // TODO: make it without extra copy if possible
+        // TODO: need to make it for both endians
+        assert(bit_size != 0);
+        base_addr_orig = base_addr;
+        memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
+        base_addr = buf;
     } else {
         assert(metac_entry_parent_count(p_memb_entry) == 1);
         metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
@@ -210,6 +226,11 @@ static int _entry_bitfield_write(metac_entry_t *p_memb_entry, void * base_addr, 
         return -(EINVAL);
     }
 #undef _write_
+
+    if (IS_LITTLE_ENDIAN) {
+        // write back only needed data
+        memcpy(base_addr_orig, buf, (bit_offset + bit_size-1)/8 +1);
+    }
 
     return 0;
 }
@@ -265,12 +286,13 @@ metac_flag_t metac_value_is_base_type(metac_value_t *p_val) {
 }
 
 int metac_value_check_base_type(metac_value_t * p_val, metac_name_t type_name, metac_encoding_t encoding, metac_size_t var_size) {
-    metac_entry_t * p_final_entry = _value_with_base_type_info(p_val);
-    if (p_final_entry == NULL) {
+    metac_entry_t * p_entry = metac_value_entry(p_val);
+    if (p_entry == NULL) {
         return -(EINVAL);
     }
 
-    int err = metac_entry_check_base_type(p_final_entry, type_name, encoding, var_size);
+    // this funciton check final_entry
+    int err = metac_entry_check_base_type(p_entry, type_name, encoding, var_size);
     if (err != 0) {
         return err;
     }

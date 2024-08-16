@@ -10,56 +10,108 @@ dsprintf_render_with_buf(64)
 #define dsprintf(_x_...) dsprintf64( _x_)
 #endif
 
+metac_flag_t metac_entry_is_char(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "char", METAC_ENC_signed_char, sizeof(char)) == 0;
+}
+metac_flag_t metac_entry_is_uchar(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "unsigned char", METAC_ENC_unsigned_char, sizeof(unsigned char)) == 0;
+}
+metac_flag_t metac_entry_is_short(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "short int", METAC_ENC_signed, sizeof(short int)) == 0;
+}
+metac_flag_t metac_entry_is_ushort(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "unsigned short int", METAC_ENC_unsigned, sizeof(unsigned short int)) == 0;
+}
+metac_flag_t metac_entry_is_int(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "int", METAC_ENC_signed, sizeof(int)) == 0;
+}
+metac_flag_t metac_entry_is_uint(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "unsigned int", METAC_ENC_unsigned, sizeof(unsigned int)) == 0;
+}
+metac_flag_t metac_entry_is_long(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "long int", METAC_ENC_signed, sizeof(long int)) == 0;
+}
+metac_flag_t metac_entry_is_ulong(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "unsigned long int", METAC_ENC_unsigned, sizeof(unsigned long int)) == 0;
+}
+metac_flag_t metac_entry_is_llong(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "long long int", METAC_ENC_signed, sizeof(long long int)) == 0;
+}
+metac_flag_t metac_entry_is_ullong(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "unsigned long long int", METAC_ENC_unsigned, sizeof(unsigned long long int)) == 0;
+}
+metac_flag_t metac_entry_is_bool(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "_Bool", METAC_ENC_boolean, sizeof(bool)) == 0;
+}
+metac_flag_t metac_entry_is_float(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "float", METAC_ENC_float, sizeof(float)) == 0;
+}
+metac_flag_t metac_entry_is_double(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "double", METAC_ENC_float, sizeof(double)) == 0;
+}
+metac_flag_t metac_entry_is_ldouble(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "long double", METAC_ENC_float, sizeof(long double)) == 0;
+}
+metac_flag_t metac_entry_is_float_complex(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "complex float", METAC_ENC_complex_float, sizeof(float complex)) == 0;
+}
+metac_flag_t metac_entry_is_double_complex(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "complex double", METAC_ENC_complex_float, sizeof(double complex)) == 0;
+}
+metac_flag_t metac_entry_is_ldouble_complex(metac_entry_t * p_entry) {
+    return metac_entry_check_base_type(p_entry, "long complex double", METAC_ENC_complex_float, sizeof(long double complex)) == 0;
+}
+/**/
 metac_flag_t metac_value_is_char(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "char", METAC_ENC_signed_char, sizeof(char)) == 0;
+    return metac_entry_is_char(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_uchar(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "unsigned char", METAC_ENC_unsigned_char, sizeof(unsigned char)) == 0;
+    return metac_entry_is_uchar(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_short(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "short int", METAC_ENC_signed, sizeof(short int)) == 0;
+    return metac_entry_is_short(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_ushort(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "unsigned short int", METAC_ENC_unsigned, sizeof(unsigned short int)) == 0;
+    return metac_entry_is_ushort(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_int(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "int", METAC_ENC_signed, sizeof(int)) == 0;
+    return metac_entry_is_int(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_uint(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "unsigned int", METAC_ENC_unsigned, sizeof(unsigned int)) == 0;
+    return metac_entry_is_uint(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_long(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "long int", METAC_ENC_signed, sizeof(long int)) == 0;
+    return metac_entry_is_long(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_ulong(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "unsigned long int", METAC_ENC_unsigned, sizeof(unsigned long int)) == 0;
+    return metac_entry_is_ulong(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_llong(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "long long int", METAC_ENC_signed, sizeof(long long int)) == 0;
+    return metac_entry_is_llong(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_ullong(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "unsigned long long int", METAC_ENC_unsigned, sizeof(unsigned long long int)) == 0;
+    return metac_entry_is_ullong(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_bool(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "_Bool", METAC_ENC_boolean, sizeof(bool)) == 0;
+    return metac_entry_is_bool(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_float(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "float", METAC_ENC_float, sizeof(float)) == 0;
+    return metac_entry_is_float(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_double(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "double", METAC_ENC_float, sizeof(double)) == 0;
+    return metac_entry_is_double(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_ldouble(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "long double", METAC_ENC_float, sizeof(long double)) == 0;
+    return metac_entry_is_ldouble(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_float_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "complex float", METAC_ENC_complex_float, sizeof(float complex)) == 0;
+    return metac_entry_is_float_complex(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_double_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "complex double", METAC_ENC_complex_float, sizeof(double complex)) == 0;
+    return metac_entry_is_double_complex(metac_value_entry(p_val));
 }
 metac_flag_t metac_value_is_ldouble_complex(metac_value_t * p_val) {
-    return metac_value_check_base_type(p_val, "long complex double", METAC_ENC_complex_float, sizeof(long double complex)) == 0;
+    return metac_entry_is_ldouble_complex(metac_value_entry(p_val));
 }
 /**/
 int metac_value_char(metac_value_t * p_val, char *p_var) {
