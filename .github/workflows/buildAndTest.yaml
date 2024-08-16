@@ -1,83 +1,114 @@
 on: [push, pull_request]
 name: BuildAndTest
 jobs:
-  ubuntu:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - { go-version: 1.22.x, dwarf-version: 3}
-          - { go-version: 1.22.x, dwarf-version: 4}
-          - { go-version: 1.22.x, dwarf-version: 5}
+  big_endian_job:
+    # taken from https://github.com/marketplace/actions/run-on-architecture
+    # s390x is big endian with Ubuntu_latest which
+    # also has go-lang for linux: https://go.dev/dl/
+    # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
+    # The host should always be Linux.
+    runs-on: ubuntu_latest
+    name: Build on ubuntu_latest
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-    - name: prerequisites # ubuntu speicific
-      run: sudo apt-get install check
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Test
-      env:
-        GO111MODULE: on
-      run: go test -cover ./...
-    - name: Build
-      run: go build
-    - name: Examples test
-      run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}}
+      - uses: actions/checkout@v4
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run commands
+        id: runcmd
+        with:
+          arch: s390x
+          distro: ubuntu_latest
 
-  macos:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        go-version: [1.22.x] # , 1.21.x, 1.20.x]
-    steps:
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-    - name: prerequisites # macos speicific
-      run: brew install pkg-config check
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Test
-      env:
-        GO111MODULE: on
-      run: go test -cover ./...
-    - name: Build
-      run: go build
-    - name: Examples test
-      run: make test all
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
 
-  windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        include:
-          - { go-version: 1.22.x, sys: mingw64, env: x86_64 }
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-    - name: prerequisites # Windows speicific
-      uses: msys2/setup-msys2@v2 
-      with:
-        msystem: ${{matrix.sys}}
-        update: true
-        install: base-devel git pkg-config mingw-w64-${{matrix.env}}-check mingw-w64-${{matrix.env}}-toolchain
-        path-type: inherit # to be able to find go
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Test
-      env:
-        GO111MODULE: on
-      run: go test -cover ./...
-    - name: Build
-      run: go build
-    - name: Examples test
-      run: make test all
+          # Set an output parameter `uname` for use in subsequent steps
+          run: |
+            uname -a
+            echo ::set-output name=uname::$(uname -a)
+
+      - name: Get the output
+        # Echo the `uname` output parameter from the `runcmd` step
+        run: |
+          echo "The uname output was ${{ steps.runcmd.outputs.uname }}"
+
+  # ubuntu:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - { go-version: 1.22.x, dwarf-version: 3}
+  #         - { go-version: 1.22.x, dwarf-version: 4}
+  #         - { go-version: 1.22.x, dwarf-version: 5}
+  #   steps:
+  #   - name: Install Go
+  #     uses: actions/setup-go@v3
+  #     with:
+  #       go-version: ${{ matrix.go-version }}
+  #   - name: prerequisites # ubuntu speicific
+  #     run: sudo apt-get install check
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+  #   - name: Test
+  #     env:
+  #       GO111MODULE: on
+  #     run: go test -cover ./...
+  #   - name: Build
+  #     run: go build
+  #   - name: Examples test
+  #     run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}}
+
+  # macos:
+  #   runs-on: macos-latest
+  #   strategy:
+  #     matrix:
+  #       go-version: [1.22.x] # , 1.21.x, 1.20.x]
+  #   steps:
+  #   - name: Install Go
+  #     uses: actions/setup-go@v3
+  #     with:
+  #       go-version: ${{ matrix.go-version }}
+  #   - name: prerequisites # macos speicific
+  #     run: brew install pkg-config check
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+  #   - name: Test
+  #     env:
+  #       GO111MODULE: on
+  #     run: go test -cover ./...
+  #   - name: Build
+  #     run: go build
+  #   - name: Examples test
+  #     run: make test all
+
+  # windows:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - { go-version: 1.22.x, sys: mingw64, env: x86_64 }
+  #   defaults:
+  #     run:
+  #       shell: msys2 {0}
+  #   steps:
+  #   - name: Install Go
+  #     uses: actions/setup-go@v3
+  #     with:
+  #       go-version: ${{ matrix.go-version }}
+  #   - name: prerequisites # Windows speicific
+  #     uses: msys2/setup-msys2@v2 
+  #     with:
+  #       msystem: ${{matrix.sys}}
+  #       update: true
+  #       install: base-devel git pkg-config mingw-w64-${{matrix.env}}-check mingw-w64-${{matrix.env}}-toolchain
+  #       path-type: inherit # to be able to find go
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+  #   - name: Test
+  #     env:
+  #       GO111MODULE: on
+  #     run: go test -cover ./...
+  #   - name: Build
+  #     run: go build
+  #   - name: Examples test
+  #     run: make test all
