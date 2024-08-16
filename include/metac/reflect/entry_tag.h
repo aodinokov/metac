@@ -357,11 +357,15 @@ int metac_handle_container_of(metac_value_walker_hierarchy_t *p_hierarchy, metac
  *  separated with comma.
 */
 #define METAC_UNION_MEMBER_SELECT_BY(_fld_, _cases_...) \
-    .handler = metac_handle_union_member_select_by, \
+    .handler = metac_handle_union_member_select, \
     .context_free_handler = metac_union_member_select_by_context_delete, \
     .p_context = metac_new_union_member_select_by_context(#_fld_, \
         (struct metac_union_member_select_by_case[]){_cases_}, \
         sizeof((struct metac_union_member_select_by_case[]){_cases_})),
+#define METAC_UNION_MEMBER_PARMANENT_SELECTION(id) \
+    .handler = metac_handle_union_member_select, \
+    .context_free_handler = metac_union_member_select_by_context_delete, \
+    .p_context = metac_new_union_member_permanent_selection(id),
 /** @brief match value to the field name or id */
 struct metac_union_member_select_by_case {
     metac_num_t fld_val;
@@ -370,16 +374,24 @@ struct metac_union_member_select_by_case {
 };
 /** @brief internal implementation */
 struct metac_union_member_select_by_context {
+    enum {
+        unsSelectByField = 0,
+        unsConstant = 1,
+    } mode;
+    /*unsSelectByField*/
     metac_name_t sibling_selector_fieldname; // easily can be covered as text tag
     metac_num_t cases_count;    /* if count is 0 using 1-to-1 default approach - field value is id of union memeber */
     struct metac_union_member_select_by_case *p_cases;
+    /*unsConstant*/
+    metac_num_t permanent_id;  // number of field
 };
 /** @brief internal implementation */
 struct metac_union_member_select_by_context * metac_new_union_member_select_by_context(metac_name_t sibling_fieldname,
     struct metac_union_member_select_by_case * p_cases, size_t case_sz);
+struct metac_union_member_select_by_context * metac_new_union_member_permanent_selection(metac_num_t permanent_id);
 void metac_union_member_select_by_context_delete(void *p_context);
 /** @brief internal implementation */
-int metac_handle_union_member_select_by(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
+int metac_handle_union_member_select(metac_value_walker_hierarchy_t *p_hierarchy, metac_value_event_t * p_ev, void *p_context);
 
 /**
  * @brief instruct deep functions to cast pointer to the array sor single element of the type based on the value of _selector_fld_ and optionally _count_fld_
