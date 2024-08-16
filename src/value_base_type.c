@@ -11,7 +11,8 @@ dsprintf_render_with_buf(64)
 #endif
 
 metac_flag_t metac_entry_is_char(metac_entry_t * p_entry) {
-    return metac_entry_check_base_type(p_entry, "char", METAC_ENC_signed_char, sizeof(char)) == 0;
+    return metac_entry_check_base_type(p_entry, "char", METAC_ENC_signed_char, sizeof(char)) == 0 ||
+        metac_entry_check_base_type(p_entry, "char", METAC_ENC_unsigned_char, sizeof(char)) == 0; // some platforms are doing this
 }
 metac_flag_t metac_entry_is_uchar(metac_entry_t * p_entry) {
     return metac_entry_check_base_type(p_entry, "unsigned char", METAC_ENC_unsigned_char, sizeof(unsigned char)) == 0;
@@ -115,7 +116,8 @@ metac_flag_t metac_value_is_ldouble_complex(metac_value_t * p_val) {
 }
 /**/
 int metac_value_char(metac_value_t * p_val, char *p_var) {
-    return metac_value_base_type(p_val, "char", METAC_ENC_signed_char, (void*)p_var, sizeof(*p_var));
+    return (metac_value_base_type(p_val, "char", METAC_ENC_signed_char, (void*)p_var, sizeof(*p_var)) == 0 ||
+        metac_value_base_type(p_val, "char", METAC_ENC_unsigned_char, (void*)p_var, sizeof(*p_var)) == 0)?0:-(EFAULT);
 }
 int metac_value_uchar(metac_value_t * p_val, unsigned char *p_var) {
     return metac_value_base_type(p_val, "unsigned char", METAC_ENC_unsigned_char, (void*)p_var, sizeof(*p_var));
@@ -167,7 +169,8 @@ int metac_value_ldouble_complex(metac_value_t * p_val, long double complex *p_va
 }
 /* */
 int metac_value_set_char(metac_value_t * p_val, char var) {
-    return metac_value_set_base_type(p_val, "char", METAC_ENC_signed_char, &var, sizeof(var));
+    return (metac_value_set_base_type(p_val, "char", METAC_ENC_signed_char, &var, sizeof(var)) == 0 ||
+        metac_value_set_base_type(p_val, "char", METAC_ENC_unsigned_char, &var, sizeof(var)) == 0)?0:-(EFAULT);
 }
 int metac_value_set_uchar(metac_value_t * p_val, unsigned char var) {
     return metac_value_set_base_type(p_val, "unsigned char", METAC_ENC_unsigned_char, &var, sizeof(var));

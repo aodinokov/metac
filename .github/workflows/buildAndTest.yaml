@@ -28,16 +28,17 @@ jobs:
           run: |
             set -x
             uname -a
-            apt update && apt-get install -y ca-certificates
+            apt update && apt-get install -y ca-certificates pkg-config make gcc check
 
             tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
-            ls -la /usr/local/go/bin
             export PATH=$PATH:/usr/local/go/bin
             go version
 
             export GO111MODULE=on
             go test -cover ./...
             go build
+
+            make test all || true #cat src/value_base_type_test.reflect.c
 
             # this doesn't work (line 4: GITHUB_OUTPUT: unbound variable) echo uname::test >> $GITHUB_OUTPUT
             echo ::set-output name=uname::$(uname -a)

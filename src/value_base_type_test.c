@@ -17,6 +17,19 @@
 static void test_char(metac_value_t * p_val, char * p_actual_data, metac_flag_t expected_write_err) {
     fail_unless(p_val != NULL, "couldn't create p_val");
 
+    metac_entry_t *p_entry = metac_entry_final_entry(metac_value_entry(p_val), NULL);
+    fail_unless(metac_entry_is_base_type(p_entry)!=0);
+    fail_unless(metac_entry_name(p_entry) != 0, "name is null");
+    fail_unless(strcmp("char", metac_entry_name(p_entry)) == 0, "expected char, got %s", metac_entry_name(p_entry));
+    metac_size_t sz;
+    fail_unless(metac_entry_byte_size(p_entry, &sz) == 0);
+    fail_unless(sz == sizeof(char), "sz got %d, expected %d", (int)sz, (int)sizeof(char));
+    metac_encoding_t enc;
+    fail_unless(metac_entry_base_type_encoding(p_entry, &enc)==0);
+    fail_unless(enc == METAC_ENC_signed_char || enc == METAC_ENC_unsigned_char, "sz got %d, expected %d or %d", 
+        (int)enc, (int)METAC_ENC_signed_char, (int)METAC_ENC_unsigned_char);
+
+
     char target;
     fail_unless(metac_value_is_char(p_val) != 0, "0 metac_value_is_char returned error");
     fail_unless(metac_value_char(p_val, &target) == 0, "0 metac_value_char returned error");
