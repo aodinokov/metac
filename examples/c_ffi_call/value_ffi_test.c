@@ -623,14 +623,20 @@ METAC_START_TEST(test_function_with_extra) {
 
 // variadic param tests
 int test_function_with_va_list(const char * format, va_list vl) {
+    // va_list l;
+    // va_copy(l, vl);
+    // int i = va_arg(l, int);
+    // va_end(l);
+    
     return vsnprintf(called, sizeof(called), format, vl);
+//    return 0;
 }
 METAC_GSYM_LINK(test_function_with_va_list);
 
 int test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
-    int res = test_function_with_va_list(format, l);
+    int res = vsnprintf(called, sizeof(called), format, l);
     va_end(l);
     return res;
 }
@@ -786,14 +792,16 @@ METAC_START_TEST(test_variadic_list) {
         {
     called[0] = 0;
     metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(test_function_with_va_list);
-    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(p_tagmap, p_entry, test_function_with_va_list, "test_function_with_va_list %d", VA_LIST(777));
+    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(p_tagmap, p_entry,
+        test_function_with_va_list, "test_function_with_va_list %x %x %x %x %x %x", VA_LIST(1,2,3,4,5,6));
     metac_value_t *p_res_val = metac_new_value_with_call_result(p_entry);
     int res = metac_value_call(p_params_val, (void (*)(void)) test_function_with_va_list, p_res_val);
 
-            expected = "test_function_with_va_list(\"test_function_with_va_list %d\", VA_LIST((int)777))";
+            expected = "test_function_with_va_list(\"test_function_with_va_list %x %x %x %x %x %x\", "
+                "VA_LIST((unsigned int)1, (unsigned int)2, (unsigned int)3, (unsigned int)4, (unsigned int)5, (unsigned int)6))";
             s = metac_value_string_ex(p_params_val, METAC_WMODE_deep, p_tagmap);
             fail_unless(s != NULL);
-            //fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+            fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
             free(s);
 
             fail_unless(res == 0, "Call wasn't successful, expected successful");

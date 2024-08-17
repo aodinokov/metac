@@ -101,6 +101,32 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
         _process_(long long, ffi_type_slong);
 #undef _process_
     } else if (
+        metac_entry_is_va_list_parameter(p_entry) != 0 ) {
+        ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type));
+        if (p_ffi_type == NULL) {
+            return -ENOMEM;
+        }
+#if __linux__
+        p_ffi_type->alignment = 0;
+        p_ffi_type->type = FFI_TYPE_STRUCT;
+        p_ffi_type->size = sizeof(va_list);
+        p_ffi_type->elements = calloc(sizeof(ffi_type)/sizeof(void*) + 1 /* for NULL */, sizeof(ffi_type *));
+        if (p_ffi_type->elements == NULL) {
+            free(p_ffi_type);
+            return -(ENOMEM);
+        }
+        for (int i = 0; i < sizeof(ffi_type)/sizeof(void*); ++i) {
+            p_ffi_type->elements[i] = calloc(1, sizeof(ffi_type));
+            if (p_ffi_type->elements[i] != NULL) {
+                memcpy(p_ffi_type->elements[i], &ffi_type_pointer, sizeof(ffi_type));
+            }
+        }
+#else
+        memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
+#endif
+        *pp_rtype = p_ffi_type;
+        return 0;
+    } else if (
         metac_entry_is_pointer(p_entry) != 0) {
         ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type));
         if (p_ffi_type == NULL) {
@@ -110,11 +136,9 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
         *pp_rtype = p_ffi_type;
         return 0;
     } else if (
-        metac_entry_is_va_list_parameter(p_entry) != 0 || // TODO: to check
-        (
             variadic != 0 && (
             metac_entry_has_members(p_entry) != 0 ||
-            metac_entry_has_elements(p_entry) != 0))) {
+            metac_entry_has_elements(p_entry) != 0)) {
         ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type));
         if (p_ffi_type == NULL) {
             return -ENOMEM;
@@ -223,7 +247,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
                 bitfield_state = 0;
 
                 if (_val_to_ffi_type(p_memb_entry, variadic, &p_tmp->elements[memb_id]) != 0) {
-                    free(p_tmp->elements);
+                    free(p_tmp->elements); // TODO: cleanup _tmp->elements prior to
                     free(p_tmp);
                     return -(EFAULT);
                 }
@@ -437,7 +461,12 @@ int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t *
         } else {
             assert(va_list_number_cur < va_list_number);
             assert(p_val_list_entries[va_list_number_cur].id == i);
-            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c;
+#if __linux__
+            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
+#else
+            va_list * x = &p_val_list_entries[va_list_number_cur].va_list_c;
+            values[i] = x;
+#endif
             ++va_list_number_cur;
             // // simple approach (without recursion)
             // assert(metac_value_has_parameter_load(p_param_val));
