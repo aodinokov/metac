@@ -56,7 +56,7 @@ jobs:
           run: |
             set -x
             uname -a
-            apt update && apt-get install -y ca-certificates pkg-config make gcc g++ check # todo: libffi-dev
+            apt update && apt-get install -y ca-certificates pkg-config make gcc g++ check libffi-dev
 
             tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
             export PATH=$PATH:/usr/local/go/bin

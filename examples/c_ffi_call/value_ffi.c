@@ -1,6 +1,7 @@
 #include "value_ffi.h"
 
 #include "metac/backend/helpers.h"
+#include "metac/endian.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -336,7 +337,7 @@ metac_value_t * metac_new_value_with_call_result(metac_value_t * p_param_storage
         }
         _check_(res_sz <= 0, NULL);
 
-        void * p_res_mem = calloc(1, res_sz<sizeof(ffi_arg)?sizeof(ffi_arg):res_sz);
+        void * p_res_mem = calloc(1, res_sz);
         p_res_value = metac_new_value(p_res_entry, p_res_mem);
         if (p_res_value == NULL) {
             free(p_res_mem);
@@ -368,6 +369,8 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     ffi_cif cif;
     ffi_type * rtype = NULL;
     ffi_arg rc;
+    metac_size_t res_sz = 0;
+    void * res_addr = NULL;
 
     if (metac_entry_has_result(p_param_storage_entry) != 0) {
         if (p_res_value == NULL) {
@@ -440,17 +443,27 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
         }
 
         if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, param_count, rtype, args) != FFI_OK) {
-
             free(values);
             for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
             free(args);
             return -(EFAULT);
         }
+        
+        if (metac_entry_has_result(p_param_storage_entry) != 0) {
+            res_addr = &rc;
+            if (metac_entry_byte_size(metac_value_entry(p_res_value), &res_sz) != 0) {
+                free(values);
+                for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+                free(args);
+                return -(EFAULT);
+            }
+            if (res_sz >= sizeof(rc)) {
+                res_addr = metac_value_addr(p_res_value);
+                assert(res_addr != NULL);
+            }
+        }
 
-        void * addr = metac_value_addr(p_res_value);
-        ffi_call(&cif, fn,
-            (metac_entry_has_result(p_param_storage_entry) == 0 || p_res_value == NULL)?NULL:addr,
-            values);
+        ffi_call(&cif, fn, res_addr, values);
 
         free(values);
         for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
@@ -461,5 +474,17 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     }
     
     _cleanup_ffi_type(rtype);
+    if (res_addr == &rc) {
+        // we need to pass result back to p_res_value if we used rc as buf (for small data)
+        uint8_t * p_res_buf = metac_value_addr(p_res_value);
+        for (metac_size_t i = 0;  i < res_sz; ++i) {
+            if (IS_LITTLE_ENDIAN) {
+                p_res_buf[i] = rc & 0xff;
+            } else {
+                p_res_buf[res_sz - i - 1] = rc & 0xff;
+            }
+            rc >>= 8;
+        }
+    }
     return 0;
 }
