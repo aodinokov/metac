@@ -775,10 +775,21 @@ METAC_START_TEST(test_variadic_arg) {
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
-// this test doesn't work on x86 linux.. though works on big-endian linux
+// WARNING: this test doesn't work on x86 linux.. though works on big-endian linux
 // getting
 //value_ffi_test.c:804:F:default:test_variadic_list:0: called: got test_function_with_va_list 
 // 6c76 726d2f65 2d73762f 63617073 2f636174 2f656475, expected test_function_with_va_list 1 2 3 4 5 6
+// even though I'm getting debug dbg0: 1 2 3 4 5 6 before calling ffi_call
+// and even after. looks like I'm not clear on how to pass va_list... current implementation works
+// like it's a struct
+/*
+            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
+            va_list cp;
+            va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+            vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
+            va_end(cp);
+*/
+// that means that we can' pass va_list as argument, because we can't use it when we call fn.
 
 #if __linux__
 START_TEST(test_variadic_list) {
@@ -815,7 +826,6 @@ METAC_START_TEST(test_variadic_list) {
             free(s);
 
         _CALL_PROCESS_END
-
     );
 
     metac_tag_map_delete(p_tagmap);

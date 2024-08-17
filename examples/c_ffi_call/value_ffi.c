@@ -700,9 +700,8 @@ static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), 
 
 // idea: check all params
 // if we see 0 va_list - call directly.
-// if we see 1 va_list - call special wrapper and 
-//    put va_list-internals as ... arg. Wrapper will convert .. to va_list and we can feed it to call
-// if we see more than 1 - we currently don't support this.
+// if we see 1 or more va_list - call special ffi wrapper and 
+//    put va_list-internals as ... arg. Wrapper will convert ... to va_list and we can feed it to call
 int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
     _check_(
         p_param_storage_val == NULL ||
