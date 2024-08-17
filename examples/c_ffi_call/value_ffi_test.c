@@ -806,10 +806,10 @@ METAC_START_TEST(test_variadic_list) {
 
             fail_unless(res == 0, "Call wasn't successful, expected successful");
 
-            expected_called = "test_function_with_va_list 777";
+            expected_called = "test_function_with_va_list 1 2 3 4 5 6";
             fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
-            expected = "30";
+            expected = "38";
             s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
             fail_unless(s != NULL);
             fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);

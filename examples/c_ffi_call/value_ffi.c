@@ -464,8 +464,7 @@ int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t *
 #if __linux__
             values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
 #else
-            va_list * x = &p_val_list_entries[va_list_number_cur].va_list_c;
-            values[i] = x;
+            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
 #endif
             ++va_list_number_cur;
             // // simple approach (without recursion)
