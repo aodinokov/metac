@@ -11,7 +11,7 @@ static char called[1024];
     called[0] = 0; \
     metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(_fn_); \
     metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, p_entry, _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
+    metac_value_t *p_res_val = metac_new_value_with_call_result(p_entry); \
     int res = metac_value_call(p_params_val, (void (*)(void)) _fn_, p_res_val);
 
 #define _CALL_PROCESS_FN_PTR(_tag_map_, _type_, _fn_, _args_...) { \
@@ -19,7 +19,7 @@ static char called[1024];
     WITH_METAC_DECLLOC(dec, _type_ * p = _fn_); \
     metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
     metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, metac_entry_pointer_entry(p_entry), _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
+    metac_value_t *p_res_val = metac_new_value_with_call_result(metac_entry_pointer_entry(p_entry)); \
     int res = metac_value_call(p_params_val, (void (*)(void)) p, p_res_val);
 
 

@@ -26,7 +26,7 @@ int main() {
             free(s);
         }
 
-        metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val);
+        metac_value_t *p_res_val = metac_new_value_with_call_result(metac_value_entry(p_params_val));
         if (metac_value_call(p_params_val, (void (*)(void))test_function1_with_args, p_res_val) == 0) {
             char * ret = NULL;
             if (p_res_val != NULL) {

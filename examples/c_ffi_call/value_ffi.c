@@ -301,61 +301,6 @@ void _cleanup_ffi_type(ffi_type * p_rtype) {
     free(p_rtype);
 }
 
-metac_value_t * metac_new_value_with_call_params(metac_entry_t *p_entry) {
-    metac_value_t * p_val = NULL;
-    metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage();
-    if (p_param_storage != NULL) {
-        p_val = metac_new_value(p_entry, p_param_storage);
-    }
-    return p_val;
-}
-
-void metac_value_with_call_params_delete(metac_value_t * p_param_value) {
-    metac_parameter_storage_t * p_param_storage = (metac_parameter_storage_t *)metac_value_addr(p_param_value);
-    metac_value_delete(p_param_value);
-    metac_parameter_storage_delete(p_param_storage);
-}
-
-metac_value_t * metac_new_value_with_call_result(metac_value_t * p_param_storage_val) {
-    _check_(
-        p_param_storage_val == NULL ||
-        metac_value_has_parameter_load(p_param_storage_val) == 0, NULL);
-
-    metac_value_t * p_res_value = NULL;
-    metac_size_t res_sz = 0;
-
-    metac_entry_t *p_param_storage_entry = metac_value_entry(p_param_storage_val);
-    _check_(p_param_storage_entry == NULL, NULL);
-    _check_(metac_entry_has_parameters(p_param_storage_entry) == 0, NULL);
-
-    if (metac_entry_has_result(p_param_storage_entry) != 0) {
-        metac_entry_t *p_res_entry = metac_entry_result_type(p_param_storage_entry);
-        _check_(p_res_entry == NULL, NULL);
-
-        if (metac_entry_byte_size(p_res_entry, &res_sz) != 0) {
-            return NULL;
-        }
-        _check_(res_sz <= 0, NULL);
-
-        void * p_res_mem = calloc(1, res_sz);
-        p_res_value = metac_new_value(p_res_entry, p_res_mem);
-        if (p_res_value == NULL) {
-            free(p_res_mem);
-            return NULL;
-        }
-    }
-
-    return p_res_value;
-}
-
-void metac_value_with_call_result_delete(metac_value_t * p_res_value) {
-    if (p_res_value == NULL) {
-        return;
-    }
-    free(metac_value_addr(p_res_value));
-    metac_value_delete(p_res_value);
-}
-
 int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
     _check_(
         p_param_storage_val == NULL ||
@@ -475,6 +420,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     
     _cleanup_ffi_type(rtype);
     if (res_addr == &rc) {
+        assert(metac_entry_has_result(p_param_storage_entry) != 0);
         // we need to pass result back to p_res_value if we used rc as buf (for small data)
         uint8_t * p_res_buf = metac_value_addr(p_res_value);
         for (metac_size_t i = 0;  i < res_sz; ++i) {
