@@ -463,35 +463,18 @@ int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t *
             assert(p_val_list_entries[va_list_number_cur].id == i);
 #if __linux__
             values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
+            // va_list cp;
+            // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+            // vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
+            // va_end(cp);
+            // //va_list cp;
+            // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+            // vfprintf(stderr, "dbg1: %x %x %x %x %x %x\n", cp);
+            // va_end(cp);
 #else
             values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
 #endif
             ++va_list_number_cur;
-            // // simple approach (without recursion)
-            // assert(metac_value_has_parameter_load(p_param_val));
-            // if (_ptr_ != NULL ||    // if we had more than 1 va_list
-            //     metac_value_parameter_count(p_param_val) > 2 /*TODO: set some realistic limit*/) {
-            //     metac_value_delete(p_param_val);
-            //     free(pvalues);
-            //     free(values);
-            //     for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
-            //     free(args);
-            //     if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
-            //     return -(EFAULT);
-            // }
-
-            // switch (metac_value_parameter_count(p_param_val)) {
-            //     case 0: {
-            //         VA_LIST_CONTAINER(va_list_c, 0/*extra padding */);
-            //     }break;
-            //     case 1: {
-            //         VA_LIST_CONTAINER(va_list_c, 777);
-            //     }break;
-            //     case 2:{
-            //         VA_LIST_CONTAINER(va_list_c, 777, 888);
-            //     }break;
-            // }
-//            values[i] = &va_list_c;
         }
         metac_value_delete(p_param_val);
     }
@@ -604,6 +587,12 @@ static int _call_wrapper_va(metac_value_t * p_param_storage_val, void (*fn)(void
     va_start(p_val_list_entries[va_list_number_cur].va_list_c.parameters, va_list_number);
     res = _call_wrapper(p_param_storage_val, fn, p_res_value,
             va_list_number_cur + 1, p_val_list_entries, va_list_number);
+// #if __linux__
+//             va_list cp;
+//             va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+//             vfprintf(stderr, "dbg-after: %x %x %x %x %x %x\n", cp);
+//             va_end(cp);
+// #endif
     va_end(p_val_list_entries[va_list_number_cur].va_list_c.parameters);
     return res;
 }
