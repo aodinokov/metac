@@ -37,6 +37,12 @@
 */
 
 
+struct _va_list_entry {
+    struct va_list_container va_list_c;
+    metac_value_t * p_val;
+    metac_num_t id;
+};
+
 // convert function parameters types to ffi_type (metac->ffi)
 static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_type ** pp_rtype) {
 
@@ -316,7 +322,8 @@ void _cleanup_ffi_type(ffi_type * p_rtype) {
     free(p_rtype);
 }
 
-int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
+int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
+    struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number) {
     // to support va_list
     struct va_list_container va_list_c;
     void * _ptr_ = NULL;
@@ -401,6 +408,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
     }
 
     // fill in non-variadic first
+    metac_num_t va_list_number_cur = 0;
     for (metac_num_t i = 0 ; i < param_count; ++i) {
         metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
         if (p_param_val == NULL) {
@@ -427,31 +435,35 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
         if (metac_entry_is_va_list_parameter(metac_value_entry(p_param_val)) == 0) {
             values[i] = metac_value_addr(p_param_val);
         } else {
-            // simple approach (without recursion)
-            assert(metac_value_has_parameter_load(p_param_val));
-            if (_ptr_ != NULL ||    // if we had more than 1 va_list
-                metac_value_parameter_count(p_param_val) > 2 /*TODO: set some realistic limit*/) {
-                metac_value_delete(p_param_val);
-                free(pvalues);
-                free(values);
-                for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
-                free(args);
-                if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
-                return -(EFAULT);
-            }
+            assert(va_list_number_cur < va_list_number);
+            assert(p_val_list_entries[va_list_number_cur].id == i);
+            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c;
+            ++va_list_number_cur;
+            // // simple approach (without recursion)
+            // assert(metac_value_has_parameter_load(p_param_val));
+            // if (_ptr_ != NULL ||    // if we had more than 1 va_list
+            //     metac_value_parameter_count(p_param_val) > 2 /*TODO: set some realistic limit*/) {
+            //     metac_value_delete(p_param_val);
+            //     free(pvalues);
+            //     free(values);
+            //     for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            //     free(args);
+            //     if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            //     return -(EFAULT);
+            // }
 
-            switch (metac_value_parameter_count(p_param_val)) {
-                case 0: {
-                    VA_LIST_CONTAINER(va_list_c, 0/*extra padding */);
-                }break;
-                case 1: {
-                    VA_LIST_CONTAINER(va_list_c, 777);
-                }break;
-                case 2:{
-                    VA_LIST_CONTAINER(va_list_c, 777, 888);
-                }break;
-            }
-            values[i] = &va_list_c;
+            // switch (metac_value_parameter_count(p_param_val)) {
+            //     case 0: {
+            //         VA_LIST_CONTAINER(va_list_c, 0/*extra padding */);
+            //     }break;
+            //     case 1: {
+            //         VA_LIST_CONTAINER(va_list_c, 777);
+            //     }break;
+            //     case 2:{
+            //         VA_LIST_CONTAINER(va_list_c, 777, 888);
+            //     }break;
+            // }
+//            values[i] = &va_list_c;
         }
         metac_value_delete(p_param_val);
     }
@@ -553,4 +565,195 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
         }
     }
     return 0;
+}
+
+static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
+    metac_num_t va_list_number_cur, struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number);
+
+static int _call_wrapper_va(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
+    metac_num_t va_list_number_cur, struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number, ...){
+    int res;
+    va_start(p_val_list_entries[va_list_number_cur].va_list_c.parameters, va_list_number);
+    res = _call_wrapper(p_param_storage_val, fn, p_res_value,
+            va_list_number_cur + 1, p_val_list_entries, va_list_number);
+    va_end(p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+    return res;
+}
+
+static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
+    metac_num_t va_list_number_cur, struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number) {
+    
+    if (va_list_number_cur < va_list_number) { // call _call_wrapper_va using ffi
+        metac_value_t *p_va_list_val = p_val_list_entries[va_list_number_cur].p_val;
+        assert(p_va_list_val != NULL);
+        assert(metac_entry_is_va_list_parameter(metac_value_entry(p_va_list_val)) != 0);
+
+        metac_num_t param_count = 6; // see _call_wrapper_va
+        metac_num_t variadic_param_count = metac_value_parameter_count(p_va_list_val);
+
+        ffi_cif cif;
+        ffi_type * rtype = &ffi_type_sint;
+        ffi_arg rc;
+
+        ffi_type **args = NULL;
+        void **values = NULL;
+        void **pvalues = NULL; // need to case of variadic string. we have array and this is to convert to pointer
+
+
+        if (param_count + variadic_param_count > 0) {
+            args = calloc(param_count + variadic_param_count, sizeof(ffi_type *));
+            if (args == NULL) {
+                return -(EFAULT);
+            }
+            values = calloc(param_count + variadic_param_count, sizeof(void *));
+            if (values == NULL) {
+                free(args);
+                return -(EFAULT);
+            }
+            pvalues = calloc(param_count + variadic_param_count, sizeof(void *));
+            if (values == NULL) {
+                free(values);
+                free(args);
+                return -(EFAULT);
+            }
+        }
+        // fill in static
+        args[0] = &ffi_type_pointer; values[0] = &p_param_storage_val;
+        args[1] = &ffi_type_pointer; values[1] = &fn;
+        args[2] = &ffi_type_pointer; values[2] = &p_res_value;
+        args[3] = &ffi_type_sint; values[3] = &va_list_number_cur;
+        args[4] = &ffi_type_pointer; values[4] = &p_val_list_entries;
+        args[5] = &ffi_type_sint; values[5] = &va_list_number;
+
+        // fill in variadic if any
+        for (metac_num_t i = param_count ; i < param_count + variadic_param_count; ++i) {
+            metac_value_t * p_param_val = metac_value_parameter_new_item(p_va_list_val, i - param_count);
+            if (p_param_val == NULL) {
+                free(pvalues);
+                free(values);
+                for (metac_num_t ic = param_count; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+                free(args);
+                return -(EFAULT);
+            }
+            // fill in type
+            int fill_in_res = _val_to_ffi_type(metac_value_entry(p_param_val), 1, &args[i]);
+            if (fill_in_res != 0) {
+                metac_value_delete(p_param_val);
+                free(pvalues);
+                free(values);
+                for (metac_num_t ic = param_count; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+                free(args);
+                return fill_in_res;
+            }
+
+            // fill in data
+            if (metac_entry_has_members(metac_value_entry(p_param_val)) != 0 ||
+                metac_entry_has_elements(metac_value_entry(p_param_val)) != 0) {
+                pvalues[i] = metac_value_addr(p_param_val);
+                values[i] = &pvalues[i];
+            } else {
+                values[i] = metac_value_addr(p_param_val);
+            }
+            metac_value_delete(p_param_val);
+        }
+
+        //call
+        if (ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, param_count, param_count + variadic_param_count, rtype, args) != FFI_OK) {
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = param_count; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            return -(EFAULT);
+        }
+        ffi_call(&cif, (void (*)(void))_call_wrapper_va, &rc, values);
+
+        free(pvalues);
+        free(values);
+        // cleanup only variadic. non-variadic were static
+        for (metac_num_t ic = param_count; ic < variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+        free(args);
+
+        return (int)rc;
+    } else {
+        return _call(p_param_storage_val, fn, p_res_value,
+            p_val_list_entries, va_list_number);
+    }
+    return -(EFAULT);
+}
+
+// idea: check all params
+// if we see 0 va_list - call directly.
+// if we see 1 va_list - call special wrapper and 
+//    put va_list-internals as ... arg. Wrapper will convert .. to va_list and we can feed it to call
+// if we see more than 1 - we currently don't support this.
+int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
+    _check_(
+        p_param_storage_val == NULL ||
+        metac_value_has_parameter_load(p_param_storage_val) == 0 ||
+        fn == NULL, -(EINVAL));
+
+    metac_entry_t *p_param_storage_entry = metac_value_entry(p_param_storage_val);
+    _check_(p_param_storage_entry == NULL, -(EFAULT));
+    _check_(metac_entry_has_parameters(p_param_storage_entry) == 0, -(EINVAL));
+
+    metac_num_t param_count  = metac_value_parameter_count(p_param_storage_val);
+    metac_num_t variadic_param_count = 0;
+
+    if (metac_entry_parameters_count(p_param_storage_entry) < param_count - 1) {
+        // something wrong with storage (maybe it wasn't filled)
+        return -(EFAULT);
+    }
+
+    // calculate how many
+    metac_num_t va_list_number = 0;
+    metac_num_t va_list_number_cur = 0;
+    for (metac_num_t i = 0; i < param_count; ++i) {
+        metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
+        if (p_param_val == NULL) { /* something went wrong */
+            return -(EFAULT);
+        }
+        if (metac_entry_is_va_list_parameter(metac_value_entry(p_param_val)) != 0) {
+            ++va_list_number;
+
+        }
+        metac_value_delete(p_param_val);
+    }
+
+    struct _va_list_entry * p_val_list_entries = NULL;
+    if (va_list_number > 0) {
+        p_val_list_entries = calloc(va_list_number, sizeof(struct _va_list_entry));
+        if (p_val_list_entries == NULL) {
+            return -(ENOMEM);
+        }
+
+        // put data in:
+        for (metac_num_t i = 0; i < param_count; ++i) {
+            metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
+            if (p_param_val == NULL) { /* something went wrong */
+                return -(EFAULT);
+            }
+            if (metac_entry_is_va_list_parameter(metac_value_entry(p_param_val)) != 0) {
+                assert(va_list_number_cur < va_list_number);
+                p_val_list_entries[va_list_number_cur].id = i;
+                p_val_list_entries[va_list_number_cur].p_val = p_param_val;
+                ++va_list_number_cur;
+            } else {
+                metac_value_delete(p_param_val);
+            }
+        }
+    }
+
+    int res = _call_wrapper(
+        p_param_storage_val, fn, p_res_value,
+        0, p_val_list_entries, va_list_number);
+
+    if (p_val_list_entries != NULL) {
+        for (metac_num_t i = 0; i < va_list_number; ++i) {
+            if (p_val_list_entries[i].p_val != NULL) {
+                metac_value_delete(p_val_list_entries[i].p_val);
+                p_val_list_entries[i].p_val = NULL;
+            }
+        }
+    }
+    return res;
 }

@@ -777,10 +777,19 @@ METAC_START_TEST(test_variadic_list) {
     char * expected = NULL;
     char * expected_called = NULL;
 
-    WITH_VA_LIST_CONTAINER(c, 
-        _CALL_PROCESS_FN(p_tagmap, test_function_with_va_list,
-            "test_function_with_va_list %d", VA_LIST(777)
-        )
+    do {
+        struct va_list_container c;
+        void * _ptr_ = NULL;
+        // _CALL_PROCESS_FN(p_tagmap, test_function_with_va_list,
+        //     "test_function_with_va_list %d", VA_LIST(777)
+        // )
+        {
+    called[0] = 0;
+    metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(test_function_with_va_list);
+    metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(p_tagmap, p_entry, test_function_with_va_list, "test_function_with_va_list %d", VA_LIST(777));
+    metac_value_t *p_res_val = metac_new_value_with_call_result(p_entry);
+    int res = metac_value_call(p_params_val, (void (*)(void)) test_function_with_va_list, p_res_val);
+
             expected = "test_function_with_va_list(\"test_function_with_va_list %d\", VA_LIST((int)777))";
             s = metac_value_string_ex(p_params_val, METAC_WMODE_deep, p_tagmap);
             fail_unless(s != NULL);
@@ -799,7 +808,9 @@ METAC_START_TEST(test_variadic_list) {
             free(s);
 
         _CALL_PROCESS_END
-    );
+
+        va_end(c.parameters);
+    }while(0);
 
     metac_tag_map_delete(p_tagmap);
 }END_TEST
