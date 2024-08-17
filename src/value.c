@@ -133,16 +133,11 @@ static int _entry_bitfield_read(metac_entry_t *p_memb_entry, void * base_addr, v
         // TODO: make it without extra copy if possible
         // TODO: need to make it for both endians
         assert(bit_size != 0);
-        memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
+        memcpy(buf, base_addr, (bit_offset + bit_size - 1)/8 + 1);
         base_addr = buf;
     } else {
-        assert(metac_entry_parent_count(p_memb_entry) == 1);
-        metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
-        assert(p_memb_parent != NULL);
-        metac_size_t parent_byte_size = 0;
-        _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
-        assert(parent_byte_size > 0);
-        base_addr += parent_byte_size - byte_offset;
+        base_addr += byte_offset;
+        bit_offset = 8 * var_size - (bit_offset + bit_size);
     }
 
 #define _read_(_type_) \
@@ -194,16 +189,11 @@ static int _entry_bitfield_write(metac_entry_t *p_memb_entry, void * base_addr, 
         // TODO: need to make it for both endians
         assert(bit_size != 0);
         base_addr_orig = base_addr;
-        memcpy(buf, base_addr, (bit_offset + bit_size-1)/8 +1);
+        memcpy(buf, base_addr, (bit_offset + bit_size - 1)/8 + 1);
         base_addr = buf;
     } else {
-        assert(metac_entry_parent_count(p_memb_entry) == 1);
-        metac_entry_t * p_memb_parent = metac_entry_parent_entry(p_memb_entry, 0);
-        assert(p_memb_parent != NULL);
-        metac_size_t parent_byte_size = 0;
-        _check_(metac_entry_byte_size(p_memb_parent, &parent_byte_size) != 0, -(EFAULT));
-        assert(parent_byte_size > 0);
-        base_addr += parent_byte_size - byte_offset;
+        base_addr += byte_offset;
+        bit_offset = 8 * var_size - (bit_offset + bit_size);
     }
 
 #define _write_(_type_) \
