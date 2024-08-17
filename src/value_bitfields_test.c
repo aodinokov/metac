@@ -14,9 +14,9 @@
 // uncomment the next line if the test doesn't work
 // #define PRECHECK_DEBUG
 struct {
-    char a:6;
+    char a:2;
     char b:3;
-    char c:5; // goes beyond the first char (shoud be moved to the next byte by compiler)
+    char c:3; // goes beyond the first char (shoud be moved to the next byte by compiler)
     int x: 10;
     long z: 22;
 }precheck_struct;
@@ -27,9 +27,9 @@ METAC_GSYM_LINK(precheck_struct);
 		int i; \
 		unsigned char * p = (unsigned char *)_start_; \
 		for (i=0; i<(_size_); i++) { \
-			printf("%02x ", (int)*p++); \
+			fprintf(stderr, "%02x ", (int)*p++); \
 		} \
-		printf("\n"); \
+		fprintf(stderr, "\n"); \
 	}while(0)
 
 METAC_START_TEST(pre_check) {
@@ -52,7 +52,7 @@ METAC_START_TEST(pre_check) {
         metac_offset_t bit_size;
         if (p_mem_entry->member_info.p_bit_offset != NULL) {
 #ifdef PRECHECK_DEBUG
-            printf("DWARF 3, LE %d\n", (int)IS_LITTLE_ENDIAN);
+            fprintf(stderr, "DWARF 3, LE %d\n", (int)IS_LITTLE_ENDIAN);
 #endif
             metac_offset_t  _bit_size = (p_mem_entry->member_info.p_bit_size?(*p_mem_entry->member_info.p_bit_size):0),
                             _bit_offset = (p_mem_entry->member_info.p_bit_offset?(*p_mem_entry->member_info.p_bit_offset):0),
@@ -62,13 +62,13 @@ METAC_START_TEST(pre_check) {
             bit_offset = _data_bit_offset & 0x7;
             bit_size = _bit_size;
 #ifdef PRECHECK_DEBUG
-            printf("fld %4s, bit_offset %d, bit_size %d, location %d byte_size %d=> byte_offset %d, bit_offset %d bit_size %d\n",
+            fprintf(stderr, "fld %4s, bit_offset %d, bit_size %d, location %d byte_size %d=> byte_offset %d, bit_offset %d bit_size %d\n",
                 p_mem_entry->name, (int)(_bit_offset), (int)_bit_size, (int)p_mem_entry->member_info.byte_offset, (int)_byte_size,
                 (int)byte_offset, (int)bit_offset, (int)bit_size);
 #endif
         } else  if (p_mem_entry->member_info.p_data_bit_offset != NULL) { // test DWARF 4 approach
 #ifdef PRECHECK_DEBUG
-            printf("DWARF 4, LE %d\n", (int)IS_LITTLE_ENDIAN);
+            fprintf(stderr, "DWARF 4, LE %d\n", (int)IS_LITTLE_ENDIAN);
 #endif
             metac_offset_t _data_bit_offset = *p_mem_entry->member_info.p_data_bit_offset;
             metac_offset_t _bit_size = p_mem_entry->member_info.p_bit_size != NULL?(*p_mem_entry->member_info.p_bit_size): 0;
@@ -76,7 +76,7 @@ METAC_START_TEST(pre_check) {
             bit_offset = _data_bit_offset & 0x7;
             bit_size = _bit_size;
 #ifdef PRECHECK_DEBUG
-            printf("fld %4s, data_bit_offset %d, bit_size %d => byte_offset %d, bit_offset %d bit_size %d\n",
+            fprintf(stderr, "fld %4s, data_bit_offset %d, bit_size %d => byte_offset %d, bit_offset %d bit_size %d\n",
                 p_mem_entry->name, (int)(_data_bit_offset), (int)bit_size,
                 (int)byte_offset, (int)bit_offset, (int)bit_size);
 #endif
@@ -91,18 +91,18 @@ METAC_START_TEST(pre_check) {
                 base_addr = p_mem_val->addr + byte_offset;
             } else {
                 fail_unless(p_mem_entry->parents_count == 1 && p_mem_entry->parents[0]->structure_type_info.byte_size != 0);
-                base_addr = p_mem_val->addr + byte_offset;// + p_mem_entry->parents[0]->structure_type_info.byte_size - byte_offset;
+                base_addr = p_mem_val->addr + byte_offset;
                 bit_offset = 8 - (bit_offset + bit_size);
             }
             do {
 #ifdef PRECHECK_DEBUG
-                printf("value %d: ", (int)precheck_struct.a);
+                fprintf(stderr, "value %d: ", (int)precheck_struct.a);
                 DUMP_MEM(&precheck_struct, sizeof(precheck_struct));
 #endif
                 fail_unless(base_addr != NULL, "based addr mustn't be NULL");
                 char data = *((char*)base_addr);
 #ifdef PRECHECK_DEBUG
-                printf("read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset,
+                fprintf(stderr, "read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset,
                     (int)((1 << bit_size) - 1),
                     (int)(data >> bit_offset) & ((1 << bit_size) - 1));
 #endif
@@ -122,18 +122,18 @@ METAC_START_TEST(pre_check) {
                 base_addr = p_mem_val->addr + byte_offset;
             } else {
                 fail_unless(p_mem_entry->parents_count == 1 && p_mem_entry->parents[0]->structure_type_info.byte_size != 0);
-                base_addr = p_mem_val->addr + byte_offset;//+ p_mem_entry->parents[0]->structure_type_info.byte_size - byte_offset;
+                base_addr = p_mem_val->addr + byte_offset;
                 bit_offset = 8 - (bit_offset + bit_size);
             }
             do {
 #ifdef PRECHECK_DEBUG
-                printf("value %d: ", (int)precheck_struct.c);
+                fprintf(stderr, "value %d: ", (int)precheck_struct.c);
                 DUMP_MEM(&precheck_struct, sizeof(precheck_struct));
 #endif
                 fail_unless(base_addr != NULL, "based addr mustn't be NULL");
                 char data = *((char*)base_addr);
 #ifdef PRECHECK_DEBUG
-                printf("read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset,
+                fprintf(stderr, "read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset,
                     (int)((1 << bit_size) - 1),
                     (int)(data >> bit_offset) & ((1 << bit_size) - 1));
 #endif
