@@ -9,6 +9,8 @@
 #include <stdlib.h> /*calloc, free*/
 #include <string.h>
 
+#include "metac/backend/va_list_ex.h"
+
 /**
  * \page ffi_call FFI call example
  * 
@@ -36,7 +38,7 @@
 
 
 // convert function parameters types to ffi_type (metac->ffi)
-static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
+static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_type ** pp_rtype) {
 
     if (metac_entry_is_base_type(p_entry) != 0) {
 
@@ -101,7 +103,20 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
         memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
         *pp_rtype = p_ffi_type;
         return 0;
-    } else if (metac_entry_has_members(p_entry)) {
+    } else if (
+        metac_entry_is_va_list_parameter(p_entry) != 0 || // TODO: to check
+        (
+            variadic != 0 && (
+            metac_entry_has_members(p_entry) != 0 ||
+            metac_entry_has_elements(p_entry) != 0))) {
+        ffi_type * p_ffi_type = calloc(1, sizeof(ffi_type));
+        if (p_ffi_type == NULL) {
+            return -ENOMEM;
+        }
+        memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
+        *pp_rtype = p_ffi_type;
+        return 0;        
+    } else if (metac_entry_has_members(p_entry) != 0) {
         // https://github.com/libffi/libffi/blob/master/doc/libffi.texi#L622
         metac_num_t memb_count = metac_entry_member_count(p_entry);
 
@@ -123,7 +138,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 }
             }
             assert(p_largest_entry != NULL);
-            return _val_to_ffi_type(p_largest_entry, pp_rtype);
+            return _val_to_ffi_type(p_largest_entry, variadic, pp_rtype);
         }
 
         metac_size_t e_sz = 0;
@@ -201,7 +216,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
                 }
                 bitfield_state = 0;
 
-                if (_val_to_ffi_type(p_memb_entry, &p_tmp->elements[memb_id]) != 0) {
+                if (_val_to_ffi_type(p_memb_entry, variadic, &p_tmp->elements[memb_id]) != 0) {
                     free(p_tmp->elements);
                     free(p_tmp);
                     return -(EFAULT);
@@ -269,7 +284,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, ffi_type ** pp_rtype) {
 
         metac_num_t el_id = 0;
         for (metac_num_t i = 0; i < el_count; ++i) {
-            if (_val_to_ffi_type(p_el_entry, &p_tmp->elements[el_id]) != 0) {
+            if (_val_to_ffi_type(p_el_entry, variadic, &p_tmp->elements[el_id]) != 0) {
                 free(p_tmp->elements);
                 free(p_tmp);
                 return -(EFAULT);
@@ -302,6 +317,10 @@ void _cleanup_ffi_type(ffi_type * p_rtype) {
 }
 
 int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
+    // to support va_list
+    struct va_list_container va_list_c;
+    void * _ptr_ = NULL;
+
     _check_(
         p_param_storage_val == NULL ||
         metac_value_has_parameter_load(p_param_storage_val) == 0 ||
@@ -322,102 +341,203 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
             return -(EINVAL);
         }
 
-        int fill_in_res = _val_to_ffi_type(metac_value_entry(p_res_value), &rtype);
+        int fill_in_res = _val_to_ffi_type(metac_value_entry(p_res_value), 0, &rtype);
         if (fill_in_res != 0) {
             return -(EFAULT);
         }
     }
 
     metac_num_t param_count  = metac_value_parameter_count(p_param_storage_val);
-    metac_num_t variadic_param_count = -1; // fn is variadic if >=0 (0 is extreme case e.g. printf("string"))
+    metac_num_t variadic_param_count = 0;
+    metac_value_t * p_last_param_val = NULL;
+
+    if (metac_entry_parameters_count(p_param_storage_entry) < param_count - 1) {
+        // something wrong with storage (maybe it wasn't filled)
+        return -(EFAULT);
+    }
 
     if (param_count > 0) { // check the last param if it's variadic
-        metac_value_t * p_last_param_val = metac_value_parameter_new_item(p_param_storage_val, param_count - 1);
-        if (p_last_param_val == NULL) { /* something went wrong */
+        metac_entry_t *p_last_member = metac_entry_by_paremeter_id(p_param_storage_entry, param_count - 1);
+        if (p_last_member == NULL) {
             return -(EFAULT);
         }
 
-        if (metac_entry_is_unspecified_parameter(metac_value_entry(p_last_param_val)) != 0) {
-            assert(metac_value_has_parameter_load(p_last_param_val) != 0);
+        if (metac_entry_is_unspecified_parameter(p_last_member) != 0) {
+            p_last_param_val = metac_value_parameter_new_item(p_param_storage_val, param_count - 1);
+            if (p_last_param_val == NULL) { /* something went wrong */
+                return -(EFAULT);
+            }
+
+            --param_count; // because the last param is to keep all variadica params
             variadic_param_count = metac_value_parameter_count(p_last_param_val);
         }
-        // we don't need it for now
-        metac_value_delete(p_last_param_val);
     }
 
-    // ffi handles variadic and non-variadic in different way
-    if (variadic_param_count < 0) { // non variadic fn
-        // args
-        ffi_type **args = NULL;
-        // vals
-        void **values = NULL;
+    // args
+    ffi_type **args = NULL;
+    // vals
+    void **values = NULL;
+    void **pvalues = NULL; // need to case of variadic string. we have array and this is to convert to pointer
 
-        if (param_count > 0) {
-            args = calloc(param_count, sizeof(ffi_type *));
-            if (args == NULL) {
-                return -(EFAULT);
-            }
-            values = calloc(param_count, sizeof(void *));
-            if (values == NULL) {
-                free(args);
-                return -(EFAULT);
-            }
-            for (metac_num_t i = 0 ; i < param_count; ++i) {
-                metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
-                if (p_param_val == NULL) {
-                    free(values);
-                    for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
-                    free(args);
-                    return -(EFAULT);
-                }
-                // fill in type
-                int fill_in_res = _val_to_ffi_type(metac_value_entry(p_param_val), &args[i]);
-                if (fill_in_res != 0) {
-                    metac_value_delete(p_param_val);
-                    free(values);
-                    for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
-                    free(args);
-                    return fill_in_res;
-                }
+    if (param_count + variadic_param_count > 0) {
+        args = calloc(param_count + variadic_param_count, sizeof(ffi_type *));
+        if (args == NULL) {
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return -(EFAULT);
+        }
+        values = calloc(param_count + variadic_param_count, sizeof(void *));
+        if (values == NULL) {
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return -(EFAULT);
+        }
+        pvalues = calloc(param_count + variadic_param_count, sizeof(void *));
+        if (values == NULL) {
+            free(values);
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return -(EFAULT);
+        }
+    }
 
-                // fill in data
-                values[i] = metac_value_addr(p_param_val);
-
-                metac_value_delete(p_param_val);
-            }
+    // fill in non-variadic first
+    for (metac_num_t i = 0 ; i < param_count; ++i) {
+        metac_value_t * p_param_val = metac_value_parameter_new_item(p_param_storage_val, i);
+        if (p_param_val == NULL) {
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return -(EFAULT);
+        }
+        // fill in type
+        int fill_in_res = _val_to_ffi_type(metac_value_entry(p_param_val), 0, &args[i]);
+        if (fill_in_res != 0) {
+            metac_value_delete(p_param_val);
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return fill_in_res;
         }
 
-        if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, param_count, rtype, args) != FFI_OK) {
+        // fill in data
+        if (metac_entry_is_va_list_parameter(metac_value_entry(p_param_val)) == 0) {
+            values[i] = metac_value_addr(p_param_val);
+        } else {
+            // simple approach (without recursion)
+            assert(metac_value_has_parameter_load(p_param_val));
+            if (_ptr_ != NULL ||    // if we had more than 1 va_list
+                metac_value_parameter_count(p_param_val) > 2 /*TODO: set some realistic limit*/) {
+                metac_value_delete(p_param_val);
+                free(pvalues);
+                free(values);
+                for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+                free(args);
+                if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+                return -(EFAULT);
+            }
+
+            switch (metac_value_parameter_count(p_param_val)) {
+                case 0: {
+                    VA_LIST_CONTAINER(va_list_c, 0/*extra padding */);
+                }break;
+                case 1: {
+                    VA_LIST_CONTAINER(va_list_c, 777);
+                }break;
+                case 2:{
+                    VA_LIST_CONTAINER(va_list_c, 777, 888);
+                }break;
+            }
+            values[i] = &va_list_c;
+        }
+        metac_value_delete(p_param_val);
+    }
+
+    // fill in variadic if any
+    for (metac_num_t i = param_count ; i < param_count + variadic_param_count; ++i) {
+        assert(p_last_param_val != NULL);
+        metac_value_t * p_param_val = metac_value_parameter_new_item(p_last_param_val, i - param_count);
+        if (p_param_val == NULL) {
+            free(pvalues);
             free(values);
-            for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return -(EFAULT);
+        }
+        // fill in type
+        int fill_in_res = _val_to_ffi_type(metac_value_entry(p_param_val), 1, &args[i]);
+        if (fill_in_res != 0) {
+            metac_value_delete(p_param_val);
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic <= i; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            if (p_last_param_val != NULL) { metac_value_delete(p_last_param_val); }
+            return fill_in_res;
+        }
+
+        // fill in data
+        if (metac_entry_has_members(metac_value_entry(p_param_val)) != 0 ||
+            metac_entry_has_elements(metac_value_entry(p_param_val)) != 0) {
+            pvalues[i] = metac_value_addr(p_param_val);
+            values[i] = &pvalues[i];
+        } else {
+            values[i] = metac_value_addr(p_param_val);
+        }
+        metac_value_delete(p_param_val);
+    }
+
+    // set result arg
+    if (metac_entry_has_result(p_param_storage_entry) != 0) {
+        res_addr = &rc;
+        if (metac_entry_byte_size(metac_value_entry(p_res_value), &res_sz) != 0) {
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
             free(args);
             return -(EFAULT);
         }
-        
-        if (metac_entry_has_result(p_param_storage_entry) != 0) {
-            res_addr = &rc;
-            if (metac_entry_byte_size(metac_value_entry(p_res_value), &res_sz) != 0) {
-                free(values);
-                for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
-                free(args);
-                return -(EFAULT);
-            }
-            if (res_sz >= sizeof(rc)) {
-                res_addr = metac_value_addr(p_res_value);
-                assert(res_addr != NULL);
-            }
+        if (res_sz >= sizeof(rc)) {
+            res_addr = metac_value_addr(p_res_value);
+            assert(res_addr != NULL);
         }
-
-        ffi_call(&cif, fn, res_addr, values);
-
-        free(values);
-        for (metac_num_t ic = 0; ic < param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
-        free(args);
-    } else {
-        // TODO: variadic
-        return -(ENOTSUP);
     }
-    
+
+    // ffi handles variadic and non-variadic in different way
+    if (p_last_param_val == NULL) { // non variadic fn
+        assert(variadic_param_count == 0);
+
+        if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, param_count, rtype, args) != FFI_OK) {
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            return -(EFAULT);
+        }
+    } else { // variadic fn
+        metac_value_delete(p_last_param_val);
+        p_last_param_val = NULL;
+
+        if (ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, param_count, param_count + variadic_param_count, rtype, args) != FFI_OK) {
+            free(pvalues);
+            free(values);
+            for (metac_num_t ic = 0; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+            free(args);
+            return -(EFAULT);
+        }
+    }
+
+    ffi_call(&cif, fn, res_addr, values);
+
+    free(pvalues);
+    free(values);
+    for (metac_num_t ic = 0; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+    free(args);
+
     _cleanup_ffi_type(rtype);
     if (res_addr == &rc) {
         assert(metac_entry_has_result(p_param_storage_entry) != 0);
