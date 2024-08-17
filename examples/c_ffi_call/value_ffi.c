@@ -687,7 +687,7 @@ static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), 
         free(pvalues);
         free(values);
         // cleanup only variadic. non-variadic were static
-        for (metac_num_t ic = param_count; ic < variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
+        for (metac_num_t ic = param_count; ic < param_count + variadic_param_count; ++ic ) {_cleanup_ffi_type(args[ic]);}
         free(args);
 
         return (int)rc;
@@ -771,6 +771,7 @@ int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), meta
                 p_val_list_entries[i].p_val = NULL;
             }
         }
+        free(p_val_list_entries);
     }
     return res;
 }
