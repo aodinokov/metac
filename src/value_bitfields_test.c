@@ -11,49 +11,8 @@
 #include "value_base_type.c"
 #include "value_with_args.c"
 
-/*
-little endian tests for pre-check. this is to debug lowleve first
-DWARF 4, LE 1
-fld    a, data_bit_offset: 0, bit_size 2 => byte_offset 0, bit_offset 0
-DWARF 4, LE 1
-fld    b, data_bit_offset: 2, bit_size 3 => byte_offset 0, bit_offset 2
-DWARF 4, LE 1
-fld    c, data_bit_offset: 8, bit_size 5 => byte_offset 1, bit_offset 0
-DWARF 4, LE 1
-fld    x, data_bit_offset: 13, bit_size 10 => byte_offset 1, bit_offset 5
-DWARF 4, LE 1
-fld    z, data_bit_offset: 23, bit_size 22 => byte_offset 2, bit_offset 7
-vs
-DWARF 3, LE 1
-fld    a, bit_offset 6, bit_size 2, location 0 byte_size 1=> byte_offset 0, bit_offset 0
-DWARF 3, LE 1
-fld    b, bit_offset 3, bit_size 3, location 0 byte_size 1=> byte_offset 0, bit_offset 2
-DWARF 3, LE 1
-fld    c, bit_offset 3, bit_size 5, location 1 byte_size 1=> byte_offset 1, bit_offset 0
-DWARF 3, LE 1
-fld    x, bit_offset 9, bit_size 10, location 0 byte_size 4=> byte_offset 1, bit_offset 5
-DWARF 3, LE 1
-fld    z, bit_offset 19, bit_size 22, location 0 byte_size 8=> byte_offset 2, bit_offset 7
-
-big endian:
-DWARF 4, LE 0
-fld    a, data_bit_offset 0, bit_size 2 => byte_offset 0, bit_offset 0 bit_size 2
-  value 0: 00 00 00 00 00 00 00 00 
-  read 0, mask 3 
-  value 1: 40 00 00 00 00 00 00 00 
-  read 0, mask 3 
-  /home/runner/work/metac/metac/src/value_bitfields_test.c:130:F:default:pre_check:0: expected 1, got 0
-
-DWARF 4, LE 1
-fld    a, data_bit_offset 0, bit_size 2 => byte_offset 0, bit_offset 0 bit_size 2
-value 0: 00 00 00 00 00 00 00 00
-read 0, mask 3
-value 1: 01 00 00 00 00 00 00 00
-read 1, mask 3
-
-*/
-
-#define PRECHECK_DEBUG
+// uncomment the next line if the test doesn't work
+// #define PRECHECK_DEBUG
 struct {
     char a:6;
     char b:3;

@@ -447,10 +447,6 @@ int metac_entry_member_bitfield_offsets(metac_entry_t *p_memb_entry,
         metac_offset_t _data_bit_offset = *p_memb_entry->member_info.p_data_bit_offset;
         *p_bit_size = p_memb_entry->member_info.p_bit_size != NULL?(*p_memb_entry->member_info.p_bit_size): 0;
 
-        // printf("fld %4s, data_bit_offset %d, bit_size %d\n",
-        //         p_memb_entry->name, (int)(_data_bit_offset), (int)*p_bit_size);
-
-
         // out
 
         *p_byte_offset = _data_bit_offset >> 3;

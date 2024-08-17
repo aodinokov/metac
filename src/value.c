@@ -144,12 +144,8 @@ static int _entry_bitfield_read(metac_entry_t *p_memb_entry, void * base_addr, v
         // assert(parent_byte_size > 0);
         // base_addr += parent_byte_size - byte_offset;
         base_addr += byte_offset;
-        bit_offset = 8*var_size - (bit_offset + bit_size);
+        bit_offset = 8 * var_size - (bit_offset + bit_size);
     }
-
-                // printf("read %x, bit_offset %x, mask %x => %x\n", (int)data, (int)bit_offset, 
-                //     (int)((1 << bit_size) - 1), 
-                //     (int)(data >> bit_offset) & ((1 << bit_size) - 1)); 
 
 #define _read_(_type_) \
     do{ \
@@ -211,7 +207,7 @@ static int _entry_bitfield_write(metac_entry_t *p_memb_entry, void * base_addr, 
         // assert(parent_byte_size > 0);
         // base_addr += parent_byte_size - byte_offset;
         base_addr += byte_offset;
-        bit_offset = 8*var_size - (bit_offset + bit_size);
+        bit_offset = 8 * var_size - (bit_offset + bit_size);
     }
 
 #define _write_(_type_) \

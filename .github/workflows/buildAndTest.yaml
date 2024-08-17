@@ -1,55 +1,6 @@
 on: [push, pull_request]
 name: BuildAndTest
 jobs:
-  big_endian_job:
-    # taken from https://github.com/marketplace/actions/run-on-architecture
-    # s390x is big endian with Ubuntu_latest which
-    # also has go-lang for linux: https://go.dev/dl/
-    # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
-    # The host should always be Linux.
-    runs-on: ubuntu-22.04
-    name: Build on ubuntu_latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Downloadin Go
-        run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.22.0.linux-s390x.tar.gz
-      - uses: uraimo/run-on-arch-action@v2
-        name: Run commands
-        id: runcmd
-        with:
-          arch: s390x
-          distro: ubuntu_latest
-
-          # Not required, but speeds up builds by storing container images in
-          # a GitHub package registry.
-          githubToken: ${{ github.token }}
-
-          # Set an output parameter `uname` for use in subsequent steps
-          run: |
-            set -x
-            uname -a
-            apt update && apt-get install -y ca-certificates pkg-config make gcc check
-
-            tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
-            export PATH=$PATH:/usr/local/go/bin
-            go version
-
-            export GO111MODULE=on
-            go test -cover ./...
-            go build
-
-            make $(pwd)/src/value_bitfields_test && ./src/value_bitfields_test || true
-            # cat src/value_bitfields_test.reflect.c
-            # make test all || true #cat src/value_base_type_test.reflect.c
-
-            # this doesn't work (line 4: GITHUB_OUTPUT: unbound variable) echo uname::test >> $GITHUB_OUTPUT
-            echo ::set-output name=uname::$(uname -a)
-
-      - name: Get the output
-        # Echo the `uname` output parameter from the `runcmd` step
-        run: |
-          echo "The uname output was ${{ steps.runcmd.outputs.uname }}"
-
   # ubuntu:
   #   runs-on: ubuntu-latest
   #   strategy:
@@ -76,28 +27,28 @@ jobs:
   #   - name: Examples test
   #     run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}}
 
-  # macos:
-  #   runs-on: macos-latest
-  #   strategy:
-  #     matrix:
-  #       go-version: [1.22.x] # , 1.21.x, 1.20.x]
-  #   steps:
-  #   - name: Install Go
-  #     uses: actions/setup-go@v3
-  #     with:
-  #       go-version: ${{ matrix.go-version }}
-  #   - name: prerequisites # macos speicific
-  #     run: brew install pkg-config check
-  #   - name: Checkout code
-  #     uses: actions/checkout@v3
-  #   - name: Test
-  #     env:
-  #       GO111MODULE: on
-  #     run: go test -cover ./...
-  #   - name: Build
-  #     run: go build
-  #   - name: Examples test
-  #     run: make test all
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        go-version: [1.22.x] # , 1.21.x, 1.20.x]
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: prerequisites # macos speicific
+      run: brew install pkg-config check
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Test
+      env:
+        GO111MODULE: on
+      run: go test -cover ./...
+    - name: Build
+      run: go build
+    - name: Examples test
+      run: make test all
 
   # windows:
   #   runs-on: windows-latest
@@ -130,3 +81,43 @@ jobs:
   #     run: go build
   #   - name: Examples test
   #     run: make test all
+
+  big_endian_job:
+    # taken from https://github.com/marketplace/actions/run-on-architecture
+    # s390x is big endian with Ubuntu_latest which
+    # also has go-lang for linux: https://go.dev/dl/
+    # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
+    # GO_TELEMETRY_CHILD=off
+    # The host should always be Linux.
+    runs-on: ubuntu-22.04
+    name: ubuntu (s390x - big endian)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Downloadin Go
+        run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.22.0.linux-s390x.tar.gz
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run commands
+        id: runcmd
+        with:
+          arch: s390x
+          distro: ubuntu_latest
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          # Set an output parameter `uname` for use in subsequent steps
+          run: |
+            set -x
+            uname -a
+            apt update && apt-get install -y ca-certificates pkg-config make gcc g++ check # todo: libffi-dev
+
+            tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
+            export PATH=$PATH:/usr/local/go/bin
+            go version
+
+            export GO111MODULE=on
+            go test -cover ./...
+            go build
+
+            make test all
