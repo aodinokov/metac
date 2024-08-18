@@ -10,5 +10,5 @@
         p_val; \
     })
 
-int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value);
+int metac_value_ffi_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value);
 

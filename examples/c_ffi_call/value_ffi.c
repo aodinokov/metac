@@ -341,9 +341,6 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
 
 static int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
     struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number) {
-    // to support va_list
-    struct va_list_container va_list_c;
-    void * _ptr_ = NULL;
 
     _check_(
         p_param_storage_val == NULL ||
@@ -684,7 +681,7 @@ static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), 
 // if we see 0 va_list - call directly.
 // if we see 1+ va_lists - call special ffi wrapper and 
 //    put va_list-internals as ... arg. Wrapper will convert ... to va_list and we can feed it to call
-int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
+int metac_value_ffi_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
     _check_(
         p_param_storage_val == NULL ||
         metac_value_has_parameter_load(p_param_storage_val) == 0 ||
