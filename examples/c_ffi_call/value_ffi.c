@@ -107,20 +107,22 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
             return -ENOMEM;
         }
 #if __linux__
-        p_ffi_type->alignment = 0;
+        va_list x;
         p_ffi_type->type = FFI_TYPE_STRUCT;
-        p_ffi_type->size = sizeof(va_list);
-        p_ffi_type->elements = calloc(sizeof(ffi_type)/sizeof(void*) + 1 /* for NULL */, sizeof(ffi_type *));
+        p_ffi_type->size = 8;
+        p_ffi_type->alignment = p_ffi_type->size;
+        p_ffi_type->elements = calloc(p_ffi_type->size/sizeof(void*) + 1 /* for NULL */, sizeof(ffi_type *));
         if (p_ffi_type->elements == NULL) {
             free(p_ffi_type);
             return -(ENOMEM);
         }
-        for (int i = 0; i < sizeof(ffi_type)/sizeof(void*); ++i) {
+        for (int i = 0; i < p_ffi_type->size/sizeof(void*); ++i) {
             p_ffi_type->elements[i] = calloc(1, sizeof(ffi_type));
             if (p_ffi_type->elements[i] != NULL) {
                 memcpy(p_ffi_type->elements[i], &ffi_type_pointer, sizeof(ffi_type));
             }
         }
+        //memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
 #else
         memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
 #endif
@@ -462,11 +464,14 @@ int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t *
             assert(va_list_number_cur < va_list_number);
             assert(p_val_list_entries[va_list_number_cur].id == i);
 #if __linux__
-            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
-            // va_list cp;
-            // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
-            // vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
-            // va_end(cp);
+            void **p1 = &p_val_list_entries[va_list_number_cur].va_list_c;
+            fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
+            pvalues[i] = &(p_val_list_entries[va_list_number_cur].va_list_c);
+            values[i] = &pvalues[i];
+            va_list cp;
+            va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
+            vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
+            va_end(cp);
             // //va_list cp;
             // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
             // vfprintf(stderr, "dbg1: %x %x %x %x %x %x\n", cp);
