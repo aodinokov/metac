@@ -9,8 +9,6 @@
 #include <stdlib.h> /*calloc, free*/
 #include <string.h>
 
-#include "metac/backend/va_list_ex.h"
-
 /**
  * \page ffi_call FFI call example
  * 
@@ -42,6 +40,22 @@ struct _va_list_entry {
     metac_value_t * p_val;
     metac_num_t id;
 };
+
+static void _cleanup_ffi_type(ffi_type * p_rtype) {
+    if (p_rtype == NULL) {
+        return;
+    }
+    if (p_rtype->type == FFI_TYPE_STRUCT && p_rtype->elements != NULL) {
+        metac_num_t i = 0;
+        while (p_rtype->elements[i] != NULL) {
+            _cleanup_ffi_type(p_rtype->elements[i]);
+            ++i;
+        }
+        free(p_rtype->elements);
+        p_rtype->elements = NULL;
+    }
+    free(p_rtype);
+}
 
 // convert function parameters types to ffi_type (metac->ffi)
 static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_type ** pp_rtype) {
@@ -111,18 +125,19 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
         p_ffi_type->type = FFI_TYPE_STRUCT;
         p_ffi_type->size = sizeof(void*);
         p_ffi_type->alignment = p_ffi_type->size;
-        p_ffi_type->elements = calloc(p_ffi_type->size/sizeof(void*) + 1 /* for NULL */, sizeof(ffi_type *));
+        p_ffi_type->elements = calloc(1 + 1 /* for NULL */, sizeof(ffi_type *));
         if (p_ffi_type->elements == NULL) {
             free(p_ffi_type);
             return -(ENOMEM);
         }
-        for (int i = 0; i < p_ffi_type->size/sizeof(void*); ++i) {
-            p_ffi_type->elements[i] = calloc(1, sizeof(ffi_type));
-            if (p_ffi_type->elements[i] != NULL) {
-                memcpy(p_ffi_type->elements[i], &ffi_type_pointer, sizeof(ffi_type));
-            }
+        p_ffi_type->elements[1] = NULL;
+        p_ffi_type->elements[0] = calloc(1, sizeof(ffi_type));
+        if (p_ffi_type->elements[0] == NULL) {
+            free(p_ffi_type->elements);
+            free(p_ffi_type);
+            return -(ENOMEM);
         }
-        //memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
+        memcpy(p_ffi_type->elements[0], &ffi_type_pointer, sizeof(ffi_type));
 #else
         memcpy(p_ffi_type, &ffi_type_pointer, sizeof(ffi_type));
 #endif
@@ -199,16 +214,14 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
 
             metac_entry_t *p_memb_entry = metac_entry_by_member_id(p_entry, i);
             if (p_memb_entry == NULL) {
-                free(p_tmp->elements);
-                free(p_tmp);
+                _cleanup_ffi_type(p_tmp);
                 return -(EFAULT);
             }
 
             // handle bitfields - ignore multiple entries by the same byte offset (they all will have the same type)
             struct metac_member_raw_location_info bitfields_raw_info;
             if (metac_entry_member_raw_location_info(p_memb_entry, &bitfields_raw_info) != 0) {
-                free(p_tmp->elements);
-                free(p_tmp);
+                _cleanup_ffi_type(p_tmp);
                 return -(EFAULT);
             }
             if (bitfields_raw_info.p_bit_offset == NULL && /* member of the struct. addr points to the beginning of the struct */
@@ -221,11 +234,9 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
                         // simulate fields with appropriate sizes - their number will be less or equal than number of bitfield
 #define _process_(_type_size_, _ffi_type_) \
                         if (delta >= sizeof(_type_size_)) { \
-                            /*printf("delta %d simulating %s\n", (int)delta, #_type_size_);*/ \
                             p_tmp->elements[memb_id] = calloc(1, sizeof(ffi_type)); \
                             if (p_tmp->elements[memb_id] == NULL) { \
-                                free(p_tmp->elements); \
-                                free(p_tmp); \
+                                _cleanup_ffi_type(p_tmp); \
                                 return -ENOMEM; \
                             } \
                             memcpy(p_tmp->elements[memb_id], &_ffi_type_, sizeof(ffi_type)); \
@@ -233,8 +244,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
                             ++memb_id; \
                             if (memb_id == memb_count+1) { \
                                 /* this must not happen */ \
-                                free(p_tmp->elements); \
-                                free(p_tmp); \
+                                _cleanup_ffi_type(p_tmp); \
                                 return -(EFAULT); \
                             } \
                             continue; \
@@ -249,15 +259,13 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
                 bitfield_state = 0;
 
                 if (_val_to_ffi_type(p_memb_entry, variadic, &p_tmp->elements[memb_id]) != 0) {
-                    free(p_tmp->elements); // TODO: cleanup _tmp->elements prior to
-                    free(p_tmp);
+                    _cleanup_ffi_type(p_tmp);
                     return -(EFAULT);
                 }
             } else { // bitfields
                 metac_offset_t byte_offset = 0, bit_offset = 0, bit_size = 0;
                 if (metac_entry_member_bitfield_offsets(p_memb_entry, &byte_offset, &bit_offset, &bit_size) != 0) {
-                    free(p_tmp->elements);
-                    free(p_tmp);
+                    _cleanup_ffi_type(p_tmp);
                     return -(EFAULT);
                 }
                 if (bitfield_state == 0) {
@@ -310,15 +318,14 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
             free(p_tmp);
             return -(ENOMEM);
         }
-        p_tmp->size = e_sz; // it appeared that this is enough to make struct work. TODO: alginment of memebers
+        p_tmp->size = e_sz; // it appeared that this is enough to make struct work.
         p_tmp->alignment = 0;
         p_tmp->type = FFI_TYPE_STRUCT;
 
         metac_num_t el_id = 0;
         for (metac_num_t i = 0; i < el_count; ++i) {
             if (_val_to_ffi_type(p_el_entry, variadic, &p_tmp->elements[el_id]) != 0) {
-                free(p_tmp->elements);
-                free(p_tmp);
+                _cleanup_ffi_type(p_tmp);
                 return -(EFAULT);
             }
             ++el_id;
@@ -332,23 +339,7 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
     return 0;
 }
 
-void _cleanup_ffi_type(ffi_type * p_rtype) {
-    if (p_rtype == NULL) {
-        return;
-    }
-    if (p_rtype->type == FFI_TYPE_STRUCT && p_rtype->elements != NULL) {
-        metac_num_t i = 0;
-        while (p_rtype->elements[i] != NULL) {
-            _cleanup_ffi_type(p_rtype->elements[i]);
-            ++i;
-        }
-        free(p_rtype->elements);
-        p_rtype->elements = NULL;
-    }
-    free(p_rtype);
-}
-
-int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
+static int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value,
     struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number) {
     // to support va_list
     struct va_list_container va_list_c;
@@ -460,22 +451,12 @@ int _call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t *
         // fill in data
         if (metac_entry_is_va_list_parameter(metac_value_entry(p_param_val)) == 0) {
             values[i] = metac_value_addr(p_param_val);
-        } else {
+        } else { // va_list - special case
             assert(va_list_number_cur < va_list_number);
             assert(p_val_list_entries[va_list_number_cur].id == i);
 #if __linux__
-            // void **p1 = &p_val_list_entries[va_list_number_cur].va_list_c;
-            // fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
             pvalues[i] = &(p_val_list_entries[va_list_number_cur].va_list_c);
             values[i] = &pvalues[i];
-            // va_list cp;
-            // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
-            // vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
-            // va_end(cp);
-            // //va_list cp;
-            // va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
-            // vfprintf(stderr, "dbg1: %x %x %x %x %x %x\n", cp);
-            // va_end(cp);
 #else
             values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
 #endif
@@ -590,14 +571,10 @@ static int _call_wrapper_va(metac_value_t * p_param_storage_val, void (*fn)(void
     metac_num_t va_list_number_cur, struct _va_list_entry * p_val_list_entries, metac_num_t va_list_number, ...){
     int res;
     va_start(p_val_list_entries[va_list_number_cur].va_list_c.parameters, va_list_number);
+
     res = _call_wrapper(p_param_storage_val, fn, p_res_value,
             va_list_number_cur + 1, p_val_list_entries, va_list_number);
-// #if __linux__
-//             va_list cp;
-//             va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
-//             vfprintf(stderr, "dbg-after: %x %x %x %x %x %x\n", cp);
-//             va_end(cp);
-// #endif
+
     va_end(p_val_list_entries[va_list_number_cur].va_list_c.parameters);
     return res;
 }
@@ -703,9 +680,9 @@ static int _call_wrapper(metac_value_t * p_param_storage_val, void (*fn)(void), 
     return -(EFAULT);
 }
 
-// idea: check all params
+// the idea: check all params to find va_list
 // if we see 0 va_list - call directly.
-// if we see 1 or more va_list - call special ffi wrapper and 
+// if we see 1+ va_lists - call special ffi wrapper and 
 //    put va_list-internals as ... arg. Wrapper will convert ... to va_list and we can feed it to call
 int metac_value_call(metac_value_t * p_param_storage_val, void (*fn)(void), metac_value_t * p_res_value) {
     _check_(

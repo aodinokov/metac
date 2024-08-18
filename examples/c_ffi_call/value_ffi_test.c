@@ -623,13 +623,6 @@ METAC_START_TEST(test_function_with_extra) {
 
 // variadic param tests
 int test_function_with_va_list(const char * format, va_list vl) {
-    // void **p1 = &vl;
-    // fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
-    // va_list l;
-    // va_copy(l, vl);
-    // int i = va_arg(l, int);
-    // va_end(l);
-    
     return vsnprintf(called, sizeof(called), format, vl);
 }
 METAC_GSYM_LINK(test_function_with_va_list);
@@ -637,9 +630,7 @@ METAC_GSYM_LINK(test_function_with_va_list);
 int test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
-    // void **p1 = &l;
-    // fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
-    int res = test_function_with_va_list(format, l);//vsnprintf(called, sizeof(called), format, l);
+    int res = test_function_with_va_list(format, l);
     va_end(l);
     return res;
 }
@@ -774,32 +765,12 @@ METAC_START_TEST(test_variadic_arg) {
 
     _CALL_PROCESS_END
 
-
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
-// WARNING: this test doesn't work on x86 linux.. though works on big-endian linux
-// getting
-//value_ffi_test.c:804:F:default:test_variadic_list:0: called: got test_function_with_va_list 
-// 6c76 726d2f65 2d73762f 63617073 2f636174 2f656475, expected test_function_with_va_list 1 2 3 4 5 6
-// even though I'm getting debug dbg0: 1 2 3 4 5 6 before calling ffi_call
-// and even after. looks like I'm not clear on how to pass va_list... current implementation works
-// like it's a struct
-/*
-            values[i] = &p_val_list_entries[va_list_number_cur].va_list_c.parameters;
-            va_list cp;
-            va_copy(cp, p_val_list_entries[va_list_number_cur].va_list_c.parameters);
-            vfprintf(stderr, "dbg0: %x %x %x %x %x %x\n", cp);
-            va_end(cp);
-*/
-// that means that we can' pass va_list as argument, because we can't use it when we call fn.
-
-#if 0//__linux__
-START_TEST(test_variadic_list) {
-#else
 METAC_START_TEST(test_variadic_list) {
-#endif
     metac_tag_map_t * p_tagmap = va_args_tag_map();
+
 #define VA_LIST(_args_...) VA_LIST_FROM_CONTAINER(c, _args_)
 
     char * s = NULL;
