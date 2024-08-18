@@ -623,12 +623,12 @@ METAC_START_TEST(test_function_with_extra) {
 
 // variadic param tests
 int test_function_with_va_list(const char * format, va_list vl) {
-    void **p1 = &vl;
-    fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
-    va_list l;
-    va_copy(l, vl);
-    int i = va_arg(l, int);
-    va_end(l);
+    // void **p1 = &vl;
+    // fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
+    // va_list l;
+    // va_copy(l, vl);
+    // int i = va_arg(l, int);
+    // va_end(l);
     
     return vsnprintf(called, sizeof(called), format, vl);
 }
@@ -637,8 +637,8 @@ METAC_GSYM_LINK(test_function_with_va_list);
 int test_function_with_va_args(const char * format, ...) {
     va_list l;
     va_start(l, format);
-    void **p1 = &l;
-    fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
+    // void **p1 = &l;
+    // fprintf(stderr, "dbg:p1 %p: %p, %p p2\n", p1, *p1, *(p1+1));
     int res = test_function_with_va_list(format, l);//vsnprintf(called, sizeof(called), format, l);
     va_end(l);
     return res;
