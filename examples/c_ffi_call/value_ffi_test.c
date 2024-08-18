@@ -4,6 +4,8 @@
 
 #include "value_ffi.c"
 
+#include "metac/backend/va_list_ex.h"
+
 // const arg count tests data
 static char called[1024];
 
@@ -11,16 +13,16 @@ static char called[1024];
     called[0] = 0; \
     metac_entry_t * p_entry = METAC_GSYM_LINK_ENTRY(_fn_); \
     metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, p_entry, _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
-    int res = metac_value_call(p_params_val, (void (*)(void)) _fn_, p_res_val);
+    metac_value_t *p_res_val = metac_new_value_with_call_result(p_entry); \
+    int res = metac_value_ffi_call(p_params_val, (void (*)(void)) _fn_, p_res_val);
 
 #define _CALL_PROCESS_FN_PTR(_tag_map_, _type_, _fn_, _args_...) { \
     called[0] = 0; \
     WITH_METAC_DECLLOC(dec, _type_ * p = _fn_); \
     metac_entry_t * p_entry = METAC_ENTRY_FROM_DECLLOC(dec, p); \
     metac_value_t * p_params_val = METAC_NEW_VALUE_WITH_CALL_PARAMS_AND_WRAP(_tag_map_, metac_entry_pointer_entry(p_entry), _fn_, _args_); \
-    metac_value_t *p_res_val = metac_new_value_with_call_result(p_params_val); \
-    int res = metac_value_call(p_params_val, (void (*)(void)) p, p_res_val);
+    metac_value_t *p_res_val = metac_new_value_with_call_result(metac_entry_pointer_entry(p_entry)); \
+    int res = metac_value_ffi_call(p_params_val, (void (*)(void)) p, p_res_val);
 
 
 #define _CALL_PROCESS_END \
@@ -500,7 +502,6 @@ METAC_START_TEST(test_function_with_array) {
     _CALL_PROCESS_END
 }END_TEST
 
-
 //unions hierarchy
 typedef union {
     union {
@@ -510,7 +511,6 @@ typedef union {
     union {
         long b_long;
         char b_char;
-        //char _padding_[15]; // to make it work
     } b;
 }test_union_hierarchy_t;
 
@@ -524,7 +524,6 @@ typedef struct {
         long b_long;
         char b_char;
     } b;
-    //char _padding_[15]; // to make it work
 }test_struct_with_union_t;
 
 // struct with bitfields
@@ -536,14 +535,12 @@ typedef struct {
     long lng11:7;
     long lng12:16;
     long lng13:30;
-    //char _padding_; //to make it work
 }test_struct_with_bitfields_t;
 
 // flexible arrays
 typedef struct {
     int len;
-    //char _padding_[7]; // to make it work
-    int arr[]; // 0,1,3,7 - don't work 2,4,5,6... 15 - works,, so basically 1,2,4,8 
+    int arr[]; 
 }test_struct_with_flexarr_t;
 
 test_struct_with_bitfields_t test_function_with_extra_cases(
@@ -570,7 +567,6 @@ test_struct_with_bitfields_t test_function_with_extra_cases(
         s_03 != NULL
     );
 
-    char s1 =
     snprintf(called, sizeof(called),
         "test_function_with_extra_cases %d %d %ld %s %s", 
         arg_00.a.a_int,
@@ -610,15 +606,12 @@ METAC_START_TEST(test_function_with_extra) {
 
         expected_called = "test_function_with_extra_cases 55 55 5555 "
             "(test_struct_with_bitfields_t []){{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,"
-            //" ._padding_ = 0,"
             "},} "
             "(test_struct_with_flexarr_t []){{.len = 1,"
-            //" ._padding_ = {0, 0, 0, 0, 0, 0, 0,},"
             " .arr = {},},}";
         fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
 
         expected = "{.lng01 = 1, .lng02 = 22222, .lng03 = 3, .lng11 = 11, .lng12 = 2222, .lng13 = 13,"
-            //" ._padding_ = 0,"
             "}";
         s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
         fail_unless(s != NULL);
@@ -626,4 +619,188 @@ METAC_START_TEST(test_function_with_extra) {
         free(s);
 
     _CALL_PROCESS_END
+}END_TEST
+
+// variadic param tests
+int test_function_with_va_list(const char * format, va_list vl) {
+    return vsnprintf(called, sizeof(called), format, vl);
+}
+METAC_GSYM_LINK(test_function_with_va_list);
+
+int test_function_with_va_args(const char * format, ...) {
+    va_list l;
+    va_start(l, format);
+    int res = test_function_with_va_list(format, l);
+    va_end(l);
+    return res;
+}
+METAC_GSYM_LINK(test_function_with_va_args);
+
+METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
+    /* start tags for all types */
+
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(test_function_with_va_args))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "format"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.i = 1}), 
+            METAC_FORMAT_BASED_VA_ARG()
+        )
+    METAC_TAG_MAP_ENTRY_END
+
+    METAC_TAG_MAP_ENTRY(METAC_GSYM_LINK_ENTRY(test_function_with_va_list))
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "format"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_PARAMETER({.n = "vl"}), 
+            METAC_FORMAT_BASED_VA_ARG()
+        )
+    METAC_TAG_MAP_ENTRY_END
+
+METAC_TAG_MAP_END
+
+METAC_START_TEST(test_variadic_arg) {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args"
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "26";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args %s", "ppp"
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args ppp";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "30";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args %d", 777
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args 777";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "30";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args %o, %u, %x, %X", 1180000, 1200000, 1210000, 1220000
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args 4400540, 1200000, 127690, 129DA0";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "59";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args %lo, %lu, %lx, %lX", 11800000L, 12000000L, 12100000L, 12200000L
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args 55006700, 12000000, b8a1a0, BA2840";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "61";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+
+    _CALL_PROCESS_END
+
+    _CALL_PROCESS_FN(p_tagmap, test_function_with_va_args,
+        "test_function_with_va_args %f, %g, %e", 11.1, 11.2, -11.3
+    )
+        fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+        expected_called = "test_function_with_va_args 11.100000, 11.2, -1.130000e+01";
+        fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+        expected = "57";
+        s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+        fail_unless(s != NULL);
+        fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+        free(s);
+
+    _CALL_PROCESS_END
+
+    metac_tag_map_delete(p_tagmap);
+}END_TEST
+
+METAC_START_TEST(test_variadic_list) {
+    metac_tag_map_t * p_tagmap = va_args_tag_map();
+
+#define VA_LIST(_args_...) VA_LIST_FROM_CONTAINER(c, _args_)
+
+    char * s = NULL;
+    char * expected = NULL;
+    char * expected_called = NULL;
+
+    WITH_VA_LIST_CONTAINER(c,
+        _CALL_PROCESS_FN(p_tagmap, test_function_with_va_list,
+            "test_function_with_va_list %x %x %x %x %x %x", VA_LIST(1,2,3,4,5,6))
+
+            expected = "test_function_with_va_list(\"test_function_with_va_list %x %x %x %x %x %x\", "
+                "VA_LIST((unsigned int)1, (unsigned int)2, (unsigned int)3, (unsigned int)4, (unsigned int)5, (unsigned int)6))";
+            s = metac_value_string_ex(p_params_val, METAC_WMODE_deep, p_tagmap);
+            fail_unless(s != NULL);
+            fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+            free(s);
+
+            fail_unless(res == 0, "Call wasn't successful, expected successful");
+
+            expected_called = "test_function_with_va_list 1 2 3 4 5 6";
+            fail_unless(strcmp(called, expected_called) == 0, "called: got %s, expected %s", called, expected_called);
+
+            expected = "38";
+            s = metac_value_string_ex(p_res_val, METAC_WMODE_deep, NULL);
+            fail_unless(s != NULL);
+            fail_unless(strcmp(s, expected) == 0, "got %s, expected %s", s, expected);
+            free(s);
+
+        _CALL_PROCESS_END
+    );
+
+    metac_tag_map_delete(p_tagmap);
 }END_TEST

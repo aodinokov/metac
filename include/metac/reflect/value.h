@@ -397,4 +397,15 @@ metac_value_t * metac_value_parameter_wrap(metac_value_t * p_val,metac_tag_map_t
    tag_map is needed in case the function in p_entry has unspecified parameter or va_list */
 metac_value_t * metac_value_parameter_vwrap(metac_value_t * p_val,metac_tag_map_t * p_tag_map, va_list parameters);
 
+/** @brief function to create parameter_storage and wrap it into subprogram/subroutine entry */
+metac_value_t * metac_new_value_with_call_params(metac_entry_t *p_entry);
+/** @brief cleanup value created by metac_new_value_with_call_params (including parameter_storage) */
+void metac_value_with_call_params_delete(metac_value_t * p_param_value);
+
+/** @brief function to reserve memory for the result subprogram/subroutine and wrap it into subprogram/subroutine entry 
+ * return NULL if function/subroutine doesn't have result */
+metac_value_t * metac_new_value_with_call_result(metac_entry_t * p_entry);
+/** @brief cleanup value created by metac_new_value_with_call_result (including place). handles NULL argument correctly */
+void metac_value_with_call_result_delete(metac_value_t * p_res_value);
+
 #endif
