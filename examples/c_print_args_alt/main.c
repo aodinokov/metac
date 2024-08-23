@@ -4,6 +4,7 @@
 #include <stdlib.h> /*free*/
 
 int test_function1_with_args(int a, short b){
+    printf("called\n");
     return a + b + 6;
 }
 METAC_GSYM_LINK(test_function1_with_args);
@@ -38,7 +39,7 @@ METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask =
 METAC_TAG_MAP_END
 
 #define _APPEND(x) do { \
-        WITH_METAC_DECLLOC(decl, __typeof(x) _x_val = x); \
+        WITH_METAC_DECLLOC(decl, typeof(x) _x_val = x); \
         metac_entry_t *p_entry = METAC_ENTRY_FROM_DECLLOC(decl, _x_val); \
         metac_entry_t *p_param_entry = metac_entry_by_paremeter_id(p_val_entry, param_id); \
         /* TODO: compare types */ \
@@ -53,7 +54,7 @@ METAC_TAG_MAP_END
     }while(0);
 
 // alternative implementation
-#define METAC_WRAP_FN_RES(_type_, _tag_map_, _fn_, _args_...) ({ \
+#define METAC_WRAP_FN_RES(_tag_map_, _fn_, _args_...) ({ \
         metac_value_t * p_val = NULL; \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
@@ -71,7 +72,7 @@ METAC_TAG_MAP_END
                 free(s); \
             } \
         } \
-        WITH_METAC_DECLLOC(loc, _type_ res = _fn_(_args_)); \
+        WITH_METAC_DECLLOC(loc, typeof(_fn_(_args_)) res = _fn_(_args_)); \
         if (p_val != NULL) { \
             metac_value_t *p_res_val = METAC_VALUE_FROM_DECLLOC(loc, res); \
             char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, _tag_map_); \
@@ -102,7 +103,7 @@ METAC_TAG_MAP_END
 int main() {
     p_tagmap = va_args_tag_map();
 
-    printf("fn returned: %i\n", METAC_WRAP_FN_RES(int, NULL, test_function1_with_args,10, 22));
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(NULL, test_function1_with_args,10, 22));
 
     metac_tag_map_delete(p_tagmap);
     return 0;
