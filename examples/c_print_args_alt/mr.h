@@ -17,7 +17,11 @@
 
 /* Interface macros for unrolled loops from mr_pp.h */
 #define MR_FOREACH(X, ...) MR_PASTE2 (MR_FOREACH, MR_NARG (__VA_ARGS__)) (X, __VA_ARGS__)
-#define MR_FOREACH_EX(X, ...) MR_PASTE2 (MR_FOREACH_EX_, MR_NARG (__VA_ARGS__)) (X, __VA_ARGS__)
 #define MR_FOR(NAME, N, OP, FUNC, ...) MR_PASTE2 (MR_FOR, N) (NAME, OP, FUNC, __VA_ARGS__)
+
+// like car/cdr in lisp
+#define MR_FIRST(_FIRST_, ...) _FIRST_
+#define MR_REST(_FIRST_, ...) __VA_ARGS__
+#define MR_FOREACH_EX(X, ...) MR_PASTE2 (MR_FOREACH_EX_, MR_NARG (__VA_ARGS__)) (X, __VA_ARGS__)
 
 #endif
