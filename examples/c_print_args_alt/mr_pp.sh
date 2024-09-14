@@ -20,6 +20,17 @@ do
 done
 echo 
 
+echo "#define MR_FOREACH_EX_0(...)" 
+I=0
+while [ $I -lt $PP_DEPTH ]
+do
+  NEXT=$(( I + 1 ))
+  echo "#define MR_FOREACH_EX_$NEXT(X, _0, ...) X ($I, MR_FOREACH_EX_$I (X, __VA_ARGS__), _0, __VA_ARGS__)" 
+  I=$NEXT
+done
+echo 
+
+
 echo "#define MR_FOR0(NAME, OP, FUNC, X, ...) " 
 echo "#define MR_FOR1(NAME, OP, FUNC, X, ...) FUNC (NAME, X, 1)" 
 I=1
