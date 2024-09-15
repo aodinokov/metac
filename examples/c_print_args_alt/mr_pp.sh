@@ -25,7 +25,7 @@ I=0
 while [ $I -lt $PP_DEPTH ]
 do
   NEXT=$(( I + 1 ))
-  echo "#define MR_FOREACH_EX_$NEXT(X, ...) X (MR_FOREACH_EX_$I (X, MR_REST(__VA_ARGS__)), $I, __VA_ARGS__)" 
+  echo "#define MR_FOREACH_EX_$NEXT(X, ...) X (MR_FOREACH_EX_$I (X, MR_REST(__VA_ARGS__)), $NEXT, __VA_ARGS__)" 
   I=$NEXT
 done
 echo 
