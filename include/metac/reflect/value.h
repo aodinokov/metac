@@ -143,10 +143,6 @@ metac_name_t metac_value_name(metac_value_t * p_val);
 /** @brief return value's final entry kind */
 metac_kind_t metac_value_final_kind(metac_value_t * p_val, metac_quals_t * p_quals); /* returns actual type kind, skips quals, typedefs, variable */
 
-/* kind = METAC_KND_subroutine_type */
-/* metac_flag_t metac_value_is_subroutine(metac_value_t *p_val);
-TODO: we may have a call if pointer to subroutine, using libffi */
-
 /* kind = METAC_KND_array */
 
 /** @brief return non-zero if value's final kind is array */

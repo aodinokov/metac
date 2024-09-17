@@ -121,7 +121,6 @@ static int _val_to_ffi_type(metac_entry_t * p_entry, metac_flag_t variadic, ffi_
             return -ENOMEM;
         }
 #if __linux__
-        va_list x;
         p_ffi_type->type = FFI_TYPE_STRUCT;
         p_ffi_type->size = sizeof(void*);
         p_ffi_type->alignment = p_ffi_type->size;
