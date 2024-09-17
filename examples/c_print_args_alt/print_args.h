@@ -26,7 +26,7 @@ static int _process_unspecified_params(
     if (p_tag != NULL && p_tag->handler) {
         metac_value_event_t ev = {
             .type = METAC_RQVST_va_list,
-            .va_list_param_id = param_id,  /* TODO: to remove?*/
+            .va_list_param_id = param_id,
             .p_return_value = metac_parameter_storage_new_param_value(p_param_storage, param_id),
             .p_va_list_container = &cntr,
         };
@@ -50,42 +50,99 @@ static int _process_unspecified_params(
     return failed;
 }
 
-#define _APPEND_PARAM_2(_NEXT_, _N_, args...) if (failure == 0) { \
+#define _process_bt_(arg, _type_, _pseudoname_, _short_type_name_) \
+                    if (strcmp(param_base_type_name, #_pseudoname_) == 0 && param_entry_byte_size == sizeof(_type_)) { \
+                        metac_value_set_##_short_type_name_(p_param_value, *((_type_*)arg)); \
+                    } else 
+
+#define _process_enum_(arg, _type_, _short_type_name_) \
+                    if (param_entry_byte_size == sizeof(_type_)) { \
+                        _type_ v = *((_type_*)arg); \
+                        memcpy(metac_value_addr(p_param_value), &v, param_entry_byte_size); \
+                    } else
+
+#define _QSTRING(_string_...) \
+    #_string_
+#define _QSTRING_ARG(_args) \
+    _QSTRING(_args)
+
+#define _APPEND_PARAM(_NEXT_, _N_, args...) if (failure == 0) { \
         metac_entry_t *p_param_entry = metac_entry_by_paremeter_id(p_val_entry, param_id); \
         if (metac_entry_is_unspecified_parameter(p_param_entry) == 0 && metac_entry_is_va_list_parameter(p_param_entry) == 0) { \
             /* normal argument */ \
-            typeof(MR_FIRST(args)) _x_val = MR_FIRST(args); \
             metac_entry_t *p_param_entry = metac_entry_by_paremeter_id(p_val_entry, param_id); \
-            metac_size_t param_entry_byte_size = 0; \
-            if (metac_entry_byte_size(p_param_entry, &param_entry_byte_size) != 0) { \
-                printf("param %d metac_entry_byte_size failed\n", param_id); \
+            metac_entry_t * p_param_type_entry = metac_entry_parameter_entry(p_param_entry); \
+            if (p_param_type_entry == NULL) { \
                 failure = 1; \
                 break; \
             } \
+            metac_size_t param_entry_byte_size = 0; \
+            if (metac_entry_byte_size(p_param_entry, &param_entry_byte_size) != 0) { \
+                printf("param %d metac_entry_byte_size failed\n", param_id); \
+                failure = 2; \
+                break; \
+            } \
+            typeof(MR_FIRST(args)) _x_val = MR_FIRST(args); \
             if (metac_parameter_storage_append_by_buffer(p_param_storage, p_param_entry, param_entry_byte_size) == 0) { \
                 metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_param_storage, param_id); \
-                if (p_param_value != NULL) { \
-                if (param_entry_byte_size != sizeof(_x_val)) { \
-                    printf("param %d got sz %d, expectect sz %d\n", param_id, (int)sizeof(_x_val), (int)param_entry_byte_size); \
-                    /*TODO: - handle that */ \
-                } \
-                    memcpy(metac_value_addr(p_param_value), &_x_val, param_entry_byte_size); \
+                \
+                if (metac_entry_is_base_type(p_param_type_entry) != 0) { \
+                    metac_name_t param_base_type_name = metac_entry_base_type_name(p_param_type_entry); \
+                    _process_bt_(&_x_val, char, char, char) \
+                    _process_bt_(&_x_val, unsigned char, unsigned char, uchar) \
+                    _process_bt_(&_x_val, short, short int, short) \
+                    _process_bt_(&_x_val, unsigned short, unsigned short int, ushort) \
+                    _process_bt_(&_x_val, int, int, int) \
+                    _process_bt_(&_x_val, unsigned int, unsigned int, uint) \
+                    _process_bt_(&_x_val, long, long int, long) \
+                    _process_bt_(&_x_val, unsigned long, unsigned long int, ulong) \
+                    _process_bt_(&_x_val, long long, long long int, llong) \
+                    _process_bt_(&_x_val, unsigned long long, unsigned long long int, ullong) \
+                    _process_bt_(&_x_val, bool, _Bool, bool) \
+                    _process_bt_(&_x_val, float, float, float) \
+                    _process_bt_(&_x_val, double, double, double) \
+                    _process_bt_(&_x_val, long double, long double, ldouble) \
+                    _process_bt_(&_x_val, float complex, complex float, float_complex) \
+                    _process_bt_(&_x_val, double complex, complex double, double_complex) \
+                    _process_bt_(&_x_val, long double complex, long complex double, ldouble_complex); \
+                } else if (metac_entry_is_enumeration(p_param_type_entry) != 0) { \
+                    _process_enum_(&_x_val, char, char) \
+                    _process_enum_(&_x_val, short, short) \
+                    _process_enum_(&_x_val, int, int) \
+                    _process_enum_(&_x_val, long, long) \
+                    _process_enum_(&_x_val, long long, llong); \
+                } else if (metac_entry_is_pointer(p_param_type_entry) != 0) { \
+                    /* ensure arg isn't string constant */ \
+                    char _s_arg[] = _QSTRING_ARG(MR_FIRST(args)); \
+                    if (_s_arg[0] == '\"') { \
+                        /* TODO: can't handle structs, va_list as arguments because of this line */ \
+                        char * s = ((char*)MR_FIRST(args)); \
+                        memcpy(metac_value_addr(p_param_value), &s, param_entry_byte_size); \
+                    } else { \
+                        memcpy(metac_value_addr(p_param_value), &_x_val, param_entry_byte_size); \
+                    } \
+                } else { \
+                    /* not supported */ \
+                    failure = 3; \
                     metac_value_delete(p_param_value); \
+                    break; \
                 } \
+                /*cleanup*/ \
+                metac_value_delete(p_param_value); \
             } \
         } else if (metac_entry_is_va_list_parameter(p_param_entry) != 0) { \
+            /* not supported */ \
+            failure = 4; \
+            break; \
         } else if (metac_entry_is_unspecified_parameter(p_param_entry) != 0) { \
             if (metac_parameter_storage_append_by_parameter_storage(p_param_storage, p_param_entry) != 0) { \
                 failure = 5; \
                 break; \
             } \
             if (_process_unspecified_params(p_param_storage, p_val, p_param_entry, p_tag_map, param_id, _N_ , args) != 0) { \
-                failure = 4; \
+                failure = 6; \
                 break; \
             } \
-            break; \
-        } else { \
-            failure = 3; \
             break; \
         } \
         if (failure == 0) { \
@@ -93,7 +150,6 @@ static int _process_unspecified_params(
             _NEXT_ \
         } \
     }
-
 
 // this gets called in the context where p_param_storage is declared
 #define _WRAP(_tag_map_, _fn_, _args_...) ({ \
@@ -104,11 +160,10 @@ static int _process_unspecified_params(
         metac_num_t param_id = 0; \
         /* append params*/ \
         do { \
-            MR_FOREACH_EX(_APPEND_PARAM_2, _args_) \
+            MR_FOREACH_EX(_APPEND_PARAM, _args_) \
         } while(0); \
         if (failure != 0) { \
             printf("failure %d\n", failure); \
-            /* TODO: */ \
         } \
         p_val; \
     })

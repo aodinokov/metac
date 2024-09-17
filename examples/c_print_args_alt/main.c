@@ -36,6 +36,15 @@ int my_printf(const char * format, ...) {
 }
 METAC_GSYM_LINK(my_printf);
 
+enum x {
+    xOne = 1,
+    xTwo = 2,
+    xMinusOne = -1,
+};
+int test_function4_with_enum_args(enum x arg0, enum x arg1, enum x arg2) {
+    return 0;
+}
+METAC_GSYM_LINK(test_function4_with_enum_args);
 
 metac_tag_map_t * p_tagmap = NULL;
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
@@ -65,8 +74,10 @@ int main() {
     list_t * p_list = (list_t[]){{.x = 42.42, .p_next = (list_t[]){{ .x = 45.4, .p_next = NULL}}}};
     printf("fn returned: %f\n", METAC_WRAP_FN_RES(NULL, test_function3_with_args, p_list));
 
-    // doesn't work yet
-    //printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, my_printf, "%d %d", 10, 22));
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, my_printf, "%d %d\n", 10, 22));
+
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, xOne, xTwo, xMinusOne));
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, 1, 2, -1));
 
     metac_tag_map_delete(p_tagmap);
     return 0;
