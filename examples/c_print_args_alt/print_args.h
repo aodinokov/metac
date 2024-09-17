@@ -115,8 +115,8 @@ static int _process_unspecified_params(
                     /* ensure arg isn't string constant */ \
                     char _s_arg[] = _QSTRING_ARG(MR_FIRST(args)); \
                     if (_s_arg[0] == '\"') { \
-                        /* TODO: can't handle structs, va_list as arguments because of this line */ \
-                        char * s = ((char*)MR_FIRST(args)); \
+                        /* can't handle structs, va_list as arguments because of this line */ \
+                        char * s = ((char*)_Generic(MR_FIRST(args), char*: MR_FIRST(args), default: NULL)); \
                         memcpy(metac_value_addr(p_param_value), &s, param_entry_byte_size); \
                     } else { \
                         memcpy(metac_value_addr(p_param_value), &_x_val, param_entry_byte_size); \
