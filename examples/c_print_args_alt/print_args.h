@@ -6,7 +6,7 @@
 #include "metac/backend/value.h"
 #include "mr.h"
 
-static int _process_unspecified_params(
+static int _process_unspecified_params_cntr(
     //context
     metac_parameter_storage_t * p_param_storage,
     metac_value_t * p_val,
@@ -14,12 +14,10 @@ static int _process_unspecified_params(
     metac_tag_map_t * p_tag_map,
     metac_num_t param_id, 
     // and all params
-    int n, ...) {
+    int n, 
+    struct va_list_container * p_cntr) {
 
     metac_recursive_iterator_t * p_iter = metac_new_recursive_iterator(p_val);
-
-    struct va_list_container cntr = {};
-    va_start(cntr.parameters, p_tag_map);
     
     metac_value_t * p = (metac_value_t *)metac_recursive_iterator_next(p_iter); /* value itself */
     metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, p_param_entry);
@@ -28,7 +26,7 @@ static int _process_unspecified_params(
             .type = METAC_RQVST_va_list,
             .va_list_param_id = param_id,
             .p_return_value = metac_parameter_storage_new_param_value(p_param_storage, param_id),
-            .p_va_list_container = &cntr,
+            .p_va_list_container = p_cntr,
         };
         if (ev.p_return_value == NULL) {
             metac_recursive_iterator_fail(p_iter);
@@ -42,12 +40,38 @@ static int _process_unspecified_params(
         metac_recursive_iterator_fail(p_iter);
     }
 
-    va_end(cntr.parameters);
-
     int failed = 0;
     metac_recursive_iterator_get_out(p_iter, NULL, &failed);
     metac_recursive_iterator_free(p_iter);
     return failed;
+}
+
+static int _process_unspecified_params(
+    //context
+    metac_parameter_storage_t * p_param_storage,
+    metac_value_t * p_val,
+    metac_entry_t *p_param_entry,
+    metac_tag_map_t * p_tag_map,
+    metac_num_t param_id, 
+    // and all params
+    int n, ...) {
+    struct va_list_container cntr = {};
+    va_start(cntr.parameters, p_tag_map);
+
+    int failed = _process_unspecified_params_cntr(
+        p_param_storage,
+        p_val,
+        p_param_entry,
+        p_tag_map,
+        param_id,
+        n, &cntr);
+
+    va_end(cntr.parameters);
+    return failed;
+}
+
+static void _va_list_cp_to_container(struct va_list_container * dst, va_list src) {
+    va_copy(dst->parameters, src);
 }
 
 #define _process_bt_(arg, _type_, _pseudoname_, _short_type_name_) \
@@ -133,9 +157,18 @@ static int _process_unspecified_params(
                 metac_value_delete(p_param_value); \
             } \
         } else if (metac_entry_is_va_list_parameter(p_param_entry) != 0) { \
-            /* not supported */ \
-            failure = 4; \
-            break; \
+            struct va_list_container cntr = {}; \
+            va_list dummy; \
+            _va_list_cp_to_container(&cntr, _Generic(MR_FIRST(args), va_list: MR_FIRST(args), default: dummy)); \
+            if (metac_parameter_storage_append_by_parameter_storage(p_param_storage, p_param_entry) != 0) { \
+                failure = 5; \
+                break; \
+            } \
+            if (_process_unspecified_params_cntr(p_param_storage, p_val, p_param_entry, p_tag_map, param_id, _N_ , &cntr) != 0) { \
+                failure = 6; \
+                break; \
+            } \
+            va_end(cntr.parameters); \
         } else if (metac_entry_is_unspecified_parameter(p_param_entry) != 0) { \
             if (metac_parameter_storage_append_by_parameter_storage(p_param_storage, p_param_entry) != 0) { \
                 failure = 5; \
