@@ -41,10 +41,15 @@ enum x {
     xTwo = 2,
     xMinusOne = -1,
 };
-int test_function4_with_enum_args(enum x arg0, enum x arg1, enum x arg2, list_t x) {
+int test_function4_with_enum_args(enum x arg0, enum x arg1, enum x arg2) {
     return 0;
 }
 METAC_GSYM_LINK(test_function4_with_enum_args);
+
+int test_function4_with_struct_args(list_t x) {
+    return 0;
+}
+METAC_GSYM_LINK(test_function4_with_struct_args);
 
 metac_tag_map_t * p_tagmap = NULL;
 METAC_TAG_MAP_NEW(va_args_tag_map, NULL, {.mask = 
@@ -76,8 +81,11 @@ int main() {
 
     printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, my_printf, "%d %d\n", 10, 22));
 
-    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, xOne, xTwo, xMinusOne, *p_list));
-    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, 1, 2, -1, *p_list));
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, xOne, xTwo, xMinusOne));
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_enum_args, 1, 2, -1));
+
+    printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_struct_args, *p_list));
+
 
     metac_tag_map_delete(p_tagmap);
     return 0;

@@ -121,6 +121,8 @@ static int _process_unspecified_params(
                     } else { \
                         memcpy(metac_value_addr(p_param_value), &_x_val, param_entry_byte_size); \
                     } \
+                } else if (metac_entry_has_members(p_param_type_entry) != 0) { \
+                    memcpy(metac_value_addr(p_param_value), &_x_val, param_entry_byte_size); \
                 } else { \
                     /* not supported */ \
                     failure = 3; \
