@@ -101,10 +101,13 @@ int main() {
 
     printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, test_function4_with_struct_args, *p_list));
 
+#if __linux__
+#else
     WITH_VA_LIST_CONTAINER(c,
         VA_LIST_CONTAINER(c, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         printf("fn returned: %i\n", METAC_WRAP_FN_RES(p_tagmap, my_vprintf, "%d %d %d %d %d %d %d %d %d %d\n", c.parameters));
     );
+#endif
 
     metac_tag_map_delete(p_tagmap);
     return 0;

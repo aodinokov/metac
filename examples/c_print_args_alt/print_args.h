@@ -90,7 +90,16 @@ static void _va_list_cp_to_container(struct va_list_container * dst, va_list src
 #define _QSTRING_ARG(_args) \
     _QSTRING(_args)
 
+// #if __linux__
+// #define _init_x_val(arg) \
+//         typeof(arg) _x_val = _Generic(arg, va_list: dummy, default: arg);
+// #else
+#define _init_x_val(arg) \
+        typeof(arg) _x_val = arg;
+//#endif
+
 #define _APPEND_PARAM(_NEXT_, _N_, args...) if (failure == 0) { \
+        va_list dummy; \
         metac_entry_t *p_param_entry = metac_entry_by_paremeter_id(p_val_entry, param_id); \
         if (metac_entry_is_unspecified_parameter(p_param_entry) == 0 && metac_entry_is_va_list_parameter(p_param_entry) == 0) { \
             /* normal argument */ \
@@ -106,7 +115,8 @@ static void _va_list_cp_to_container(struct va_list_container * dst, va_list src
                 failure = 2; \
                 break; \
             } \
-            typeof(MR_FIRST(args)) _x_val = MR_FIRST(args); \
+            /*typeof(MR_FIRST(args)) _x_val = _Generic(MR_FIRST(args), char*:MR_FIRST(args), default: MR_FIRST(args)); */ \
+            _init_x_val(MR_FIRST(args)) \
             if (metac_parameter_storage_append_by_buffer(p_param_storage, p_param_entry, param_entry_byte_size) == 0) { \
                 metac_value_t * p_param_value = metac_parameter_storage_new_param_value(p_param_storage, param_id); \
                 \
@@ -158,7 +168,6 @@ static void _va_list_cp_to_container(struct va_list_container * dst, va_list src
             } \
         } else if (metac_entry_is_va_list_parameter(p_param_entry) != 0) { \
             struct va_list_container cntr = {}; \
-            va_list dummy; \
             _va_list_cp_to_container(&cntr, _Generic(MR_FIRST(args), va_list: MR_FIRST(args), default: dummy)); \
             if (metac_parameter_storage_append_by_parameter_storage(p_param_storage, p_param_entry) != 0) { \
                 failure = 5; \
