@@ -35,7 +35,7 @@ jobs:
     # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
     # GO_TELEMETRY_CHILD=off
     # The host should always be Linux.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: ubuntu (s390x - big endian)
     steps:
       - uses: actions/checkout@v4
