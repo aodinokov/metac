@@ -66,9 +66,7 @@ jobs:
             go test -cover ./...
             go build
             
-            # seeing segfaults when cc tries to build some code for this architecture starting 2025
-            # will try to uncomment later 
-            # make test all
+            make test all
 
   macos:
     runs-on: macos-latest
