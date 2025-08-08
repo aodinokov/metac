@@ -66,7 +66,8 @@ jobs:
             go test -cover ./...
             go build
             
-            make test all
+            # this started to use new CC ~5m ago which segfaults. try to uncomment later
+            # make test all
 
   macos:
     runs-on: macos-latest
