@@ -6,9 +6,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - { go-version: 1.22.x, dwarf-version: 3}
-          - { go-version: 1.22.x, dwarf-version: 4}
-          - { go-version: 1.22.x, dwarf-version: 5}
+          - { go-version: 1.24.x, dwarf-version: 3}
+          - { go-version: 1.24.x, dwarf-version: 4}
+          - { go-version: 1.24.x, dwarf-version: 5}
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -35,12 +35,12 @@ jobs:
     # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
     # GO_TELEMETRY_CHILD=off
     # The host should always be Linux.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: ubuntu (s390x - big endian)
     steps:
       - uses: actions/checkout@v4
       - name: Download Go
-        run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.22.0.linux-s390x.tar.gz
+        run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.24.6.linux-s390x.tar.gz
       - uses: uraimo/run-on-arch-action@v2
         name: Run commands
         id: runcmd
@@ -66,14 +66,14 @@ jobs:
             go test -cover ./...
             go build
             
-            # lots of segfaults when cc runs with updated version of ubuntu. uncomment this later
+            # this started to use new CC ~5m ago which segfaults. try to uncomment later
             # make test all
 
   macos:
     runs-on: macos-latest
     strategy:
       matrix:
-        go-version: [1.22.x] # , 1.21.x, 1.20.x]
+        go-version: [1.24.x] # , 1.21.x, 1.20.x]
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -97,7 +97,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - { go-version: 1.22.x, sys: mingw64, env: x86_64 }
+          - { go-version: 1.24.x, sys: mingw64, env: x86_64 }
     defaults:
       run:
         shell: msys2 {0}
