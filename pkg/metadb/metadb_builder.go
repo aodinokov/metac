@@ -772,6 +772,8 @@ func (builder *MetaDbBuilder) processEntry(cu *CompileUnit, parent ICommon, offs
 		_, err = builder.processVariable(cu, parent, index)
 	case "LexDwarfBlock":
 		_, err = builder.processLexBlock(cu, parent, index)
+	case "DwarfProcedure":
+		fallthrough
 	case "Subprogram":
 		_, err = builder.processSubprogram(cu, parent, index)
 	case "Namespace":
@@ -780,8 +782,6 @@ func (builder *MetaDbBuilder) processEntry(cu *CompileUnit, parent ICommon, offs
 	case "Label": // goto label???
 		fallthrough
 	case "CallSite": // kind of place from which function is called. we don't track that.
-		fallthrough
-	case "DwarfProcedure":
 		fallthrough
 	case "InlinedSubroutine": // place inside Subroutine or lexblock where other fn called. we don't track
 		return nil, nil
