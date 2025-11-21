@@ -772,6 +772,8 @@ func (builder *MetaDbBuilder) processEntry(cu *CompileUnit, parent ICommon, offs
 		_, err = builder.processVariable(cu, parent, index)
 	case "LexDwarfBlock":
 		_, err = builder.processLexBlock(cu, parent, index)
+	case "DwarfProcedure":
+		fallthrough
 	case "Subprogram":
 		_, err = builder.processSubprogram(cu, parent, index)
 	case "Namespace":
