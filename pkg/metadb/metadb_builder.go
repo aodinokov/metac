@@ -781,6 +781,8 @@ func (builder *MetaDbBuilder) processEntry(cu *CompileUnit, parent ICommon, offs
 		fallthrough
 	case "CallSite": // kind of place from which function is called. we don't track that.
 		fallthrough
+	case "DwarfProcedure":
+		fallthrough
 	case "InlinedSubroutine": // place inside Subroutine or lexblock where other fn called. we don't track
 		return nil, nil
 	default:
