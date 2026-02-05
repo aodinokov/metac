@@ -20,20 +20,25 @@ ifeq ($(WITH_CJSON),1)
   endif
 endif
 
-# # --- YAML Backend ---
-# ifeq ($(WITH_YAML),1)
-#   # Add sources to the main library build
-#   libmetac+=src/serialization/yaml/metac_value_to_yaml.c src/serialization/yaml/metac_value_from_yaml.c
+# --- YAML Backend ---
+ifeq ($(WITH_YAML),1)
+  # Add sources to the main library build
+  libmetac+= \
+	src/serialization/yaml/yaml_context.c \
+	src/serialization/yaml/yaml_handler.c \
+	src/serialization/yaml/yaml_events.c \
+	src/serialization/yaml/api.c
+  # src/serialization/yaml/value_to_yaml.c src/serialization/yaml/value_from_yaml.c
 
-#   # Add pkg-config flags
-#   YAML_CFLAGS := $(shell pkg-config --cflags yaml-0.1 2>/dev/null)
-#   YAML_LIBS := $(shell pkg-config --libs yaml-0.1 2>/dev/null)
+  # Add pkg-config flags
+  YAML_CFLAGS := $(shell pkg-config --cflags yaml-0.1 2>/dev/null) -DWITH_YAML
+  YAML_LIBS := $(shell pkg-config --libs yaml-0.1 2>/dev/null)
 
-#   # Append to global flags.
-#   ifneq ($(YAML_CFLAGS),)
-#     CFLAGS += $(YAML_CFLAGS)
-#     LDFLAGS += $(YAML_LIBS)
-#   else
-#     $(warning libyaml not found by pkg-config, YAML backend may fail to link)
-#   endif
-# endif
+  # Append to global flags.
+  ifneq ($(YAML_CFLAGS),)
+    CFLAGS += $(YAML_CFLAGS)
+    LDFLAGS += $(YAML_LIBS)
+  else
+    $(warning libyaml not found by pkg-config, YAML backend may fail to link)
+  endif
+endif
