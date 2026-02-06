@@ -15,8 +15,10 @@
 #include "metac/serialization/yaml.h"
 #include "metac/reflect.h"
 #include "metac/backend/iterator.h"
+#include "metac/const.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <yaml.h>
 
 /*
@@ -67,9 +69,6 @@ static int yaml_emit_scalar_string(yaml_emitter_t *p_emitter, const char *s)
     return yaml_emitter_emit(p_emitter, &event);
 }
 
-/* Forward declaration for recursion */
-static int yaml_emit_value(metac_yaml_serialization_t *p_serial, yaml_emitter_t *p_emitter, metac_value_t *p_value);
-
 static int yaml_emit_mapping_start(yaml_emitter_t *p_emitter)
 {
     yaml_event_t event;
@@ -96,92 +95,6 @@ static int yaml_emit_sequence_end(yaml_emitter_t *p_emitter)
     yaml_event_t event;
     if (!yaml_sequence_end_event_initialize(&event)) return 0;
     return yaml_emitter_emit(p_emitter, &event);
-}
-
-/* Recursive emitter: handle structs (mappings), arrays (sequences), base types (scalars) */
-static int yaml_emit_value(metac_yaml_serialization_t *p_serial, yaml_emitter_t *p_emitter, metac_value_t *p_value)
-{
-    if (!p_value || !p_emitter) return 0;
-
-    // Struct / union / class -> mapping
-    if (metac_value_has_members(p_value)) {
-        if (!yaml_emit_mapping_start(p_emitter)) return 0;
-        metac_num_t mcount = metac_value_member_count(p_value);
-        for (metac_num_t i = 0; i < mcount; ++i) {
-            metac_value_t *p_memb = metac_new_value_by_member_id(p_value, i);
-            if (!p_memb) { yaml_emit_mapping_end(p_emitter); return 0; }
-            metac_name_t memb_name = metac_value_name(p_memb);
-            // Emit key
-            if (!yaml_emit_scalar_string(p_emitter, memb_name ? memb_name : "")) {
-                metac_value_delete(p_memb); yaml_emit_mapping_end(p_emitter); return 0;
-            }
-            // Emit value recursively
-            if (!yaml_emit_value(p_serial, p_emitter, p_memb)) {
-                metac_value_delete(p_memb); yaml_emit_mapping_end(p_emitter); return 0;
-            }
-            metac_value_delete(p_memb);
-        }
-        if (!yaml_emit_mapping_end(p_emitter)) return 0;
-        return 1;
-    }
-
-    // Array -> sequence
-    if (metac_value_has_elements(p_value)) {
-        if (!yaml_emit_sequence_start(p_emitter)) return 0;
-        metac_num_t count = metac_value_element_count(p_value);
-        if (count < 0) count = 0; // flexible arrays handled as empty if unknown
-        for (metac_num_t i = 0; i < (metac_num_t)count; ++i) {
-            metac_value_t *p_elem = metac_new_value_by_element_id(p_value, i);
-            if (!p_elem) { yaml_emit_sequence_end(p_emitter); return 0; }
-            if (!yaml_emit_value(p_serial, p_emitter, p_elem)) { metac_value_delete(p_elem); yaml_emit_sequence_end(p_emitter); return 0; }
-            metac_value_delete(p_elem);
-        }
-        if (!yaml_emit_sequence_end(p_emitter)) return 0;
-        return 1;
-    }
-
-    // Enumeration
-    if (metac_value_is_enumeration(p_value)) {
-        char *s = metac_value_enumeration_string(p_value);
-        if (!s) return 0;
-        int rc = yaml_emit_scalar_string(p_emitter, s);
-        free(s);
-        return rc;
-    }
-
-    // Base type -> scalar
-    if (metac_value_is_base_type(p_value)) {
-        char *s = metac_value_base_type_string(p_value);
-        if (!s) return 0;
-        int rc = yaml_emit_scalar_string(p_emitter, s);
-        free(s);
-        return rc;
-    }
-
-    // Pointer handling: attempt to treat as single-element array or print pointer
-    if (metac_value_is_pointer(p_value)) {
-        // Try to obtain array with element count via helper
-        metac_value_t *p_arr_val = metac_new_element_count_value(p_value, 1);
-        if (p_arr_val && metac_value_has_elements(p_arr_val)) {
-            int rc = yaml_emit_value(p_serial, p_emitter, p_arr_val);
-            metac_value_delete(p_arr_val);
-            return rc;
-        }
-        if (p_arr_val) metac_value_delete(p_arr_val);
-        // Fallback: print pointer as string
-        char *s = metac_value_pointer_string(p_value);
-        if (!s) return 0;
-        int rc = yaml_emit_scalar_string(p_emitter, s);
-        free(s);
-        return rc;
-    }
-
-    /* Fallback: use generic string representation */
-    char *s = metac_value_string_ex(p_value, p_serial->walk_mode, NULL);
-    if (!s) return 0;
-    int rc = yaml_emit_scalar_string(p_emitter, s);
-    free(s);
-    return rc;
 }
 
 /**
@@ -229,12 +142,17 @@ static int yaml_emit_scalar(metac_yaml_serialization_t *p_serial, yaml_emitter_t
         return 0;
     }
 
-    /* Use existing metac pretty-printer to obtain textual representation
-     * of the value for a broad set of kinds (base types, enums, arrays,
-     * structs, pointers in shallow mode, etc.). This keeps YAML emission
-     * simple: we emit a single scalar containing the value string.
-     */
-    out = metac_value_string_ex(p_value, p_serial->walk_mode, NULL);
+    /* Check if this is a base type using final_kind to skip wrappers */
+    metac_kind_t kind = metac_value_final_kind(p_value, NULL);
+
+    if (kind == METAC_KND_base_type) {
+        out = metac_value_base_type_string(p_value);
+    } else if (kind == METAC_KND_enumeration_type) {
+        out = metac_value_enumeration_string(p_value);
+    } else {
+        out = metac_value_string_ex(p_value, p_serial->walk_mode, NULL);
+    }
+
     if (out == NULL) {
         return 0;
     }
@@ -258,95 +176,160 @@ static int yaml_emit_scalar(metac_yaml_serialization_t *p_serial, yaml_emitter_t
     return rc;
 }
 
+/* Iterative emitter using metac_recursive_iterator */
+static int yaml_run_iterator(metac_yaml_serialization_t *p_serial, yaml_emitter_t *p_emitter)
+{
+    metac_recursive_iterator_t *p_iter = metac_yaml_serialization_get_iterator(p_serial);
+    if (!p_iter) return 0;
+
+    for (metac_value_t *p = (metac_value_t *)metac_recursive_iterator_next(p_iter);
+         p != NULL;
+         p = (metac_value_t *)metac_recursive_iterator_next(p_iter)) {
+        
+        int state = metac_recursive_iterator_get_state(p_iter);
+        metac_kind_t kind = metac_value_final_kind(p, NULL);
+
+        if (state == METAC_R_ITER_start) {
+            /* Emit Key if this is a member of a struct (and not the root object)
+             * BUT: Do NOT emit for array elements - only for struct members */
+            if (p != p_serial->p_value) {
+                /* Check if parent is an array - if so, don't emit element name */
+                metac_value_t *p_parent = (metac_value_t *)metac_recursive_iterator_get_in(p_iter, 1);
+                int is_array_element = (p_parent != NULL &&
+                    metac_value_final_kind(p_parent, NULL) == METAC_KND_array_type);
+
+                if (!is_array_element) {
+                    /* Emit name for struct members only */
+                    metac_name_t name = metac_value_name(p);
+                    if (name) {
+                        if (!yaml_emit_scalar_string(p_emitter, name)) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            /* Emit Value Start */
+            /* Check if we should recurse based on walk_mode */
+            int should_recurse = 1;
+            if (p_serial->walk_mode == METAC_WMODE_shallow && p != p_serial->p_value) {
+                /* In shallow mode, skip recursion for complex types (except root) */
+                kind = metac_value_final_kind(p, NULL);
+                if (kind != METAC_KND_base_type && kind != METAC_KND_enumeration_type &&
+                    kind != METAC_KND_pointer_type) {
+                    should_recurse = 0;
+                }
+            }
+
+            if (should_recurse && metac_value_has_members(p)) { /* Struct/Union */
+                if (!yaml_emit_mapping_start(p_emitter)) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+
+                /* Push children */
+                metac_num_t mcount = metac_value_member_count(p);
+                for (metac_num_t i = 0; i < mcount; ++i) {
+                    metac_value_t *p_memb = metac_new_value_by_member_id(p, i);
+                    if (p_memb) {
+                        metac_recursive_iterator_create_and_append_dep(p_iter, p_memb);
+                    }
+                }
+                metac_recursive_iterator_set_state(p_iter, 1);
+
+            } else if (should_recurse && metac_value_final_kind(p, NULL) == METAC_KND_array_type) { /* Array */
+                if (!yaml_emit_sequence_start(p_emitter)) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+
+                /* Push elements */
+                metac_num_t count = metac_value_element_count(p);
+                if (count < 0) count = 0; /* flexible array unknown size */
+                for (metac_num_t i = 0; i < count; ++i) {
+                    metac_value_t *p_elem = metac_new_value_by_element_id(p, i);
+                    if (p_elem) {
+                        metac_recursive_iterator_create_and_append_dep(p_iter, p_elem);
+                    }
+                }
+                metac_recursive_iterator_set_state(p_iter, 1);
+
+            } else { /* Scalar */
+                if (!yaml_emit_scalar(p_serial, p_emitter, p)) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+                metac_recursive_iterator_done(p_iter, NULL);
+            }
+        } else if (state == 1) {
+            /* End of container */
+            
+            /* Dequeue dependencies (we don't use their return values) */
+            while (!metac_recursive_iterator_dep_queue_is_empty(p_iter)) {
+                metac_value_t *p_dep_val = NULL;
+                metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_dep_val, NULL);
+                if (p_dep_val) metac_value_delete(p_dep_val);
+            }
+
+            if (metac_value_has_members(p)) {
+                if (!yaml_emit_mapping_end(p_emitter)) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+            } else if (metac_value_final_kind(p, NULL) == METAC_KND_array_type) {
+                if (!yaml_emit_sequence_end(p_emitter)) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+            }
+            metac_recursive_iterator_done(p_iter, NULL);
+        }
+    }
+
+    int fail = 0;
+    metac_recursive_iterator_get_out(p_iter, NULL, &fail);
+    /* Note: we don't free p_iter here, it's owned by context */
+    return (fail == 0) ? 1 : 0;
+}
+
 /**
  * @brief Measure phase: Calculate required buffer size
- * 
- * Traverses the metac value structure and creates cached iterator.
- * This iterator is reused in to_buffer() phase to avoid double-traversal.
- * 
- * Algorithm:
- * 1. Initialize YAML emitter
- * 2. Create temporary null-output handler (discards data)
- * 3. Generate YAML events using iterator
- * 4. Track size of generated YAML
- * 5. Cache the iterator for next phase
- * 6. Return required buffer size
- * 
+ *
+ * Returns a conservative size estimate without consuming the iterator.
+ * The actual iterator is reserved for the to_buffer() phase to emit YAML.
+ *
  * @param p_serial  YAML serialization context
  * @param p_size    Output: Required buffer size (including null terminator)
- * 
+ *
  * @return 0 on success, -1 on failure
- * 
- * Must be called before metac_yaml_serialization_to_buffer().
- * Can be called multiple times (will reuse cached iterator).
  */
 int metac_yaml_serialization_measure(
     metac_yaml_serialization_t *p_serial,
     size_t *p_size)
 {
-    metac_recursive_iterator_t *p_iter;
-    metac_yaml_handler_context_t handler;
-    char null_buffer[4096];  // Temporary buffer for measurement
     size_t estimated_size;
 
     if (!p_serial || !p_size) {
         return -1;
     }
 
-    // Get or create cached iterator
-    p_iter = metac_yaml_serialization_get_iterator(p_serial);
-    if (!p_iter) {
-        return -1;
-    }
-
-    // Initialize handler for temporary output
-    metac_yaml_handler_init(&handler, null_buffer, sizeof(null_buffer));
-
-    // Configure emitter
-    if (!metac_yaml_emitter_set_custom_output(&p_serial->emitter, &handler)) {
-        return -1;
-    }
-
-    // Set emitter options
-    yaml_emitter_set_canonical(&p_serial->emitter, 0);
-    yaml_emitter_set_indent(&p_serial->emitter, 2);
-    yaml_emitter_set_width(&p_serial->emitter, 80);
-
-    // Emit start document
-    if (!yaml_emit_start(&p_serial->emitter)) {
-        return -1;
-    }
-
-    // Walk the value tree and emit YAML events using recursive emitter
-    if (!yaml_emit_value(p_serial, &p_serial->emitter, p_serial->p_value)) {
-        return -1;
-    }
-
-    // Emit end document
-    if (!yaml_emit_end(&p_serial->emitter)) {
-        return -1;
-    }
-
-    // Flush emitter to ensure all data written
-    if (!yaml_emitter_flush(&p_serial->emitter)) {
-        return -1;
-    }
-
-    // Calculate required size
-    if (metac_yaml_handler_has_overflow(&handler)) {
-        // Estimate based on partial output
-        // In production, would use heuristic (e.g., multiply by 1.5)
-        estimated_size = sizeof(null_buffer) * 2;
+    // Conservative size estimate for YAML output
+    // We estimate based on the metac value's string representation
+    // rather than fully iterating, to preserve the iterator for to_buffer()
+    char *str = metac_value_string_ex(p_serial->p_value, p_serial->walk_mode, NULL);
+    if (str) {
+        // YAML typically expands due to structure (mappings, sequences, indentation)
+        // Conservative multiplier: 4x the input string length
+        estimated_size = strlen(str) * 4 + 256;  // +256 for YAML overhead
+        free(str);
     } else {
-        // Actual size from measurement + space for null terminator
-        estimated_size = metac_yaml_handler_get_bytes_written(&handler) + 1;
+        // Fallback safe estimate
+        estimated_size = 4096;
     }
 
     // Mark context as measured and cache size
     metac_yaml_serialization_set_measured(p_serial, estimated_size);
-
-    // Cache the iterator (will be reused in to_buffer())
-    // p_iter is already cached in p_serial->p_iterator_cached
 
     *p_size = estimated_size;
     return 0;
@@ -379,7 +362,6 @@ int metac_yaml_serialization_to_buffer(
     char *p_buffer,
     size_t size)
 {
-    metac_recursive_iterator_t *p_iter;
     metac_yaml_handler_context_t handler;
 
     if (!p_serial || !p_buffer) {
@@ -388,12 +370,6 @@ int metac_yaml_serialization_to_buffer(
 
     // Must call measure() first
     if (!metac_yaml_serialization_is_measured(p_serial)) {
-        return -1;
-    }
-
-    // Get cached iterator (created in measure phase)
-    p_iter = metac_yaml_serialization_get_iterator(p_serial);
-    if (!p_iter) {
         return -1;
     }
 
@@ -421,9 +397,8 @@ int metac_yaml_serialization_to_buffer(
         return -1;
     }
 
-    // Walk the value tree and emit YAML events using recursive emitter
-    // Using cached iterator - NO re-traversal
-    if (!yaml_emit_value(p_serial, &p_serial->emitter, p_serial->p_value)) {
+    // Walk the value tree and emit YAML events using iterative emitter
+    if (!yaml_run_iterator(p_serial, &p_serial->emitter)) {
         return -1;
     }
 
