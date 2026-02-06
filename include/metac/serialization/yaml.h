@@ -63,8 +63,49 @@ void metac_free_yaml_string(char *p_str);
 char* metac_value_to_yaml(metac_value_t* p_val, metac_value_walk_mode_t wmode, metac_tag_map_t* p_tag_map);
 int metac_value_from_yaml(metac_value_t* p_val, const char* yaml_string, metac_tag_map_t* p_tag_map);
 
-/* Internal functions */
-metac_recursive_iterator_t* metac_yaml_serialization_get_iterator(metac_yaml_serialization_t *p_serial);
+/**
+ * @brief YAML deserialization context
+ */
+typedef struct {
+	metac_value_t *p_value;
+	metac_value_walk_mode_t walk_mode;
+	yaml_parser_t parser;
+	yaml_event_t current_event;
+	int parsed;
+	int error_code;
+	char *p_error_message;
+} metac_yaml_deserialization_t;
+
+/* Context API - Explicit Control */
+metac_yaml_deserialization_t* metac_yaml_deserialization_new(
+	metac_value_t *p_value,
+	metac_value_walk_mode_t walk_mode);
+int metac_yaml_deserialization_from_string(
+	metac_yaml_deserialization_t *p_deser,
+	const char *p_yaml_string,
+	size_t yaml_len);
+const char* metac_yaml_deserialization_get_error(
+	metac_yaml_deserialization_t *p_deser);
+void metac_yaml_deserialization_delete(
+	metac_yaml_deserialization_t *p_deser);
+
+/* Convenience API - Fire-and-Forget */
+int metac_value_from_yaml_string(
+	metac_value_t *p_value,
+	const char *p_yaml_string,
+	metac_value_walk_mode_t walk_mode);
+
+/* Internal deserialization functions */
+void metac_yaml_deserialization_set_error(
+	metac_yaml_deserialization_t *p_deser,
+	const char *p_message,
+	int error_code);
+int metac_yaml_deserialization_is_parsed(
+	metac_yaml_deserialization_t *p_deser);
+
+/* Internal serialization functions */
+metac_recursive_iterator_t* metac_yaml_serialization_get_iterator(
+	metac_yaml_serialization_t *p_serial);
 int metac_yaml_serialization_is_measured(metac_yaml_serialization_t *p_serial);
 void metac_yaml_serialization_set_measured(metac_yaml_serialization_t *p_serial, size_t size);
 size_t metac_yaml_serialization_get_required_size(metac_yaml_serialization_t *p_serial);

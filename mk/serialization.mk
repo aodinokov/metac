@@ -24,9 +24,12 @@ endif
 ifeq ($(WITH_YAML),1)
   # Add sources to the main library build
   libmetac+= \
-	src/serialization/yaml/yaml_context.c \
-	src/serialization/yaml/yaml_handler.c \
-	src/serialization/yaml/yaml_events.c \
+	src/serialization/yaml/yaml_ser_context.c \
+	src/serialization/yaml/yaml_ser_handler.c \
+	src/serialization/yaml/yaml_ser_events.c \
+	src/serialization/yaml/yaml_deser_context.c \
+	src/serialization/yaml/yaml_deser_events.c \
+	src/serialization/yaml/yaml_deser_api.c \
 	src/serialization/yaml/api.c
   # src/serialization/yaml/value_to_yaml.c src/serialization/yaml/value_from_yaml.c
 

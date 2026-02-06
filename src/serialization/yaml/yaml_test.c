@@ -19,11 +19,16 @@
 
 
 
-/* Include our YAML implementation to test it in-process */
-#include "yaml_context.c"
-#include "yaml_handler.c"
-#include "yaml_events.c"
+/* Include our YAML serialization implementation to test it in-process */
+#include "yaml_ser_context.c"
+#include "yaml_ser_handler.c"
+#include "yaml_ser_events.c"
 #include "api.c"
+
+/* Include our YAML deserialization implementation */
+#include "yaml_deser_context.c"
+#include "yaml_deser_events.c"
+#include "yaml_deser_api.c"
 
 #include "metac/serialization/yaml.h"
 
@@ -384,5 +389,185 @@ METAC_START_TEST(yaml_extended_types_coverage) {
         metac_value_delete(p);
     }
 }
+
+/**
+ * @brief Test: Basic deserialization of struct
+ */
+METAC_START_TEST(yaml_basic_deserialization) {
+    /* Serialize original struct */
+    metac_value_t *p_struct_src = METAC_VALUE_FROM_LINK(yaml_test_struct_v);
+    fail_unless(p_struct_src != NULL, "failed to obtain source struct");
+
+    /* Serialize to YAML */
+    char *yaml_str = metac_value_to_yaml_string(p_struct_src, METAC_WMODE_shallow);
+    fail_unless(yaml_str != NULL, "failed to serialize struct");
+
+    /* Create fresh target struct */
+    struct yaml_test_struct target_struct;
+    memset(&target_struct, 0, sizeof(target_struct));
+
+    metac_value_t *p_struct_tgt = metac_new_value(
+        METAC_GSYM_LINK_ENTRY(yaml_test_struct_v),
+        &target_struct);
+    fail_unless(p_struct_tgt != NULL, "failed to create target struct value");
+
+    /* Deserialize */
+    int ret = metac_value_from_yaml_string(p_struct_tgt, yaml_str, METAC_WMODE_shallow);
+    fail_unless(ret == 0, "struct deserialization failed");
+
+    /* Verify member values */
+    fail_unless(target_struct.a == -7, "struct member 'a' mismatch: got %d, expected -7", target_struct.a);
+    fail_unless(target_struct.b == 'k', "struct member 'b' mismatch: got %c, expected k", target_struct.b);
+
+    /* Cleanup */
+    metac_value_delete(p_struct_tgt);
+    metac_free_yaml_string(yaml_str);
+    metac_value_delete(p_struct_src);
+
+} END_TEST
+
+/**
+ * @brief Test: Deserialization of array
+ */
+METAC_START_TEST(yaml_array_deserialization) {
+    /* Get source array */
+    metac_value_t *p_arr_src = METAC_VALUE_FROM_LINK(yaml_test_arr);
+    fail_unless(p_arr_src != NULL, "failed to obtain source array");
+
+    /* Serialize to YAML */
+    char *yaml_str = metac_value_to_yaml_string(p_arr_src, METAC_WMODE_shallow);
+    fail_unless(yaml_str != NULL, "failed to serialize array");
+
+    /* Create fresh target array */
+    int target_arr[3];
+    memset(target_arr, 0, sizeof(target_arr));
+
+    metac_value_t *p_arr_tgt = metac_new_value(
+        METAC_GSYM_LINK_ENTRY(yaml_test_arr),
+        target_arr);
+    fail_unless(p_arr_tgt != NULL, "failed to create target array value");
+
+    /* Deserialize */
+    int ret = metac_value_from_yaml_string(p_arr_tgt, yaml_str, METAC_WMODE_shallow);
+    fail_unless(ret == 0, "array deserialization failed");
+
+    /* Verify array values */
+    fail_unless(target_arr[0] == 1, "array[0] mismatch: got %d, expected 1", target_arr[0]);
+    fail_unless(target_arr[1] == 2, "array[1] mismatch: got %d, expected 2", target_arr[1]);
+    fail_unless(target_arr[2] == 3, "array[2] mismatch: got %d, expected 3", target_arr[2]);
+
+    /* Cleanup */
+    metac_value_delete(p_arr_tgt);
+    metac_free_yaml_string(yaml_str);
+    metac_value_delete(p_arr_src);
+
+} END_TEST
+
+/**
+ * @brief Test: Bidirectional consistency (round-trip)
+ *
+ * Serialize value A → Deserialize into B → Serialize B → Compare YAML strings
+ */
+METAC_START_TEST(yaml_roundtrip_consistency) {
+    /* Serialize original struct */
+    metac_value_t *p_orig = METAC_VALUE_FROM_LINK(yaml_test_struct_v);
+    fail_unless(p_orig != NULL, "failed to get original struct");
+
+    char *yaml_str1 = metac_value_to_yaml_string(p_orig, METAC_WMODE_shallow);
+    fail_unless(yaml_str1 != NULL, "failed to serialize original");
+
+    /* Deserialize into fresh struct */
+    struct yaml_test_struct roundtrip;
+    memset(&roundtrip, 0, sizeof(roundtrip));
+
+    metac_value_t *p_rtval = metac_new_value(
+        METAC_GSYM_LINK_ENTRY(yaml_test_struct_v),
+        &roundtrip);
+    fail_unless(p_rtval != NULL, "failed to create roundtrip value");
+
+    int ret = metac_value_from_yaml_string(p_rtval, yaml_str1, METAC_WMODE_shallow);
+    fail_unless(ret == 0, "roundtrip deserialization failed");
+
+    /* Re-serialize the roundtrip value */
+    char *yaml_str2 = metac_value_to_yaml_string(p_rtval, METAC_WMODE_shallow);
+    fail_unless(yaml_str2 != NULL, "failed to re-serialize roundtrip");
+
+    /* Compare YAML strings - should be identical or equivalent */
+    fail_unless(strcmp(yaml_str1, yaml_str2) == 0,
+        "YAML round-trip mismatch:\nOriginal:\n%s\nRound-trip:\n%s", yaml_str1, yaml_str2);
+
+    /* Cleanup */
+    metac_value_delete(p_rtval);
+    metac_free_yaml_string(yaml_str2);
+    metac_free_yaml_string(yaml_str1);
+    metac_value_delete(p_orig);
+
+} END_TEST
+
+/**
+ * @brief Test: Context API deserialization workflow
+ */
+METAC_START_TEST(yaml_context_api_deserialization) {
+    /* Create a struct to deserialize into */
+    struct yaml_test_struct target;
+    memset(&target, 0, sizeof(target));
+
+    metac_value_t *p_target = metac_new_value(
+        METAC_GSYM_LINK_ENTRY(yaml_test_struct_v),
+        &target);
+    fail_unless(p_target != NULL, "failed to create target value");
+
+    /* Create deserialization context */
+    metac_yaml_deserialization_t *p_deser = metac_yaml_deserialization_new(p_target, METAC_WMODE_shallow);
+    fail_unless(p_deser != NULL, "failed to create deserialization context");
+
+    /* Prepare YAML string */
+    const char *yaml_input = "a: -7\nb: k\n";
+
+    /* Parse YAML */
+    int ret = metac_yaml_deserialization_from_string(p_deser, yaml_input, strlen(yaml_input));
+    fail_unless(ret == 0, "deserialization failed: %s", metac_yaml_deserialization_get_error(p_deser));
+
+    /* Verify state */
+    fail_unless(metac_yaml_deserialization_is_parsed(p_deser), "context should be marked as parsed");
+
+    /* Verify values were deserialized */
+    fail_unless(target.a == -7, "member 'a' mismatch");
+    fail_unless(target.b == 'k', "member 'b' mismatch");
+
+    /* Cleanup */
+    metac_yaml_deserialization_delete(p_deser);
+    metac_value_delete(p_target);
+
+} END_TEST
+
+/**
+ * @brief Test: Convenience API deserialization
+ */
+METAC_START_TEST(yaml_convenience_api_deserialization) {
+    /* Create a struct to deserialize into */
+    struct yaml_test_struct target;
+    memset(&target, 0, sizeof(target));
+
+    metac_value_t *p_target = metac_new_value(
+        METAC_GSYM_LINK_ENTRY(yaml_test_struct_v),
+        &target);
+    fail_unless(p_target != NULL, "failed to create target value");
+
+    /* Simple YAML */
+    const char *yaml_input = "a: 100\nb: x\n";
+
+    /* Single-call convenience API */
+    int ret = metac_value_from_yaml_string(p_target, yaml_input, METAC_WMODE_shallow);
+    fail_unless(ret == 0, "convenience deserialization failed");
+
+    /* Verify values */
+    fail_unless(target.a == 100, "got %d, expected 100", target.a);
+    fail_unless(target.b == 'x', "got %c, expected x", target.b);
+
+    /* Cleanup */
+    metac_value_delete(p_target);
+
+} END_TEST
 
 #endif // WITH_YAML

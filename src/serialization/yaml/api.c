@@ -1,12 +1,12 @@
 /**
  * @file api.c
  * @brief Convenience API: Single-call YAML serialization
- * 
+ *
  * Provides a high-level convenience function that orchestrates the core
- * serialization functions from yaml_context.c and yaml_events.c.
- * 
+ * serialization functions from yaml_ser_context.c and yaml_ser_events.c.
+ *
  * This demonstrates the "wrapper pattern" where:
- * - measure(), to_buffer(), and delete() are SHARED (from yaml_events.c, yaml_context.c)
+ * - measure(), to_buffer(), and delete() are SHARED (from yaml_ser_events.c, yaml_ser_context.c)
  * - Only malloc/free logic is NEW
  * - Result: 90% code reuse (28 lines new + 250 lines shared)
  * 
