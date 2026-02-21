@@ -34,17 +34,30 @@
     })
 #define _json_string(p_val) _json_string_ex(p_val, METAC_WMODE_shallow, NULL)
 
+#define _check_strings_(_s_, _s_expected, ...) do { \
+        char * _s = _s_; \
+        char * _expected_s = _s_expected;  \
+        \
+        if (_expected_s == NULL) { \
+            fail_unless(_s == NULL, "expecting NULL, got not NULL: %s", _s); \
+        } else { \
+            fail_unless(_s != NULL, "expecting non-NULL %s, got NULL", _expected_s); \
+            fail_unless(strcmp(_expected_s, _s) == 0, "expected %s, got %s", _expected_s, _s); \
+        } \
+        \
+        if (_s != NULL) { \
+            free(_s); \
+        } \
+    } while(0)
+
+
 char test0 = 120; // 'x'
 METAC_GSYM_LINK(test0);
 METAC_START_TEST(test0_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test0);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    char * s = _json_string(p_val);
-    char * expected_s = "120";
-    fail_unless(s != NULL, "wasn't able to get string");
-    fail_unless(strcmp(expected_s, s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(_json_string(p_val), "120");
 
     metac_value_delete(p_val);
 }END_TEST
@@ -56,11 +69,7 @@ METAC_START_TEST(test1_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test1);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    char * s = _json_string(p_val);
-    char * expected_s = "31";
-    fail_unless(s != NULL, "wasn't able to get string");
-    fail_unless(strcmp(expected_s, s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(_json_string(p_val), "31");
 
     metac_value_delete(p_val);
 }END_TEST
@@ -75,11 +84,7 @@ METAC_START_TEST(test2_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test2);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    char * s = _json_string(p_val);
-    char * expected_s = "\"_x_TstA\"";
-    fail_unless(s != NULL, "wasn't able to get string");
-    fail_unless(strcmp(expected_s, s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(_json_string(p_val), "\"_x_TstA\"");
 
     metac_value_delete(p_val);
 }END_TEST
@@ -93,11 +98,7 @@ METAC_START_TEST(test3_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test3);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    char * s = _json_string(p_val);
-    char * expected_s = "{\"y\":-10,\"c\":97}";
-    fail_unless(s != NULL, "wasn't able to get string");
-    fail_unless(strcmp(expected_s, s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(_json_string(p_val), "{\"y\":-10,\"c\":97}");
 
     metac_value_delete(p_val);
 } END_TEST
@@ -135,14 +136,10 @@ METAC_START_TEST(test4_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test4);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    char * s = _json_string(p_val);
     char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
-
-    fail_unless(s != NULL, "wasn't able to get string");
-    fail_unless(strcmp(expected_s, s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(_json_string(p_val), expected_s);
 
     metac_value_delete(p_val);
 } END_TEST
@@ -183,16 +180,14 @@ METAC_START_TEST(test5_satnity) {
     test5->flex[2].data = 3;
 
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test5);
-
     metac_value_t * p_arr_val = metac_new_element_count_value(p_val, 1);
     metac_value_delete(p_val);
 
-    char * s = _json_string_ex(p_arr_val, METAC_WMODE_shallow, p_tag_map);
-    fail_unless(s != NULL, "_json_string_ex returned NULL");
-    char * expected_s = "[{\"flex_size\":3,\"flex\":[{\"data\":1,\"more_data\":0},{\"data\":2,\"more_data\":0},{\"data\":3,\"more_data\":0}]}]"; 
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
+    _check_strings_(
+        _json_string_ex(p_arr_val, METAC_WMODE_shallow, p_tag_map),
+        "[{\"flex_size\":3,\"flex\":[{\"data\":1,\"more_data\":0},{\"data\":2,\"more_data\":0},{\"data\":3,\"more_data\":0}]}]"
+    );
 
-    free(s);
     metac_value_delete(p_arr_val);
     free(test5);
     metac_tag_map_delete(p_tag_map);
@@ -328,22 +323,22 @@ int test6_artificial_handler(metac_value_walker_hierarchy_t *p_hierarchy, metac_
     return 0;
 }
 void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
-    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);
+    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);    
     
     memset(&test6, 0, sizeof(test6));
-    char * expected_s = "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}";
-    char * s = _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map);
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
+        "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}"
+    );
 
     test6.selector = eInt;
     test6.i = -123456;
     test6.sgnd_selector = eShort;
     test6.sgnd.s = -12345;
-    expected_s = "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"; 
-    s = _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map);
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
+        "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"
+    );
 
     metac_value_delete(p_val);
 }
@@ -524,7 +519,6 @@ int test7_artifitial_handler(metac_value_walker_hierarchy_t *p_hierarchy, metac_
 
 void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     char exp_buf[128];
-    char * expected_s, *s;
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test7);
 
     test7.data = 0x555;
@@ -533,59 +527,49 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.p_content = &t7_contnt0_2;
 
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":\"%p\"}", test7.p_content); 
-    expected_s = exp_buf; 
-    s  = _json_string(p_val);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string(p_val),
+        exp_buf
+    );
 
-    expected_s = "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}"
+    );
 
     test7.data = 555;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_0;
-
-    expected_s = "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}"
+    );
 
     test7.data = 777;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_1;
-
-    expected_s = "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}"
+    );
 
     test7.data = 999;
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_0;
-
-    expected_s = "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}"
+    );
 
     test7.data = 888;
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
-
-    expected_s = "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}"
+    );
 
     test7.data = 1000;
     test7.content_type = 2;
@@ -594,11 +578,10 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
 
     /* check fallback to shallow if it's void* */
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1,\"p_content\":\"%p\"}", test7.p_content);
-    expected_s = exp_buf;
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
+        exp_buf
+    );
 
     metac_value_delete(p_val);
 }
@@ -625,19 +608,20 @@ struct t8_list_itm {
 }*t8_head = (struct t8_list_itm []){{.data = 0, .next = (struct t8_list_itm []){{.data = 1, .next = NULL,},},},};
 METAC_GSYM_LINK(t8_head);
 METAC_START_TEST(test8_satnity) {
-    char *s, *expected_s;
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(t8_head);
 
-    expected_s = "{\"data\":0,\"next\":{\"data\":1,\"next\":null}}";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, NULL);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    // without loop
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, NULL),
+        "{\"data\":0,\"next\":{\"data\":1,\"next\":null}}"
+    );
 
     // create loop
     t8_head->next->next = t8_head;
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, NULL);
-    fail_unless(s == NULL, "expected NULL, got %s", s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, NULL),
+        NULL
+    );
 
     metac_value_delete(p_val);
 }END_TEST
@@ -659,15 +643,12 @@ METAC_TAG_MAP_END
 METAC_START_TEST(test9_satnity) {
     metac_tag_map_t * p_tagmap = new_t9_tag_map();
     fail_unless(p_tagmap != NULL, "t9 tagmap is NULL");
-
-    char *s, *expected_s;
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test9);
 
-    expected_s = "\"some data\"";
-    s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
-    fail_unless(s != NULL, "got NULL");
-    fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
-    free(s);
+    _check_strings_(
+        _json_string_ex(p_val, METAC_WMODE_deep, p_tagmap),
+        "\"some data\""
+    );
 
     metac_value_delete(p_val);
     metac_tag_map_delete(p_tagmap);
