@@ -5,6 +5,7 @@ WITH_JSON_C ?= 0
 
 # --- cJSON Backend ---
 ifeq ($(WITH_CJSON),1)
+  # for ubuntu needs apt-get install libcjson-dev
   # Add sources to the main library build
   libmetac+=src/serialization/cjson/value_to_cjson.c src/serialization/cjson/value_from_cjson.c
 

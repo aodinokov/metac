@@ -12,12 +12,13 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
         metac_value_bool(p_val, &v);
         return cJSON_CreateBool(v);
     }
-    if (metac_value_is_char(p_val)) {
-        char v;
-        metac_value_char(p_val, &v);
-        char str[2] = {v, 0};
-        return cJSON_CreateString(str);
-    }
+    // TODO: if we want TAGS to define this behavior
+    // if (metac_value_is_char(p_val)) {
+    //     char v;
+    //     metac_value_char(p_val, &v);
+    //     char str[2] = {v, 0};
+    //     return cJSON_CreateString(str);
+    // }
     if (metac_value_is_float(p_val) || metac_value_is_double(p_val) || metac_value_is_ldouble(p_val)) {
         double v;
         metac_value_double(p_val, &v);

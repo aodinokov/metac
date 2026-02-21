@@ -8,7 +8,7 @@
             "name": "(gdb) Launch - Linux",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/value_ffi_test",
+            "program": "${fileDirname}/cjson_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
