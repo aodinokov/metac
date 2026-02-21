@@ -79,6 +79,15 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
         metac_value_double(p_val, &v);
         return cJSON_CreateNumber(v);
     }
+    if (metac_value_is_float_complex(p_val) || metac_value_is_double_complex(p_val) || metac_value_is_ldouble_complex(p_val)) {
+        char * out = metac_value_base_type_string(p_val);
+        if (out == NULL) {
+            return NULL;
+        }
+        cJSON * v = cJSON_CreateString(out);
+        free(out);
+        return v;
+    }
     // Default to handling as a number. This covers short, int, long, long long, and their unsigned variants.
     metac_num_t num;
     if (metac_value_num(p_val, &num) == 0) {
@@ -123,15 +132,25 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                 continue;
             }
             case METAC_KND_pointer_type: {
+                // Shallow
                 if (wmode == METAC_WMODE_shallow) {
-                    void* ptr_addr = NULL;
-                    metac_value_pointer(p, &ptr_addr);
-                     if (ptr_addr == NULL) {
+                    void *p_addr = NULL;
+                    if (metac_value_pointer(p, &p_addr) != 0) {
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;
+                    }
+                    if (p_addr == NULL) {
                         metac_recursive_iterator_done(p_iter, cJSON_CreateNull());
+                        continue;
                     } else {
-                        char buffer[32];
-                        snprintf(buffer, sizeof(buffer), "%p", ptr_addr);
-                        metac_recursive_iterator_done(p_iter, cJSON_CreateString(buffer));
+                        char * out = metac_value_pointer_string(p);
+                        if (out == NULL) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+                        metac_recursive_iterator_done(p_iter, cJSON_CreateString(out));
+                        free(out);
+                        continue;
                     }
                     continue;
                 }
@@ -149,69 +168,59 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             continue;
                         }
                         if (metac_value_level_introduced_loop(p_iter) > 0) {
-                            cJSON* err_obj = cJSON_CreateObject();
-                            cJSON_AddStringToObject(err_obj, "$error", "circular reference");
-                            metac_recursive_iterator_done(p_iter, err_obj);
+                            metac_recursive_iterator_fail(p_iter);
                             continue;
                         }
 
-                        // // For now, assume pointer to single item. Tag map handling will come later.
-                        // metac_value_t * p_arr_val = metac_new_element_count_value(p, 1);
-                        // if (p_arr_val == NULL) {
-                        //     metac_recursive_iterator_fail(p_iter);
-                        //     continue;
-                        // }
-                        // metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
-                        // metac_recursive_iterator_set_state(p_iter, 1);
-                        // continue;
-                            /* we need to convert pointer to array (can be flexible), try handler first */
-                            metac_value_t * p_arr_val = NULL;
-                            if (p_tag_map != NULL) {
-                                metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
-                                metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
-                                if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
-                                        metac_recursive_iterator_fail(p_iter);
-                                        continue;
-                                    }
-                                    p_arr_val = ev.p_return_value;
-                                }
-                                /* check if handler created object with differnt address
-                                   this is a valid scenario (e.g. containerof), but we can't use it in cinit; */
-                                if (p_arr_val != NULL) {
-                                    if (metac_value_addr(p_arr_val) != p_addr) {
-                                        metac_value_delete(p_arr_val);
-                                        metac_recursive_iterator_fail(p_iter);
-                                        continue;      
-                                    }
-                                }
-                            }
-                            if (p_arr_val == NULL && metac_value_is_void_pointer(p)) {
-                                /* if p is void * we won't be able to do anything - there are no arrays of void. fallback to shallow */
-                                char * out = metac_value_pointer_string(p);
-                                if (out == NULL) {
+                        /* we need to convert pointer to array (can be flexible), try handler first */
+                        metac_value_t * p_arr_val = NULL;
+                        if (p_tag_map != NULL) {
+                            metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
+                            metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+                            if (p_tag != NULL && p_tag->handler) {
+                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
                                     metac_recursive_iterator_fail(p_iter);
                                     continue;
                                 }
-                                metac_recursive_iterator_done(p_iter, out);
-                                continue;
+                                p_arr_val = ev.p_return_value;
                             }
-                            if (p_arr_val == NULL) {
-                                p_arr_val = metac_new_element_count_value(p, 1); /*create arr with len 1 - good default */
+                            /* check if handler created object with differnt address
+                                this is a valid scenario (e.g. containerof), but we can't use it in cinit/json TODO: is it true?; */
+                            if (p_arr_val != NULL) {
+                                if (metac_value_addr(p_arr_val) != p_addr) {
+                                    metac_value_delete(p_arr_val);
+                                    metac_recursive_iterator_fail(p_iter);
+                                    continue;      
+                                }
                             }
-                            if (p_arr_val == NULL) {
+                        }
+                        if (p_arr_val == NULL && metac_value_is_void_pointer(p)) {
+                            /* if p is void * we won't be able to do anything - there are no arrays of void. fallback to shallow */
+                            char * out = metac_value_pointer_string(p);
+                            if (out == NULL) {
                                 metac_recursive_iterator_fail(p_iter);
                                 continue;
                             }
-                            if (metac_value_has_elements(p_arr_val) == 0) {
-                                metac_value_delete(p_arr_val);
-                                metac_recursive_iterator_fail(p_iter);
-                                continue;                        
-                            }
-                            /* try to process everything as array */
-                            metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
-                            metac_recursive_iterator_set_state(p_iter, 1);
+                            metac_recursive_iterator_done(p_iter, cJSON_CreateString(out));
+                            free(out);
                             continue;
+                        }
+                        if (p_arr_val == NULL) {
+                            p_arr_val = metac_new_element_count_value(p, 1); /*create arr with len 1 - good default */
+                        }
+                        if (p_arr_val == NULL) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+                        if (metac_value_has_elements(p_arr_val) == 0) {
+                            metac_value_delete(p_arr_val);
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;                        
+                        }
+                        /* try to process everything as array */
+                        metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
+                        metac_recursive_iterator_set_state(p_iter, 1);
+                        continue;
 
                     }
                     case 1: {
@@ -230,16 +239,22 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             continue;
                         }
 
-                        if (!cJSON_IsArray(res_json) || cJSON_GetArraySize(res_json) != 1) {
+                        if (!cJSON_IsArray(res_json) /*|| cJSON_GetArraySize(res_json) != 1*/) {
                             cJSON_Delete(res_json);
                             metac_recursive_iterator_fail(p_iter);
                             continue;
                         }
-                        // Detach the item from the temporary array.
-                        cJSON* item = cJSON_DetachItemFromArray(res_json, 0);
-                        cJSON_Delete(res_json);
+                        if (cJSON_GetArraySize(res_json) == 1) {
+                            // TODO: we need a better condition
+                            // Detach the item from the temporary array.
+                            cJSON* item = cJSON_DetachItemFromArray(res_json, 0);
+                            cJSON_Delete(res_json);
+                            metac_recursive_iterator_done(p_iter, item);
+                            continue;
+                        }
 
-                        metac_recursive_iterator_done(p_iter, item);
+                        // for pointers with len
+                        metac_recursive_iterator_done(p_iter, res_json);
                         continue;
                     }
                 }
@@ -274,6 +289,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         continue;
                     }
                     case 1: {
+                        metac_flag_t failure = 0;
                         cJSON* obj = cJSON_CreateObject();
                         if (obj == NULL) {
                              metac_recursive_iterator_set_state(p_iter, 2); // cleanup
@@ -288,9 +304,8 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             metac_value_delete(p_memb_val);
 
                             if (memb_json == NULL) {
-                                cJSON_Delete(obj);
-                                metac_recursive_iterator_set_state(p_iter, 2); // cleanup
-                                continue;
+                                failure = 1;
+                                break;
                             }
                             
                             if (memb_name) {
@@ -301,8 +316,12 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                     _cJSON_move_all_members(memb_json, obj);
                                 }
                                 cJSON_Delete(memb_json);
-                                
                             }
+                        }
+                        if (failure != 0) {
+                            cJSON_Delete(obj);
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
                         }
                         metac_recursive_iterator_done(p_iter, obj);
                         continue;
@@ -396,6 +415,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         continue;
                     }
                     case 1: {
+                        metac_flag_t failure = 0;
                         cJSON* arr = cJSON_CreateArray();
                         if (arr == NULL) {
                             metac_recursive_iterator_set_state(p_iter, 2); // cleanup
@@ -409,11 +429,15 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             metac_value_delete(p_el_val);
 
                             if (el_json == NULL) {
-                                cJSON_Delete(arr);
-                                metac_recursive_iterator_set_state(p_iter, 2); // cleanup
-                                continue;
+                                failure = 1;
+                                break;
                             }
                             cJSON_AddItemToArray(arr, el_json);
+                        }
+                        if (failure != 0) {
+                            cJSON_Delete(arr);
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
                         }
                         metac_recursive_iterator_done(p_iter, arr);
                         continue;

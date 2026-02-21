@@ -533,16 +533,14 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 2;
     test7.p_content = &t7_contnt0_2;
 
-    snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1365,\"content_type\":0,\"content_len\":2}"); 
-    // TODO"{.data = 1365, .content_type = 0, .content_len = 2, .p_content = %p,}", test7.p_content);
+    snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":\"%p\"}", test7.p_content); 
     expected_s = exp_buf; 
     s  = _json_string(p_val);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
 
-    expected_s = "{\"data\":1365,\"content_type\":0,\"content_len\":2}";
-    //TODO: "{.data = 1365, .content_type = 0, .content_len = 2, .p_content = (struct t7_cntnt0 []){{.a = 4, .b = 0,}, {.a = 5, .b = 0,},},}";
+    expected_s = "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -552,8 +550,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_0;
 
-    expected_s = "{\"data\":555,\"content_type\":0,\"content_len\":1}";
-    //TODO: "{.data = 555, .content_type = 0, .content_len = 1, .p_content = (struct t7_cntnt0 []){{.a = 1, .b = 2,},},}";
+    expected_s = "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -563,8 +560,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_1;
 
-    expected_s = "{\"data\":777,\"content_type\":0,\"content_len\":1}";
-    //TODO: "{.data = 777, .content_type = 0, .content_len = 1, .p_content = (struct t7_cntnt0 []){{.a = -1, .b = -1000,},},}";
+    expected_s = "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -575,8 +571,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_0;
 
-    expected_s = "{\"data\":999,\"content_type\":1,\"content_len\":1}";
-    // TODO: "{.data = 999, .content_type = 1, .content_len = 1, .p_content = (struct t7_cntnt1 []){{.c = 7.000000 + I * 3.400000,},},}";
+    expected_s = "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -587,8 +582,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
 
-    expected_s = "{\"data\":888,\"content_type\":1,\"content_len\":1}";
-    // TODO: "{.data = 888, .content_type = 1, .content_len = 1, .p_content = (struct t7_cntnt1 []){{.c = 19.330000 - I * 0.400000,},},}";
+    expected_s = "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -600,8 +594,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.p_content = &t7_contnt1_1;
 
     /* check fallback to shallow if it's void* */
-    snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1}");
-    // TODO: "{.data = 1000, .content_type = 2, .content_len = 1, .p_content = %p,}", test7.p_content);
+    snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1,\"p_content\":\"%p\"}", test7.p_content);
     expected_s = exp_buf;
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map);
     fail_unless(s != NULL, "got NULL");
@@ -616,13 +609,13 @@ METAC_START_TEST(test7_satnity) {
     p_tag_map = metac_new_tag_map(METAC_TAG(.handler = test7_artifitial_handler));
     fail_unless(p_tag_map != NULL, "Couldn't create tagmap");
     /* run with default handler */
-    // TODO: test7_sanity_with_handler(p_tag_map);
+    test7_sanity_with_handler(p_tag_map);
 
     metac_tag_map_delete(p_tag_map);
     /* run without default */
     p_tag_map = new_t7_tag_map();
     fail_unless(p_tag_map != NULL, "Couldn't create tagmap");
-    // TODO: test7_sanity_with_handler(p_tag_map);
+    test7_sanity_with_handler(p_tag_map);
 
     metac_tag_map_delete(p_tag_map);
 }END_TEST
@@ -637,7 +630,6 @@ METAC_START_TEST(test8_satnity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(t8_head);
 
     expected_s = "{\"data\":0,\"next\":{\"data\":1,\"next\":null}}";
-    // seems good "(struct t8_list_itm []){{.data = 0, .next = (struct t8_list_itm []){{.data = 1, .next = NULL,},},},}";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, NULL);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
@@ -646,9 +638,7 @@ METAC_START_TEST(test8_satnity) {
     // create loop
     t8_head->next->next = t8_head;
     s  = _json_string_ex(p_val, METAC_WMODE_deep, NULL);
-    // TODO fail_unless(s == NULL, "expected NULL, got %s", s);
-    // expected NULL, got {"data":0,"next":{"data":1,"next":{"$error":"circular reference"}}}
-    free(s);
+    fail_unless(s == NULL, "expected NULL, got %s", s);
 
     metac_value_delete(p_val);
 }END_TEST
@@ -748,9 +738,6 @@ struct test_cjson_circular {
 };
 struct test_cjson_circular g_test_cjson_circ1 = { .data = 1, .loop = NULL };
 struct test_cjson_circular g_test_cjson_circ2 = { .data = 2, .loop = &g_test_cjson_circ1 };
-//Create the loop
-//int g_test_cjson_circ_init __attribute__((constructor)) = ({ g_test_cjson_circ1.loop = &g_test_cjson_circ2; 0; });
-
 METAC_GSYM_LINK(g_test_cjson_circ1);
 
 METAC_START_TEST(cjson_backend_circular_ref) {
@@ -761,16 +748,8 @@ METAC_START_TEST(cjson_backend_circular_ref) {
     fail_unless(p_val != NULL, "Wasn't able to get value for g_test_cjson_circ1");
     
     struct cJSON* json = metac_value_to_cjson(p_val, METAC_WMODE_deep, NULL);
-    fail_unless(json != NULL, "metac_value_to_cjson returned NULL");
+    fail_unless(json == NULL, "metac_value_to_cjson returned NULL");
 
-    char* json_str = cJSON_PrintUnformatted(json);
-    fail_unless(json_str != NULL, "cJSON_PrintUnformatted returned NULL");
-    
-    const char* expected_str = /* original was "{\"data\":1,\"loop\":{\"data\":2,\"loop\":{\"$error\":\"circular reference\"}}}";*/
-        "{\"data\":1,\"loop\":{\"data\":2,\"loop\":{\"data\":1,\"loop\":{\"$error\":\"circular reference\"}}}}";
-    fail_unless(strcmp(json_str, expected_str) == 0, "Expected '%s', got '%s'", expected_str, json_str);
-
-    free(json_str);
     cJSON_Delete(json);
     metac_value_delete(p_val);
 } END_TEST
