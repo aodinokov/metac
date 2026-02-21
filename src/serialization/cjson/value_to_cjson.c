@@ -2,8 +2,49 @@
 #include "metac/backend/iterator.h"
 #include "metac/backend/value.h"
 
-#include <cjson/cJSON.h>
 #include <assert.h>
+#include <ctype.h> /*isprint*/
+
+#include <cjson/cJSON.h>
+
+static cJSON* _dprintable_string(metac_value_t * p_array_val) {
+    if (p_array_val == NULL || metac_value_has_elements(p_array_val) ==0 ) {
+        return NULL;
+    }
+
+    char * p_string = (char*)metac_value_addr(p_array_val);
+    if (p_string == NULL) {
+        return NULL;
+    }
+
+    metac_entry_t * p_element_final_entry = metac_entry_final_entry(metac_entry_element_entry(metac_value_entry(p_array_val)), NULL);
+    if (p_element_final_entry == NULL) {
+        return NULL;
+    }
+
+    if (metac_entry_is_base_type(p_element_final_entry) == 0 ||
+        strcmp(metac_entry_base_type_name(p_element_final_entry),"char") != 0) {
+        return NULL;
+    }
+
+    metac_num_t len = metac_value_element_count(p_array_val);
+    if (len < 2) {
+        return NULL;
+    }
+
+    if (p_string[len - 1] != 0) {
+        return NULL;
+    }
+
+    for (metac_num_t i = 0 ; i < (len - 1); ++i) {
+        if (isprint(p_string[i]) != 0) {
+            continue;
+        }
+        return NULL;
+    }
+
+    return cJSON_CreateString(p_string);
+}
 
 // Helper function to convert a base type value to a cJSON object.
 static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
@@ -100,29 +141,89 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             continue;
                         }
 
-                        // For now, assume pointer to single item. Tag map handling will come later.
-                        metac_value_t * p_arr_val = metac_new_element_count_value(p, 1);
-                        if (p_arr_val == NULL) {
-                            metac_recursive_iterator_fail(p_iter);
+                        // // For now, assume pointer to single item. Tag map handling will come later.
+                        // metac_value_t * p_arr_val = metac_new_element_count_value(p, 1);
+                        // if (p_arr_val == NULL) {
+                        //     metac_recursive_iterator_fail(p_iter);
+                        //     continue;
+                        // }
+                        // metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
+                        // metac_recursive_iterator_set_state(p_iter, 1);
+                        // continue;
+                            /* we need to convert pointer to array (can be flexible), try handler first */
+                            metac_value_t * p_arr_val = NULL;
+                            if (p_tag_map != NULL) {
+                                metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
+                                metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+                                if (p_tag != NULL && p_tag->handler) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                        metac_recursive_iterator_fail(p_iter);
+                                        continue;
+                                    }
+                                    p_arr_val = ev.p_return_value;
+                                }
+                                /* check if handler created object with differnt address
+                                   this is a valid scenario (e.g. containerof), but we can't use it in cinit; */
+                                if (p_arr_val != NULL) {
+                                    if (metac_value_addr(p_arr_val) != p_addr) {
+                                        metac_value_delete(p_arr_val);
+                                        metac_recursive_iterator_fail(p_iter);
+                                        continue;      
+                                    }
+                                }
+                            }
+                            if (p_arr_val == NULL && metac_value_is_void_pointer(p)) {
+                                /* if p is void * we won't be able to do anything - there are no arrays of void. fallback to shallow */
+                                char * out = metac_value_pointer_string(p);
+                                if (out == NULL) {
+                                    metac_recursive_iterator_fail(p_iter);
+                                    continue;
+                                }
+                                metac_recursive_iterator_done(p_iter, out);
+                                continue;
+                            }
+                            if (p_arr_val == NULL) {
+                                p_arr_val = metac_new_element_count_value(p, 1); /*create arr with len 1 - good default */
+                            }
+                            if (p_arr_val == NULL) {
+                                metac_recursive_iterator_fail(p_iter);
+                                continue;
+                            }
+                            if (metac_value_has_elements(p_arr_val) == 0) {
+                                metac_value_delete(p_arr_val);
+                                metac_recursive_iterator_fail(p_iter);
+                                continue;                        
+                            }
+                            /* try to process everything as array */
+                            metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
+                            metac_recursive_iterator_set_state(p_iter, 1);
                             continue;
-                        }
-                        metac_recursive_iterator_create_and_append_dep(p_iter, p_arr_val);
-                        metac_recursive_iterator_set_state(p_iter, 1);
-                        continue;
+
                     }
                     case 1: {
                         metac_value_t * p_arr_val;
-                        cJSON* arr_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_arr_val, NULL);
+                        cJSON* res_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_arr_val, NULL);
                         metac_value_delete(p_arr_val);
 
-                        if (arr_json == NULL || !cJSON_IsArray(arr_json) || cJSON_GetArraySize(arr_json) != 1) {
-                            if (arr_json) cJSON_Delete(arr_json);
+                        if (res_json == NULL) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+
+                        // special case when we detected that it was char* and returned string from array
+                        if (cJSON_IsString(res_json)) {
+                            metac_recursive_iterator_done(p_iter, res_json);
+                            continue;
+                        }
+
+                        if (!cJSON_IsArray(res_json) || cJSON_GetArraySize(res_json) != 1) {
+                            cJSON_Delete(res_json);
                             metac_recursive_iterator_fail(p_iter);
                             continue;
                         }
                         // Detach the item from the temporary array.
-                        cJSON* item = cJSON_DetachItemFromArray(arr_json, 0);
-                        cJSON_Delete(arr_json);
+                        cJSON* item = cJSON_DetachItemFromArray(res_json, 0);
+                        cJSON_Delete(res_json);
 
                         metac_recursive_iterator_done(p_iter, item);
                         continue;
@@ -208,6 +309,19 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
             case METAC_KND_array_type: {
                 switch (state) {
                     case METAC_R_ITER_start: {
+                        metac_flag_t failure = 0;
+                        assert(metac_value_has_elements(p) != 0);
+
+                        metac_value_t * p_local = p;
+                        // TODO: flexible arrays are not supported;
+
+                        // special case - char * with printable symbols and 0 as the last symbol
+                        cJSON* obj = _dprintable_string(p_local);
+                        if (obj != NULL) {
+                            metac_recursive_iterator_done(p_iter, obj);
+                            continue;
+                        }
+
                         metac_num_t ecount = metac_value_element_count(p);
                         for (metac_num_t i = 0; i < ecount; ++i) {
                             metac_value_t* p_el_val = metac_new_value_by_element_id(p, i);

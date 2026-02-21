@@ -677,8 +677,7 @@ METAC_START_TEST(test9_satnity) {
     char *s, *expected_s;
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test9);
 
-    expected_s = "115";
-    //"\"some data\""; TODO: returned code of the first symbol
+    expected_s = "\"some data\"";
     s  = _json_string_ex(p_val, METAC_WMODE_deep, p_tagmap);
     fail_unless(s != NULL, "got NULL");
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
