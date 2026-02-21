@@ -9,8 +9,9 @@ static int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* 
     if (metac_value_is_bool(p_val)) {
         return metac_value_set_bool(p_val, cJSON_IsTrue(json));
     }
-    if (metac_value_is_char(p_val) && cJSON_IsString(json)) {
-        return metac_value_set_char(p_val, cJSON_GetStringValue(json)[0]);
+    if (metac_value_is_char(p_val) && cJSON_IsNumber(json)) {
+        char val = (char)cJSON_GetNumberValue(json);
+        return metac_value_set_char(p_val, val);
     }
     if (cJSON_IsNumber(json)) {
         double num = cJSON_GetNumberValue(json);

@@ -25,18 +25,37 @@
 // we can use almost the same tests as with _json_string_ex, but with different representation using:
 #define _json_string_ex(p_val, wmode, p_tag_map) ({ \
         char * res = NULL; \
-        struct cJSON* json = metac_value_to_cjson(p_val, wmode, p_tag_map); \
+        json = metac_value_to_cjson(p_val, wmode, p_tag_map); \
         if (json != NULL) { \
             res = cJSON_PrintUnformatted(json); \
-            cJSON_Delete(json); \
         } \
         res; \
     })
 #define _json_string(p_val) _json_string_ex(p_val, METAC_WMODE_shallow, NULL)
 
-#define _check_strings_(_s_, _s_expected, ...) do { \
+// we need to have a destination p_val to store result of deserialization
+// it can be used later (ourside of _check_serialization_) to compare if original p_val and p_val_dest are equal
+// There is an assumption that if _check_serialization_ passed, we have got json which can be used for backward converstion.
+// This approach can be more efficient to test bi-directional ser/deser positive cases.
+// Note: We can't use this for negative deserialization cases
+#define __and_back(p_val_dest, p_tag_map) do { \
+        if (p_val_dest != NULL && json != NULL) { \
+                fail_unless(metac_value_from_cjson(p_val_dest, json, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
+        } \
+    } while(0)
+
+#define _json_string_and_back_ex(p_val_dest, p_val, wmode, p_tag_map) ({ \
+        char * res = _json_string_ex(p_val, wmode, p_tag_map); \
+        __and_back(p_val_dest, p_tag_map); \
+        res; \
+    })
+#define _json_string_and_back(p_val_dest, p_val) _json_string_and_back_ex(p_val_dest, p_val, METAC_WMODE_shallow, NULL)
+
+// main pipeline which has some place to store all intermittent data to run serialization (+deserialization if _and_back macros is used)
+#define _check_serialization_(_s_, _s_expected) do { \
+        char * _expected_s = _s_expected; \
+        struct cJSON* json = NULL; \
         char * _s = _s_; \
-        char * _expected_s = _s_expected;  \
         \
         if (_expected_s == NULL) { \
             fail_unless(_s == NULL, "expecting NULL, got not NULL: %s", _s); \
@@ -48,17 +67,25 @@
         if (_s != NULL) { \
             free(_s); \
         } \
+        if (json != NULL) { \
+            cJSON_Delete(json); \
+        } \
     } while(0)
 
-
-char test0 = 120; // 'x'
+char test0 = 120;
+char test0_dst = -1;
 METAC_GSYM_LINK(test0);
+METAC_GSYM_LINK(test0_dst);
 METAC_START_TEST(test0_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test0);
     fail_unless(p_val != NULL, "wasn't able to get value");
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test0_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    _check_strings_(_json_string(p_val), "120");
+    _check_serialization_(_json_string_and_back(p_val_dst, p_val), "120");
+    fail_unless(test0_dst == test0, "exected test0_dst %d to be equial to test0 %d", (int)test0_dst, (int)test0);
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }END_TEST
 
@@ -69,7 +96,7 @@ METAC_START_TEST(test1_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test1);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    _check_strings_(_json_string(p_val), "31");
+    _check_serialization_(_json_string(p_val), "31");
 
     metac_value_delete(p_val);
 }END_TEST
@@ -84,7 +111,7 @@ METAC_START_TEST(test2_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test2);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    _check_strings_(_json_string(p_val), "\"_x_TstA\"");
+    _check_serialization_(_json_string(p_val), "\"_x_TstA\"");
 
     metac_value_delete(p_val);
 }END_TEST
@@ -98,7 +125,7 @@ METAC_START_TEST(test3_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test3);
     fail_unless(p_val != NULL, "wasn't able to get value");
 
-    _check_strings_(_json_string(p_val), "{\"y\":-10,\"c\":97}");
+    _check_serialization_(_json_string(p_val), "{\"y\":-10,\"c\":97}");
 
     metac_value_delete(p_val);
 } END_TEST
@@ -139,7 +166,7 @@ METAC_START_TEST(test4_sanity) {
     char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
-    _check_strings_(_json_string(p_val), expected_s);
+    _check_serialization_(_json_string(p_val), expected_s);
 
     metac_value_delete(p_val);
 } END_TEST
@@ -183,7 +210,7 @@ METAC_START_TEST(test5_satnity) {
     metac_value_t * p_arr_val = metac_new_element_count_value(p_val, 1);
     metac_value_delete(p_val);
 
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_arr_val, METAC_WMODE_shallow, p_tag_map),
         "[{\"flex_size\":3,\"flex\":[{\"data\":1,\"more_data\":0},{\"data\":2,\"more_data\":0},{\"data\":3,\"more_data\":0}]}]"
     );
@@ -326,7 +353,7 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);    
     
     memset(&test6, 0, sizeof(test6));
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
         "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}"
     );
@@ -335,7 +362,7 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test6.i = -123456;
     test6.sgnd_selector = eShort;
     test6.sgnd.s = -12345;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
         "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"
     );
@@ -527,12 +554,12 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.p_content = &t7_contnt0_2;
 
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":\"%p\"}", test7.p_content); 
-    _check_strings_(
+    _check_serialization_(
         _json_string(p_val),
         exp_buf
     );
 
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}"
     );
@@ -540,7 +567,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.data = 555;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_0;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}"
     );
@@ -548,7 +575,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.data = 777;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_1;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}"
     );
@@ -557,7 +584,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_0;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}"
     );
@@ -566,7 +593,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}"
     );
@@ -578,7 +605,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
 
     /* check fallback to shallow if it's void* */
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1,\"p_content\":\"%p\"}", test7.p_content);
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tag_map),
         exp_buf
     );
@@ -611,14 +638,14 @@ METAC_START_TEST(test8_satnity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(t8_head);
 
     // without loop
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, NULL),
         "{\"data\":0,\"next\":{\"data\":1,\"next\":null}}"
     );
 
     // create loop
     t8_head->next->next = t8_head;
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, NULL),
         NULL
     );
@@ -645,7 +672,7 @@ METAC_START_TEST(test9_satnity) {
     fail_unless(p_tagmap != NULL, "t9 tagmap is NULL");
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test9);
 
-    _check_strings_(
+    _check_serialization_(
         _json_string_ex(p_val, METAC_WMODE_deep, p_tagmap),
         "\"some data\""
     );
@@ -791,7 +818,7 @@ METAC_START_TEST(cjson_backend_deserialization_array) {
 }
 
 METAC_START_TEST(cjson_backend_deserialization_struct) {
-    const char* json_str = "{\"y\":-99,\"c\":\"Q\"}";
+    const char* json_str = "{\"y\":-99,\"c\":21}";
     cJSON* json = cJSON_Parse(json_str);
     fail_unless(json != NULL, "cJSON_Parse failed");
 
@@ -804,7 +831,7 @@ METAC_START_TEST(cjson_backend_deserialization_struct) {
     fail_unless(result == 0, "metac_value_from_cjson failed");
 
     fail_unless(target_struct.y == -99, "Deserialization error: y should be -99, but is %d", target_struct.y);
-    fail_unless(target_struct.c == 'Q', "Deserialization error: c should be 'Q', but is %c", target_struct.c);
+    fail_unless(target_struct.c == 21, "Deserialization error: c should be 'Q', but is %c", target_struct.c);
 
     metac_value_delete(p_val);
     cJSON_Delete(json);
