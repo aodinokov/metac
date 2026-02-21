@@ -46,6 +46,20 @@ static cJSON* _dprintable_string(metac_value_t * p_array_val) {
     return cJSON_CreateString(p_string);
 }
 
+static void _cJSON_move_all_members(cJSON *src, cJSON *dst) {
+    if (src == NULL || dst == NULL || src->child == NULL) return;
+    while (src->child != NULL) {
+        cJSON *item = cJSON_DetachItemViaPointer(src, src->child);
+        if (item != NULL) {
+            if (dst->type == cJSON_Array) {
+                cJSON_AddItemToArray(dst, item);
+            } else {
+                cJSON_AddItemToObject(dst, item->string, item);
+            }
+        }
+    }
+}
+
 // Helper function to convert a base type value to a cJSON object.
 static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
     if (metac_value_is_bool(p_val)) {
@@ -282,7 +296,12 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             if (memb_name) {
                                 cJSON_AddItemToObject(obj, memb_name, memb_json);
                             } else {
+                                // special cases - anonimous child structure
+                                if (cJSON_IsObject(memb_json)) {
+                                    _cJSON_move_all_members(memb_json, obj);
+                                }
                                 cJSON_Delete(memb_json);
+                                
                             }
                         }
                         metac_recursive_iterator_done(p_iter, obj);

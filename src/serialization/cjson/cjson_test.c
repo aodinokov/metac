@@ -136,8 +136,8 @@ METAC_START_TEST(test4_sanity) {
     fail_unless(p_val != NULL, "wasn't able to get value");
 
     char * s = _json_string(p_val);
-    char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":0,\"p\":{}}";
-    // TODO: "{.a = 0, .b = 0, .d = 0, .e = 0, .k = {.j = 0,}, .l = {0, 0, 0,}, .p_m = NULL, .p_k = %p, .p = {},}";
+    char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":0,\"p\":{}}";
+    // TODO: raw pointer? "{.a = 0, .b = 0, .d = 0, .e = 0, .k = {.j = 0,}, .l = {0, 0, 0,}, .p_m = NULL, .p_k = %p, .p = {},}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
 
@@ -333,8 +333,7 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);
     
     memset(&test6, 0, sizeof(test6));
-    char * expected_s = "{\"selector\":\"eChar\",\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}";
-    // TODO:"{.selector = eChar, .c = 0, .sgnd_selector = eChar, .sgnd = {.c = 0,},}";
+    char * expected_s = "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}";
     char * s = _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map);
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
@@ -343,8 +342,7 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test6.i = -123456;
     test6.sgnd_selector = eShort;
     test6.sgnd.s = -12345;
-    expected_s = "{\"selector\":\"eInt\",\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"; 
-    //TODO: "{.selector = eInt, .i = -123456, .sgnd_selector = eShort, .sgnd = {.s = -12345,},}";
+    expected_s = "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"; 
     s = _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map);
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
     free(s);
