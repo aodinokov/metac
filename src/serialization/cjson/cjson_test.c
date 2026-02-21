@@ -38,18 +38,19 @@
 // There is an assumption that if _check_serialization_ passed, we have got json which can be used for backward converstion.
 // This approach can be more efficient to test bi-directional ser/deser positive cases.
 // Note: We can't use this for negative deserialization cases
-#define __and_back(p_val_dest, p_tag_map) do { \
+#define __and_back(p_val_dest, p_tag_map, _extra_check...) do { \
         if (p_val_dest != NULL && json != NULL) { \
                 fail_unless(metac_value_from_cjson(p_val_dest, json, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
+                do { _extra_check } while(0); \
         } \
     } while(0)
 
-#define _json_string_and_back_ex(p_val_dest, p_val, wmode, p_tag_map) ({ \
+#define _json_string_and_back_ex(p_val_dest, p_val, wmode, p_tag_map, _extra_check...) ({ \
         char * res = _json_string_ex(p_val, wmode, p_tag_map); \
-        __and_back(p_val_dest, p_tag_map); \
+        __and_back(p_val_dest, p_tag_map, _extra_check); \
         res; \
     })
-#define _json_string_and_back(p_val_dest, p_val) _json_string_and_back_ex(p_val_dest, p_val, METAC_WMODE_shallow, NULL)
+#define _json_string_and_back(p_val_dest, p_val, _extra_check...) _json_string_and_back_ex(p_val_dest, p_val, METAC_WMODE_shallow, NULL, _extra_check)
 
 // main pipeline which has some place to store all intermittent data to run serialization (+deserialization if _and_back macros is used)
 #define _check_serialization_(_s_, _s_expected) do { \
@@ -82,22 +83,35 @@ METAC_START_TEST(test0_sanity) {
     metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test0_dst);
     fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    _check_serialization_(_json_string_and_back(p_val_dst, p_val), "120");
-    fail_unless(test0_dst == test0, "exected test0_dst %d to be equial to test0 %d", (int)test0_dst, (int)test0);
+    _check_serialization_(
+        _json_string_and_back(p_val_dst, p_val, 
+            fail_unless(test0_dst == test0, "exected test0_dst %d to be equial to test0 %d", (int)test0_dst, (int)test0);
+        ), 
+        "120"
+    );
 
     metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }END_TEST
 
-
 int test1 = 31;
+int test1_dst = -1;
 METAC_GSYM_LINK(test1);
+METAC_GSYM_LINK(test1_dst);
 METAC_START_TEST(test1_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test1);
     fail_unless(p_val != NULL, "wasn't able to get value");
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test1_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    _check_serialization_(_json_string(p_val), "31");
+    _check_serialization_(
+        _json_string_and_back(p_val_dst, p_val,
+            fail_unless(test1_dst == test1, "exected test1_dst %d to be equial to test1 %d", test1_dst, test1);
+        ), 
+        "31"
+    );
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }END_TEST
 
