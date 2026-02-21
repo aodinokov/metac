@@ -332,23 +332,65 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         assert(metac_value_has_elements(p) != 0);
 
                         metac_value_t * p_local = p;
-                        // TODO: flexible arrays are not supported;
+                        metac_value_t * p_non_flexible = NULL;
+                        if (metac_value_element_count_flexible(p) != 0) {
+                            if (p_tag_map != NULL) {
+                                metac_value_event_t ev = {.type = METAC_RQVST_flex_array_count, .p_return_value = NULL};
+                                metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+                                if (p_tag != NULL && p_tag->handler) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                        metac_recursive_iterator_fail(p_iter);
+                                        continue;
+                                    }
+                                    p_non_flexible = ev.p_return_value;
+                                }
+                                if (p_non_flexible == NULL) { /* this is a way to skip that item */
+                                    cJSON * out = cJSON_CreateArray();//dsprintf("");
+                                    if (out == NULL) {
+                                        metac_recursive_iterator_fail(p_iter);
+                                        continue;
+                                    }
+                                    metac_recursive_iterator_done(p_iter, out);
+                                    continue;
+                                }
+                            } else {
+                                p_non_flexible = metac_new_element_count_value(p_local, 0); /* this will generate {} - safe default */
+                            }
+                            if (p_non_flexible == NULL) {
+                                metac_recursive_iterator_fail(p_iter);
+                                continue; 
+                            }
+                            p_local = p_non_flexible;
+                        }
 
                         // special case - char * with printable symbols and 0 as the last symbol
                         cJSON* obj = _dprintable_string(p_local);
                         if (obj != NULL) {
+                            // cleanup
+                            if (p_non_flexible != NULL) {
+                                metac_value_delete(p_non_flexible);
+                                p_local = p;
+                            }
                             metac_recursive_iterator_done(p_iter, obj);
                             continue;
                         }
 
-                        metac_num_t ecount = metac_value_element_count(p);
+                        metac_num_t ecount = metac_value_element_count(p_local);
                         for (metac_num_t i = 0; i < ecount; ++i) {
-                            metac_value_t* p_el_val = metac_new_value_by_element_id(p, i);
+                            metac_value_t* p_el_val = metac_new_value_by_element_id(p_local, i);
                             if (p_el_val == NULL) {
-                                metac_recursive_iterator_set_state(p_iter, 2); // cleanup
-                                continue;
+                                failure = 1;
+                                break;
                             }
                             metac_recursive_iterator_create_and_append_dep(p_iter, p_el_val);
+                        }
+                        if (p_non_flexible != NULL) {
+                            metac_value_delete(p_non_flexible);
+                            p_local = p;
+                        }
+                        if (failure != 0) {
+                            metac_recursive_iterator_set_state(p_iter, 2);  /* failure cleanup */
+                            continue;  
                         }
                         metac_recursive_iterator_set_state(p_iter, 1);
                         continue;

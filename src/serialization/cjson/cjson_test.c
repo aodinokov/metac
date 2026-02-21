@@ -190,8 +190,7 @@ METAC_START_TEST(test5_satnity) {
 
     char * s = _json_string_ex(p_arr_val, METAC_WMODE_shallow, p_tag_map);
     fail_unless(s != NULL, "_json_string_ex returned NULL");
-    char * expected_s = "[{\"flex_size\":3,\"flex\":[]}]"; 
-    // TODO: "{{.flex_size = 3, .flex = {{.data = 1, .more_data = 0,}, {.data = 2, .more_data = 0,}, {.data = 3, .more_data = 0,},},},}";
+    char * expected_s = "[{\"flex_size\":3,\"flex\":[{\"data\":1,\"more_data\":0},{\"data\":2,\"more_data\":0},{\"data\":3,\"more_data\":0}]}]"; 
     fail_unless(strcmp(s, expected_s) == 0, "expected %s, got %s", expected_s, s);
 
     free(s);
