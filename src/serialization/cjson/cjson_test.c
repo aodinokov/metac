@@ -32,7 +32,7 @@
         } \
         res; \
     })
-#define _json_string(p_val) _json_string_ex(p_val, METAC_WMODE_deep, NULL)
+#define _json_string(p_val) _json_string_ex(p_val, METAC_WMODE_shallow, NULL)
 
 char test0 = 120; // 'x'
 METAC_GSYM_LINK(test0);
@@ -136,8 +136,7 @@ METAC_START_TEST(test4_sanity) {
     fail_unless(p_val != NULL, "wasn't able to get value");
 
     char * s = _json_string(p_val);
-    char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":0,\"p\":{}}";
-    // TODO: raw pointer? "{.a = 0, .b = 0, .d = 0, .e = 0, .k = {.j = 0,}, .l = {0, 0, 0,}, .p_m = NULL, .p_k = %p, .p = {},}";
+    char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
 
