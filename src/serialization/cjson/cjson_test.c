@@ -119,14 +119,25 @@ enum {
     _x_TstA = -1,
     _x_TstB = 1,
     _x_TstX = 7,
-} test2 = -1;
+} test2 = -1, test2_dst = 1;
 METAC_GSYM_LINK(test2);
+METAC_GSYM_LINK(test2_dst);
 METAC_START_TEST(test2_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test2);
     fail_unless(p_val != NULL, "wasn't able to get value");
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test2_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    _check_serialization_(_json_string(p_val), "\"_x_TstA\"");
 
+    _check_serialization_(
+        _json_string_and_back(p_val_dst, p_val,
+            fail_unless(test2_dst == test2, "exected test2_dst %d to be equial to test2 %d", (int)test2_dst, (int)test2);
+
+        ), 
+        "\"_x_TstA\""
+    );
+
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }END_TEST
 

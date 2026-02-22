@@ -1,5 +1,8 @@
 #include "metac/serialization/cjson.h"
 #include "metac/backend/value.h"
+
+#include <assert.h>
+
 #include <cjson/cJSON.h>
 
 // Forward declaration for recursion
@@ -26,6 +29,28 @@ static int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* 
     return -1; // Type mismatch
 }
 
+static int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
+            if (!cJSON_IsString(json)) {
+                return -1;
+            }
+            char * value = cJSON_GetStringValue(json);
+            if (value == NULL) {
+                return -1;
+            }
+            metac_num_t icount = metac_value_enumeration_info_size(p_val);
+            for (metac_num_t i = 0; i < icount; ++i) {
+                struct metac_type_enumerator_info const * p_enum_entry = metac_value_enumeration_info(p_val, i);
+                assert(p_enum_entry);
+                assert(p_enum_entry->name != NULL);
+                if (strcmp(p_enum_entry->name, value) == 0) {
+                    metac_value_set_enumeration(p_val, p_enum_entry->const_value);
+                    return 0;
+                }
+            }
+            // couldn't find
+            return -1;
+}
+
 static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
     if (!p_val || !json) return -1;
 
@@ -34,6 +59,9 @@ static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* 
     switch (kind) {
         case METAC_KND_base_type: {
             return metac_value_base_type_from_cjson(p_val, json);
+        }
+        case METAC_KND_enumeration_type: {
+            return metac_value_enumeration_type_from_cjson(p_val, json);
         }
         case METAC_KND_struct_type: {
             if (!cJSON_IsObject(json)) return -1;
