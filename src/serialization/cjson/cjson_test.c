@@ -128,11 +128,9 @@ METAC_START_TEST(test2_sanity) {
     metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test2_dst);
     fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-
     _check_serialization_(
         _json_string_and_back(p_val_dst, p_val,
             fail_unless(test2_dst == test2, "exected test2_dst %d to be equial to test2 %d", (int)test2_dst, (int)test2);
-
         ), 
         "\"_x_TstA\""
     );
@@ -144,14 +142,24 @@ METAC_START_TEST(test2_sanity) {
 struct test3_s{
     int y;
     char c;
-} test3 = {.y = -10, .c = 97,};
+} test3 = {.y = -10, .c = 97,}, test3_dst = {.y = 0, .c = 0,};
 METAC_GSYM_LINK(test3);
+METAC_GSYM_LINK(test3_dst);
 METAC_START_TEST(test3_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test3);
     fail_unless(p_val != NULL, "wasn't able to get value");
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test3_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    _check_serialization_(_json_string(p_val), "{\"y\":-10,\"c\":97}");
+    _check_serialization_(
+        _json_string_and_back(p_val_dst, p_val,
+            fail_unless(test3_dst.y == test3.y, "exected test3_dst.y %d to be equial to test3.y %d", (int)test3_dst.y, (int)test3.y);
+            fail_unless(test3_dst.c == test3.c, "exected test3_dst.c %d to be equial to test3.c %d", (int)test3_dst.c, (int)test3.c);
+        ),
+        "{\"y\":-10,\"c\":97}"
+    );
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 } END_TEST
 
