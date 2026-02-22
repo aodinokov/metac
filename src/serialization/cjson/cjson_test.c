@@ -22,6 +22,7 @@
 
 // serialization sanity
 // the same sequence as in value_string_test.c
+// TODO: in tests means that some use-cases don't work as expected
 // we can use almost the same tests as with _json_string_ex, but with different representation using:
 #define _json_string_ex(p_val, wmode, p_tag_map) ({ \
         char * res = NULL; \
@@ -72,6 +73,7 @@
             cJSON_Delete(json); \
         } \
     } while(0)
+
 
 char test0 = 120;
 char test0_dst = -1;
@@ -182,37 +184,63 @@ struct {
     };
     struct {
         int j;
-    }k;
+    } k;
     int l[3];
     int *p_m;
     int *p_k;
     union { /*need union to check that we're skipping it by default */
         int n;
         long o;
-    }p;
-}test4 = {.a = 0, .b = 0, .d = 0, .e = 0, .k = {.j = 0,},.l = {0, 0, 0}, .p_m = NULL, .p_k = &k, .p = {.n = 0},};
+    } p;
+}
+test4 = {.a = 5, .b = 6, .d = 7, .e = 8, .k = {.j = 9,},.l = {10, 11, 12}, .p_m = NULL, .p_k = &k, .p = {.o = 14},}, 
+test4_dst = {-1, .p_m = &k, .p = {.o = -1},};
 METAC_GSYM_LINK(test4);
+METAC_GSYM_LINK(test4_dst);
 METAC_START_TEST(test4_sanity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(test4);
     fail_unless(p_val != NULL, "wasn't able to get value");
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test4_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    char expected_s_pattern[] = "{\"a\":0,\"b\":0,\"d\":0,\"e\":0,\"k\":{\"j\":0},\"l\":[0,0,0],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
+
+    char expected_s_pattern[] = "{\"a\":5,\"b\":6,\"d\":7,\"e\":8,\"k\":{\"j\":9},\"l\":[10,11,12],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
-    _check_serialization_(_json_string(p_val), expected_s);
+    
+    _check_serialization_(_json_string_and_back(p_val_dst, p_val,
+            fail_unless(test4_dst.a == test4.a, "exected test4_dst.a %d to be equial to test4.a %d", (int)test4_dst.a, (int)test4.a);
+            fail_unless(test4_dst.b == test4.b, "exected test4_dst.b %d to be equial to test4.b %d", (int)test4_dst.b, (int)test4.b);
+            //TODO: fail_unless(test4_dst.d == test4.d, "exected test4_dst.d %d to be equial to test4.d %d", (int)test4_dst.d, (int)test4.d);
+            //TODO: fail_unless(test4_dst.e == test4.e, "exected test4_dst.e %d to be equial to test4.e %d", (int)test4_dst.e, (int)test4.e);
+            fail_unless(test4_dst.k.j == test4.k.j, "exected test4_dst.k.j %d to be equial to test4.k.j %d", (int)test4_dst.k.j, (int)test4.k.j);
+            for (int i = 0; i < sizeof(test4_dst.l)/sizeof(test4_dst.l[0]); ++i) {
+                fail_unless(test4_dst.l[i] == test4.l[i], "exected test4_dst.l[%d] %d to be equial to test4.l[%d] %d", i, (int)test4_dst.l[i], i, (int)test4.l[i]);
+            }
+            // TODO: fail_unless(test4_dst.p_m == test4.p_m, "exected test4_dst.p_m %p to be equial to test4.p_m %p", test4_dst.p_m, test4.p_m);
+            // TODO: fail_unless(test4_dst.p_k == test4.p_k, "exected test4_dst.p_k %p to be equial to test4.p_k %p", test4_dst.p_k, test4.p_k);
+            // make sure we didn't make any changes to union:
+            fail_unless(test4_dst.p.o == -1, "exected test4_dst.p.o %d to kept intact (-1)", (int)test4_dst.p.o);
+        ), 
+        expected_s
+    );
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 } END_TEST
 
 
-struct t5{
+struct t5 {
     int flex_size;
-    struct test5_inner{
+    struct test5_inner {
         int data;
         int more_data;
     } flex[] /*__attribute__((counted_by(flex_size))). see https://clang.llvm.org/docs/AttributeReference.html#field-attributes*/;
-}*test5 = NULL;
+}
+*test5 = NULL,
+*test5_dst = NULL;
 METAC_GSYM_LINK(test5);
+METAC_GSYM_LINK(test5_dst);
 
 METAC_TAG_MAP_NEW(new_t5_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
@@ -239,16 +267,24 @@ METAC_START_TEST(test5_satnity) {
     test5->flex[1].data = 2;
     test5->flex[2].data = 3;
 
-    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test5);
-    metac_value_t * p_arr_val = metac_new_element_count_value(p_val, 1);
-    metac_value_delete(p_val);
+    metac_value_t * p_ptr_val = METAC_VALUE_FROM_LINK(test5); // p_ptr_val is pointer to the beginning of array of type struct t5 (len is unknown) 
+    metac_value_t * p_val = metac_new_element_count_value(p_ptr_val, 1); //p_val is array[1] of type struct t5
+    metac_value_delete(p_ptr_val);
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test4_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
     _check_serialization_(
-        _json_string_ex(p_arr_val, METAC_WMODE_shallow, p_tag_map),
+        //TODO: _json_string_and_back_ex(p_val_dst,
+        _json_string_ex(
+            p_val, METAC_WMODE_shallow, p_tag_map//,
+            //TODO: some extra checks
+        ),
         "[{\"flex_size\":3,\"flex\":[{\"data\":1,\"more_data\":0},{\"data\":2,\"more_data\":0},{\"data\":3,\"more_data\":0}]}]"
     );
 
-    metac_value_delete(p_arr_val);
+    metac_value_delete(p_val_dst);
+    metac_value_delete(p_val);
+
     free(test5);
     metac_tag_map_delete(p_tag_map);
 } END_TEST
@@ -278,8 +314,11 @@ struct test6{
         long l;
         long long ll;
     }sgnd;
-}test6;
+}
+test6,
+test6_dst;
 METAC_GSYM_LINK(test6);
+METAC_GSYM_LINK(test6_dst);
 
 METAC_TAG_MAP_NEW(new_t6_tag_map, NULL, {.mask = 
             METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
@@ -383,23 +422,42 @@ int test6_artificial_handler(metac_value_walker_hierarchy_t *p_hierarchy, metac_
     return 0;
 }
 void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
-    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);    
-    
+    metac_value_t * p_val = METAC_VALUE_FROM_LINK(test6);
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test6_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
+
+    // test with default values
     memset(&test6, 0, sizeof(test6));
     _check_serialization_(
-        _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
+        _json_string_and_back_ex(p_val_dst,
+            p_val, METAC_WMODE_shallow, p_tag_map,
+            // extra checks
+            fail_unless(test6_dst.selector == test6.selector, "exected test6_dst.selector %d to be equial to test6.selector %d", (int)test6_dst.selector, (int)test6.selector);
+            fail_unless(test6_dst.i == test6.i, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
+            fail_unless(test6_dst.sgnd_selector == test6.sgnd_selector, "exected test6_dst.sgnd_selector %d to be equial to test6.sgnd_selector %d", (int)test6_dst.sgnd_selector, (int)test6.sgnd_selector);
+            fail_unless(test6_dst.sgnd.s == test6.sgnd.s, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
+        ),
         "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}"
     );
 
+    // test with specific values
     test6.selector = eInt;
     test6.i = -123456;
     test6.sgnd_selector = eShort;
     test6.sgnd.s = -12345;
     _check_serialization_(
-        _json_string_ex(p_val, METAC_WMODE_shallow, p_tag_map),
+        _json_string_and_back_ex(p_val_dst,
+            p_val, METAC_WMODE_shallow, p_tag_map,
+            // extra checks
+            fail_unless(test6_dst.selector == test6.selector, "exected test6_dst.selector %d to be equial to test6.selector %d", (int)test6_dst.selector, (int)test6.selector);
+            // TODO: fail_unless(test6_dst.i == test6.i, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
+            fail_unless(test6_dst.sgnd_selector == test6.sgnd_selector, "exected test6_dst.sgnd_selector %d to be equial to test6.sgnd_selector %d", (int)test6_dst.sgnd_selector, (int)test6.sgnd_selector);
+            // TODO: fail_unless(test6_dst.sgnd.s == test6.sgnd.s, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
+        ),
         "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"
     );
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }
 METAC_START_TEST(test6_satnity) {
