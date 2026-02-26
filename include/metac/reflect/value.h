@@ -292,6 +292,13 @@ metac_value_t * metac_value_copy_base_type(metac_value_t *p_src_val, metac_value
  */
 char * metac_value_base_type_string(metac_value_t * p_val);
 
+/** @brief converts back from string to base type value opposite to metac_value_base_type_string
+ *  @param p_val value which will be modified
+ *  @param str input string
+ *  @return p_val in case of success, NULL if failed
+ */
+metac_value_t * metac_value_base_type_from_string(metac_value_t * p_val, const char * str);
+
 /* per base type check using metac_value_check_base_type */
 
 metac_flag_t metac_value_is_char(metac_value_t * p_val);

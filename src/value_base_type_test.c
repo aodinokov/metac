@@ -86,37 +86,80 @@ METAC_START_TEST(test_char_3) {
 }
 
 // sanity checks
-#define _test_sanity_(_type_, _type_pseudoname_, _val_0_, _val_1_) \
-    _type_ _type_pseudoname_ ##_sanity = _val_0_; \
-    METAC_GSYM_LINK(_type_pseudoname_ ##_sanity); \
+#define ___test_sanity_(_unique_id_,  _type_, _type_pseudoname_, _is_fn_, _fn_, _set_fn_, _val_0_, _val_1_, _val_1_str) \
+    _type_ _type_pseudoname_ ##_sanity ##_unique_id_ = _val_0_; \
+    METAC_GSYM_LINK(_type_pseudoname_ ##_sanity ##_unique_id_); \
     METAC_START_TEST \
-    (test_## _type_pseudoname_ ##_sanity) { \
-        metac_value_t * p_val = METAC_VALUE_FROM_LINK(_type_pseudoname_ ##_sanity); \
-        fail_unless(metac_value_is_## _type_pseudoname_(p_val) == 1, "metac_value_is_%s failed unexpectedly", # _type_pseudoname_); \
+    (test_## _type_pseudoname_ ##_sanity ##_unique_id_) { \
+        metac_value_t * p_val = METAC_VALUE_FROM_LINK(_type_pseudoname_ ##_sanity ##_unique_id_); \
+        fail_unless(_is_fn_(p_val) == 1, "%s failed unexpectedly", # _is_fn_); \
         _type_ val; \
-        fail_unless(metac_value_## _type_pseudoname_(p_val, &val) == 0, "metac_value_%s failed unexpectedly", # _type_pseudoname_); \
-        fail_unless(val == _type_pseudoname_ ##_sanity , "incorrect value 0 for " #_type_); \
+        fail_unless(_fn_(p_val, &val) == 0, "%s failed unexpectedly", # _fn_); \
+        fail_unless(val == _type_pseudoname_ ##_sanity ##_unique_id_ , "incorrect value 0 for " #_type_); \
         val = _val_1_; \
-        fail_unless(metac_value_set_## _type_pseudoname_(p_val, val) == 0, "metac_value_set_%s failed unexpectedly", # _type_pseudoname_); \
-        fail_unless(val == _type_pseudoname_ ##_sanity , "incorrect value 1 for " #_type_); \
+        fail_unless(_set_fn_(p_val, val) == 0, "%s failed unexpectedly", # _set_fn_); \
+        fail_unless(val == _type_pseudoname_ ##_sanity ##_unique_id_, "incorrect value 1 for " #_type_); \
+        char * str = metac_value_base_type_string(p_val); \
+        fail_unless(str != NULL, "couldn't conver to string"); \
+        fail_unless(strcmp(str, _val_1_str) == 0, "converted to %s, expected %s", str, _val_1_str); \
+        val = _val_0_; \
+        fail_unless(_set_fn_(p_val, val) == 0, "%s 2 failed unexpectedly", # _set_fn_); /* resetting data to initial value */ \
+        fail_unless(val != _val_1_, "_val_1_ must not be equal to _val_0 - please select different values"); \
+        char * str2 = metac_value_base_type_string(p_val); \
+        fail_unless(str2 != NULL, "second convertion didn't work"); \
+        fail_unless(metac_value_base_type_from_string(p_val, str) == p_val, "couln't convert back from string %s", str); \
+        char * str3 = metac_value_base_type_string(p_val); \
+        fail_unless(str3 != NULL, "third convertion didn't work"); \
+        fail_unless(_fn_(p_val, &val) == 0, "%s 2 failed unexpectedly", # _fn_); \
+        /* because of precision it doesn't work for some float types fail_unless(val == _val_1_, "got unexpected result for %s via %s to %s", str, str2, str3); */ \
+        fail_unless(strcmp(str, str3) == 0 && strcmp(str, str2) != 0, "got unexpected result for %s via %s to %s", str, str2, str3); \
+        free(str3); \
+        free(str2); \
+        free(str); \
         metac_value_delete(p_val); \
     }END_TEST
+#define __test_sanity_(_unique_id_, _type_, _type_pseudoname_, _is_fn_, _fn_, _set_fn_, _val_0_, _val_1_, _val_1_str) \
+      ___test_sanity_(_unique_id_,  _type_, _type_pseudoname_, _is_fn_, _fn_, _set_fn_, _val_0_, _val_1_, _val_1_str)
+#define _test_sanity_(_type_, _type_pseudoname_, _val_0_, _val_1_, _val_1_str) \
+      __test_sanity_(__COUNTER__, _type_, _type_pseudoname_, metac_value_is_## _type_pseudoname_, metac_value_## _type_pseudoname_, metac_value_set_## _type_pseudoname_, _val_0_, _val_1_, _val_1_str)
 
-_test_sanity_(char, char, 'a', 'b')
-_test_sanity_(unsigned char, uchar, 'a', 'b')
-_test_sanity_(short, short, 0, 0x7fff)
-_test_sanity_(unsigned short, ushort, 0, 0xffff)
-_test_sanity_(int, int, 0, 0x7fffff)
-_test_sanity_(unsigned int, uint, 0, 0xffffff)
-_test_sanity_(long, long, 0, 0x7fffffff)
-_test_sanity_(unsigned long, ulong, 0, 0xffffffff)
-_test_sanity_(long long, llong, 0, 0x7fffffff)
-_test_sanity_(unsigned long long, ullong, 0, 0xffffffff)
-_test_sanity_(bool, bool, 0, 1)
-_test_sanity_(float, float, 0.0, 3.14)
-_test_sanity_(double, double, 0.0, 3.1415)
-_test_sanity_(long double, ldouble, 0, 3.1415926535)
-_test_sanity_(float complex, float_complex, 1.0*I, 1.0)
-_test_sanity_(double complex, double_complex, 1.1*I, 1.1)
-_test_sanity_(long double complex, ldouble_complex, 1.2*I, 2.1)
+
+// printable chars
+_test_sanity_(char, char, 'a', 'b', "'b'")
+// non printable chars
+_test_sanity_(char, char, 0, 13, "13")
+_test_sanity_(unsigned char, uchar, 'a', 'b', "98")
+_test_sanity_(short, short, 0, 0x7fff, "32767")
+_test_sanity_(unsigned short, ushort, 0, 0xffff, "65535")
+_test_sanity_(int, int, 0, 0x7fffff, "8388607")
+_test_sanity_(unsigned int, uint, 0, 0xffffff, "16777215")
+_test_sanity_(long, long, 0, 0x7fffffff, "2147483647")
+_test_sanity_(unsigned long, ulong, 0, 4294967295, "4294967295")
+_test_sanity_(long long, llong, 0, 0x7fffffff, "2147483647")
+_test_sanity_(unsigned long long, ullong, 0, 0xffffffff, "4294967295")
+_test_sanity_(bool, bool, 1, 0, "false")
+_test_sanity_(bool, bool, 0, 1, "true")
+_test_sanity_(float, float, 0.0, 3.14, "3.140000")
+_test_sanity_(double, double, 0.0, 3.1415, "3.141500")
+_test_sanity_(long double, ldouble, 0, 3.141590, "3.141590")
+_test_sanity_(float complex, float_complex, 1.0*I, 1.0 + 1.0 * I, "1.000000 + I * 1.000000")
+_test_sanity_(float complex, float_complex, 1.0*I, 1.0 - 1.0 * I, "1.000000 - I * 1.000000")
+_test_sanity_(float complex, float_complex, 1.0*I, -1.0 + 1.0 * I, "-1.000000 + I * 1.000000")
+_test_sanity_(float complex, float_complex, 1.0*I, -1.0 - 1.0 * I, "-1.000000 - I * 1.000000")
+_test_sanity_(double complex, double_complex, 1.1*I, 1.1, "1.100000 + I * 0.000000")
+_test_sanity_(double complex, double_complex, 1.0*I, 1.0 + 1.0 * I, "1.000000 + I * 1.000000")
+_test_sanity_(double complex, double_complex, 1.0*I, 1.0 - 1.0 * I, "1.000000 - I * 1.000000")
+_test_sanity_(double complex, double_complex, 1.0*I, -1.0 + 1.0 * I, "-1.000000 + I * 1.000000")
+_test_sanity_(double complex, double_complex, 1.0*I, -1.0 - 1.0 * I, "-1.000000 - I * 1.000000")
+_test_sanity_(long double complex, ldouble_complex, 1.2*I, 2.1, "2.100000 + I * 0.000000")
+_test_sanity_(long double complex, ldouble_complex, 1.0*I, 1.0 + 1.0 * I, "1.000000 + I * 1.000000")
+_test_sanity_(long double complex, ldouble_complex, 1.0*I, 1.0 - 1.0 * I, "1.000000 - I * 1.000000")
+_test_sanity_(long double complex, ldouble_complex, 1.0*I, -1.0 + 1.0 * I, "-1.000000 + I * 1.000000")
+_test_sanity_(long double complex, ldouble_complex, 1.0*I, -1.0 - 1.0 * I, "-1.000000 - I * 1.000000")
+
 #undef _test_sanity_
+
+// // TODO: metac_value_base_type_string negative tests, e.g convert from incorrect strings
+// METAC_START_TEST(test_metac_value_base_type_string) {
+
+// }END_TEST
