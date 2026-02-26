@@ -649,6 +649,10 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.p_content = &t7_contnt0_2;
 
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":\"%p\"}", test7.p_content); 
+
+    // reset, so deserialization would populate
+    test7_dst.p_content = NULL;
+
     _check_serialization_(
         _json_string_and_back(p_val_dst,
             p_val,
@@ -657,15 +661,20 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
             fail_unless(test7_dst.p_content == test7.p_content, "exected test7_dst.p_content %p to be equial to test7.p_content %p", test7_dst.p_content, test7.p_content);
-
         ),
         exp_buf
     );
 
+    // reset, so deserialization would populate
+    test7_dst.p_content = NULL;
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}"
     );
@@ -673,10 +682,18 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.data = 555;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_0;
+
+    // TODO: we need to free p_content if it's not NULL
+    test7_dst.p_content = NULL;
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+
         ),
         "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}"
     );
@@ -684,10 +701,18 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.data = 777;
     test7.content_len = 1;
     test7.p_content = &t7_contnt0_1;
+
+    // TODO: we need to free p_content if it's not NULL
+    test7_dst.p_content = NULL;
+
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}"
     );
@@ -696,10 +721,18 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_0;
+
+    // TODO: we need to free p_content if it's not NULL
+    test7_dst.p_content = NULL;
+
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}"
     );
@@ -708,10 +741,18 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_type = 1;
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
+
+    // TODO: we need to free p_content if it's not NULL
+    test7_dst.p_content = NULL;
+
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}"
     );
@@ -721,12 +762,20 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
 
+    // TODO: we need to free p_content if it's not NULL
+    test7_dst.p_content = NULL;
+
+
     /* check fallback to shallow if it's void* */
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1,\"p_content\":\"%p\"}", test7.p_content);
     _check_serialization_(
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
+            fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
+            fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
+            fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
+            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         exp_buf
     );
