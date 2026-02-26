@@ -169,6 +169,7 @@ int k = 0;
 struct {
     int a;
     char b;
+    double complex dc;
     struct {
         unsigned int d;
         struct {
@@ -193,7 +194,7 @@ struct {
         long o;
     } p;
 }
-test4 = {.a = 5, .b = 6, .d = 7, .e = 8, .k = {.j = 9,},.l = {10, 11, 12}, .p_m = NULL, .p_k = &k, .p = {.o = 14},}, 
+test4 = {.a = 5, .b = 6, .dc = -2 - 1 * I, .d = 7, .e = 8, .k = {.j = 9,},.l = {10, 11, 12}, .p_m = NULL, .p_k = &k, .p = {.o = 14},}, 
 test4_dst = {-1, .p_m = &k, .p = {.o = -1},};
 METAC_GSYM_LINK(test4);
 METAC_GSYM_LINK(test4_dst);
@@ -203,14 +204,14 @@ METAC_START_TEST(test4_sanity) {
     metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test4_dst);
     fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-
-    char expected_s_pattern[] = "{\"a\":5,\"b\":6,\"d\":7,\"e\":8,\"k\":{\"j\":9},\"l\":[10,11,12],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
+    char expected_s_pattern[] = "{\"a\":5,\"b\":6,\"dc\":\"-2.000000 - I * 1.000000\",\"d\":7,\"e\":8,\"k\":{\"j\":9},\"l\":[10,11,12],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
     
     _check_serialization_(_json_string_and_back(p_val_dst, p_val,
             fail_unless(test4_dst.a == test4.a, "exected test4_dst.a %d to be equial to test4.a %d", (int)test4_dst.a, (int)test4.a);
             fail_unless(test4_dst.b == test4.b, "exected test4_dst.b %d to be equial to test4.b %d", (int)test4_dst.b, (int)test4.b);
+            fail_unless(test4_dst.dc == test4.dc, "exected test4_dst.dc %lf, %lf to be equial to test4.dc %lf, %lf", creal(test4_dst.dc), cimag(test4_dst.dc), creal(test4.dc), cimag(test4.dc));
             //TODO: fail_unless(test4_dst.d == test4.d, "exected test4_dst.d %d to be equial to test4.d %d", (int)test4_dst.d, (int)test4.d);
             //TODO: fail_unless(test4_dst.e == test4.e, "exected test4_dst.e %d to be equial to test4.e %d", (int)test4_dst.e, (int)test4.e);
             fail_unless(test4_dst.k.j == test4.k.j, "exected test4_dst.k.j %d to be equial to test4.k.j %d", (int)test4_dst.k.j, (int)test4.k.j);
@@ -295,6 +296,7 @@ enum sgnd {
     eInt,
     eLong,
     eLongLong,
+    eDoubleComplex,
 };
 
 struct test6{
@@ -305,6 +307,7 @@ struct test6{
         int i;
         long l;
         long long ll;
+        double complex dc;
     };
     enum sgnd sgnd_selector;
     union {
@@ -313,6 +316,7 @@ struct test6{
         int i;
         long l;
         long long ll;
+        double complex dc;
     }sgnd;
 }
 test6,
@@ -335,6 +339,7 @@ METAC_TAG_MAP_NEW(new_t6_tag_map, NULL, {.mask =
                 {.fld_val = eInt, .union_fld_name = "i"},
                 {.fld_val = eLong, .union_fld_name = "l"},
                 {.fld_val = eLongLong, .union_fld_name = "ll"},
+                {.fld_val = eDoubleComplex, .union_fld_name = "dc"},
             )
         )
         METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n = "sgnd"}),
@@ -344,6 +349,7 @@ METAC_TAG_MAP_NEW(new_t6_tag_map, NULL, {.mask =
                 {.fld_val = eInt, .union_fld_name = "i"},
                 {.fld_val = eLong, .union_fld_name = "l"},
                 {.fld_val = eLongLong, .union_fld_name = "ll"},
+                {.fld_val = eDoubleComplex, .union_fld_name = "dc"},
             )
         )
     METAC_TAG_MAP_ENTRY_END
