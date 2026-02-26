@@ -248,6 +248,14 @@ metac_value_t * metac_value_copy_pointer(metac_value_t *p_src_val, metac_value_t
  */
 char * metac_value_pointer_string(metac_value_t * p_val);
 
+/** @brief converts back from string to pointer value opposite to metac_value_pointer_string
+ *  @param p_val value which will be modified
+ *  @param str input string
+ *  @return p_val in case of success, NULL if failed
+ */
+metac_value_t * metac_value_pointer_from_string(metac_value_t * p_val, const char * str);
+
+
 /* kind == METAC_KND_base_type || (kind = METAC_KND_member_info && type.kind == METAC_KND_base_type) || (kind = METAC_KND_variable && type.kind == METAC_KND_base_type) */
 
 /** @brief return non-zero if value's final kind is base type (e.g. char, short, int &etc) */

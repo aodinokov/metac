@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include <cjson/cJSON.h>
 
@@ -43,27 +44,35 @@
  *   but returns -1 to indicate overall failure
  */
 
-// Forward declaration for recursion
-static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map);
-
-
 static int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
     if (metac_value_is_bool(p_val)) {
         return metac_value_set_bool(p_val, cJSON_IsTrue(json));
     }
-    if (metac_value_is_char(p_val) && cJSON_IsNumber(json)) {
-        char val = (char)cJSON_GetNumberValue(json);
-        return metac_value_set_char(p_val, val);
+    if (metac_value_is_float_complex(p_val) || 
+        metac_value_is_double_complex(p_val) ||
+        metac_value_is_ldouble_complex(p_val)) {
+        if (!cJSON_IsString(json)) {
+            return -(EINVAL);
+        }
+        if (metac_value_base_type_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
+            return -(EINVAL);
+        }
+
     }
     if (cJSON_IsNumber(json)) {
         double num = cJSON_GetNumberValue(json);
+        if (metac_value_is_char(p_val)) return metac_value_set_char(p_val, (char)num);
+        if (metac_value_is_uchar(p_val)) return metac_value_set_uchar(p_val, (unsigned char)num);
+        if (metac_value_is_short(p_val)) return metac_value_set_short(p_val, (short)num);
+        if (metac_value_is_ushort(p_val)) return metac_value_set_ushort(p_val, (unsigned short)num);
+        if (metac_value_is_int(p_val)) return metac_value_set_int(p_val, (int)num);
+        if (metac_value_is_uint(p_val)) return metac_value_set_uint(p_val, (unsigned int)num);
+        if (metac_value_is_long(p_val)) return metac_value_set_long(p_val, (long)num);
+        if (metac_value_is_long(p_val)) return metac_value_set_long(p_val, (long)num);
         if (metac_value_is_float(p_val)) return metac_value_set_float(p_val, (float)num);
         if (metac_value_is_double(p_val)) return metac_value_set_double(p_val, num);
-        if (metac_value_is_long(p_val)) return metac_value_set_long(p_val, (long)num);
-        if (metac_value_is_int(p_val)) return metac_value_set_int(p_val, (int)num);
-        if (metac_value_is_short(p_val)) return metac_value_set_short(p_val, (short)num);
     }
-    return -1; // Type mismatch
+    return -(EINVAL); // Type mismatch
 }
 
 static int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
@@ -113,8 +122,11 @@ static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* 
             // pointer semantics. Pointers are typically serialized for debugging purposes
             // only. For full deep deserialization, use alternative approaches.
             if (cJSON_IsString(json)) {
-                // String represents a pointer address - cannot deserialize reliably
-                return -1;
+                // String represents a pointer address
+                if (metac_value_pointer_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
+                    return -(EFAULT);
+                }
+                return 0;
             }
 
             // Object/Array pointers: would require memory allocation

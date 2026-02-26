@@ -670,6 +670,24 @@ char *metac_value_pointer_string(metac_value_t * p_val) {
     return dsprintf("%p", v);
 }
 
+metac_value_t * metac_value_pointer_from_string(metac_value_t * p_val, const char * str) {
+    _check_(p_val == NULL, NULL);
+    _check_(p_val->p_entry == NULL, NULL);
+
+    if (metac_value_is_pointer(p_val) == 0) {
+        return NULL;
+    }
+    void* v = NULL;
+    if (strcmp(str, "NULL") != 0 &&
+        sscanf(str, "%p", &v) != 1) {
+        return NULL;
+    }
+    if (metac_value_set_pointer(p_val, v) != 0) {
+        return NULL;
+    }
+    return p_val; 
+}
+
 // special type of value - parameters of functions. we have a special load for it and need to cleanup addr
 // when delete such objects
 metac_flag_t metac_value_has_parameter_load(metac_value_t * p_val) {
