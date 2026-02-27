@@ -80,6 +80,8 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
         return cJSON_CreateNumber(v);
     }
     if (metac_value_is_float_complex(p_val) || metac_value_is_double_complex(p_val) || metac_value_is_ldouble_complex(p_val)) {
+#if 0
+        // TODO: choose what option is better
         char * out = metac_value_base_type_string(p_val);
         if (out == NULL) {
             return NULL;
@@ -87,6 +89,56 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
         cJSON * v = cJSON_CreateString(out);
         free(out);
         return v;
+#else
+        double real = 0, img = 0;
+        if (metac_value_is_float_complex(p_val)) {
+            float complex val;
+            if (metac_value_float_complex(p_val, &val) != 0) {
+                return NULL;
+            }
+            real = crealf(val);
+            img = cimagf(val);
+        } else if (metac_value_is_double_complex(p_val)) {
+            double complex val;
+            if (metac_value_double_complex(p_val, &val) != 0) {
+                return NULL;
+            }
+            real = creal(val);
+            img = cimag(val);
+        } else if(metac_value_is_ldouble_complex(p_val)) {
+            // TODO: we're losing precision in case of long double and cjson
+            long double complex val;
+            if (metac_value_ldouble_complex(p_val, &val) != 0) {
+                return NULL;
+            }
+            real = creall(val);
+            img = cimagl(val);
+        } else {
+            return NULL;
+        }
+
+        cJSON * v = cJSON_CreateObject();
+        cJSON * r = cJSON_CreateNumber(real);
+        cJSON * i = cJSON_CreateNumber(img);
+        bool added_r = ({
+            bool res = false;
+            if (v != NULL && r != NULL) res = cJSON_AddItemToObject(v, "real", r);
+            res;
+        }),  added_i = ({
+            bool res = false;
+            if (v != NULL && i != NULL) res = cJSON_AddItemToObject(v, "img", i);
+            res;
+        });
+        if (added_r && added_i) return v; // success!
+
+        // destruct and fail
+        if (added_i) cJSON_DetachItemViaPointer(v, i);
+        if (i) cJSON_Delete(i);
+        if (added_r) cJSON_DetachItemViaPointer(v, r);
+        if (r) cJSON_Delete(r);
+        if (v) cJSON_Delete(v);
+        return NULL;
+#endif
     }
     // Default to handling as a number. This covers short, int, long, long long, and their unsigned variants.
     metac_num_t num;

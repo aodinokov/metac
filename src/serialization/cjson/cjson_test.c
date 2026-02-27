@@ -204,7 +204,7 @@ METAC_START_TEST(test4_sanity) {
     metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(test4_dst);
     fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-    char expected_s_pattern[] = "{\"a\":5,\"b\":6,\"dc\":\"-2.000000 - I * 1.000000\",\"d\":7,\"e\":8,\"k\":{\"j\":9},\"l\":[10,11,12],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
+    char expected_s_pattern[] = "{\"a\":5,\"b\":6,\"dc\":{\"real\":-2,\"img\":-1},\"d\":7,\"e\":8,\"k\":{\"j\":9},\"l\":[10,11,12],\"p_m\":null,\"p_k\":\"%p\",\"p\":{}}";
     char expected_s[sizeof(expected_s_pattern)+16];
     snprintf(expected_s, sizeof(expected_s), expected_s_pattern, test4.p_k);
     
@@ -740,7 +740,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
             // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
-        "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"7.000000 + I * 3.400000\"}}"
+        "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":{\"real\":7,\"img\":3.4}}}"
     );
 
     test7.data = 888;
@@ -760,7 +760,7 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
             // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
-        "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":\"19.330000 - I * 0.400000\"}}"
+        "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":{\"real\":19.33,\"img\":-0.4}}}"
     );
 
     test7.data = 1000;

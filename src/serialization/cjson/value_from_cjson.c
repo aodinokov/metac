@@ -51,13 +51,34 @@ static int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* 
     if (metac_value_is_float_complex(p_val) || 
         metac_value_is_double_complex(p_val) ||
         metac_value_is_ldouble_complex(p_val)) {
-        if (!cJSON_IsString(json)) {
-            return -(EINVAL);
+        if (cJSON_IsObject(json)) {
+            struct cJSON* json_real = cJSON_GetObjectItem(json, "real");
+            struct cJSON* json_img = cJSON_GetObjectItem(json, "img");
+            if (json_real == NULL || !cJSON_IsNumber(json_real) ||
+                json_img == NULL || !cJSON_IsNumber(json_img)) {
+                return -(EINVAL);
+            }
+            double  real = cJSON_GetNumberValue(json_real),
+                    img = cJSON_GetNumberValue(json_img);
+            if (metac_value_is_float_complex(p_val)) {
+                return metac_value_set_float_complex(p_val, ((float)real) + I * ((float)img));
+            }
+            if (metac_value_is_double_complex(p_val)) {
+                return metac_value_set_double_complex(p_val, ((double)real) + I * ((double)img));
+            }
+            if (metac_value_is_ldouble_complex(p_val)) {
+                // TODO: we're losing precision in case of long double and cjson
+                return metac_value_set_ldouble_complex(p_val, ((long double)real) + I * ((long double)img));
+            }
+            return -(EFAULT);
         }
-        if (metac_value_base_type_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
-            return -(EINVAL);
+        if (cJSON_IsString(json)) {
+            if (metac_value_base_type_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
+                return -(EINVAL);
+            }
+            return -(EFAULT);
         }
-
+        return -(EINVAL);
     }
     if (cJSON_IsNumber(json)) {
         double num = cJSON_GetNumberValue(json);
