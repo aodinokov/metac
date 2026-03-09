@@ -6,6 +6,10 @@
 #include "metac/backend/value.h"
 #include "mr.h"
 
+static metac_value_t *__process_unspecified_params_cntr_value_extractor(void*p_in) {
+    return (metac_value_t *)p_in;
+}
+
 static int _process_unspecified_params_cntr(
     //context
     metac_parameter_storage_t * p_param_storage,
@@ -31,7 +35,7 @@ static int _process_unspecified_params_cntr(
         if (ev.p_return_value == NULL) {
             metac_recursive_iterator_fail(p_iter);
         } else {
-            if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+            if (metac_value_event_handler_call(p_tag->handler, p_iter, &__process_unspecified_params_cntr_value_extractor, &ev, p_tag->p_context) != 0) {
             }
             metac_value_delete(ev.p_return_value);
             metac_recursive_iterator_done(p_iter, NULL);

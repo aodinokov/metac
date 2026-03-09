@@ -149,6 +149,9 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
     return NULL; // Should not happen for a valid base type
 }
 
+static metac_value_t *_metac_value_to_cjson_value_extractor(void*p_in) {
+    return (metac_value_t *)p_in;
+}
 
 struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t wmode, metac_tag_map_t* p_tag_map) {
     if (p_val == NULL) {
@@ -158,7 +161,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
     metac_recursive_iterator_t* p_iter = metac_new_recursive_iterator(p_val);
 
     for (metac_value_t* p = (metac_value_t*)metac_recursive_iterator_next(p_iter); p != NULL;
-         p = (metac_value_t*)metac_recursive_iterator_next(p_iter)) {
+        p = (metac_value_t*)metac_recursive_iterator_next(p_iter)) {
         int state = metac_recursive_iterator_get_state(p_iter);
         metac_kind_t final_kind = metac_value_final_kind(p, NULL);
 
@@ -230,7 +233,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
                             metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                             if (p_tag != NULL && p_tag->handler) {
-                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_to_cjson_value_extractor, &ev, p_tag->p_context) != 0) {
                                     metac_recursive_iterator_fail(p_iter);
                                     continue;
                                 }
@@ -321,7 +324,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                 metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
                                 metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                                 if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_to_cjson_value_extractor, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
                                         metac_recursive_iterator_create_and_append_dep(p_iter, ev.p_return_value);
                                     }
                                 }
@@ -409,7 +412,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                 metac_value_event_t ev = {.type = METAC_RQVST_flex_array_count, .p_return_value = NULL};
                                 metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                                 if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_to_cjson_value_extractor, &ev, p_tag->p_context) != 0) {
                                         metac_recursive_iterator_fail(p_iter);
                                         continue;
                                     }

@@ -458,8 +458,8 @@ metac_value_t * metac_value_base_type_from_string(metac_value_t * p_val, const c
     _from_string_(unsigned int, uint, "%u", &v);
     _from_string_(long, long, "%li", &v);
     _from_string_(unsigned long, ulong, "%lu", &v);
-    _from_string_(long long, llong, "%Li", &v);
-    _from_string_(unsigned long long, ullong, "%Lu", &v);
+    _from_string_(long long, llong, "%lli", &v);
+    _from_string_(unsigned long long, ullong, "%llu", &v);
     _from_string_(float, float, "%f", &v);
     _from_string_(double, double, "%lf", &v);
     _from_string_(long double, ldouble, "%Lf", &v);

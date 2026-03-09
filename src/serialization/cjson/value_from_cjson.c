@@ -1,5 +1,8 @@
 #include "metac/serialization/cjson.h"
-#include "metac/backend/value.h"
+
+#include "metac/backend/iterator.h"
+#include "metac/backend/serialization.h"
+#include "metac/backend/value.h" // metac_value_event_handler_call???
 
 #include <assert.h>
 #include <stdlib.h>
@@ -7,42 +10,6 @@
 #include <errno.h>
 
 #include <cjson/cJSON.h>
-
-/**
- * @brief Deserialize JSON (cJSON) objects into metac_value_t structures
- *
- * This module provides JSON-to-value deserialization for the metac reflection library.
- * It complements value_to_cjson.c (serialization) to enable round-trip JSON conversion.
- *
- * Architecture:
- * - Uses simple recursion to traverse both the metac type structure and JSON tree
- * - For each metac_value_t, finds corresponding JSON and populates the value
- * - Handles named struct members by field name lookup in JSON objects
- * - Handles anonymous struct members by passing parent JSON (merged members pattern)
- * - Returns 0 on success, -1 on failure or unsupported types
- *
- * Supported Types:
- * - Base types (int, float, bool, etc.) - numeric/boolean JSON values
- * - Enumerations - JSON strings mapped to enum names
- * - Structs - JSON objects with member fields
- * - Arrays - JSON arrays with typed elements
- * - Unions - with tagmap handler support for active member selection
- * - NULL pointers - from JSON null values
- *
- * Limitations:
- * - Non-NULL pointers cannot be reliably deserialized (by design - see comments)
- * - Pointers as arrays require tagmap handler support (not fully implemented)
- * - Flexible arrays without TagMap sizing info use destination array bounds
- * - Unions without TagMap cannot determine active member (ambiguous)
- * - Anonymous struct members must be flattened in JSON (per serialization convention)
- *
- * Design Notes:
- * - Deserialization is simpler than serialization (consuming vs. building)
- * - This justifies the recursive approach vs. iterator pattern used in serialization
- * - Error handling: partial deserialization is allowed (missing optional fields)
- * - When a member deserializes fails, the function continues with other members
- *   but returns -1 to indicate overall failure
- */
 
 static int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
     if (metac_value_is_bool(p_val)) {
@@ -117,6 +84,79 @@ static int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct 
     return -1; // Enum value not found
 }
 
+#if 0
+static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSON * in_json, metac_tag_map_t* p_tag_map) {
+    if (p_val == NULL || in_json == NULL) {
+        return -(EINVAL);
+    }
+
+    metac_deserialization_pair_t * p_pair = metac_new_deserialization_pair(p_val, in_json);
+    if (p_pair == NULL) {
+        return -(ENOMEM);
+    }
+
+    metac_recursive_iterator_t * p_iter = metac_new_recursive_iterator(p_pair);
+
+    for (metac_deserialization_pair_t * p = (metac_deserialization_pair_t*)metac_recursive_iterator_next(p_iter); p != NULL;
+        p = (metac_deserialization_pair_t*)metac_recursive_iterator_next(p_iter)) {
+        int state = metac_recursive_iterator_get_state(p_iter);
+        struct cJSON * json = (struct cJSON *)p->p_external;
+
+        // we use value kind (dst) to identify to where we need to store
+        // and match it to srv (json) 
+        metac_kind_t final_kind = metac_value_final_kind(p->p_val, NULL);
+
+        switch (final_kind) {
+            case METAC_KND_base_type: {
+                if (metac_value_base_type_from_cjson(p->p_val, json) != 0) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+                metac_recursive_iterator_done(p_iter, p->p_val);
+                continue;
+            }
+            case METAC_KND_enumeration_type: {
+                if (metac_value_enumeration_type_from_cjson(p->p_val, json) != 0) {
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+                metac_recursive_iterator_done(p_iter, p->p_val);
+                continue;
+            }
+            case METAC_KND_pointer_type: {
+
+                if (/*wmode == METAC_WMODE_shallow*/1) {// we need to detect what mode we used when serialized. it it's a string - that will be shallow
+                    // treat pointer as 
+                    if (cJSON_IsNull(json)) {
+                        if (metac_value_set_pointer(p_val, NULL) != 0) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+                        metac_recursive_iterator_done(p_iter, p->p_val);
+                        continue;
+                    }
+                }
+            }
+            // fail in case we couldn't find anythin
+            default: {
+                metac_recursive_iterator_fail(p_iter);
+                continue;
+            }
+        }
+    }
+    int fail = 0;
+    metac_recursive_iterator_get_out(p_iter, (void **)&p_pair, &fail);
+    metac_deserialization_pair_delete(p_pair);
+    metac_recursive_iterator_free(p_iter);
+    return fail;
+}
+
+int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
+    return metac_value_from_cjson_nonrecursive(p_val, json, p_tag_map);
+}
+
+
+#else
 static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
     if (!p_val || !json) return -1;
 
@@ -229,15 +269,16 @@ static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* 
                 metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
                 metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_val));
                 if (p_tag != NULL && p_tag->handler) {
-                    // Note: We pass NULL for iterator as we're in recursive context
+                    // TODO: Alexey This is a BUG metac_value_walker_hierarchy_level rely on iterator to walk by hierarchy
+                    // copilot Note: We pass NULL for iterator as we're in recursive context
                     // Handlers should not rely on iterator in this case
-                    if (metac_value_event_handler_call(p_tag->handler, NULL, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
-                        // Deserialize the active union member
-                        metac_value_t* p_member_val = (metac_value_t*)ev.p_return_value;
-                        int result = metac_value_from_cjson_recursive(p_member_val, json, p_tag_map);
-                        metac_value_delete(p_member_val);
-                        return result;
-                    }
+                    // if (metac_value_event_handler_call(p_tag->handler, NULL, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
+                    //     // Deserialize the active union member
+                    //     metac_value_t* p_member_val = (metac_value_t*)ev.p_return_value;
+                    //     int result = metac_value_from_cjson_recursive(p_member_val, json, p_tag_map);
+                    //     metac_value_delete(p_member_val);
+                    //     return result;
+                    // }
                 }
             }
             // Unions without tagmap handlers are skipped (treated as optional)
@@ -248,7 +289,8 @@ static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* 
             return -1; // Unhandled kind
     }
 }
-
 int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
-    return metac_value_from_cjson_recursive(p_val, json, p_tag_map);
+return metac_value_from_cjson_recursive(p_val, json, p_tag_map);
 }
+#endif 
+

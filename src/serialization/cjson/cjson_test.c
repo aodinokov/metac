@@ -5,6 +5,7 @@
 // enable test only if needed
 #if WITH_CJSON
 // including c-file we want to test, because we need to test some static functions
+#include "../serialization.c"
 #include "../../entry.c"
 #include "../../entry_db.c"
 #include "../../entry_cdecl.c"

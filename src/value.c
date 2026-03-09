@@ -19,6 +19,7 @@ dsprintf_render_with_buf(64)
 
 struct metac_value_walker_hierarchy {
     metac_recursive_iterator_t * p_iterator;
+    metac_value_extractor_t p_extractor;
 };
 
 int metac_value_walker_hierarchy_level(metac_value_walker_hierarchy_t *p_hierarchy) {
@@ -30,13 +31,19 @@ int metac_value_walker_hierarchy_level(metac_value_walker_hierarchy_t *p_hierarc
 metac_value_t * metac_value_walker_hierarchy_value(metac_value_walker_hierarchy_t *p_hierarchy, int req_level) {
     _check_(p_hierarchy == NULL, NULL);
     _check_(p_hierarchy->p_iterator == NULL, NULL);
-    return (metac_value_t *)metac_recursive_iterator_get_in(p_hierarchy->p_iterator, req_level);
+    _check_(p_hierarchy->p_extractor == NULL, NULL);
+    void *p_in = metac_recursive_iterator_get_in(p_hierarchy->p_iterator, req_level);
+   
+    return p_hierarchy->p_extractor(p_in);
 }
 
-int metac_value_event_handler_call(metac_value_event_handler_t handler, metac_recursive_iterator_t * p_iterator, metac_value_event_t * p_ev, void *p_context) {
+int metac_value_event_handler_call(metac_value_event_handler_t handler, metac_recursive_iterator_t * p_iterator, metac_value_extractor_t p_extractor, metac_value_event_t * p_ev, void *p_context) {
     _check_(handler == NULL, -(EINVAL));
+    _check_(p_iterator == NULL, -(EINVAL));
+    _check_(p_extractor == NULL, -(EINVAL));
     metac_value_walker_hierarchy_t hierarchy = {
         .p_iterator = p_iterator,
+        .p_extractor = p_extractor,
     };
     return handler(&hierarchy, p_ev, p_context);
 }

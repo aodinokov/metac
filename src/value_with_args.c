@@ -196,6 +196,10 @@ int metac_parameter_storage_copy(metac_parameter_storage_t * p_src_param_storage
     return 0;
 }
 
+static metac_value_t *__value_parameter_wrap_value_extractor(void*p_in){
+    return (metac_value_t *)p_in;
+}
+
 metac_value_t * metac_parameter_storage_new_param_value(metac_parameter_storage_t * p_param_storage, metac_num_t id) {
     metac_num_t current = 0;
     metac_parameter_t * p_param = NULL;
@@ -289,7 +293,7 @@ static void _handle_subprogram(
                 }
 #endif
 
-                if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                if (metac_value_event_handler_call(p_tag->handler, p_iter, &__value_parameter_wrap_value_extractor, &ev, p_tag->p_context) != 0) {
                     if (local != 0){
                         va_end(local_cntr.parameters);
                     }
