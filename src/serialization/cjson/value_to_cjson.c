@@ -515,7 +515,6 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                 }
                 continue;
             }
-            // TODO: Handle other kinds like unions, etc.
             default: {
                 metac_recursive_iterator_fail(p_iter);
                 continue;

@@ -85,6 +85,16 @@ static int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct 
 }
 
 #if 0
+
+// here in cjson deser as you can see below we use pairs as iterator task, it contains p_val
+static metac_value_t *_metac_value_from_cjson_value_extractor(void*p_in) {
+    if (p_in == NULL) {
+        return NULL;
+    }
+    metac_deserialization_pair_t * p_pair = (metac_deserialization_pair_t *)p_in;
+    return p_pair->p_val;
+}
+
 static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSON * in_json, metac_tag_map_t* p_tag_map) {
     if (p_val == NULL || in_json == NULL) {
         return -(EINVAL);
@@ -124,18 +134,43 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                 continue;
             }
             case METAC_KND_pointer_type: {
-
-                if (/*wmode == METAC_WMODE_shallow*/1) {// we need to detect what mode we used when serialized. it it's a string - that will be shallow
-                    // treat pointer as 
-                    if (cJSON_IsNull(json)) {
-                        if (metac_value_set_pointer(p_val, NULL) != 0) {
-                            metac_recursive_iterator_fail(p_iter);
-                            continue;
-                        }
-                        metac_recursive_iterator_done(p_iter, p->p_val);
+                if (cJSON_IsNull(json)) {
+                    if (metac_value_set_pointer(p_val, NULL) != 0) {
+                        metac_recursive_iterator_fail(p_iter);
                         continue;
                     }
+                    metac_recursive_iterator_done(p_iter, p->p_val);
+                    continue;
                 }
+                // we need to detect what mode we used when serialized. it it's a string - that was shallow or void*
+                if (cJSON_IsString(json)) {
+                    // TODO: maybe we should use some measures/warnings, pointer may be non valid
+                    if (metac_value_pointer_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;
+                    }
+                    metac_recursive_iterator_done(p_iter, p->p_val);
+                    continue;                    
+                }
+                // deep mode was used to serialize
+                // object is a pointer to a single object
+                if (cJSON_IsObject(json)) {
+                    // TODO: not implemented
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+                if (cJSON_IsArray(json)) {
+                    // TODO: not implemented
+                    metac_recursive_iterator_fail(p_iter);
+                    continue;
+                }
+            }
+            case METAC_KND_union_type:
+            case METAC_KND_struct_type: {
+                metac_recursive_iterator_fail(p_iter);
+                continue;
+            }
+            case METAC_KND_array_type: {
             }
             // fail in case we couldn't find anythin
             default: {
