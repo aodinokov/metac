@@ -42,7 +42,7 @@
 // Note: We can't use this for negative deserialization cases
 #define __and_back(p_val_dest, p_tag_map, _extra_check...) do { \
         if (p_val_dest != NULL && json != NULL) { \
-                fail_unless(metac_value_from_cjson(p_val_dest, json, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
+                fail_unless(metac_value_from_cjson(p_val_dest, json, NULL, NULL, NULL, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
                 do { _extra_check } while(0); \
         } \
     } while(0)
@@ -984,7 +984,7 @@ METAC_START_TEST(cjson_backend_deserialization_array) {
     metac_value_t* p_val = metac_new_value(p_entry, &target_struct);
     fail_unless(p_val != NULL, "metac_new_value failed for target_struct");
 
-    int result = metac_value_from_cjson(p_val, json, NULL);
+    int result = metac_value_from_cjson(p_val, json, NULL, NULL, NULL, NULL);
     fail_unless(result == 0, "metac_value_from_cjson failed");
 
     fail_unless(target_struct.simple_arr[0] == 11, "Array[0] should be 11, but is %d", target_struct.simple_arr[0]);
@@ -1005,7 +1005,7 @@ METAC_START_TEST(cjson_backend_deserialization_struct) {
     metac_value_t* p_val = metac_new_value(p_entry, &target_struct);
     fail_unless(p_val != NULL, "metac_new_value failed for target_struct");
 
-    int result = metac_value_from_cjson(p_val, json, NULL);
+    int result = metac_value_from_cjson(p_val, json, NULL, NULL, NULL, NULL);
     fail_unless(result == 0, "metac_value_from_cjson failed");
 
     fail_unless(target_struct.y == -99, "Deserialization error: y should be -99, but is %d", target_struct.y);

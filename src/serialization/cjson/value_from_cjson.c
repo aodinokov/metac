@@ -95,7 +95,11 @@ static metac_value_t *_metac_value_from_cjson_value_extractor(void*p_in) {
     return p_pair->p_val;
 }
 
-static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSON * in_json, metac_tag_map_t* p_tag_map) {
+static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSON * in_json, 
+    metac_value_deserialization_mode_t * p_mode,
+    void *(*calloc_fn)(size_t nmemb, size_t size),
+    void (*free_fn)(void *ptr), /* free used in case of failure */
+    metac_tag_map_t* p_tag_map) {
     if (p_val == NULL || in_json == NULL) {
         return -(EINVAL);
     }
@@ -186,8 +190,12 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
     return fail;
 }
 
-int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
-    return metac_value_from_cjson_nonrecursive(p_val, json, p_tag_map);
+int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, 
+    metac_value_deserialization_mode_t * p_mode,
+    void *(*calloc_fn)(size_t nmemb, size_t size),
+    void (*free_fn)(void *ptr), /* free used in case of failure */
+    metac_tag_map_t* p_tag_map) {
+    return metac_value_from_cjson_nonrecursive(p_val, json, p_mode, calloc_fn, free_fn, p_tag_map);
 }
 
 
@@ -324,8 +332,12 @@ static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* 
             return -1; // Unhandled kind
     }
 }
-int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
-return metac_value_from_cjson_recursive(p_val, json, p_tag_map);
+int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json,
+    metac_value_deserialization_mode_t * p_mode,
+    void *(*calloc_fn)(size_t nmemb, size_t size),
+    void (*free_fn)(void *ptr), /* free used in case of failure */
+    metac_tag_map_t* p_tag_map) {
+    return metac_value_from_cjson_recursive(p_val, json, p_tag_map);
 }
 #endif 
 
