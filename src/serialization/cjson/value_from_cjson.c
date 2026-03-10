@@ -139,7 +139,7 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
             }
             case METAC_KND_pointer_type: {
                 if (cJSON_IsNull(json)) {
-                    if (metac_value_set_pointer(p_val, NULL) != 0) {
+                    if (metac_value_set_pointer(p->p_val, NULL) != 0) {
                         metac_recursive_iterator_fail(p_iter);
                         continue;
                     }
@@ -148,8 +148,8 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                 }
                 // we need to detect what mode we used when serialized. it it's a string - that was shallow or void*
                 if (cJSON_IsString(json)) {
-                    // TODO: maybe we should use some measures/warnings, pointer may be non valid
-                    if (metac_value_pointer_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
+                    // TODO: maybe we should use some measures/warnings, pointer may be non valid - handle p_mode
+                    if (metac_value_pointer_from_string(p->p_val, cJSON_GetStringValue(json)) == NULL) {
                         metac_recursive_iterator_fail(p_iter);
                         continue;
                     }
@@ -169,10 +169,103 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                     continue;
                 }
             }
-            case METAC_KND_union_type:
+            //case METAC_KND_union_type:
             case METAC_KND_struct_type: {
-                metac_recursive_iterator_fail(p_iter);
-                continue;
+                switch (state) {
+                    case METAC_R_ITER_start: {
+                        metac_flag_t failure = 0;
+
+                        if (!cJSON_IsObject(json)) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+
+                        // Struct deserialization succeeds as long as we could process all members
+                        // Individual field failures are silently ignored (partial deserialization)
+                        metac_num_t mcount = metac_value_member_count(p->p_val);
+                        for (metac_num_t i = 0; i < mcount; ++i) {
+
+                            metac_value_t* p_memb_val = metac_new_value_by_member_id(p->p_val, i);
+                            if (p_memb_val == NULL) {
+                                failure = 1;
+                                break;
+                            }
+
+                            metac_name_t memb_name = metac_value_name(p_memb_val);
+                            struct cJSON* memb_json = NULL;
+
+                            if (memb_name && memb_name[0] != '\0') {
+                                // Named member - find by name in JSON object
+                                memb_json = cJSON_GetObjectItemCaseSensitive(json, memb_name);
+                            } else {
+                                // Anonymous member - handle nested struct specially
+                                // Anonymous members inherit the parent JSON object
+                                memb_json = json;
+                            }
+
+                            if (memb_json) {
+                                // Attempt to deserialize this member
+                                // Note: We don't fail the whole struct if a member fails
+                                // This allows partial deserialization for structs with optional fields
+                                metac_deserialization_pair_t * p_pair = metac_new_deserialization_pair(p_memb_val, memb_json);
+                                if (p_pair == NULL) {
+                                    metac_value_delete(p_memb_val);
+                                    failure = 1;
+                                    break;
+                                }
+                                if (metac_recursive_iterator_create_and_append_dep(p_iter, p_pair) != 0) {
+                                    metac_deserialization_pair_delete(p_pair);
+                                    metac_value_delete(p_memb_val);
+                                    failure = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        if (failure != 0) {
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
+                        }
+                        metac_recursive_iterator_set_state(p_iter, 1);
+                        continue;
+                    }
+                    case 1: {
+                        metac_flag_t failure = 0;
+                        while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                            metac_deserialization_pair_t * p_pair = NULL;
+                            metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_pair, NULL);
+                            if (p_pair != NULL) {
+                                if (p_pair->p_val != NULL ) {
+                                    metac_value_delete(p_pair->p_val);
+                                }
+                                metac_deserialization_pair_delete(p_pair);
+                            }
+                            if (p_val_out == NULL) {
+                                failure = 1;
+                                break;
+                            }
+                        }
+                        if (failure != 0) {
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
+                        }
+                        metac_recursive_iterator_done(p_iter, p->p_val);
+                        continue;
+                    }
+                    case 2: { // Failure cleanup
+                        while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                            metac_deserialization_pair_t * p_pair = NULL;
+                            metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_pair, NULL);
+                            if (p_pair != NULL) {
+                                if (p_pair->p_val != NULL ) {
+                                    metac_value_delete(p_pair->p_val);
+                                }
+                                metac_deserialization_pair_delete(p_pair);
+                            }
+                        }
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;
+                    }
+                }
             }
             case METAC_KND_array_type: {
             }

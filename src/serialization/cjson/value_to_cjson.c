@@ -319,6 +319,8 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
             case METAC_KND_struct_type: {
                 switch (state) {
                     case METAC_R_ITER_start: {
+                        metac_flag_t failure = 0;
+
                         if (final_kind == METAC_KND_union_type) {
                             if (p_tag_map != NULL) {
                                 metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
@@ -334,10 +336,14 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             for (metac_num_t i = 0; i < mcount; ++i) {
                                 metac_value_t* p_memb_val = metac_new_value_by_member_id(p, i);
                                 if (p_memb_val == NULL) {
-                                    metac_recursive_iterator_set_state(p_iter, 2); // cleanup
-                                    continue;
+                                    failure = 1;
+                                    break;
                                 }
                                 metac_recursive_iterator_create_and_append_dep(p_iter, p_memb_val);
+                            }
+                            if (failure != 0) {
+                                    metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                                    continue;
                             }
                         }
                         metac_recursive_iterator_set_state(p_iter, 1);
