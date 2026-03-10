@@ -1,7 +1,7 @@
 #include "metac/serialization/cjson.h"
 
+#include "metac/backend/serialization/common.h"
 #include "metac/backend/iterator.h"
-#include "metac/backend/serialization.h"
 #include "metac/backend/value.h" // metac_value_event_handler_call???
 
 #include <assert.h>

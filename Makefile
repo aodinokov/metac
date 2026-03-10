@@ -66,7 +66,7 @@ libmetac_no_reflect+= \
 	src/value_deep.c \
 	src/value_string.c \
 	src/value_with_args.c \
-	src/serialization/serialization.c
+	src/serialization/common.c
 libmetac_reflect+= \
 	src/printf_format.c
 libmetac+=$(libmetac_no_reflect) $(libmetac_reflect)
