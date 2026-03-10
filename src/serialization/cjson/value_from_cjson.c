@@ -84,8 +84,6 @@ static int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct 
     return -1; // Enum value not found
 }
 
-#if 0
-
 // here in cjson deser as you can see below we use pairs as iterator task, it contains p_val
 static metac_value_t *_metac_value_from_cjson_value_extractor(void*p_in) {
     if (p_in == NULL) {
@@ -95,7 +93,7 @@ static metac_value_t *_metac_value_from_cjson_value_extractor(void*p_in) {
     return p_pair->p_val;
 }
 
-static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSON * in_json, 
+int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json, 
     metac_value_deserialization_mode_t * p_mode,
     void *(*calloc_fn)(size_t nmemb, size_t size),
     void (*free_fn)(void *ptr), /* free used in case of failure */
@@ -156,20 +154,23 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                     metac_recursive_iterator_done(p_iter, p->p_val);
                     continue;                    
                 }
-                // deep mode was used to serialize
-                // object is a pointer to a single object
-                if (cJSON_IsObject(json)) {
-                    // TODO: not implemented
-                    metac_recursive_iterator_fail(p_iter);
-                    continue;
-                }
-                if (cJSON_IsArray(json)) {
-                    // TODO: not implemented
-                    metac_recursive_iterator_fail(p_iter);
-                    continue;
-                }
+                // TODO: just exit for now
+                metac_recursive_iterator_done(p_iter, p->p_val);
+                continue;                    
+                // // deep mode was used to serialize
+                // // object is a pointer to a single object
+                // if (cJSON_IsObject(json)) {
+                //     // TODO: not implemented
+                //     metac_recursive_iterator_fail(p_iter);
+                //     continue;
+                // }
+                // if (cJSON_IsArray(json)) {
+                //     // TODO: not implemented
+                //     metac_recursive_iterator_fail(p_iter);
+                //     continue;
+                // }
             }
-            //case METAC_KND_union_type:
+            case METAC_KND_union_type:
             case METAC_KND_struct_type: {
                 switch (state) {
                     case METAC_R_ITER_start: {
@@ -216,6 +217,98 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                                 if (metac_recursive_iterator_create_and_append_dep(p_iter, p_pair) != 0) {
                                     metac_deserialization_pair_delete(p_pair);
                                     metac_value_delete(p_memb_val);
+                                    failure = 1;
+                                    break;
+                                }
+                            } else {
+                                // we just skip the field
+                                metac_value_delete(p_memb_val);
+                            }
+                        }
+                        if (failure != 0) {
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
+                        }
+                        metac_recursive_iterator_set_state(p_iter, 1);
+                        continue;
+                    }
+                    case 1: {
+                        metac_flag_t failure = 0;
+                        while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                            metac_deserialization_pair_t * p_pair = NULL;
+                            metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_pair, NULL);
+                            if (p_pair != NULL) {
+                                if (p_pair->p_val != NULL ) {
+                                    metac_value_delete(p_pair->p_val);
+                                }
+                                metac_deserialization_pair_delete(p_pair);
+                            }
+                            if (p_val_out == NULL) {
+                                failure = 1;
+                                break;
+                            }
+                        }
+                        if (failure != 0) {
+                            metac_recursive_iterator_set_state(p_iter, 2); // cleanup
+                            continue;
+                        }
+                        metac_recursive_iterator_done(p_iter, p->p_val);
+                        continue;
+                    }
+                    case 2: { // Failure cleanup
+                        while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                            metac_deserialization_pair_t * p_pair = NULL;
+                            metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_pair, NULL);
+                            if (p_pair != NULL) {
+                                if (p_pair->p_val != NULL ) {
+                                    metac_value_delete(p_pair->p_val);
+                                }
+                                metac_deserialization_pair_delete(p_pair);
+                            }
+                        }
+                        metac_recursive_iterator_fail(p_iter);
+                        continue;
+                    }
+                }
+            }
+            case METAC_KND_array_type: {
+                switch (state) {
+                    case METAC_R_ITER_start: {
+                        metac_flag_t failure = 0;
+
+                        if (!cJSON_IsArray(json)) {
+                            metac_recursive_iterator_fail(p_iter);
+                            continue;
+                        }
+
+                        metac_num_t p_val_count = metac_value_element_count(p->p_val);
+                        int json_count = cJSON_GetArraySize(json);
+
+                        // If this is a flexible array, we should try to get the proper count from tagmap
+                        // TODO: Implement flexible array size determination from tagmap
+                        // For now, use the minimum of destination and JSON array sizes
+                        metac_num_t count = (p_val_count < json_count) ? p_val_count : json_count;
+
+                        for (metac_num_t i = 0; i < count; ++i) {
+                            metac_value_t* p_el_val = metac_new_value_by_element_id(p->p_val, i);
+                            struct cJSON* el_json = cJSON_GetArrayItem(json, i);
+                            if (p_el_val == NULL) {
+                                failure = 1;
+                                break;
+                            }
+                            if (el_json) {
+                                // Attempt to deserialize this member
+                                // Note: We don't fail the whole struct if a member fails
+                                // This allows partial deserialization for structs with optional fields
+                                metac_deserialization_pair_t * p_pair = metac_new_deserialization_pair(p_el_val, el_json);
+                                if (p_pair == NULL) {
+                                    metac_value_delete(p_el_val);
+                                    failure = 1;
+                                    break;
+                                }
+                                if (metac_recursive_iterator_create_and_append_dep(p_iter, p_pair) != 0) {
+                                    metac_deserialization_pair_delete(p_pair);
+                                    metac_value_delete(p_el_val);
                                     failure = 1;
                                     break;
                                 }
@@ -267,8 +360,6 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
                     }
                 }
             }
-            case METAC_KND_array_type: {
-            }
             // fail in case we couldn't find anythin
             default: {
                 metac_recursive_iterator_fail(p_iter);
@@ -282,155 +373,3 @@ static int metac_value_from_cjson_nonrecursive(metac_value_t* p_val, struct cJSO
     metac_recursive_iterator_free(p_iter);
     return fail;
 }
-
-int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json, 
-    metac_value_deserialization_mode_t * p_mode,
-    void *(*calloc_fn)(size_t nmemb, size_t size),
-    void (*free_fn)(void *ptr), /* free used in case of failure */
-    metac_tag_map_t* p_tag_map) {
-    return metac_value_from_cjson_nonrecursive(p_val, json, p_mode, calloc_fn, free_fn, p_tag_map);
-}
-
-
-#else
-static int metac_value_from_cjson_recursive(metac_value_t* p_val, struct cJSON* json, metac_tag_map_t* p_tag_map) {
-    if (!p_val || !json) return -1;
-
-    metac_kind_t kind = metac_value_final_kind(p_val, NULL);
-
-    switch (kind) {
-        case METAC_KND_base_type: {
-            return metac_value_base_type_from_cjson(p_val, json);
-        }
-        case METAC_KND_enumeration_type: {
-            return metac_value_enumeration_type_from_cjson(p_val, json);
-        }
-        case METAC_KND_pointer_type: {
-            // Handle NULL pointers
-            if (cJSON_IsNull(json)) {
-                return metac_value_set_pointer(p_val, NULL);
-            }
-
-            // Non-NULL pointers: cannot reliably deserialize
-            // During serialization, pointers are converted to strings (hex addresses)
-            // or objects/arrays. On deserialization, we cannot convert them back to
-            // valid pointers without additional context (where was the memory allocated?).
-            // This limitation is by design - JSON is not a suitable medium for preserving
-            // pointer semantics. Pointers are typically serialized for debugging purposes
-            // only. For full deep deserialization, use alternative approaches.
-            if (cJSON_IsString(json)) {
-                // String represents a pointer address
-                if (metac_value_pointer_from_string(p_val, cJSON_GetStringValue(json)) == NULL) {
-                    return -(EFAULT);
-                }
-                return 0;
-            }
-
-            // Object/Array pointers: would require memory allocation
-            // This would need tagmap handler support (like pointers_as_arrays pattern)
-            // TODO: Support pointer arrays via tagmap handlers (METAC_RQVST_pointer_array_count)
-            if (cJSON_IsObject(json) || cJSON_IsArray(json)) {
-                return -1;
-            }
-
-            return -1;
-        }
-        case METAC_KND_struct_type: {
-            if (!cJSON_IsObject(json)) return -1;
-
-            metac_num_t mcount = metac_value_member_count(p_val);
-            for (metac_num_t i = 0; i < mcount; ++i) {
-                metac_value_t* p_memb_val = metac_new_value_by_member_id(p_val, i);
-                if (!p_memb_val) continue;
-
-                metac_name_t memb_name = metac_value_name(p_memb_val);
-                struct cJSON* memb_json = NULL;
-
-                if (memb_name && memb_name[0] != '\0') {
-                    // Named member - find by name in JSON object
-                    memb_json = cJSON_GetObjectItemCaseSensitive(json, memb_name);
-                } else {
-                    // Anonymous member - handle nested struct specially
-                    // Anonymous members inherit the parent JSON object
-                    memb_json = json;
-                }
-
-                if (memb_json) {
-                    // Attempt to deserialize this member
-                    // Note: We don't fail the whole struct if a member fails
-                    // This allows partial deserialization for structs with optional fields
-                    metac_value_from_cjson_recursive(p_memb_val, memb_json, p_tag_map);
-                }
-                metac_value_delete(p_memb_val);
-            }
-            // Struct deserialization succeeds as long as we could process all members
-            // Individual field failures are silently ignored (partial deserialization)
-            return 0;
-        }
-        case METAC_KND_array_type: {
-            if (!cJSON_IsArray(json)) return -1;
-
-            metac_num_t p_val_count = metac_value_element_count(p_val);
-            int json_count = cJSON_GetArraySize(json);
-
-            // If this is a flexible array, we should try to get the proper count from tagmap
-            // TODO: Implement flexible array size determination from tagmap
-            // For now, use the minimum of destination and JSON array sizes
-            metac_num_t count = (p_val_count < json_count) ? p_val_count : json_count;
-
-            for (metac_num_t i = 0; i < count; ++i) {
-                metac_value_t* p_el_val = metac_new_value_by_element_id(p_val, i);
-                if (!p_el_val) continue;
-
-                struct cJSON* el_json = cJSON_GetArrayItem(json, i);
-                if (el_json) {
-                    // Attempt to deserialize array element
-                    // Note: We don't fail the whole array if an element fails
-                    // This allows partial deserialization for arrays
-                    metac_value_from_cjson_recursive(p_el_val, el_json, p_tag_map);
-                }
-                metac_value_delete(p_el_val);
-            }
-            // Array deserialization succeeds as long as we could process elements
-            return 0;
-        }
-        case METAC_KND_union_type: {
-            // Union deserialization with optional tagmap support
-            // Note: Without a tagmap handler, we cannot deserialize unions
-            // because we don't know which member is active
-            if (p_tag_map != NULL) {
-                // Try to get the active union member from tagmap handler
-                // We pass NULL as the iterator since we're in a recursive context
-                // The handler can use the value's entry information instead
-                metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
-                metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_val));
-                if (p_tag != NULL && p_tag->handler) {
-                    // TODO: Alexey This is a BUG metac_value_walker_hierarchy_level rely on iterator to walk by hierarchy
-                    // copilot Note: We pass NULL for iterator as we're in recursive context
-                    // Handlers should not rely on iterator in this case
-                    // if (metac_value_event_handler_call(p_tag->handler, NULL, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
-                    //     // Deserialize the active union member
-                    //     metac_value_t* p_member_val = (metac_value_t*)ev.p_return_value;
-                    //     int result = metac_value_from_cjson_recursive(p_member_val, json, p_tag_map);
-                    //     metac_value_delete(p_member_val);
-                    //     return result;
-                    // }
-                }
-            }
-            // Unions without tagmap handlers are skipped (treated as optional)
-            // This matches serialization behavior where unions are serialized as empty objects
-            return 0;
-        }
-        default:
-            return -1; // Unhandled kind
-    }
-}
-int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json,
-    metac_value_deserialization_mode_t * p_mode,
-    void *(*calloc_fn)(size_t nmemb, size_t size),
-    void (*free_fn)(void *ptr), /* free used in case of failure */
-    metac_tag_map_t* p_tag_map) {
-    return metac_value_from_cjson_recursive(p_val, json, p_tag_map);
-}
-#endif 
-

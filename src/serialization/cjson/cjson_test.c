@@ -440,9 +440,9 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             p_val, METAC_WMODE_shallow, p_tag_map,
             // extra checks
             fail_unless(test6_dst.selector == test6.selector, "exected test6_dst.selector %d to be equial to test6.selector %d", (int)test6_dst.selector, (int)test6.selector);
-            fail_unless(test6_dst.i == test6.i, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
+            fail_unless(test6_dst.c == test6.c, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
             fail_unless(test6_dst.sgnd_selector == test6.sgnd_selector, "exected test6_dst.sgnd_selector %d to be equial to test6.sgnd_selector %d", (int)test6_dst.sgnd_selector, (int)test6.sgnd_selector);
-            fail_unless(test6_dst.sgnd.s == test6.sgnd.s, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
+            fail_unless(test6_dst.sgnd.c == test6.sgnd.c, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
         ),
         "{\"selector\":\"eChar\",\"c\":0,\"sgnd_selector\":\"eChar\",\"sgnd\":{\"c\":0}}"
     );
@@ -457,9 +457,9 @@ void test6_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             p_val, METAC_WMODE_shallow, p_tag_map,
             // extra checks
             fail_unless(test6_dst.selector == test6.selector, "exected test6_dst.selector %d to be equial to test6.selector %d", (int)test6_dst.selector, (int)test6.selector);
-            // TODO: fail_unless(test6_dst.i == test6.i, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
+            fail_unless(test6_dst.i == test6.i, "exected test6_dst.i %d to be equial to test6.i %d", (int)test6_dst.i, (int)test6.i);
             fail_unless(test6_dst.sgnd_selector == test6.sgnd_selector, "exected test6_dst.sgnd_selector %d to be equial to test6.sgnd_selector %d", (int)test6_dst.sgnd_selector, (int)test6.sgnd_selector);
-            // TODO: fail_unless(test6_dst.sgnd.s == test6.sgnd.s, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
+            fail_unless(test6_dst.sgnd.s == test6.sgnd.s, "exected test6_dst.sgnd.s %d to be equial to test6.sgnd.s %d", (int)test6_dst.sgnd.s, (int)test6.sgnd.s);
         ),
         "{\"selector\":\"eInt\",\"i\":-123456,\"sgnd_selector\":\"eShort\",\"sgnd\":{\"s\":-12345}}"
     );
