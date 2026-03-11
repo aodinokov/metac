@@ -157,8 +157,22 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
                 // TODO: just exit for now
                 metac_recursive_iterator_done(p_iter, p->p_val);
                 continue;                    
-                // // deep mode was used to serialize
-                // // object is a pointer to a single object
+                // deep mode was used to serialize
+                // object is a pointer to a single object or array:
+                // we'll need to identify hom much memory to allocate first. special cases - flexible arrays
+                // and pointers which point to the arrays (unknown length)
+                // also zero ended strings should be serialized as strings and decerialized that way
+                // It may require some function which checks can traverse and identify hom much memory is needed
+                // for objects with flex array it's the only 1 object, we could allocate base-size memory
+                // populate all data except what was in flex array, identify size fo flex array using tags,
+                // reallocate and populate. we'll need to do in general form to repeat the same for other backends.
+                // need to experiment!
+                // One last thing is - we have void* pointers content to which is defined based on other var
+                // we know the type when we serialize, but we don't know the type until we deserialize
+                // we can though set a limitation that the fields which identify the content must be declared earlier in
+                // the structure. otherwise we could handle void* with delay, but what if void* define other void * behabior
+                // probably we can go with the first limitation and see how it goes
+                // maybe eventually instead of functions for entry_tags we'll switch fully to strings???
                 // if (cJSON_IsObject(json)) {
                 //     // TODO: not implemented
                 //     metac_recursive_iterator_fail(p_iter);
@@ -169,6 +183,7 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
                 //     metac_recursive_iterator_fail(p_iter);
                 //     continue;
                 // }
+                //
             }
             case METAC_KND_union_type:
             case METAC_KND_struct_type: {
