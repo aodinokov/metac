@@ -181,6 +181,11 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
                             continue;
                         }
 
+                        if (final_kind == METAC_KND_union_type) {
+                            // TODO: make sure first that there only 1 field in JSON which will be handled
+                            // fail if there are many which match - otherwise it may be a vulnarability 
+                        }
+
                         // Struct deserialization succeeds as long as we could process all members
                         // Individual field failures are silently ignored (partial deserialization)
                         metac_num_t mcount = metac_value_member_count(p->p_val);
