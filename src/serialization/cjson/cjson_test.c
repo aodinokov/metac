@@ -681,10 +681,12 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":1365,\"content_type\":0,\"content_len\":2,\"p_content\":[{\"a\":4,\"b\":0},{\"a\":5,\"b\":0}]}"
     );
+    // clean up, because deserializer allocated memory
+    free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 555;
     test7.content_len = 1;
@@ -699,11 +701,12 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
 
         ),
         "{\"data\":555,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":1,\"b\":2}}"
     );
+    free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 777;
     test7.content_len = 1;
@@ -719,10 +722,11 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":777,\"content_type\":0,\"content_len\":1,\"p_content\":{\"a\":-1,\"b\":-1000}}"
     );
+    free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 999;
     test7.content_type = 1;
@@ -739,10 +743,11 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":999,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":{\"real\":7,\"img\":3.4}}}"
     );
+    free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 888;
     test7.content_type = 1;
@@ -759,10 +764,11 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         "{\"data\":888,\"content_type\":1,\"content_len\":1,\"p_content\":{\"c\":{\"real\":19.33,\"img\":-0.4}}}"
     );
+    free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 1000;
     test7.content_type = 2;
@@ -782,10 +788,11 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            // TODO: fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            //fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         exp_buf
     );
+    //free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
@@ -810,14 +817,21 @@ METAC_START_TEST(test7_satnity) {
 struct t8_list_itm {
     int data;
     struct t8_list_itm * next;   
-}*t8_head = (struct t8_list_itm []){{.data = 0, .next = (struct t8_list_itm []){{.data = 1, .next = NULL,},},},};
+}*t8_head = (struct t8_list_itm []){{.data = 0, .next = (struct t8_list_itm []){{.data = 1, .next = NULL,},},},}, *t8_head_dst = NULL;
 METAC_GSYM_LINK(t8_head);
+METAC_GSYM_LINK(t8_head_dst);
 METAC_START_TEST(test8_satnity) {
     metac_value_t * p_val = METAC_VALUE_FROM_LINK(t8_head);
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(t8_head_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
+
 
     // without loop
     _check_serialization_(
-        _json_string_ex(p_val, METAC_WMODE_deep, NULL),
+        _json_string_and_back_ex(p_val_dst,
+            p_val, METAC_WMODE_deep, NULL,
+            // extra checks
+        ),
         "{\"data\":0,\"next\":{\"data\":1,\"next\":null}}"
     );
 
@@ -828,6 +842,7 @@ METAC_START_TEST(test8_satnity) {
         NULL
     );
 
+    metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }END_TEST
 

@@ -2,19 +2,19 @@
 
 #include <stdlib.h>
 
-metac_deserialization_pair_t * metac_new_deserialization_pair(metac_value_t * p_val, void * p_external) {
-    metac_deserialization_pair_t * p_pair = calloc(1, sizeof(*p_pair));
-    if (p_pair == NULL) {
+metac_deserialization_task_t * metac_new_deserialization_task(metac_value_t * p_val, void * p_external) {
+    metac_deserialization_task_t * p_task = calloc(1, sizeof(*p_task));
+    if (p_task == NULL) {
         return NULL;
     }
-    p_pair->p_val = p_val;
-    p_pair->p_external = p_external;
-    return p_pair;
+    p_task->p_val = p_val;
+    p_task->p_external = p_external;
+    return p_task;
 }
 
-void metac_deserialization_pair_delete(metac_deserialization_pair_t * p_pair) {
-    if (p_pair == NULL) {
+void metac_deserialization_task_delete(metac_deserialization_task_t * p_task) {
+    if (p_task == NULL) {
         return;
     }
-    free(p_pair);
+    free(p_task);
 }
