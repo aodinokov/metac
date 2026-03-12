@@ -771,13 +771,9 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
     free(test7_dst.p_content); test7_dst.p_content = NULL;
 
     test7.data = 1000;
-    test7.content_type = 2;
+    test7.content_type = 2; // not supported content type - should fallback to shallow and serialize pointer as text and deserialize as address 
     test7.content_len = 1;
     test7.p_content = &t7_contnt1_1;
-
-    // TODO: we need to free p_content if it's not NULL
-    test7_dst.p_content = NULL;
-
 
     /* check fallback to shallow if it's void* */
     snprintf(exp_buf, sizeof(exp_buf), "{\"data\":1000,\"content_type\":2,\"content_len\":1,\"p_content\":\"%p\"}", test7.p_content);
@@ -788,12 +784,11 @@ void test7_sanity_with_handler(metac_tag_map_t *p_tag_map) {
             fail_unless(test7_dst.data == test7.data, "exected test7_dst.data %d to be equial to test7.data %d", (int)test7_dst.data, (int)test7.data);
             fail_unless(test7_dst.content_type == test7.content_type, "exected test7_dst.content_type %d to be equial to test7.content_type %d", (int)test7_dst.content_type, (int)test7.content_type);
             fail_unless(test7_dst.content_len == test7.content_len, "exected test7_dst.content_len %d to be equial to test7.content_len %d", (int)test7_dst.content_len, (int)test7.content_len);
-            //fail_unless(test7_dst.p_content != test7.p_content && test7_dst.p_content != NULL, "exected test7_dst.p_content %p not to be equial to NULL and test7.p_content %p", test7_dst.p_content, test7.p_content);
+            fail_unless(test7_dst.p_content == test7.p_content, "exected test7_dst.p_content %p to be equal to test7.p_content %p", test7_dst.p_content, test7.p_content);
         ),
         exp_buf
     );
-    //free(test7_dst.p_content); test7_dst.p_content = NULL;
-
+   
     metac_value_delete(p_val_dst);
     metac_value_delete(p_val);
 }
