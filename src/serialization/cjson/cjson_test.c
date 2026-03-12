@@ -213,14 +213,14 @@ METAC_START_TEST(test4_sanity) {
             fail_unless(test4_dst.a == test4.a, "exected test4_dst.a %d to be equial to test4.a %d", (int)test4_dst.a, (int)test4.a);
             fail_unless(test4_dst.b == test4.b, "exected test4_dst.b %d to be equial to test4.b %d", (int)test4_dst.b, (int)test4.b);
             fail_unless(test4_dst.dc == test4.dc, "exected test4_dst.dc %lf, %lf to be equial to test4.dc %lf, %lf", creal(test4_dst.dc), cimag(test4_dst.dc), creal(test4.dc), cimag(test4.dc));
-            //TODO: fail_unless(test4_dst.d == test4.d, "exected test4_dst.d %d to be equial to test4.d %d", (int)test4_dst.d, (int)test4.d);
-            //TODO: fail_unless(test4_dst.e == test4.e, "exected test4_dst.e %d to be equial to test4.e %d", (int)test4_dst.e, (int)test4.e);
+            fail_unless(test4_dst.d == test4.d, "exected test4_dst.d %d to be equial to test4.d %d", (int)test4_dst.d, (int)test4.d);
+            fail_unless(test4_dst.e == test4.e, "exected test4_dst.e %d to be equial to test4.e %d", (int)test4_dst.e, (int)test4.e);
             fail_unless(test4_dst.k.j == test4.k.j, "exected test4_dst.k.j %d to be equial to test4.k.j %d", (int)test4_dst.k.j, (int)test4.k.j);
             for (int i = 0; i < sizeof(test4_dst.l)/sizeof(test4_dst.l[0]); ++i) {
                 fail_unless(test4_dst.l[i] == test4.l[i], "exected test4_dst.l[%d] %d to be equial to test4.l[%d] %d", i, (int)test4_dst.l[i], i, (int)test4.l[i]);
             }
-            // TODO: fail_unless(test4_dst.p_m == test4.p_m, "exected test4_dst.p_m %p to be equial to test4.p_m %p", test4_dst.p_m, test4.p_m);
-            // TODO: fail_unless(test4_dst.p_k == test4.p_k, "exected test4_dst.p_k %p to be equial to test4.p_k %p", test4_dst.p_k, test4.p_k);
+            fail_unless(test4_dst.p_m == test4.p_m, "exected test4_dst.p_m %p to be equial to test4.p_m %p", test4_dst.p_m, test4.p_m);
+            fail_unless(test4_dst.p_k == test4.p_k, "exected test4_dst.p_k %p to be equial to test4.p_k %p", test4_dst.p_k, test4.p_k);
             // make sure we didn't make any changes to union:
             fail_unless(test4_dst.p.o == -1, "exected test4_dst.p.o %d to kept intact (-1)", (int)test4_dst.p.o);
         ), 
