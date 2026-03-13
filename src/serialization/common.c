@@ -18,3 +18,4 @@ void metac_deserialization_task_delete(metac_deserialization_task_t * p_task) {
     }
     free(p_task);
 }
+

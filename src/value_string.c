@@ -180,7 +180,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 continue;
                             }
                             // check pointer destination for cycles, fail if we already met that pointer
-                            if (metac_value_level_introduced_loop(p_iter) > 0) { 
+                            if (metac_value_level_introduced_loop(p_iter, _metac_value_string_ex_value_extractor) > 0) { 
                                 // TODO: we can output comment "/*loop &<add here string fom the top till looping element>*/"
                                 /* actually we may even not commit. e.g. the following works ok:
                                 struct _list_itm {

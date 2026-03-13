@@ -222,7 +222,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             metac_recursive_iterator_done(p_iter, cJSON_CreateNull());
                             continue;
                         }
-                        if (metac_value_level_introduced_loop(p_iter) > 0) {
+                        if (metac_value_level_introduced_loop(p_iter, _metac_value_to_cjson_value_extractor) > 0) {
                             metac_recursive_iterator_fail(p_iter);
                             continue;
                         }

@@ -600,7 +600,7 @@ struct metac_memory_map * metac_new_value_memory_map_ex(
                     }
 
                     /* simple case 2 - if we are in the loop - children will be created on the parent level */
-                    loop_level = metac_value_level_introduced_loop(p_iter);
+                    loop_level = metac_value_level_introduced_loop(p_iter, _metac_new_value_memory_map_ex_value_extractor);
                     if (loop_level > 0) { 
                         struct metac_memory_entry * p_memory_entry = metac_new_memory_entry(p, sz, 0);
                         if (p_memory_entry == NULL) {

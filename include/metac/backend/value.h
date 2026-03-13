@@ -5,19 +5,18 @@
 #include "metac/backend/iterator.h"
 #include "metac/backend/hashmap.h"
 
+// different iterators user different types for p_in (tasks)
+// in metac_value_event_handler_call we need a way to extract metac_value_t pointer
+// this is a callback which will do this
+typedef metac_value_t * (*metac_value_extractor_t)(void * p_in);
+
 // implemented in value.c, but we don't want to expose that in value.h
 /* the idea is - to walk through the value using iterator
 and build metac_memory_map. p_val is used as p_in for each iterator,
 but context is storing something we're building in the steps of each step
 */
 
-int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator);
-
-
-// different iterators user different types for p_in (tasks)
-// in metac_value_event_handler_call we need a way to extract metac_value_t pointer
-// this is a callback which will do this
-typedef metac_value_t * (*metac_value_extractor_t)(void * p_in);
+int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator, metac_value_extractor_t p_extractor);
 
 /* the deeper we - the bigger the number. level 0 is iterator itself */
 int metac_value_walker_hierarchy_level(metac_value_walker_hierarchy_t *p_hierarchy);

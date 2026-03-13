@@ -48,12 +48,18 @@ int metac_value_event_handler_call(metac_value_event_handler_t handler, metac_re
     return handler(&hierarchy, p_ev, p_context);
 }
 
-int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator) {
+int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator, metac_value_extractor_t p_extractor) {
+    if (p_extractor == NULL) {
+        return -(EINVAL);
+    }
+    if (p_iterator == NULL) {
+        return -(EINVAL);
+    }
     int level = metac_recursive_iterator_level(p_iterator);
     if (level < 1) {
         return -1;
     }
-    metac_value_t * p_cur_level = metac_recursive_iterator_get_in(p_iterator, 0);
+    metac_value_t * p_cur_level = p_extractor(metac_recursive_iterator_get_in(p_iterator, 0));
     assert(p_cur_level != NULL);
     if (p_cur_level == NULL) {
         return -1;
@@ -67,7 +73,7 @@ int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator) {
         return -1;
     }
     for (int l = 1; l < level + 1; ++l) { /* if level = 1 there are 2 levels: 0 and 1 */
-        metac_value_t * p_cmp_level = metac_recursive_iterator_get_in(p_iterator, l);
+        metac_value_t * p_cmp_level = p_extractor(metac_recursive_iterator_get_in(p_iterator, l));
         if (p_cmp_level == NULL) {
             continue;
         }
