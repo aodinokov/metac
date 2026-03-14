@@ -15,7 +15,11 @@
 
 typedef struct metac_deserialization_task {
     metac_value_t * p_val;
-    metac_size_t allocated_sz; // if non zero - we allocated this chunk
+
+    // in total memory allocated must be allocating_el_number * allocating_el_sz + allocating_flexible_sz
+    metac_size_t allocating_el_number; // if non zero - this task allocated memory for p_val;
+    metac_size_t allocating_el_sz;
+    metac_size_t allocating_flexible_sz; // extra part 
 
     void * p_external;
 }metac_deserialization_task_t;
