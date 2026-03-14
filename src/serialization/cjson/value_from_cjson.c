@@ -107,6 +107,20 @@ static metac_value_t *_metac_value_from_cjson_value_extractor(void*p_in) {
     return p_task->p_val;
 }
 
+static metac_deserialization_task_t * _find_task_with_allocation(metac_recursive_iterator_t * p_iterator) {
+    int level = metac_recursive_iterator_level(p_iterator);
+    if (level < 1) {
+        return NULL;
+    }
+    for (int l = 0; l < level + 1; ++l) { /* if level = 1 there are 2 levels: 0 and 1 */
+        metac_deserialization_task_t * p_task = metac_recursive_iterator_get_in(p_iterator, l);
+        if (p_task->p_allocated != 0) {
+            return p_task;
+        }
+    }
+    return NULL;
+}
+
 static int _metac_value_from_cjson_cleanup_failure(metac_recursive_iterator_t * p_iterator) {
     while (metac_recursive_iterator_dep_queue_is_empty(p_iterator) == 0) {
         metac_deserialization_task_t * p_task = NULL;
@@ -122,22 +136,43 @@ static int _metac_value_from_cjson_cleanup_failure(metac_recursive_iterator_t * 
     return -(EFAULT);
 }    
 
-// early declaration - non recurcive way to get info if type has anything flexible
-static int _metac_value_from_cjson_estimate_flexible_sz(metac_value_t* p_val, struct cJSON* in_json, metac_size_t * p_flexible_sz);
-
-static metac_deserialization_task_t * _find_task_with_allocation(metac_recursive_iterator_t * p_iterator) {
-    int level = metac_recursive_iterator_level(p_iterator);
-    if (level < 1) {
-        return NULL;
-    }
-    for (int l = 0; l < level + 1; ++l) { /* if level = 1 there are 2 levels: 0 and 1 */
-        metac_deserialization_task_t * p_task = metac_recursive_iterator_get_in(p_iterator, l);
-        if (p_task->p_allocated != 0) {
-            return p_task;
+// Helper: Process dequeue queue and check for failures
+// Returns 0 on success, 2 on failure (for cleanup)
+static int _metac_process_dequeue_and_check_all(metac_recursive_iterator_t * p_iter) {
+    while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+        metac_deserialization_task_t * p_task = NULL;
+        metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_task, NULL);
+        if (p_task != NULL) {
+            if (p_task->p_val != NULL) {
+                metac_value_delete(p_task->p_val);
+            }
+            metac_deserialization_task_delete(p_task);
+        }
+        if (p_val_out == NULL) {
+            return 2; // failure
         }
     }
-    return NULL;
+    return 0; // success
 }
+
+// Helper: Create task and append to iterator
+// Returns 0 on success, 2 on failure (for cleanup)
+static int _metac_create_and_append_task(metac_recursive_iterator_t * p_iter, metac_value_t * p_val, void * p_external, metac_value_t ** p_cleanup_val) {
+    metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_val, p_external);
+    if (p_task == NULL) {
+        if (p_cleanup_val) *p_cleanup_val = p_val;
+        return 2; // cleanup and fail
+    }
+    if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
+        metac_deserialization_task_delete(p_task);
+        if (p_cleanup_val) *p_cleanup_val = p_val;
+        return 2; // cleanup and fail
+    }
+    return 0; // success
+}
+
+// early declaration - non recurcive way to get info if type has anything flexible
+static int _metac_value_from_cjson_estimate_flexible_sz(metac_value_t* p_val, struct cJSON* in_json, metac_size_t * p_flexible_sz);
 
 static int _metac_value_pointer_from_cjson(
     // iter param
@@ -241,15 +276,10 @@ static int _metac_value_pointer_from_cjson(
                 if (p_allocating_value == NULL ) {
                     return 2; // cleanup and fail
                 }
-                metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_allocating_value, json);
-                if (p_task == NULL) {
-                    metac_value_delete(p_allocating_value);
-                    return 2; // cleanup and fail
-                }
-                if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
-                    metac_deserialization_task_delete(p_task);
-                    metac_value_delete(p_allocating_value);
-                    return 2; // cleanup and fail
+                int res = _metac_create_and_append_task(p_iter, p_allocating_value, json, &p_allocating_value);
+                if (res != 0) {
+                    if (p_allocating_value) metac_value_delete(p_allocating_value);
+                    return res;
                 }
                 // schedule children deserialization
                 return 1;
@@ -320,32 +350,24 @@ static int _metac_value_pointer_from_cjson(
                     return 2; // cleanup and fail
                 }
                 
-                metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_arr_val, json);
-                if (p_task == NULL) {
-                    metac_value_delete(p_arr_val);
-                    return 2; // cleanup and fail
-                }
-                if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
-                    metac_deserialization_task_delete(p_task);
-                    metac_value_delete(p_arr_val);
-                    return 2; // cleanup and fail
+                int res = _metac_create_and_append_task(p_iter, p_arr_val, json, &p_arr_val);
+                if (res != 0) {
+                    if (p_arr_val) metac_value_delete(p_arr_val);
+                    return res;
                 }
                 // schedule children deserialization
                 return 1;
             }
         }
         case 1: { // we returned after children finished
-            void * addr = NULL; // address can be reallocated, so it's better to set it here - after children finished
-            int counter = 0; // we expect only 1 child
+            void * addr = NULL;
+            int counter = 0;
             while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
                 metac_deserialization_task_t * p_task = NULL;
-
-                if (counter != 0) return 2; // if more than 1 child - cleanup and failure
-                ++counter;
-
+                if (counter++ != 0) return 2; // expect only 1 child
                 metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_task, NULL);
                 if (p_task != NULL) {
-                    if (p_task->p_val != NULL ) {
+                    if (p_task->p_val != NULL) {
                         addr = metac_value_addr(p_task->p_val);
                         metac_value_delete(p_task->p_val);
                     }
@@ -412,41 +434,19 @@ static int _metac_value_with_members_from_cjson(
                 }
 
                 if (memb_json) {
-                    // Attempt to deserialize this member
-                    // Note: We don't fail the whole struct if a member fails
-                    // This allows partial deserialization for structs with optional fields
-                    metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_memb_val, memb_json);
-                    if (p_task == NULL) {
+                    int res = _metac_create_and_append_task(p_iter, p_memb_val, memb_json, NULL);
+                    if (res != 0) {
                         metac_value_delete(p_memb_val);
-                        return 2; // cleanup and failure
-                    }
-                    if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
-                        metac_deserialization_task_delete(p_task);
-                        metac_value_delete(p_memb_val);
-                        return 2; // cleanup and failure
+                        return res;
                     }
                 } else {
-                    // we just skip the field
                     metac_value_delete(p_memb_val);
                 }
             }
             return 1; // next state
         }
         case 1: {
-            while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
-                metac_deserialization_task_t * p_task = NULL;
-                metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_task, NULL);
-                if (p_task != NULL) {
-                    if (p_task->p_val != NULL ) {
-                        metac_value_delete(p_task->p_val);
-                    }
-                    metac_deserialization_task_delete(p_task);
-                }
-                if (p_val_out == NULL) {
-                    return 2; // cleanup and failure
-                }
-            }
-            return 0; // done!
+            return _metac_process_dequeue_and_check_all(p_iter);
         }
         case 2: break;
     }
@@ -525,17 +525,11 @@ static int _metac_value_with_elements_from_cjson(
                     return 2; // cleanup and failure
                 }
                 if (el_json) {
-                    metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_el_val, el_json);
-                    if (p_task == NULL) {
+                    int res = _metac_create_and_append_task(p_iter, p_el_val, el_json, NULL);
+                    if (res != 0) {
                         metac_value_delete(p_el_val);
                         metac_value_delete(p_non_flexible);
-                        return 2; // cleanup and failure
-                    }
-                    if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
-                        metac_deserialization_task_delete(p_task);
-                        metac_value_delete(p_el_val);
-                        metac_value_delete(p_non_flexible);
-                        return 2; // cleanup and failure
+                        return res;
                     }
                 }
             }
@@ -547,20 +541,7 @@ static int _metac_value_with_elements_from_cjson(
             return 1; // next state
         }
         case 1: {
-            while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
-                metac_deserialization_task_t * p_task = NULL;
-                metac_value_t * p_val_out = (metac_value_t *)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_task, NULL);
-                if (p_task != NULL) {
-                    if (p_task->p_val != NULL ) {
-                        metac_value_delete(p_task->p_val);
-                    }
-                    metac_deserialization_task_delete(p_task);
-                }
-                if (p_val_out == NULL) {
-                    return 2; // cleanup and failure
-                }
-            }
-            return 0; // done!
+            return _metac_process_dequeue_and_check_all(p_iter);
         }
         case 2: break;
     }
