@@ -2,6 +2,7 @@
 #define INCLUDE_METAC_BACKEND_SERIALIZATION_COMMON_H_
 
 #include "metac/reflect.h"
+#include "metac/backend/iterator.h"
 
 /*
  * there is a difference between how we serialize and deserialize in metac.
@@ -16,16 +17,26 @@
 typedef struct metac_deserialization_task {
     metac_value_t * p_val;
 
-    // in total memory allocated must be allocated_el_number * allocated_el_sz + allocated_flexible_sz
+    // in total memory allocated must be allocated_el_number * (allocated_prefix_size + allocated_el_sz + allocated_flexible_el_number * allocated_flexible_el_sz)
+    // though for if flexible part isn't 0, allocated_el_number must be 1
     void* p_allocated;
+    metac_size_t allocated_prefix_size; // for container_of scenario when pointer points to 1 object
     metac_size_t allocated_el_number; // if non zero - this task allocated memory for p_val;
     metac_size_t allocated_el_sz;
-    metac_size_t allocated_flexible_sz; // extra part 
+    metac_size_t allocated_flexible_el_number; // extra part
+    metac_size_t allocated_flexible_el_sz; // extra part
 
     void * p_external;
 }metac_deserialization_task_t;
 
 metac_deserialization_task_t * metac_new_deserialization_task(metac_value_t * p_val, void * p_external);
 void metac_deserialization_task_delete(metac_deserialization_task_t * p_pair);
+
+// common helpers
+metac_value_t * _metac_deserialization_task_value_extractor(void * p_in);
+metac_deserialization_task_t * _metac_deserialization_task_find_task_with_allocation(metac_recursive_iterator_t * p_iterator);
+
+int _metac_deserialization_task_dequeue_check_or_fail(metac_recursive_iterator_t * p_iterator, int cleanup_and_fail_state_id);
+int _metac_deserialization_task_cleanup_and_fail(metac_recursive_iterator_t * p_iterator);
 
 #endif
