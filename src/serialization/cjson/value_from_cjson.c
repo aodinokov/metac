@@ -112,9 +112,7 @@ static int _metac_value_from_cjson_cleanup_failure(metac_recursive_iterator_t * 
         metac_deserialization_task_t * p_task = NULL;
         metac_recursive_iterator_dequeue_and_delete_dep(p_iterator, (void**)&p_task, NULL);
         if (p_task != NULL) {
-            if (p_task->allocating_el_number != 0) {
-                //TODO: we allocated memory!
-            }
+            assert(p_task->p_allocated == NULL); // this memory has to be freed up already
             if (p_task->p_val != NULL ) {
                 metac_value_delete(p_task->p_val);
             }
@@ -131,7 +129,7 @@ static metac_deserialization_task_t * _find_task_with_allocation(metac_recursive
     }
     for (int l = 0; l < level + 1; ++l) { /* if level = 1 there are 2 levels: 0 and 1 */
         metac_deserialization_task_t * p_task = metac_recursive_iterator_get_in(p_iterator, l);
-        if (p_task->allocating_el_number != 0) {
+        if (p_task->p_allocated != 0) {
             return p_task;
         }
     }
@@ -168,7 +166,7 @@ static int _metac_value_pointer_from_cjson(
             }
             if (cJSON_IsObject(json)) { // slightly different from array
                 // need to allocate memory, it can be reallocated later if needed by flex array
-                metac_size_t allocating_sz = 0;
+                //metac_size_t allocating_sz = 0;
                 metac_entry_t * p_allocating_entry = metac_entry_pointer_entry(metac_value_entry(p->p_val));
                 // TODO check if it's not void *, probably we'll need to work with tags?
                 if (p_allocating_entry == NULL) {
@@ -204,38 +202,37 @@ static int _metac_value_pointer_from_cjson(
                     }
                 }
                 if (p_allocating_entry == NULL ||
-                    metac_entry_byte_size(p_allocating_entry, &allocating_sz) != 0) {
+                    metac_entry_byte_size(p_allocating_entry, &p->allocated_el_sz) != 0) {
                     return -(EFAULT);
                 }
+                p->allocated_el_number = 1;
+                // we need to check here if p_allocating_entry actually has flexible array and if it's part of json we have
 
-                void * addr = calloc_fn(1, allocating_sz);
-                if (addr == NULL) {
+                p->p_allocated = calloc_fn(p->allocated_el_number, p->allocated_el_sz);
+                if (p->p_allocated == NULL) {
                     return -(EFAULT);
                 }
-                metac_value_t * p_allocating_value = metac_new_value(p_allocating_entry, addr);
+                metac_value_t * p_allocating_value = metac_new_value(p_allocating_entry, p->p_allocated);
                 if (p_allocating_value == NULL ) {
-                    free_fn(addr);
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_allocating_value, json);
                 if (p_task == NULL) {
                     metac_value_delete(p_allocating_value);
-                    free_fn(addr);
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
                     metac_deserialization_task_delete(p_task);
                     metac_value_delete(p_allocating_value);
-                    free_fn(addr);
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 // schedule children deserialization
                 return 1;
             }
             if (cJSON_IsArray(json)) {
                 // need to allocate memory, it can be reallocated later if needed by flex array
-                metac_size_t allocating_len = cJSON_GetArraySize(json);
-                metac_size_t allocating_el_sz = 0; // element size
+                p->allocated_el_number = cJSON_GetArraySize(json);
+                p->allocated_el_sz = 0; // element size
                 metac_entry_t * p_allocating_entry = metac_entry_pointer_entry(metac_value_entry(p->p_val));
                 // TODO check if it's not void *, probably we'll need to work with tags?
                 metac_value_t * p_arr_val = NULL;
@@ -261,11 +258,11 @@ static int _metac_value_pointer_from_cjson(
                             // that must be array with size at least cJSON_GetArraySize TODO: it can be flexible 
                             // (len -1, in that case we want to allocate len 1 and flexible array will reallocate, though flexible array impl doesn't check len now)
                             if (metac_value_element_count_flexible(ev.p_return_value)) {
-                                allocating_len = 2; //TODO: 1 when we fix realloc on flex array side // make default as 1 - realloc will change it
+                                p->allocated_el_number = 2; //TODO: 1 when we fix realloc on flex array side // make default as 1 - realloc will change it
                             } else {
-                                allocating_len = metac_value_element_count(ev.p_return_value);
+                                p->allocated_el_number = metac_value_element_count(ev.p_return_value);
                                 if (metac_value_final_kind(ev.p_return_value, NULL) != METAC_KND_array_type ||
-                                    allocating_len < cJSON_GetArraySize(json)) {
+                                    p->allocated_el_number < cJSON_GetArraySize(json)) {
                                     metac_value_delete(ev.p_return_value);
                                     return -(EFAULT);
                                 }
@@ -277,38 +274,36 @@ static int _metac_value_pointer_from_cjson(
                         }
                     }
                 }else{
-                    p_arr_val = metac_new_element_count_value(p->p_val, allocating_len);
+                    p_arr_val = metac_new_element_count_value(p->p_val, p->allocated_el_number);
                 }
                 if (p_allocating_entry == NULL ||
-                    metac_entry_byte_size(p_allocating_entry, &allocating_el_sz) != 0) {
+                    metac_entry_byte_size(p_allocating_entry, &p->allocated_el_sz) != 0) {
                     metac_value_delete(p_arr_val);
                     return -(EFAULT);
                 }
 
-                void * addr = calloc_fn(allocating_len, allocating_el_sz);
-                if (addr == NULL) {
+                p->p_allocated = calloc_fn(p->allocated_el_number, p->allocated_el_sz);
+                if (p->p_allocated == NULL) {
                     metac_value_delete(p_arr_val);
                     return -(EFAULT);
                 }
-                metac_value_t * p_arr_val_new = metac_new_value(metac_value_entry(p_arr_val), addr);
+                metac_value_t * p_arr_val_new = metac_new_value(metac_value_entry(p_arr_val), p->p_allocated);
                 metac_value_delete(p_arr_val);
                 p_arr_val = p_arr_val_new;
                 p_arr_val_new = NULL;
                 if (p_arr_val == NULL) {
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 
                 metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_arr_val, json);
                 if (p_task == NULL) {
                     metac_value_delete(p_arr_val);
-                    free_fn(addr);
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
                     metac_deserialization_task_delete(p_task);
                     metac_value_delete(p_arr_val);
-                    free_fn(addr);
-                    return -(EFAULT);
+                    return 2; // cleanup and fail
                 }
                 // schedule children deserialization
                 return 1;
@@ -337,7 +332,15 @@ static int _metac_value_pointer_from_cjson(
         }
         case 2: break;
     }
-    return _metac_value_from_cjson_cleanup_failure(p_iter);
+
+    _metac_value_from_cjson_cleanup_failure(p_iter);
+
+    if (p->p_allocated != NULL) {
+        free_fn(p->p_allocated);
+        p->p_allocated = NULL;
+    }
+
+    return  -(EFAULT);
 }
 
 
@@ -442,7 +445,7 @@ static int _metac_value_with_elements_from_cjson(
             metac_value_t * p_local = p->p_val;
             metac_value_t * p_non_flexible = NULL;
 
-            if (metac_value_element_count_flexible(p->p_val) == 0) {
+            if (!metac_value_element_count_flexible(p->p_val)) {
                 if (json_count > count) {
                     // TODO: options - ignore extra, fail - make configurable
                     return 2; // cleanup and failure
@@ -450,43 +453,43 @@ static int _metac_value_with_elements_from_cjson(
                 // json may contain less - those elements will be init with zeros
                 count = json_count;
             } else {
-                // support flexible arrays (needs realloc)
-                count = json_count;
+                // support flexible arrays (needs reallocation of allocated memory in hierarchy)
+                count = json_count; // trust json - assume that it contains the needed number of elements
                 p_non_flexible = metac_new_element_count_value(p->p_val, count);
-                // TODO: find in hierarchy if we need/can reallocate parent to fit this flexible array
-                // need to work on pointers to understand how to do this
+                // find in hierarchy if we need/can reallocate parent to fit this flexible array
+                // see _metac_value_pointer_from_cjson to understand what and how was allocated
                 metac_deserialization_task_t * p_tast_with_allocation = _find_task_with_allocation(p_iter);
-                if (/*1 couldn't reallocate*/p_tast_with_allocation == NULL) {
+                if (p_tast_with_allocation == NULL) {
+                    // hierarchy wasn't allocated
                     metac_value_delete(p_non_flexible);
                     return 2; // cleanup and failure
                 }
-                // reallocate
-                //p_tast_with_allocation
+                // TODO: reallocate (or verify that flexible part has enough length)
             }
-
+            // handle children
             for (metac_num_t i = 0; i < count; ++i) {
                 metac_value_t* p_el_val = metac_new_value_by_element_id(p_local, i);
                 struct cJSON* el_json = cJSON_GetArrayItem(json, i);
                 if (p_el_val == NULL) {
+                    metac_value_delete(p_non_flexible);
                     return 2; // cleanup and failure
                 }
                 if (el_json) {
-                    // Attempt to deserialize this member
-                    // Note: We don't fail the whole struct if a member fails
-                    // This allows partial deserialization for structs with optional fields
                     metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_el_val, el_json);
                     if (p_task == NULL) {
                         metac_value_delete(p_el_val);
+                        metac_value_delete(p_non_flexible);
                         return 2; // cleanup and failure
                     }
                     if (metac_recursive_iterator_create_and_append_dep(p_iter, p_task) != 0) {
                         metac_deserialization_task_delete(p_task);
                         metac_value_delete(p_el_val);
+                        metac_value_delete(p_non_flexible);
                         return 2; // cleanup and failure
                     }
                 }
             }
-            // return back
+            // if array was flexible and we created non-flexible value
             if (p_non_flexible) {
                 metac_value_delete(p_non_flexible);
                 p_local = p->p_val;
