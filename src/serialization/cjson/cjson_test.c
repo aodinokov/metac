@@ -890,6 +890,7 @@ struct t10 * _create_t10_test_data() {
     struct t10 * res = calloc(1, offsetof(struct t10, a[5]));
     fail_unless(res != NULL, "can't allocate t10 mem");
     res->l = 5;
+    for (int i = 0; i < res->l; ++i) res->a[i] = i;
     return res;
 }
 
@@ -916,7 +917,7 @@ METAC_START_TEST(test_metac_value_fns_with_t10) {
         _json_string_and_back_ex(p_val_dst,
             p_val, METAC_WMODE_deep, p_tag_map
         ),
-        "{\"l\":5,\"a\":[0,0,0,0,0]}"
+        "{\"l\":5,\"a\":[0,1,2,3,4]}"
     );
 
     metac_value_delete(p_val_dst);
@@ -925,6 +926,64 @@ METAC_START_TEST(test_metac_value_fns_with_t10) {
 
     free(p_t10_dst);
     free(p_t10);
+}END_TEST
+
+
+typedef struct {
+	char * firstname;
+	char * lastname;
+	int age;
+	enum {
+		msSingle = 0,
+		msMarried,
+		msDivorsed,
+	} marital_status;
+}test11_t;
+
+test11_t *p_t11_src = (test11_t[]){{.firstname = "Joe", .lastname = "Doe", .age=43, .marital_status=msDivorsed}}, *p_t11_dst = NULL;
+
+METAC_GSYM_LINK(p_t11_src);
+METAC_GSYM_LINK(p_t11_dst);
+
+METAC_TAG_MAP_NEW(new_test11_tag_map, NULL, {.mask = 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member)},)
+    METAC_TAG_MAP_ENTRY_FROM_TYPE(test11_t)
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n="firstname"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n="lastname"}),
+            METAC_ZERO_ENDED_STRING()
+        )
+    METAC_TAG_MAP_ENTRY_END
+METAC_TAG_MAP_END
+
+METAC_START_TEST(test11_satnity) {
+    metac_value_t * p_val = METAC_VALUE_FROM_LINK(p_t11_src);
+    metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(p_t11_dst);
+    fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
+
+
+    metac_tag_map_t *p_tag_map = new_test11_tag_map();
+    fail_unless(p_tag_map != NULL, "tagmap is NULL");
+
+    _check_serialization_(
+        _json_string_and_back_ex(p_val_dst,
+            p_val, METAC_WMODE_deep, p_tag_map,
+            // extra checks
+            fail_unless(p_t11_dst != NULL, "dst is NULL");
+            fail_unless(p_t11_dst->firstname != NULL && p_t11_dst->firstname != p_t11_src->firstname && strcmp(p_t11_dst->firstname, p_t11_src->firstname) == 0, "exected p_t11_dst->firstname %s to be equial to p_t11_src->firstname %s", p_t11_dst->firstname, p_t11_src->firstname);
+            fail_unless(p_t11_dst->lastname != NULL && p_t11_dst->lastname != p_t11_src->lastname && strcmp(p_t11_dst->lastname, p_t11_src->lastname) == 0, "exected p_t11_dst->lastname %s to be equial to p_t11_src->lastname %s", p_t11_dst->lastname, p_t11_src->lastname);
+        ),
+        "{\"firstname\":\"Joe\",\"lastname\":\"Doe\",\"age\":43,\"marital_status\":\"msDivorsed\"}"
+    );
+
+    metac_value_delete(p_val_dst);
+    metac_value_delete(p_val);
+    metac_tag_map_delete(p_tag_map);
+
+    free(p_t11_dst->lastname);
+    free(p_t11_dst->firstname);
+    free(p_t11_dst);
 }END_TEST
 
 

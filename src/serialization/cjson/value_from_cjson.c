@@ -130,9 +130,63 @@ static int _metac_value_pointer_from_cjson(
             }
             // we need to detect what mode we used when serialized. if it's a string - that was shallow or void*
             if (cJSON_IsString(json)) {
-                // TODO: special case - zero-ended char*
+                char *json_string_value = cJSON_GetStringValue(json);
+
+                // first - try a special case - zero-ended char*
+                // getting type of the object to which our pointer is pointing
+                metac_entry_t * p_allocating_entry = metac_entry_pointer_entry(metac_value_entry(p->p_val));
+
+                if (p_allocating_entry == NULL) { // pointer to void*
+                    // all we need is - to get type, we know everything else (but can verify on this end)
+                    if (p_tag_map != NULL) {
+                        metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
+                        metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p->p_val));
+                        if (p_tag != NULL && p_tag->handler) {
+                            // NOTE: out pointer has NULL value right now, we haven't deserialized anything yet,
+                            // in order to veryfy that it's possible to move this route, use cjson buffer
+                            
+                            metac_value_set_pointer(p->p_val, json_string_value);
+
+                            if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_deserialization_task_value_extractor, &ev, p_tag->p_context) != 0) {
+                                return -(EFAULT);
+                            }
+                            // once called, we can put back NULL to our pointer
+                            metac_value_set_pointer(p->p_val, NULL);
+
+                            if (ev.p_return_value != NULL) {
+                                // ignore errors
+                                // taking the type of the object to which pointer is pointing
+                                assert(metac_value_addr(ev.p_return_value) == json_string_value);
+                                p_allocating_entry = metac_entry_element_entry(metac_value_entry(ev.p_return_value));
+                                metac_value_delete(ev.p_return_value);
+                            }
+                        }
+                    }
+                }
+                if (p_allocating_entry != NULL) {
+                    // check allocating_entry
+                    metac_entry_t * p_element_final_entry = metac_entry_final_entry((p_allocating_entry), NULL);
+                    if (p_element_final_entry != NULL) {
+                        if (metac_entry_is_char(p_element_final_entry)) {
+                            // potentially we had to go via arrays, but lets make it here for now
+                            p->allocated_el_sz = 1;
+                            p->allocated_el_number = strlen(json_string_value) + 1;
+
+                            p->p_allocated = calloc_fn(
+                                p->allocated_el_number, 
+                                p->allocated_prefix_size + p->allocated_el_sz + p->allocated_flexible_el_number * p->allocated_flexible_el_sz);
+                            if (p->p_allocated == NULL) {
+                                return -(EFAULT);
+                            }
+                            memcpy(p->p_allocated, json_string_value, p->allocated_el_number);
+                            metac_value_set_pointer(p->p_val, p->p_allocated);
+                            return 0; // done!
+                        }
+                    }
+                }
+
                 // TODO: maybe we should use some measures/warnings, pointer may be non valid - handle p_mode
-                if (metac_value_pointer_from_string(p->p_val, cJSON_GetStringValue(json)) == NULL) {
+                if (metac_value_pointer_from_string(p->p_val, json_string_value) == NULL) {
                     return -(EFAULT);
                 }
                 return 0;                    
