@@ -122,6 +122,9 @@ static int _metac_value_from_cjson_cleanup_failure(metac_recursive_iterator_t * 
     return -(EFAULT);
 }    
 
+// early declaration - non recurcive way to get info if type has anything flexible
+static int _metac_value_from_cjson_estimate_flexible_sz(metac_value_t* p_val, struct cJSON* in_json, metac_size_t * p_flexible_sz);
+
 static metac_deserialization_task_t * _find_task_with_allocation(metac_recursive_iterator_t * p_iterator) {
     int level = metac_recursive_iterator_level(p_iterator);
     if (level < 1) {
@@ -166,7 +169,6 @@ static int _metac_value_pointer_from_cjson(
             }
             if (cJSON_IsObject(json)) { // slightly different from array
                 // need to allocate memory, it can be reallocated later if needed by flex array
-                //metac_size_t allocating_sz = 0;
                 metac_entry_t * p_allocating_entry = metac_entry_pointer_entry(metac_value_entry(p->p_val));
                 // TODO check if it's not void *, probably we'll need to work with tags?
                 if (p_allocating_entry == NULL) {
@@ -206,9 +208,32 @@ static int _metac_value_pointer_from_cjson(
                     return -(EFAULT);
                 }
                 p->allocated_el_number = 1;
-                // we need to check here if p_allocating_entry actually has flexible array and if it's part of json we have
 
-                p->p_allocated = calloc_fn(p->allocated_el_number, p->allocated_el_sz);
+                // this is only for objects: 
+                // we need to check here if p_allocating_entry actually has flexible array and if it's part of json we have
+                int flex_res = 0;
+                // FIXME: for now we don't plan to modify this memory, so we're using pointer to flex_res as dummy value of valid address. 
+                // this will work until we have only 
+                //  handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state));
+                //  handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state));
+                // in _metac_value_from_cjson_estimate_flexible_sz and we don't use tag_map
+                metac_value_t * p_dummy_value = metac_new_value(p_allocating_entry, &flex_res); // we need some memory, we're not going to modify it
+                if (p_dummy_value == NULL) {
+                    return -(EFAULT);
+                }
+                p->allocated_flexible_sz = 0;
+                flex_res = _metac_value_from_cjson_estimate_flexible_sz(p_dummy_value, json, &p->allocated_flexible_sz);
+                metac_value_delete(p_dummy_value);
+                if (flex_res != 0) {
+                    return -(EFAULT);
+                }
+
+                // if there is a flexible part
+                if (p->allocated_flexible_sz != 0) {
+                    p->p_allocated = calloc_fn(1, p->allocated_el_number * p->allocated_el_sz + p->allocated_flexible_sz);
+                } else {
+                    p->p_allocated = calloc_fn(p->allocated_el_number, p->allocated_el_sz);
+                }
                 if (p->p_allocated == NULL) {
                     return -(EFAULT);
                 }
@@ -258,7 +283,7 @@ static int _metac_value_pointer_from_cjson(
                             // that must be array with size at least cJSON_GetArraySize TODO: it can be flexible 
                             // (len -1, in that case we want to allocate len 1 and flexible array will reallocate, though flexible array impl doesn't check len now)
                             if (metac_value_element_count_flexible(ev.p_return_value)) {
-                                p->allocated_el_number = 2; //TODO: 1 when we fix realloc on flex array side // make default as 1 - realloc will change it
+                                p->allocated_el_number = 1; //TODO: 1 when we fix realloc on flex array side // make default as 1 - realloc will change it
                             } else {
                                 p->allocated_el_number = metac_value_element_count(ev.p_return_value);
                                 if (metac_value_final_kind(ev.p_return_value, NULL) != METAC_KND_array_type ||
@@ -349,7 +374,9 @@ static int _metac_value_with_members_from_cjson(
     metac_recursive_iterator_t * p_iter,
     metac_deserialization_task_t * p,
     metac_kind_t final_kind,
-    int state) {
+    int state,
+    // flexible_estimate case
+    metac_size_t * p_flexible_sz) {
     struct cJSON * json = (struct cJSON *)p->p_external;
     switch (state) {
         case METAC_R_ITER_start: {
@@ -431,7 +458,9 @@ static int _metac_value_with_elements_from_cjson(
     metac_recursive_iterator_t * p_iter,
     metac_deserialization_task_t * p,
     metac_kind_t final_kind,
-    int state) {
+    int state,
+    // flexible_estimate case
+    metac_size_t * p_flexible_sz) {
     struct cJSON * json = (struct cJSON *)p->p_external;
     switch (state) {
         case METAC_R_ITER_start: {
@@ -456,6 +485,23 @@ static int _metac_value_with_elements_from_cjson(
                 // support flexible arrays (needs reallocation of allocated memory in hierarchy)
                 count = json_count; // trust json - assume that it contains the needed number of elements
                 p_non_flexible = metac_new_element_count_value(p->p_val, count);
+
+                // support flexible estimate case - called from _metac_value_from_cjson_estimate_flexible_sz
+                if (p_flexible_sz != NULL ) {
+                    if (metac_entry_byte_size(metac_value_entry(p_non_flexible), p_flexible_sz) !=0 ) {
+                        metac_value_delete(p_non_flexible);
+                        return 2; // cleanup and failure
+                    }
+                    metac_value_delete(p_non_flexible);
+                    return 0; // done, we don't need to do anything else deeper
+                }
+
+                // verify that we have enough space  
+                metac_size_t flexible_sz = 0;
+                if (metac_entry_byte_size(metac_value_entry(p_non_flexible), &flexible_sz) !=0 ) {
+                    metac_value_delete(p_non_flexible);
+                    return 2; // cleanup and failure
+                }
                 // find in hierarchy if we need/can reallocate parent to fit this flexible array
                 // see _metac_value_pointer_from_cjson to understand what and how was allocated
                 metac_deserialization_task_t * p_tast_with_allocation = _find_task_with_allocation(p_iter);
@@ -464,7 +510,11 @@ static int _metac_value_with_elements_from_cjson(
                     metac_value_delete(p_non_flexible);
                     return 2; // cleanup and failure
                 }
-                // TODO: reallocate (or verify that flexible part has enough length)
+                if (flexible_sz > p_tast_with_allocation->allocated_flexible_sz) {
+                    metac_value_delete(p_non_flexible);
+                    return 2; // cleanup and failure                    
+                }
+                // everything is good - we have enough space
             }
             // handle children
             for (metac_num_t i = 0; i < count; ++i) {
@@ -517,6 +567,56 @@ static int _metac_value_with_elements_from_cjson(
     return _metac_value_from_cjson_cleanup_failure(p_iter);
 }
 
+// fn to calculate flexible_sz of struct if it presents
+static int _metac_value_from_cjson_estimate_flexible_sz(metac_value_t* p_val, struct cJSON* in_json, metac_size_t * p_flexible_sz) {
+    if (p_flexible_sz == NULL) {
+        return -(EINVAL);
+    }
+
+    metac_deserialization_task_t * p_task = metac_new_deserialization_task(p_val, in_json);
+    if (p_task == NULL) {
+        return -(ENOMEM);
+    }
+
+    metac_recursive_iterator_t * p_iter = metac_new_recursive_iterator(p_task);
+    for (metac_deserialization_task_t * p = (metac_deserialization_task_t*)metac_recursive_iterator_next(p_iter); p != NULL;
+        p = (metac_deserialization_task_t*)metac_recursive_iterator_next(p_iter)) {
+        int state = metac_recursive_iterator_get_state(p_iter);
+        struct cJSON * json = (struct cJSON *)p->p_external;
+
+        // we use value kind (dst) to identify to where we need to store and match it to src (json) 
+        metac_kind_t final_kind = metac_value_final_kind(p->p_val, NULL);
+        switch (final_kind) {
+            case METAC_KND_base_type:
+            case METAC_KND_enumeration_type:
+            case METAC_KND_pointer_type: {
+                // don't go further for those kinds
+                metac_recursive_iterator_done(p_iter, p->p_val);
+                continue;
+            }
+            case METAC_KND_union_type:
+            case METAC_KND_struct_type: {
+                handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state, p_flexible_sz));
+                continue;
+            }
+            case METAC_KND_array_type: {
+                handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, p_flexible_sz));
+                continue;
+            }
+            // fail in case we couldn't find anythin
+            default: {
+                metac_recursive_iterator_fail(p_iter);
+                continue;
+            }
+        }
+    }
+    int fail = 0;
+    metac_recursive_iterator_get_out(p_iter, (void **)&p_task, &fail);
+    metac_deserialization_task_delete(p_task);
+    metac_recursive_iterator_free(p_iter);
+    return fail;
+}
+
 // all non-recursive and recursive kinds
 int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json, 
     metac_value_deserialization_mode_t * p_mode,
@@ -563,11 +663,11 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
             }
             case METAC_KND_union_type:
             case METAC_KND_struct_type: {
-                handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state));
+                handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state, NULL));
                 continue;
             }
             case METAC_KND_array_type: {
-                handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state));
+                handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, NULL));
                 continue;
             }
             // fail in case we couldn't find anythin

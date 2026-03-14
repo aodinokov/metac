@@ -869,6 +869,65 @@ METAC_START_TEST(test9_satnity) {
     metac_tag_map_delete(p_tagmap);
 }END_TEST
 
+typedef struct t10 {
+    int l;
+    int a[];
+}test10_t;
+
+METAC_TAG_MAP_NEW(t10_tag_map, NULL, {.mask =
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_variable) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_func_parameter) | 
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_member) |
+            METAC_TAG_MAP_ENTRY_CATEGORY_MASK(METAC_TEC_final),},)
+
+    METAC_TAG_MAP_ENTRY_FROM_TYPE(test10_t)
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n="a"}), METAC_COUNT_BY(l))
+    METAC_TAG_MAP_ENTRY_END
+
+METAC_TAG_MAP_END
+
+struct t10 * _create_t10_test_data() {
+    struct t10 * res = calloc(1, offsetof(struct t10, a[5]));
+    fail_unless(res != NULL, "can't allocate t10 mem");
+    res->l = 5;
+    return res;
+}
+
+static size_t t10_calloc_last_nmemb = 0;
+static size_t t10_calloc_last_size = 0;
+static void *t10calloc(size_t nmemb, size_t size) {
+    t10_calloc_last_nmemb = nmemb;
+    t10_calloc_last_size = size;
+
+    return calloc(nmemb, size);
+}
+
+METAC_START_TEST(test_metac_value_fns_with_t10) {
+    WITH_METAC_DECLLOC(loc, test10_t * p_t10 = _create_t10_test_data(), *p_t10_dst = NULL);
+    metac_value_t *p_val = METAC_VALUE_FROM_DECLLOC(loc, p_t10);
+    fail_unless(p_val != NULL, "got t10_val NULL value");
+    metac_value_t *p_val_dst = METAC_VALUE_FROM_DECLLOC(loc, p_t10_dst);
+    fail_unless(p_val_dst != NULL, "got t10_tree_dst NULL value");
+
+    metac_tag_map_t *p_tag_map = t10_tag_map();
+    fail_unless(p_tag_map != NULL, "tagmap is NULL");
+
+    _check_serialization_(
+        _json_string_and_back_ex(p_val_dst,
+            p_val, METAC_WMODE_deep, p_tag_map
+        ),
+        "{\"l\":5,\"a\":[0,0,0,0,0]}"
+    );
+
+    metac_value_delete(p_val_dst);
+    metac_value_delete(p_val);
+    metac_tag_map_delete(p_tag_map);
+
+    free(p_t10_dst);
+    free(p_t10);
+}END_TEST
+
+
 
 //TODO: rework/remove after this point
 struct test_cjson_array_struct {
