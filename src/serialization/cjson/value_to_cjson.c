@@ -331,13 +331,14 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         metac_flag_t failure = 0;
 
                         if (final_kind == METAC_KND_union_type) {
+                            metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
+                            metac_entry_tag_t * p_tag = NULL;
                             if (p_tag_map != NULL) {
-                                metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
-                                metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
-                                if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_to_cjson_value_extractor, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
-                                        metac_recursive_iterator_create_and_append_dep(p_iter, ev.p_return_value);
-                                    }
+                                p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
+                            }                            
+                            if (p_tag != NULL && p_tag->handler) {
+                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_to_cjson_value_extractor, &ev, p_tag->p_context) == 0 && ev.p_return_value != NULL) {
+                                    metac_recursive_iterator_create_and_append_dep(p_iter, ev.p_return_value);
                                 }
                             }
                         } else { // struct
@@ -367,25 +368,44 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         }
 
                         while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
+                            metac_entry_tag_t * p_tag = NULL;
+
                             metac_value_t* p_memb_val;
                             cJSON* memb_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_memb_val, NULL);
 
+                            metac_name_t actual_memb_name = NULL;
                             metac_name_t memb_name = metac_value_name(p_memb_val);
+                            if (p_tag_map != NULL) {
+                                p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
+                                if (p_tag != NULL) {
+                                    actual_memb_name = metac_entry_tag_string_lookup(p_tag, "json");
+                                }
+                            }
+
                             metac_value_delete(p_memb_val);
 
                             if (memb_json == NULL) {
+                                if (actual_memb_name) {
+                                    free(actual_memb_name);
+                                    actual_memb_name = NULL;
+                                }
                                 failure = 1;
                                 break;
                             }
                             
                             if (memb_name) {
-                                cJSON_AddItemToObject(obj, memb_name, memb_json);
+                                cJSON_AddItemToObject(obj, actual_memb_name != NULL?actual_memb_name:memb_name, memb_json);
                             } else {
                                 // special cases - anonimous child structure
                                 if (cJSON_IsObject(memb_json)) {
                                     _cJSON_move_all_members(memb_json, obj);
                                 }
                                 cJSON_Delete(memb_json);
+                            }
+
+                            if (actual_memb_name) {
+                                free(actual_memb_name);
+                                actual_memb_name = NULL;
                             }
                         }
                         if (failure != 0) {
