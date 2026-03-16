@@ -40,7 +40,7 @@ int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
                 return metac_value_set_double_complex(p_val, ((double)real) + I * ((double)img));
             }
             if (metac_value_is_ldouble_complex(p_val)) {
-                // TODO: we're losing precision in case of long double and cjson
+                // TODO: we're losing precision in case of long double and cjson. one options is to use string for that
                 return metac_value_set_ldouble_complex(p_val, ((long double)real) + I * ((long double)img));
             }
             return -(EFAULT);
@@ -63,9 +63,13 @@ int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json) {
         if (metac_value_is_int(p_val)) return metac_value_set_int(p_val, (int)num);
         if (metac_value_is_uint(p_val)) return metac_value_set_uint(p_val, (unsigned int)num);
         if (metac_value_is_long(p_val)) return metac_value_set_long(p_val, (long)num);
+        if (metac_value_is_ulong(p_val)) return metac_value_set_ulong(p_val, (unsigned long)num);
         if (metac_value_is_llong(p_val)) return metac_value_set_llong(p_val, (long long)num);
+        if (metac_value_is_ullong(p_val)) return metac_value_set_ullong(p_val, (unsigned long long)num);
         if (metac_value_is_float(p_val)) return metac_value_set_float(p_val, (float)num);
         if (metac_value_is_double(p_val)) return metac_value_set_double(p_val, num);
+        // TODO: we're losing precision in case of long double and cjson. one options is to use string for that
+        if (metac_value_is_ldouble(p_val)) return metac_value_set_ldouble(p_val, num);
     }
     return -(EINVAL); // Type mismatch
 }
@@ -185,11 +189,12 @@ static int _metac_value_pointer_from_cjson(
                     }
                 }
 
-                // TODO: maybe we should use some measures/warnings, pointer may be non valid - handle p_mode
-                if (metac_value_pointer_from_string(p->p_val, json_string_value) == NULL) {
-                    return -(EFAULT);
+                if (p_mode->string_ptr_mode == METAC_DESER_string_ptr_allow) {
+                    if (metac_value_pointer_from_string(p->p_val, json_string_value) == NULL) {
+                        return -(EFAULT);
+                    }
+                    return 0;
                 }
-                return 0;                    
             }
             if (cJSON_IsObject(json)) { // pointer pointing to a single object - it can have flex array in it
                 // getting type of the object to which our pointer is pointing
@@ -264,7 +269,7 @@ static int _metac_value_pointer_from_cjson(
                 }
                 p->allocated_flexible_el_number = 0;
                 p->allocated_flexible_el_sz = 0;
-                flex_res = metac_value_from_cjson_determine_flexible_sz(p_dummy_value, json, &p->allocated_flexible_el_number, &p->allocated_flexible_el_sz);
+                flex_res = metac_value_from_cjson_determine_flexible_sz(p_dummy_value, json, p_mode, &p->allocated_flexible_el_number, &p->allocated_flexible_el_sz);
                 metac_value_delete(p_dummy_value);
                 if (flex_res != 0) {
                     return -(EFAULT);
@@ -415,6 +420,8 @@ static int _metac_value_pointer_from_cjson(
                 // schedule children deserialization
                 return 1;
             }
+            // nothing matched
+            return -(EFAULT);
         }
         case 1: { // we returned after children finished
             void * addr = NULL;
@@ -460,11 +467,7 @@ static int _metac_value_with_members_from_cjson(
                 return -(EFAULT);
             }
 
-            if (final_kind == METAC_KND_union_type) {
-                // TODO: make sure first that there only 1 field in JSON which will be handled
-                // fail if there are many which match - otherwise it may be a vulnarability 
-            }
-
+            metac_num_t found_members_in_json = 0;
             // Struct deserialization succeeds as long as we could process all members
             // Individual field failures are silently ignored (partial deserialization)
             metac_num_t mcount = metac_value_member_count(p->p_val);
@@ -488,6 +491,16 @@ static int _metac_value_with_members_from_cjson(
                 }
 
                 if (memb_json) {
+                    // make sure that there only 1 field in JSON which will be handled
+                    // fail if there are many which match - otherwise it may be a vulnarability
+                    if (final_kind == METAC_KND_union_type) {
+                        if (found_members_in_json > 0) {
+                            metac_value_delete(p_memb_val);
+                            return 2; // cleanup and fail
+                        }
+                        ++found_members_in_json;
+                    }
+
                     int res = _metac_create_and_append_task(p_iter, p_memb_val, memb_json, NULL);
                     if (res != 0) {
                         metac_value_delete(p_memb_val);
@@ -513,6 +526,8 @@ static int _metac_value_with_elements_from_cjson(
     metac_deserialization_task_t * p,
     metac_kind_t final_kind,
     int state,
+    // in_param
+    metac_value_deserialization_mode_t * p_mode,
     // determine_flexible_sz case
     metac_size_t* p_flexible_el_number,
     metac_size_t* p_flexible_el_sz) {
@@ -530,12 +545,22 @@ static int _metac_value_with_elements_from_cjson(
             metac_value_t * p_non_flexible = NULL;
 
             if (!metac_value_element_count_flexible(p->p_val)) {
-                if (json_count > count) {
-                    // TODO: options - ignore extra, fail - make configurable
-                    return 2; // cleanup and failure
+                switch (p_mode->array_len_mode) {
+                case METAC_DESER_array_len_allow_less:
+                    if (json_count > count) {
+                        return 2; // cleanup and failure
+                    }
+                    // break isn't put here purpously
+                case METAC_DESER_array_len_ignore_extra:
+                    count = json_count; // json may contain less - those elements will be init with zeros
+                    break;
+                case METAC_DESER_array_len_precise:
+                default:
+                    if (json_count != count) {
+                        return 2; // cleanup and failure
+                    }
+                    break;
                 }
-                // json may contain less - those elements will be init with zeros
-                count = json_count;
             } else {
                 // support flexible arrays (needs reallocation of allocated memory in hierarchy)
                 count = json_count; // trust json - assume that it contains the needed number of elements
@@ -610,10 +635,24 @@ static int _metac_value_with_elements_from_cjson(
     return _metac_deserialization_task_cleanup_and_fail(p_iter);
 }
 
+/* default mode - failsafe */
+static metac_value_deserialization_mode_t const _default_value_deserialization_mode = {
+    .string_ptr_mode = METAC_DESER_string_ptr_deny,
+    .flex_array_mode = METAC_FLXARR_fail,
+    .union_mode = METAC_UNION_fail,
+    .unknown_ptr_mode = METAC_UPTR_fail,
+};
+
 int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json,
+    metac_value_deserialization_mode_t * p_mode,
     metac_size_t* p_flexible_el_number,
     metac_size_t* p_flexible_el_sz) {
-    
+
+    // set defaults
+    if (p_mode == NULL) {
+        p_mode = (metac_value_deserialization_mode_t *)&_default_value_deserialization_mode;
+    }
+        
     metac_size_t flexible_el_number = 0;
     metac_size_t flexible_el_sz = 0;
 
@@ -644,7 +683,7 @@ int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJ
                 continue;
             }
             case METAC_KND_array_type: {
-                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, &flexible_el_number, &flexible_el_sz));
+                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, p_mode, &flexible_el_number, &flexible_el_sz));
                 continue;
             }
             default: {
@@ -683,6 +722,9 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
     }
 
     // set defaults
+    if (p_mode == NULL) {
+        p_mode = (metac_value_deserialization_mode_t *)&_default_value_deserialization_mode;
+    }
     if (calloc_fn == NULL) {
         calloc_fn = calloc;
     }
@@ -722,7 +764,7 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
                 continue;
             }
             case METAC_KND_array_type: {
-                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, NULL, NULL));
+                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_elements_from_cjson(p_iter, p, final_kind, state, p_mode, NULL, NULL));
                 continue;
             }
             default: {

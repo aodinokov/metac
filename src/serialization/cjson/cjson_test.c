@@ -21,6 +21,11 @@
 #include "value_to_cjson.c"
 #include "value_from_cjson.c"
 
+metac_value_deserialization_mode_t test_deserialization_mode1 = {
+    .string_ptr_mode = METAC_DESER_string_ptr_allow,
+    .array_len_mode = METAC_DESER_array_len_allow_less,
+};
+
 // serialization sanity
 // the same sequence as in value_string_test.c
 // TODO: in tests means that some use-cases don't work as expected
@@ -42,7 +47,7 @@
 // Note: We can't use this for negative deserialization cases
 #define __and_back(p_val_dest, p_tag_map, _extra_check...) do { \
         if (p_val_dest != NULL && json != NULL) { \
-                fail_unless(metac_value_from_cjson(p_val_dest, json, NULL, NULL, NULL, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
+                fail_unless(metac_value_from_cjson(p_val_dest, json, &test_deserialization_mode1, NULL, NULL, p_tag_map) == 0, "deserialization failed from %s", _expected_s); \
                 do { _extra_check } while(0); \
         } \
     } while(0)

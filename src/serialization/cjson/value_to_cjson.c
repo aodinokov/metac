@@ -3,6 +3,7 @@
 #include "metac/backend/value.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <ctype.h> /*isprint*/
 
 #include <cjson/cJSON.h>
@@ -12,23 +13,22 @@ static cJSON* _dprintable_string(metac_value_t * p_array_val) {
         return NULL;
     }
 
-    char * p_string = (char*)metac_value_addr(p_array_val);
-    if (p_string == NULL) {
-        return NULL;
-    }
-
     metac_entry_t * p_element_final_entry = metac_entry_final_entry(metac_entry_element_entry(metac_value_entry(p_array_val)), NULL);
     if (p_element_final_entry == NULL) {
         return NULL;
     }
 
-    if (metac_entry_is_base_type(p_element_final_entry) == 0 ||
-        strcmp(metac_entry_base_type_name(p_element_final_entry),"char") != 0) {
+    if (!metac_entry_is_char(p_element_final_entry)) {
         return NULL;
     }
 
     metac_num_t len = metac_value_element_count(p_array_val);
-    if (len < 2) {
+    if (len < 1) { // empty string is also a printable strting
+        return NULL;
+    }
+
+    char * p_string = (char*)metac_value_addr(p_array_val);
+    if (p_string == NULL) {
         return NULL;
     }
 
@@ -60,36 +60,18 @@ static void _cJSON_move_all_members(cJSON *src, cJSON *dst) {
     }
 }
 
-// Helper function to convert a base type value to a cJSON object.
-static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
+cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
     if (metac_value_is_bool(p_val)) {
         bool v;
         metac_value_bool(p_val, &v);
         return cJSON_CreateBool(v);
     }
-    // TODO: if we want TAGS to define this behavior
-    // if (metac_value_is_char(p_val)) {
-    //     char v;
-    //     metac_value_char(p_val, &v);
-    //     char str[2] = {v, 0};
-    //     return cJSON_CreateString(str);
-    // }
     if (metac_value_is_float(p_val) || metac_value_is_double(p_val) || metac_value_is_ldouble(p_val)) {
         double v;
         metac_value_double(p_val, &v);
         return cJSON_CreateNumber(v);
     }
     if (metac_value_is_float_complex(p_val) || metac_value_is_double_complex(p_val) || metac_value_is_ldouble_complex(p_val)) {
-#if 0
-        // TODO: choose what option is better
-        char * out = metac_value_base_type_string(p_val);
-        if (out == NULL) {
-            return NULL;
-        }
-        cJSON * v = cJSON_CreateString(out);
-        free(out);
-        return v;
-#else
         double real = 0, img = 0;
         if (metac_value_is_float_complex(p_val)) {
             float complex val;
@@ -138,16 +120,50 @@ static cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val) {
         if (r) cJSON_Delete(r);
         if (v) cJSON_Delete(v);
         return NULL;
-#endif
     }
-    // Default to handling as a number. This covers short, int, long, long long, and their unsigned variants.
-    metac_num_t num;
-    if (metac_value_num(p_val, &num) == 0) {
-        return cJSON_CreateNumber((double)num);
-    }
+#define _read_(_type_, _pseudoname_) \
+    do { \
+        if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
+            _type_ v; \
+            if (metac_value_##_pseudoname_(p_val, &v) == 0) { \
+                return cJSON_CreateNumber((double)v);\
+            } \
+        } \
+    } while(0)
+    _read_(bool, bool);
+    _read_(char, char);
+    _read_(unsigned char, uchar);
+    _read_(short, short);
+    _read_(unsigned short, ushort);
+    _read_(int, int);
+    _read_(unsigned int, uint);
+    _read_(long, long);
+    _read_(unsigned long, ulong);
+    _read_(long long, llong);
+    _read_(unsigned long long, ullong);
+#undef _read_
 
     return NULL; // Should not happen for a valid base type
 }
+
+cJSON* metac_value_enumeration_to_cjson(metac_value_t* p_val) {
+    char* enum_str = metac_value_enumeration_string(p_val);
+    if (enum_str == NULL) {
+        return NULL;
+    }
+    cJSON* out = cJSON_CreateString(enum_str);
+    free(enum_str);
+    return out;
+}
+
+// this is to be able to use METAC_R_ITER_handle_state
+// it requires cJSON* out = NULL; declared 
+#define metac_value_to_cjson_handle_state_adapter(_fn_call) ({ \
+        int res = 0; \
+        out = _fn_call; \
+        if (out == NULL) res = -(EFAULT); \
+        res; \
+    })
 
 static metac_value_t *_metac_value_to_cjson_value_extractor(void*p_in) {
     return (metac_value_t *)p_in;
@@ -167,23 +183,13 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
 
         switch (final_kind) {
             case METAC_KND_base_type: {
-                cJSON* out = metac_value_base_type_to_cjson(p);
-                if (out == NULL) {
-                    metac_recursive_iterator_fail(p_iter);
-                    continue;
-                }
-                metac_recursive_iterator_done(p_iter, out);
+                cJSON* out = NULL;
+                METAC_R_ITER_handle_state(p_iter, out, metac_value_to_cjson_handle_state_adapter(metac_value_base_type_to_cjson(p)));
                 continue;
             }
             case METAC_KND_enumeration_type: {
-                char* enum_str = metac_value_enumeration_string(p);
-                if (enum_str == NULL) {
-                    metac_recursive_iterator_fail(p_iter);
-                    continue;
-                }
-                cJSON* out = cJSON_CreateString(enum_str);
-                free(enum_str);
-                metac_recursive_iterator_done(p_iter, out);
+                cJSON* out = NULL;
+                METAC_R_ITER_handle_state(p_iter, out, metac_value_to_cjson_handle_state_adapter(metac_value_enumeration_to_cjson(p)));
                 continue;
             }
             case METAC_KND_pointer_type: {
@@ -239,8 +245,9 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                 }
                                 p_arr_val = ev.p_return_value;
                             }
+#if 0
                             /* check if handler created object with differnt address
-                                this is a valid scenario (e.g. containerof), but we can't use it in cinit/json TODO: is it true?; */
+                                this is a valid scenario (e.g. containerof). Json should support that, that's why this code is removed */
                             if (p_arr_val != NULL) {
                                 if (metac_value_addr(p_arr_val) != p_addr) {
                                     metac_value_delete(p_arr_val);
@@ -248,6 +255,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                     continue;      
                                 }
                             }
+#endif
                         }
                         if (p_arr_val == NULL && metac_value_is_void_pointer(p)) {
                             /* if p is void * we won't be able to do anything - there are no arrays of void. fallback to shallow */
@@ -281,6 +289,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                     case 1: {
                         metac_value_t * p_arr_val;
                         cJSON* res_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_arr_val, NULL);
+                        assert(p_arr_val != NULL);
                         metac_value_delete(p_arr_val);
 
                         if (res_json == NULL) {
@@ -294,13 +303,13 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             continue;
                         }
 
-                        if (!cJSON_IsArray(res_json) /*|| cJSON_GetArraySize(res_json) != 1*/) {
+                        if (!cJSON_IsArray(res_json)) {
                             cJSON_Delete(res_json);
                             metac_recursive_iterator_fail(p_iter);
                             continue;
                         }
+
                         if (cJSON_GetArraySize(res_json) == 1) {
-                            // TODO: we need a better condition
                             // Detach the item from the temporary array.
                             cJSON* item = cJSON_DetachItemFromArray(res_json, 0);
                             cJSON_Delete(res_json);
@@ -425,7 +434,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                     p_non_flexible = ev.p_return_value;
                                 }
                                 if (p_non_flexible == NULL) { /* this is a way to skip that item */
-                                    cJSON * out = cJSON_CreateArray();//dsprintf("");
+                                    cJSON * out = cJSON_CreateArray();
                                     if (out == NULL) {
                                         metac_recursive_iterator_fail(p_iter);
                                         continue;

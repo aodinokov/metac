@@ -53,6 +53,12 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* json,
  */
 int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json);
 
+/** @brief Populate a base_type(char, int...complex) metac_value_t to a cJSON object.
+ *  @param p_val The source value to populate.
+ *  @return A cJSON object, or NULL on failure
+ */
+struct cJSON* metac_value_base_type_to_cjson(metac_value_t* p_val);
+
 /** @brief Populate a enumeration metac_value_t from a cJSON object.
  *  @param p_val The destination value to populate.
  *  @param json The source cJSON object.
@@ -60,14 +66,22 @@ int metac_value_base_type_from_cjson(metac_value_t* p_val, struct cJSON* json);
  */
 int metac_value_enumeration_type_from_cjson(metac_value_t* p_val, struct cJSON* json);
 
+/** @brief Populate a enumeration metac_value_t to a cJSON object.
+ *  @param p_val The source value to populate.
+ *  @return A cJSON object, or NULL on failure
+ */
+struct cJSON* metac_value_enumeration_to_cjson(metac_value_t* p_val);
+
 /** @brief Determine if value has flexible part (typically useful for structs) and returns its size in bytes.
  *  @param p_val The destination value to populate.
  *  @param json The source cJSON object.
+ *  @param p_mode mode in which this function will work. if NULL - uses default with fail on all unknown situations
  *  @param p_flexible_el_number length of the flexible array in elements.
  *  @param p_flexible_el_sz length of the flexible array 1 element in bytes.
  *  @return 0 on success, negative on failure.
  */
-int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json, 
+int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json,
+    metac_value_deserialization_mode_t * p_mode,
     metac_size_t* p_flexible_el_number,
     metac_size_t* p_flexible_el_sz);
 
