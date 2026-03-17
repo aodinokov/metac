@@ -76,12 +76,14 @@ struct cJSON* metac_value_enumeration_to_cjson(metac_value_t* p_val);
  *  @param p_val The destination value to populate.
  *  @param json The source cJSON object.
  *  @param p_mode mode in which this function will work. if NULL - uses default with fail on all unknown situations
+ *  @param p_tag_map tag_map is necessary to identify correctly the json members names
  *  @param p_flexible_el_number length of the flexible array in elements.
  *  @param p_flexible_el_sz length of the flexible array 1 element in bytes.
  *  @return 0 on success, negative on failure.
  */
 int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json,
     metac_value_deserialization_mode_t * p_mode,
+    metac_tag_map_t* p_tag_map,
     metac_size_t* p_flexible_el_number,
     metac_size_t* p_flexible_el_sz);
 

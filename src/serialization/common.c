@@ -75,3 +75,23 @@ int _metac_deserialization_task_dequeue_check_or_fail(metac_recursive_iterator_t
     return 0; // success
 }
 
+metac_name_t metac_value_name_per_protocol(metac_value_t* p_memb_val, char * protocol, metac_tag_map_t* p_tag_map) {
+    metac_name_t actual_memb_name = NULL;
+    if (p_tag_map != NULL) {
+        metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
+        if (p_tag != NULL) {
+            actual_memb_name = metac_entry_tag_string_lookup(p_tag, protocol);
+        }
+    }
+    if (actual_memb_name != NULL) {
+        // TODO: metac_entry_tag_string_lookup actually returns more than only the name, we need to cut it
+        return actual_memb_name;
+    }
+
+    // default
+    metac_name_t memb_name = metac_value_name(p_memb_val);
+    if (memb_name == NULL) {
+        return NULL; // anonymous field
+    }
+    return strdup(memb_name);
+}

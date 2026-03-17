@@ -978,8 +978,8 @@ METAC_START_TEST(test11_satnity) {
             p_val, METAC_WMODE_deep, p_tag_map,
             // extra checks
             fail_unless(p_t11_dst != NULL, "dst is NULL");
-            //TODO: make tags work for deser fail_unless(p_t11_dst->firstname != NULL && p_t11_dst->firstname != p_t11_src->firstname && strcmp(p_t11_dst->firstname, p_t11_src->firstname) == 0, "exected p_t11_dst->firstname %s to be equial to p_t11_src->firstname %s", p_t11_dst->firstname, p_t11_src->firstname);
-            // fail_unless(p_t11_dst->lastname != NULL && p_t11_dst->lastname != p_t11_src->lastname && strcmp(p_t11_dst->lastname, p_t11_src->lastname) == 0, "exected p_t11_dst->lastname %s to be equial to p_t11_src->lastname %s", p_t11_dst->lastname, p_t11_src->lastname);
+            fail_unless(p_t11_dst->firstname != NULL && p_t11_dst->firstname != p_t11_src->firstname && strcmp(p_t11_dst->firstname, p_t11_src->firstname) == 0, "exected p_t11_dst->firstname %s to be equial to p_t11_src->firstname %s", p_t11_dst->firstname, p_t11_src->firstname);
+            fail_unless(p_t11_dst->lastname != NULL && p_t11_dst->lastname != p_t11_src->lastname && strcmp(p_t11_dst->lastname, p_t11_src->lastname) == 0, "exected p_t11_dst->lastname %s to be equial to p_t11_src->lastname %s", p_t11_dst->lastname, p_t11_src->lastname);
         ),
         "{\"first_name\":\"John\",\"last_name\":\"Doe\",\"age\":43,\"marital_status\":\"msDivorsed\"}"
     );

@@ -1,4 +1,6 @@
 #include "metac/serialization/cjson.h"
+
+#include "metac/backend/serialization/common.h"
 #include "metac/backend/iterator.h"
 #include "metac/backend/value.h"
 
@@ -368,20 +370,11 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                         }
 
                         while (metac_recursive_iterator_dep_queue_is_empty(p_iter) == 0) {
-                            metac_entry_tag_t * p_tag = NULL;
 
                             metac_value_t* p_memb_val;
                             cJSON* memb_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_memb_val, NULL);
 
-                            metac_name_t actual_memb_name = NULL;
-                            metac_name_t memb_name = metac_value_name(p_memb_val);
-                            if (p_tag_map != NULL) {
-                                p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
-                                if (p_tag != NULL) {
-                                    actual_memb_name = metac_entry_tag_string_lookup(p_tag, "json");
-                                }
-                            }
-
+                            metac_name_t actual_memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map);
                             metac_value_delete(p_memb_val);
 
                             if (memb_json == NULL) {
@@ -393,8 +386,8 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                 break;
                             }
                             
-                            if (memb_name) {
-                                cJSON_AddItemToObject(obj, actual_memb_name != NULL?actual_memb_name:memb_name, memb_json);
+                            if (actual_memb_name) {
+                                cJSON_AddItemToObject(obj, actual_memb_name, memb_json);
                             } else {
                                 // special cases - anonimous child structure
                                 if (cJSON_IsObject(memb_json)) {

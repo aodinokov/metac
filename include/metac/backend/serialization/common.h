@@ -39,4 +39,6 @@ metac_deserialization_task_t * _metac_deserialization_task_find_task_with_alloca
 int _metac_deserialization_task_dequeue_check_or_fail(metac_recursive_iterator_t * p_iterator, int cleanup_and_fail_state_id);
 int _metac_deserialization_task_cleanup_and_fail(metac_recursive_iterator_t * p_iterator);
 
+metac_name_t metac_value_name_per_protocol(metac_value_t* p_memb_val, char * protocol, metac_tag_map_t* p_tag_map);
+
 #endif

@@ -269,7 +269,7 @@ static int _metac_value_pointer_from_cjson(
                 }
                 p->allocated_flexible_el_number = 0;
                 p->allocated_flexible_el_sz = 0;
-                flex_res = metac_value_from_cjson_determine_flexible_sz(p_dummy_value, json, p_mode, &p->allocated_flexible_el_number, &p->allocated_flexible_el_sz);
+                flex_res = metac_value_from_cjson_determine_flexible_sz(p_dummy_value, json, p_mode, p_tag_map, &p->allocated_flexible_el_number, &p->allocated_flexible_el_sz);
                 metac_value_delete(p_dummy_value);
                 if (flex_res != 0) {
                     return -(EFAULT);
@@ -459,7 +459,9 @@ static int _metac_value_with_members_from_cjson(
     metac_recursive_iterator_t * p_iter,
     metac_deserialization_task_t * p,
     metac_kind_t final_kind,
-    int state) {
+    int state,
+    // params
+    metac_tag_map_t* p_tag_map) {
     struct cJSON * json = (struct cJSON *)p->p_external;
     switch (state) {
         case METAC_R_ITER_start: {
@@ -478,7 +480,7 @@ static int _metac_value_with_members_from_cjson(
                     return 2; // cleanup and failure
                 }
 
-                metac_name_t memb_name = metac_value_name(p_memb_val);
+                metac_name_t memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map);//metac_value_name(p_memb_val);
                 struct cJSON* memb_json = NULL;
 
                 if (memb_name && memb_name[0] != '\0') {
@@ -488,6 +490,10 @@ static int _metac_value_with_members_from_cjson(
                     // Anonymous member - handle nested struct specially
                     // Anonymous members inherit the parent JSON object
                     memb_json = json;
+                }
+                if (memb_name != NULL) {
+                    free(memb_name);
+                    memb_name = NULL;
                 }
 
                 if (memb_json) {
@@ -645,6 +651,7 @@ static metac_value_deserialization_mode_t const _default_value_deserialization_m
 
 int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json,
     metac_value_deserialization_mode_t * p_mode,
+    metac_tag_map_t* p_tag_map,
     metac_size_t* p_flexible_el_number,
     metac_size_t* p_flexible_el_sz) {
 
@@ -679,7 +686,7 @@ int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJ
             }
             case METAC_KND_union_type:
             case METAC_KND_struct_type: {
-                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state));
+                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state, p_tag_map));
                 continue;
             }
             case METAC_KND_array_type: {
@@ -760,7 +767,7 @@ int metac_value_from_cjson(metac_value_t* p_val, struct cJSON* in_json,
             }
             case METAC_KND_union_type:
             case METAC_KND_struct_type: {
-                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state));
+                METAC_R_ITER_handle_state(p_iter, p->p_val, _metac_value_with_members_from_cjson(p_iter, p, final_kind, state, p_tag_map));
                 continue;
             }
             case METAC_KND_array_type: {
