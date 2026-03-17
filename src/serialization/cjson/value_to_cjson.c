@@ -352,11 +352,20 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                     break;
                                 }
                                 metac_flag_t ignore = false;
+                                metac_flag_t omitempty = false;
+                                metac_flag_t omitzero = false;
                                 metac_name_t x = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map, &ignore, NULL, NULL);
-                                if (x) {
-                                    free(x);
-                                }
-                                if (ignore != 0) {
+                                // TODO: we can use context to keep name instead of calling metac_value_name_per_protocol one more time
+                                if (x) free(x);
+
+                                // TODO: define those generic functions
+                                // if (omitempty && metac_value_is_empty(p_memb_val)) {
+                                //     ignore = 1;
+                                // } else  if (omitzero && metac_value_is_zero(p_memb_val)) {
+                                //     ignore = 1;
+                                // }
+
+                                if (ignore) {
                                     metac_value_delete(p_memb_val);
                                 } else {
                                     metac_recursive_iterator_create_and_append_dep(p_iter, p_memb_val);

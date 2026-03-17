@@ -90,6 +90,7 @@ metac_name_t metac_value_name_per_protocol(
     metac_flag_t * p_ingore,
     metac_flag_t * p_omitempty,
     metac_flag_t * p_omitzero) {
+    // TODO: omitnil
     metac_name_t protocol_tag_value = NULL;
     if (p_tag_map != NULL) {
         metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
