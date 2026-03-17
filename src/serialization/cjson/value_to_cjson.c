@@ -351,7 +351,16 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                                     failure = 1;
                                     break;
                                 }
-                                metac_recursive_iterator_create_and_append_dep(p_iter, p_memb_val);
+                                metac_flag_t ignore = false;
+                                metac_name_t x = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map, &ignore, NULL, NULL);
+                                if (x) {
+                                    free(x);
+                                }
+                                if (ignore != 0) {
+                                    metac_value_delete(p_memb_val);
+                                } else {
+                                    metac_recursive_iterator_create_and_append_dep(p_iter, p_memb_val);
+                                }
                             }
                             if (failure != 0) {
                                     metac_recursive_iterator_set_state(p_iter, 2); // cleanup
@@ -374,7 +383,7 @@ struct cJSON* metac_value_to_cjson(metac_value_t* p_val, metac_value_walk_mode_t
                             metac_value_t* p_memb_val;
                             cJSON* memb_json = (cJSON*)metac_recursive_iterator_dequeue_and_delete_dep(p_iter, (void**)&p_memb_val, NULL);
 
-                            metac_name_t actual_memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map);
+                            metac_name_t actual_memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map, NULL, NULL, NULL);
                             metac_value_delete(p_memb_val);
 
                             if (memb_json == NULL) {

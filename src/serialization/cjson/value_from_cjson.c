@@ -480,7 +480,7 @@ static int _metac_value_with_members_from_cjson(
                     return 2; // cleanup and failure
                 }
 
-                metac_name_t memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map);//metac_value_name(p_memb_val);
+                metac_name_t memb_name = metac_value_name_per_protocol(p_memb_val, "json", p_tag_map, NULL, NULL, NULL);
                 struct cJSON* memb_json = NULL;
 
                 if (memb_name && memb_name[0] != '\0') {

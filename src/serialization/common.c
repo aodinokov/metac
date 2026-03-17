@@ -75,23 +75,90 @@ int _metac_deserialization_task_dequeue_check_or_fail(metac_recursive_iterator_t
     return 0; // success
 }
 
-metac_name_t metac_value_name_per_protocol(metac_value_t* p_memb_val, char * protocol, metac_tag_map_t* p_tag_map) {
-    metac_name_t actual_memb_name = NULL;
-    if (p_tag_map != NULL) {
-        metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
-        if (p_tag != NULL) {
-            actual_memb_name = metac_entry_tag_string_lookup(p_tag, protocol);
-        }
-    }
-    if (actual_memb_name != NULL) {
-        // TODO: metac_entry_tag_string_lookup actually returns more than only the name, we need to cut it
-        return actual_memb_name;
-    }
-
-    // default
+metac_name_t _metac_value_name_per_protocol_default(metac_value_t * p_memb_val) {
     metac_name_t memb_name = metac_value_name(p_memb_val);
     if (memb_name == NULL) {
         return NULL; // anonymous field
     }
     return strdup(memb_name);
+}
+
+metac_name_t metac_value_name_per_protocol(
+    // in
+    metac_value_t * p_memb_val, char * protocol, metac_tag_map_t * p_tag_map,
+    // out
+    metac_flag_t * p_ingore,
+    metac_flag_t * p_omitempty,
+    metac_flag_t * p_omitzero) {
+    metac_name_t protocol_tag_value = NULL;
+    if (p_tag_map != NULL) {
+        metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p_memb_val));
+        if (p_tag != NULL) {
+            protocol_tag_value = metac_entry_tag_string_lookup(p_tag, protocol);
+        }
+    }
+    if (protocol_tag_value != NULL) {
+        /* metac_entry_tag_string_lookup actually returns more than only the name, e.g.
+           https://pkg.go.dev/encoding/json#pkg-examples:
+            // Field appears in JSON as key "myName".
+            Field int `json:"myName"`
+
+            // Field appears in JSON as key "myName" and
+            // the field is omitted from the object if its value is empty,
+            // as defined above.
+            Field int `json:"myName,omitempty"`
+
+            // Field appears in JSON as key "Field" (the default), but
+            // the field is skipped if empty.
+            // Note the leading comma.
+            Field int `json:",omitempty"`
+
+            // Field is ignored by this package.
+            Field int `json:"-"`
+
+            // Field appears in JSON as key "-".
+            Field int `json:"-,"`
+        */
+        // ignore case
+        if (strcmp(protocol_tag_value, "-") == 0) {
+            if (p_ingore != NULL) {
+                *p_ingore = 1;
+            }
+            free(protocol_tag_value);
+            return NULL;
+        }
+
+        // find commas
+        char * prev_flag_beginning = NULL;
+        size_t protocol_tag_value_len = strlen(protocol_tag_value);
+        for (size_t i = 0; i < protocol_tag_value_len; ++i) {
+            if (protocol_tag_value[i] == ',') {
+                protocol_tag_value[i] = '\0';
+
+                char * flag_beginning = &protocol_tag_value[i + 1];
+                if (prev_flag_beginning != NULL) {
+                    // handle all possible flags except p_ingore
+                    if (strcmp(prev_flag_beginning, "omitempty") == 0) {
+                        if (p_omitempty != NULL) {
+                            *p_omitempty = 1;
+                        }
+                    } else if (strcmp(prev_flag_beginning, "omitzero") == 0) {
+                        if (p_omitzero != NULL) {
+                            *p_omitzero = 1;
+                        }
+                    } //etc .. we can do this more univerally probably later
+                }
+                prev_flag_beginning = flag_beginning;
+            }
+        }
+
+        if (strlen(protocol_tag_value) == 0) {
+            free(protocol_tag_value);
+            return _metac_value_name_per_protocol_default(p_memb_val);
+        }
+        return protocol_tag_value;
+    }
+
+    // default
+    return _metac_value_name_per_protocol_default(p_memb_val);
 }

@@ -943,6 +943,7 @@ typedef struct {
 		msMarried,
 		msDivorsed,
 	} marital_status;
+    int internal_data;
 }test11_t;
 
 test11_t *p_t11_src = (test11_t[]){{.firstname = "John", .lastname = "Doe", .age=43, .marital_status=msDivorsed}}, *p_t11_dst = NULL;
@@ -960,6 +961,9 @@ METAC_TAG_MAP_NEW(new_test11_tag_map, NULL, {.mask =
         METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n="lastname"}),
             METAC_ZERO_ENDED_STRING()
             METAC_TAG_QSTRING(json:"last_name")
+        )
+        METAC_TAG_MAP_SET_TAG(0, METAC_TEO_entry, 0, METAC_TAG_MAP_ENTRY_MEMBER({.n="internal_data"}),
+            METAC_TAG_QSTRING(json:"-")
         )
     METAC_TAG_MAP_ENTRY_END
 METAC_TAG_MAP_END
