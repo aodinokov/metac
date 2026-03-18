@@ -6,16 +6,24 @@ jobs:
     strategy:
       matrix:
         include:
-          - { go-version: 1.24.x, dwarf-version: 3}
-          - { go-version: 1.24.x, dwarf-version: 4}
-          - { go-version: 1.24.x, dwarf-version: 5}
+          - { go-version: 1.24.x, dwarf-version: 5, with-cjson: 0, with-yaml: 0 }
+          - { go-version: 1.24.x, dwarf-version: 5, with-cjson: 1, with-yaml: 0 }
+          - { go-version: 1.24.x, dwarf-version: 5, with-cjson: 0, with-yaml: 1 }
+          - { go-version: 1.24.x, dwarf-version: 4, with-cjson: 0, with-yaml: 0 }
+          - { go-version: 1.24.x, dwarf-version: 3, with-cjson: 0, with-yaml: 0 }
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
     - name: prerequisites # ubuntu speicific
-      run: sudo apt-get install check
+      run: sudo apt-get install -y check
+    - name: Install cJSON (if needed)
+      if: matrix.with-cjson == 1
+      run: sudo apt-get install -y libcjson-dev
+    - name: Install YAML (if needed)
+      if: matrix.with-yaml == 1
+      run: sudo apt-get install -y libyaml-dev
     - name: Checkout code
       uses: actions/checkout@v3
     - name: Test
@@ -25,7 +33,7 @@ jobs:
     - name: Build
       run: go build
     - name: Examples test
-      run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}}
+      run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}} WITH_CJSON=${{matrix.with-cjson}} WITH_YAML=${{matrix.with-yaml}}
 
   ubuntu_big_endian:
     # pretty slow since it's running on qemu. we may disable it periodically
@@ -73,7 +81,12 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go-version: [1.24.x] # , 1.21.x, 1.20.x]
+        go-version: [1.24.x]
+        with-cjson: [0, 1]
+        with-yaml: [0, 1]
+        exclude:
+          - with-cjson: 1
+            with-yaml: 1 # Avoid building both for now
     steps:
     - name: Install Go
       uses: actions/setup-go@v3
@@ -81,6 +94,12 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: prerequisites # macos speicific
       run: brew install pkg-config check
+    - name: Install cJSON (if needed)
+      if: matrix.with-cjson == 1
+      run: brew install cjson
+    - name: Install YAML (if needed)
+      if: matrix.with-yaml == 1
+      run: brew install libyaml
     - name: Checkout code
       uses: actions/checkout@v3
     - name: Test
@@ -90,14 +109,20 @@ jobs:
     - name: Build
       run: go build
     - name: Examples test
-      run: make test all
+      run: make test all WITH_CJSON=${{matrix.with-cjson}} WITH_YAML=${{matrix.with-yaml}}
 
   windows:
     runs-on: windows-latest
     strategy:
       matrix:
-        include:
-          - { go-version: 1.24.x, sys: mingw64, env: x86_64 }
+        go-version: [1.24.x]
+        with-cjson: [0, 1]
+        with-yaml: [0, 1]
+        sys: [mingw64]
+        env: [x86_64]
+        exclude:
+          - with-cjson: 1
+            with-yaml: 1 # Avoid building both for now
     defaults:
       run:
         shell: msys2 {0}
@@ -113,6 +138,12 @@ jobs:
         update: true
         install: base-devel git pkg-config mingw-w64-${{matrix.env}}-check mingw-w64-${{matrix.env}}-toolchain
         path-type: inherit # to be able to find go in PATH
+    - name: Install cJSON (if needed)
+      if: matrix.with-cjson == 1
+      run: pacman -S --noconfirm mingw-w64-${{matrix.env}}-cjson
+    - name: Install YAML (if needed)
+      if: matrix.with-yaml == 1
+      run: pacman -S --noconfirm mingw-w64-${{matrix.env}}-libyaml
     - name: Checkout code
       uses: actions/checkout@v3
     - name: Test
@@ -122,4 +153,4 @@ jobs:
     - name: Build
       run: go build
     - name: Examples test
-      run: make test all
+      run: make test all WITH_CJSON=${{matrix.with-cjson}} WITH_YAML=${{matrix.with-yaml}}

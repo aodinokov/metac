@@ -110,6 +110,10 @@ static char * _dprintable_string(metac_value_t * p_array_val) {
     return res;
 }
 
+static metac_value_t *_metac_value_string_ex_value_extractor(void*p_in) {
+    return (metac_value_t *)p_in;
+}
+
 char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmode, metac_tag_map_t * p_tag_map) {
     if (p_val == NULL) {
         return NULL;
@@ -176,7 +180,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 continue;
                             }
                             // check pointer destination for cycles, fail if we already met that pointer
-                            if (metac_value_level_introduced_loop(p_iter) > 0) { 
+                            if (metac_value_level_introduced_loop(p_iter, _metac_value_string_ex_value_extractor) > 0) { 
                                 // TODO: we can output comment "/*loop &<add here string fom the top till looping element>*/"
                                 /* actually we may even not commit. e.g. the following works ok:
                                 struct _list_itm {
@@ -199,7 +203,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 metac_value_event_t ev = {.type = METAC_RQVST_pointer_array_count, .p_return_value = NULL};
                                 metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                                 if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_string_ex_value_extractor, &ev, p_tag->p_context) != 0) {
                                         metac_recursive_iterator_fail(p_iter);
                                         continue;
                                     }
@@ -322,7 +326,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                                 metac_value_event_t ev = {.type = METAC_RQVST_union_member, .p_return_value = NULL};
                                 metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                                 if (p_tag != NULL && p_tag->handler) {
-                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                    if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_string_ex_value_extractor, &ev, p_tag->p_context) != 0) {
                                         metac_recursive_iterator_fail(p_iter);
                                         continue;
                                     }
@@ -460,7 +464,7 @@ char * metac_value_string_ex(metac_value_t * p_val, metac_value_walk_mode_t wmod
                             metac_value_event_t ev = {.type = METAC_RQVST_flex_array_count, .p_return_value = NULL};
                             metac_entry_tag_t * p_tag = metac_tag_map_tag(p_tag_map, metac_value_entry(p));
                             if (p_tag != NULL && p_tag->handler) {
-                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &ev, p_tag->p_context) != 0) {
+                                if (metac_value_event_handler_call(p_tag->handler, p_iter, &_metac_value_string_ex_value_extractor, &ev, p_tag->p_context) != 0) {
                                     metac_recursive_iterator_fail(p_iter);
                                     continue;
                                 }

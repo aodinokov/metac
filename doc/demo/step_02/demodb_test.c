@@ -13,7 +13,7 @@ METAC_START_TEST(append_test) {
         },
         {
             .p_in = (person_t[]){{
-                .firstname="Joe",
+                .firstname="John",
                 .lastname="Doe",
                 .age = 43,
                 .marital_status = msMarried,

@@ -95,6 +95,21 @@ static inline int metac_r_iter_state_is_end(metac_r_iter_state_t state) {
     return state == METAC_R_ITER_done || state == METAC_R_ITER_failed;
 }
 
+/** @brief this macro is to be used inside main switch
+ * allows to create functions to be used in _fn_call that 
+ * can return numbers (negative to fail, 0 to finish task, positive -to go to the another state)
+ */
+#define METAC_R_ITER_handle_state(_iterator_, _done_output, _fn_call) do { \
+        int res = _fn_call; \
+        if (res == 0) { \
+            metac_recursive_iterator_done(_iterator_, _done_output); \
+        } else if (res > 0) { \
+            metac_recursive_iterator_set_state(_iterator_, res); \
+        } else { \
+            metac_recursive_iterator_fail(_iterator_); \
+        } \
+    }while (0)
+
 typedef struct metac_recursive_iterator metac_recursive_iterator_t;
 
 /** @brief create new iterator and provide task */
@@ -135,6 +150,7 @@ int metac_recursive_iterator_create_and_append_dep(metac_recursive_iterator_t * 
 void * metac_recursive_iterator_dequeue_and_delete_dep(metac_recursive_iterator_t * p_iterator, void ** pp_in, int * p_fail);
 /** @brief get dependency out, failstate and in without dequeue */
 void * metac_recursive_iterator_get_dep_out(metac_recursive_iterator_t * p_iterator, int i, void ** pp_in, int * p_fail);
+
 
 #ifdef __cplusplus
 }

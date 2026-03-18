@@ -5,7 +5,7 @@
 
 /** \page work_with_tagmap Work with tagmap
 
-tagmap - separate stucture that contains tags bind to metac_entries
+tagmap - a separate stucture that contains tags bind to metac_entries
 tags are the helpers for different modules used for adjustment of the module behavior
 here we like in go are using text p_tagstrings whilch can be set
 
@@ -15,7 +15,7 @@ adding metac_value specific part which isn't text based for performance purpose
     metac_value_event_handler_t handler;
     void (*context_free_handler)(void *p_context);
 
-metac_value specific tags help to react to the 3 situations which C-syntax
+metac_value specific tags help to react to the several situations which C-syntax
 is ambigious about:
 1. which path to select in union. it's important for deep operations like copy, delete, because some of the union paths can have pointers
 2. what is a flexible array length. This is improtant for deep operations copy and equal.

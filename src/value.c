@@ -19,6 +19,7 @@ dsprintf_render_with_buf(64)
 
 struct metac_value_walker_hierarchy {
     metac_recursive_iterator_t * p_iterator;
+    metac_value_extractor_t p_extractor;
 };
 
 int metac_value_walker_hierarchy_level(metac_value_walker_hierarchy_t *p_hierarchy) {
@@ -30,23 +31,35 @@ int metac_value_walker_hierarchy_level(metac_value_walker_hierarchy_t *p_hierarc
 metac_value_t * metac_value_walker_hierarchy_value(metac_value_walker_hierarchy_t *p_hierarchy, int req_level) {
     _check_(p_hierarchy == NULL, NULL);
     _check_(p_hierarchy->p_iterator == NULL, NULL);
-    return (metac_value_t *)metac_recursive_iterator_get_in(p_hierarchy->p_iterator, req_level);
+    _check_(p_hierarchy->p_extractor == NULL, NULL);
+    void *p_in = metac_recursive_iterator_get_in(p_hierarchy->p_iterator, req_level);
+   
+    return p_hierarchy->p_extractor(p_in);
 }
 
-int metac_value_event_handler_call(metac_value_event_handler_t handler, metac_recursive_iterator_t * p_iterator, metac_value_event_t * p_ev, void *p_context) {
+int metac_value_event_handler_call(metac_value_event_handler_t handler, metac_recursive_iterator_t * p_iterator, metac_value_extractor_t p_extractor, metac_value_event_t * p_ev, void *p_context) {
     _check_(handler == NULL, -(EINVAL));
+    _check_(p_iterator == NULL, -(EINVAL));
+    _check_(p_extractor == NULL, -(EINVAL));
     metac_value_walker_hierarchy_t hierarchy = {
         .p_iterator = p_iterator,
+        .p_extractor = p_extractor,
     };
     return handler(&hierarchy, p_ev, p_context);
 }
 
-int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator) {
+int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator, metac_value_extractor_t p_extractor) {
+    if (p_extractor == NULL) {
+        return -(EINVAL);
+    }
+    if (p_iterator == NULL) {
+        return -(EINVAL);
+    }
     int level = metac_recursive_iterator_level(p_iterator);
     if (level < 1) {
         return -1;
     }
-    metac_value_t * p_cur_level = metac_recursive_iterator_get_in(p_iterator, 0);
+    metac_value_t * p_cur_level = p_extractor(metac_recursive_iterator_get_in(p_iterator, 0));
     assert(p_cur_level != NULL);
     if (p_cur_level == NULL) {
         return -1;
@@ -60,7 +73,7 @@ int metac_value_level_introduced_loop(metac_recursive_iterator_t * p_iterator) {
         return -1;
     }
     for (int l = 1; l < level + 1; ++l) { /* if level = 1 there are 2 levels: 0 and 1 */
-        metac_value_t * p_cmp_level = metac_recursive_iterator_get_in(p_iterator, l);
+        metac_value_t * p_cmp_level = p_extractor(metac_recursive_iterator_get_in(p_iterator, l));
         if (p_cmp_level == NULL) {
             continue;
         }
@@ -670,6 +683,24 @@ char *metac_value_pointer_string(metac_value_t * p_val) {
     return dsprintf("%p", v);
 }
 
+metac_value_t * metac_value_pointer_from_string(metac_value_t * p_val, const char * str) {
+    _check_(p_val == NULL, NULL);
+    _check_(p_val->p_entry == NULL, NULL);
+
+    if (metac_value_is_pointer(p_val) == 0) {
+        return NULL;
+    }
+    void* v = NULL;
+    if (strcmp(str, "NULL") != 0 &&
+        sscanf(str, "%p", &v) != 1) {
+        return NULL;
+    }
+    if (metac_value_set_pointer(p_val, v) != 0) {
+        return NULL;
+    }
+    return p_val; 
+}
+
 // special type of value - parameters of functions. we have a special load for it and need to cleanup addr
 // when delete such objects
 metac_flag_t metac_value_has_parameter_load(metac_value_t * p_val) {
@@ -850,3 +881,97 @@ void metac_value_with_call_result_delete(metac_value_t * p_res_value) {
     metac_value_delete(p_res_value);
 }
 
+// some generic functions for serialization/deserialization
+metac_flag_t metac_value_is_nil(metac_value_t * p_value) {
+    _check_(p_value == NULL, 0);
+    if (metac_value_is_pointer(p_value)) {
+        void * v = NULL;
+        if (metac_value_pointer(p_value, &v) == 0 && v == NULL) {
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+metac_flag_t metac_value_is_zero(metac_value_t * p_value) {
+    _check_(p_value == NULL, 0);
+    if (metac_value_is_base_type(p_value)) {
+#define _cmp_(_type_, _pseudoname_, _const_v_) \
+        do { \
+            if ( metac_value_is_##_pseudoname_(p_value) != 0) { \
+                _type_ v; \
+                if (metac_value_##_pseudoname_(p_value, &v) != 0) { \
+                    return 0; \
+                } \
+                return (v == _const_v_)?1:0; \
+            } \
+        } while(0)
+        _cmp_(char, char, 0);
+        _cmp_(unsigned char, uchar, 0);
+        _cmp_(short, short, 0);
+        _cmp_(unsigned short, ushort, 0);
+        _cmp_(int, int, 0);
+        _cmp_(unsigned int, uint, 0);
+        _cmp_(long, long, 0);
+        _cmp_(unsigned long, ulong, 0);
+        _cmp_(long long, llong, 0);
+        _cmp_(unsigned long long, ullong, 0);
+        _cmp_(bool, bool, 0);
+        _cmp_(float, float, 0.0);
+        _cmp_(double, double, 0.0);
+        _cmp_(long double, ldouble, 0.0);
+        _cmp_(float complex, float_complex, 0.0);
+        _cmp_(double complex, double_complex, 0.0);
+        _cmp_(long double complex, ldouble_complex, 0.0);
+#undef _cmp_
+    }
+    return 0;
+}
+
+// TODO: generated, need to cover by tests 
+metac_flag_t metac_value_is_empty(metac_value_t * p_value, metac_tag_map_t* p_tag_map) {
+    _check_(p_value == NULL, 0);
+    
+    // Check if pointer is NULL
+    if (metac_value_is_pointer(p_value) != 0) {
+        if (metac_value_is_nil(p_value) != 0) {
+            return 1;
+        }        
+        // Check if it's a char* pointing to empty string
+        // Get the entry and check what it points to
+        metac_entry_t * p_entry = metac_value_entry(p_value);
+        metac_entry_t * p_final = metac_entry_final_entry(p_entry, NULL);
+        
+        // p_final should be the type the pointer points to
+        if (p_final != NULL && metac_entry_is_char(p_final) != 0) {
+            void * p_str;
+            if (metac_value_pointer(p_value, &p_str) == 0 && p_str != NULL) {
+                if (*(char*)p_str == '\0') {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+    
+    // Check if array with 0 elements (both fixed-size zero-length and flexible)
+    if (metac_value_has_elements(p_value) != 0) {
+        metac_num_t count = metac_value_element_count(p_value);
+        if (count == 0) {
+            return 1;
+        }
+        // For flexible arrays (count == -1), tag_map can provide actual length via handlers
+        // Caller would typically use deep functions that handle tag_map for this case
+    }
+    
+    // Check if struct/union/class with 0 members
+    if (metac_value_has_members(p_value) != 0) {
+        metac_num_t member_count = metac_value_member_count(p_value);
+        if (member_count == 0) {
+            return 1;
+        }
+    }
+    
+    return 0;
+}

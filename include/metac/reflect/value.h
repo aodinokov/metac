@@ -248,6 +248,14 @@ metac_value_t * metac_value_copy_pointer(metac_value_t *p_src_val, metac_value_t
  */
 char * metac_value_pointer_string(metac_value_t * p_val);
 
+/** @brief converts back from string to pointer value opposite to metac_value_pointer_string
+ *  @param p_val value which will be modified
+ *  @param str input string
+ *  @return p_val in case of success, NULL if failed
+ */
+metac_value_t * metac_value_pointer_from_string(metac_value_t * p_val, const char * str);
+
+
 /* kind == METAC_KND_base_type || (kind = METAC_KND_member_info && type.kind == METAC_KND_base_type) || (kind = METAC_KND_variable && type.kind == METAC_KND_base_type) */
 
 /** @brief return non-zero if value's final kind is base type (e.g. char, short, int &etc) */
@@ -291,6 +299,13 @@ metac_value_t * metac_value_copy_base_type(metac_value_t *p_src_val, metac_value
  *  @return dynamically allocated string with pointer string representation
  */
 char * metac_value_base_type_string(metac_value_t * p_val);
+
+/** @brief converts back from string to base type value opposite to metac_value_base_type_string
+ *  @param p_val value which will be modified
+ *  @param str input string
+ *  @return p_val in case of success, NULL if failed
+ */
+metac_value_t * metac_value_base_type_from_string(metac_value_t * p_val, const char * str);
 
 /* per base type check using metac_value_check_base_type */
 
@@ -403,5 +418,11 @@ void metac_value_with_call_params_delete(metac_value_t * p_param_value);
 metac_value_t * metac_new_value_with_call_result(metac_entry_t * p_entry);
 /** @brief cleanup value created by metac_new_value_with_call_result (including place). handles NULL argument correctly */
 void metac_value_with_call_result_delete(metac_value_t * p_res_value);
+
+// some generic functions for serialization/deserialization
+// TODO: create doxygen description 
+metac_flag_t metac_value_is_nil(metac_value_t * p_value);
+metac_flag_t metac_value_is_zero(metac_value_t * p_value);
+metac_flag_t metac_value_is_empty(metac_value_t * p_value, metac_tag_map_t* p_tag_map);
 
 #endif

@@ -62,7 +62,7 @@ int main(){
 	}
 
 	db_append(&p_db, (person_t[]){{
-		.firstname="Joe",
+		.firstname="John",
 		.lastname="Doe",
 		.age = 43,
 		.marital_status = msMarried,

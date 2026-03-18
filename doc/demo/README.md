@@ -263,7 +263,7 @@ METAC_START_TEST(append_test) {
         },
         {
             .p_in = (person_t[]){{
-                .firstname="Joe",
+                .firstname="John",
                 .lastname="Doe",
                 .age = 43,
                 .marital_status = msMarried,
@@ -816,7 +816,7 @@ METAC_TAG_MAP_END
 The result is:
 ```bash
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = "Joe", .lastname = "Doe", .age = 43, .marital_status = msMarried,},},},}, expected (null)
+/home/test/metac/doc/demo/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = "John", .lastname = "Doe", .age = 43, .marital_status = msMarried,},},},}, expected (null)
 ```
 
 That now works as expected. We just need to add `expected_string` value for each case:
@@ -825,13 +825,13 @@ That now works as expected. We just need to add `expected_string` value for each
 ...
         {
             .p_in = (person_t[]){{
-                .firstname="Joe",
+                .firstname="John",
                 .lastname="Doe",
                 .age = 43,
                 .marital_status = msMarried,
             }},
             .expected_err = 0,
-            .expected_string = "(db_t []){{.count = 1, .data = {{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}",
+            .expected_string = "(db_t []){{.count = 1, .data = {{.firstname = \"John\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}",
         },
         {
             .p_in = (person_t[]){{
@@ -842,7 +842,7 @@ That now works as expected. We just need to add `expected_string` value for each
             }},
             .expected_err = 0,
             .expected_string = "(db_t []){{.count = 2, .data = {"
-                "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+                "{.firstname = \"John\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
                 "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,},"
             "},},}",
         },
@@ -855,7 +855,7 @@ That now works as expected. We just need to add `expected_string` value for each
             }},
             .expected_err = 0,
             .expected_string = "(db_t []){{.count = 3, .data = {"
-                "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+                "{.firstname = \"John\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
                 "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,}, "
                 "{.firstname = \"Jack\", .lastname = \"Doe\", .age = 3, .marital_status = msSingle,},"
             "},},}",
@@ -924,7 +924,7 @@ METAC_START_TEST(deep_test) {
     fail_unless(p_tag_map != NULL, "new_demodb_tag_map failed");
 
     fail_unless(db_append(&p_db, (person_t[]){{
-		.firstname="Joe",
+		.firstname="John",
 		.lastname="Doe",
 		.age = 43,
 		.marital_status = msMarried,
@@ -944,7 +944,7 @@ METAC_START_TEST(deep_test) {
     char * str = NULL, * expected_str = NULL;
 
     str = metac_value_string_ex(p_db_backup_value, METAC_WMODE_deep, p_tag_map);
-    expected_str = "(db_t []){{.count = 1, .data = {{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}";
+    expected_str = "(db_t []){{.count = 1, .data = {{.firstname = \"John\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,},},},}";
 
     fail_unless(str != NULL && strcmp(str, expected_str) == 0, "got %s, expected %s", str, expected_str);
     free(str);
@@ -962,7 +962,7 @@ METAC_START_TEST(deep_test) {
 
     str = metac_value_string_ex(p_db_backup_value, METAC_WMODE_deep, p_tag_map);
     expected_str = "(db_t []){{.count = 2, .data = {"
-        "{.firstname = \"Joe\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
+        "{.firstname = \"John\", .lastname = \"Doe\", .age = 43, .marital_status = msMarried,}, "
         "{.firstname = \"Jane\", .lastname = \"Doe\", .age = 34, .marital_status = msMarried,},"
     "},},}";
 

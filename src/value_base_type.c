@@ -380,24 +380,112 @@ char *metac_value_base_type_string(metac_value_t * p_val) {
     _string_(double, double, "%lf", v);
     _string_(long double, ldouble, "%Lf", v);
 #undef _string_
-#define _string_(_type_, _pseudoname_) \
+// TODO: complex numbers always show both parts - we could hide zero values. the same for metac_value_base_type_from_string
+#define _string_(_type_, _pseudoname_, _mask_, _creal_, _cimag_) \
     do { \
         if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
             _type_ v; \
             if (metac_value_##_pseudoname_(p_val, &v) != 0) { \
                 return NULL; \
             } \
-            if (cimag(v) < 0.0) { \
-                return dsprintf( "%lf - I * %lf", creal(v), -1.0 * cimag(v)); \
+            if (cimagl(v) < 0.0) { \
+                return dsprintf( _mask_ " - I * " _mask_, _creal_(v), -1.0 * _cimag_(v)); \
             } \
-            return dsprintf( "%lf + I * %lf", creal(v), cimag(v)); \
+            return dsprintf( _mask_" + I * "_mask_, _creal_(v), _cimag_(v)); \
         } \
     } while(0)
-    _string_(float complex, float_complex);
-    _string_(double complex, double_complex);
-    _string_(long double complex, ldouble_complex);
+    _string_(float complex, float_complex, "%f", crealf, cimagf);
+    _string_(double complex, double_complex, "%lf", creal, cimag);
+    _string_(long double complex, ldouble_complex, "%Lf", creall, cimagl);
 #undef _string_
 
+    return NULL;
+}
+
+metac_value_t * metac_value_base_type_from_string(metac_value_t * p_val, const char * str) {
+    if (metac_value_is_bool(p_val) != 0) {
+        bool v;
+
+        if (strncmp(str, "false", 5) == 0) {
+            v = false;
+        } else if (strncmp(str, "true", 4) == 0) {
+            v = true;
+        } else {
+            return NULL;
+        }
+
+        if (metac_value_set_bool(p_val, v) != 0) {
+            return NULL;
+        }
+        return p_val;
+    }
+    if (metac_value_is_char(p_val) != 0) {
+        char v;
+
+        if (strlen(str) == 3 &&
+            str[0] == '\'' && str[2] == '\'' && isprint(str[1])) {
+            if (sscanf(str, "'%c'", &v) != 1) {
+                return NULL;
+            }
+        } else {
+            if (sscanf(str, "%"SCNi8, &v) != 1) {
+                return NULL;
+            }
+        }
+
+        if (metac_value_set_char(p_val, v) != 0) {
+            return NULL;
+        }
+        return p_val;
+    }
+#define _from_string_(_type_, _pseudoname_, _sscanf_expr_...) \
+    do { \
+        if ( metac_value_is_##_pseudoname_(p_val) != 0) { \
+            _type_ v; \
+            if (sscanf(str, _sscanf_expr_) != 1) { \
+                return NULL; \
+            } \
+            if (metac_value_set_##_pseudoname_(p_val, v) != 0) { \
+                return NULL; \
+            } \
+            return p_val; \
+        } \
+    } while(0)
+    _from_string_(unsigned char, uchar, "%"SCNu8, &v);
+    _from_string_(short, short, "%hi", &v);
+    _from_string_(unsigned short, ushort, "%hu", &v);
+    _from_string_(int, int, "%i", &v);
+    _from_string_(unsigned int, uint, "%u", &v);
+    _from_string_(long, long, "%li", &v);
+    _from_string_(unsigned long, ulong, "%lu", &v);
+    _from_string_(long long, llong, "%lli", &v);
+    _from_string_(unsigned long long, ullong, "%llu", &v);
+    _from_string_(float, float, "%f", &v);
+    _from_string_(double, double, "%lf", &v);
+    _from_string_(long double, ldouble, "%Lf", &v);
+#undef _from_string_
+#define _from_string_(_base_, _type_, _pseudoname_, _mask_) \
+    do { \
+        if (metac_value_is_##_pseudoname_(p_val) != 0) { \
+            _base_ v_real, v_img; \
+            _type_ v; \
+            if (sscanf(str, _mask_ " + I * " _mask_, &v_real, &v_img) == 2) { \
+                v = v_real + I * v_img; \
+            } else if (sscanf(str, _mask_ " - I * " _mask_, &v_real, &v_img) == 2) { \
+                v = v_real - I * v_img; \
+            } else { \
+                return NULL; \
+            } \
+            if (metac_value_set_##_pseudoname_(p_val, v) != 0) { \
+                return NULL; \
+            } \
+            return p_val;\
+        } \
+    } while(0)
+    _from_string_(float, float complex, float_complex, "%f");
+    _from_string_(double, double complex, double_complex, "%lf");
+    _from_string_(long double, long double complex, ldouble_complex , "%Lf");
+#undef _from_string_
 
     return NULL;
 }
