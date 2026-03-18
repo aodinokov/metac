@@ -644,9 +644,7 @@ static int _metac_value_with_elements_from_cjson(
 /* default mode - failsafe */
 static metac_value_deserialization_mode_t const _default_value_deserialization_mode = {
     .string_ptr_mode = METAC_DESER_string_ptr_deny,
-    .flex_array_mode = METAC_FLXARR_fail,
-    .union_mode = METAC_UNION_fail,
-    .unknown_ptr_mode = METAC_UPTR_fail,
+    .array_len_mode = METAC_DESER_array_len_precise,
 };
 
 int metac_value_from_cjson_determine_flexible_sz(metac_value_t* p_val, struct cJSON* in_json,

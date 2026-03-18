@@ -7,6 +7,8 @@
  * it's important to have fields by which this identification happening defined
  * earlier in the structure, so by the time we're identifying parameter of the pointer
  * this data must be already de-serialized.
+ * 
+ * This module is considered as beta-version of the module.
  */
 
 #ifndef METAC_CJSON_H

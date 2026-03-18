@@ -2,6 +2,8 @@
  * @file json_c.h
  * @brief JSON-C serialization/deserialization API for metac values using json-c library
  * Dual APIs with Context and Convenience patterns mirroring YAML architecture
+ * 
+ * Note: this module is just a draft, it will be dramatically changed in future. not even alfa
  */
 
 #ifndef METAC_BACKEND_JSON_C_H

@@ -1,6 +1,8 @@
 /**
  * @file yaml.h
  * @brief YAML serialization API for metac values - Two APIs with 90% shared code
+ * 
+ * Note: this module is just a draft, it will be dramatically changed in future. not even alfa
  */
 
 #ifndef METAC_BACKEND_YAML_H
