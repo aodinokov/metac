@@ -929,8 +929,49 @@ metac_flag_t metac_value_is_zero(metac_value_t * p_value) {
     return 0;
 }
 
+// TODO: generated, need to cover by tests 
 metac_flag_t metac_value_is_empty(metac_value_t * p_value, metac_tag_map_t* p_tag_map) {
     _check_(p_value == NULL, 0);
-    // TODO: implement for zero lenght array, pointers to char* (need tag_map)
+    
+    // Check if pointer is NULL
+    if (metac_value_is_pointer(p_value) != 0) {
+        if (metac_value_is_nil(p_value) != 0) {
+            return 1;
+        }        
+        // Check if it's a char* pointing to empty string
+        // Get the entry and check what it points to
+        metac_entry_t * p_entry = metac_value_entry(p_value);
+        metac_entry_t * p_final = metac_entry_final_entry(p_entry, NULL);
+        
+        // p_final should be the type the pointer points to
+        if (p_final != NULL && metac_entry_is_char(p_final) != 0) {
+            void * p_str;
+            if (metac_value_pointer(p_value, &p_str) == 0 && p_str != NULL) {
+                if (*(char*)p_str == '\0') {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+    
+    // Check if array with 0 elements (both fixed-size zero-length and flexible)
+    if (metac_value_has_elements(p_value) != 0) {
+        metac_num_t count = metac_value_element_count(p_value);
+        if (count == 0) {
+            return 1;
+        }
+        // For flexible arrays (count == -1), tag_map can provide actual length via handlers
+        // Caller would typically use deep functions that handle tag_map for this case
+    }
+    
+    // Check if struct/union/class with 0 members
+    if (metac_value_has_members(p_value) != 0) {
+        metac_num_t member_count = metac_value_member_count(p_value);
+        if (member_count == 0) {
+            return 1;
+        }
+    }
+    
     return 0;
 }
