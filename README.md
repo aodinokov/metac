@@ -6,13 +6,14 @@
 ANSI C, it isn't worth doing.''
 -- Unknown */
 
-A framework that extends C with **reflection** and some other related golang-like features.
-Reflection implementation is based on [DWARF](https://en.wikipedia.org/wiki/DWARF) data - one of the most common debugging information formats used by debuggers like gdb or lldb. Metac/reflect offers a familiar API similar in many ways to [Golang/reflect](https://pkg.go.dev/reflect) package for introspecting code and manipulating data at runtime. 
+A framework that extends C with **reflection**, **(de)serialization** and some other related golang-like features.
+Reflection implementation is based on [DWARF](https://en.wikipedia.org/wiki/DWARF) data - one of the most common debugging information formats used by debuggers like gdb or lldb. Metac/reflect offers a familiar API similar in many ways to [Golang/reflect](https://pkg.go.dev/reflect) package for introspecting code and manipulating data at runtime. Serialization is based
+on reflection information.
 
 **Features**:
 
 * Reflection for all native C types.
-* 'Deep' functionality for printing, copying, comparing, and freeing memory of complex data structures.
+* 'Deep' functionality for printing, copying, comparing, freeing memory of complex data structures and serialization/deserialization using different C-libraries as backends(cjson - stable, yaml and json-c are draft versions).
 * Supported on **Ubuntu, macOS, Windows (msys2)** with **gcc** or **clang**.
 
 [**Structure fields printing example**](/examples/c_app_simplest/):
@@ -61,7 +62,7 @@ int main(){
 }
 ```
 
-[**Function parameters printing example**](/doc/demo/step_06/main.c):
+[**Function parameters printing example**](/doc/tutorial/step_06/main.c):
 
 ```c
 #include "metac/reflect.h"
@@ -99,4 +100,4 @@ int main() {
 }
 ```
 
-To get more details please refer to the [How to](/doc/demo/README.md#how-to-demo) document.
+To get more details please refer to the [Tutorial document](/doc/tutorial/README.md) document.

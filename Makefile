@@ -26,7 +26,7 @@ test: go_test
 
 #add examples/demos as example rule to all
 $(foreach e,$(wildcard examples/*),$(call examples_rules,$(e),$(subst examples/,,$(e))))
-$(foreach e,$(filter-out %.md %step_00,$(wildcard doc/demo/*)),$(call examples_rules,$(e),$(subst doc/demo/,,$(e))))
+$(foreach e,$(filter-out %.md %step_00,$(wildcard doc/tutorial/*)),$(call examples_rules,$(e),$(subst doc/tutorial/,,$(e))))
 all: examples
 clean: examples_clean
 test: examples_test
