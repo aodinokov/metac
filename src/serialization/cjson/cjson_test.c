@@ -973,7 +973,6 @@ METAC_START_TEST(test11_satnity) {
     metac_value_t * p_val_dst = METAC_VALUE_FROM_LINK(p_t11_dst);
     fail_unless(p_val_dst != NULL, "p_val_dst is NULL");
 
-
     metac_tag_map_t *p_tag_map = new_test11_tag_map();
     fail_unless(p_tag_map != NULL, "tagmap is NULL");
 

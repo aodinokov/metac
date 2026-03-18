@@ -39,12 +39,22 @@ metac_deserialization_task_t * _metac_deserialization_task_find_task_with_alloca
 int _metac_deserialization_task_dequeue_check_or_fail(metac_recursive_iterator_t * p_iterator, int cleanup_and_fail_state_id);
 int _metac_deserialization_task_cleanup_and_fail(metac_recursive_iterator_t * p_iterator);
 
+typedef int (*metac_value_name_per_protocol_cb_t)(void* p_context, char * flag);
+
 metac_name_t metac_value_name_per_protocol(
     // in
     metac_value_t * p_memb_val, char * protocol, metac_tag_map_t * p_tag_map,
     // out
-    metac_flag_t * p_ingore,
-    metac_flag_t * p_omitempty,
-    metac_flag_t * p_omitzero);
+    metac_flag_t * p_ingore,    // this flag is std
+    void* p_context,
+    metac_value_name_per_protocol_cb_t p_cb);
+
+// std set of flags, will suit json, yaml etc
+typedef struct {
+    metac_flag_t omitempty;
+    metac_flag_t omitzero;
+    metac_flag_t omitnil;
+}metac_value_name_per_protocol_common_cb_context_t;
+int metac_value_name_per_protocol_common_cb(void * p_context, char * flag);
 
 #endif

@@ -881,3 +881,56 @@ void metac_value_with_call_result_delete(metac_value_t * p_res_value) {
     metac_value_delete(p_res_value);
 }
 
+// some generic functions for serialization/deserialization
+metac_flag_t metac_value_is_nil(metac_value_t * p_value) {
+    _check_(p_value == NULL, 0);
+    if (metac_value_is_pointer(p_value)) {
+        void * v = NULL;
+        if (metac_value_pointer(p_value, &v) == 0 && v == NULL) {
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+metac_flag_t metac_value_is_zero(metac_value_t * p_value) {
+    _check_(p_value == NULL, 0);
+    if (metac_value_is_base_type(p_value)) {
+#define _cmp_(_type_, _pseudoname_, _const_v_) \
+        do { \
+            if ( metac_value_is_##_pseudoname_(p_value) != 0) { \
+                _type_ v; \
+                if (metac_value_##_pseudoname_(p_value, &v) != 0) { \
+                    return 0; \
+                } \
+                return (v == _const_v_)?1:0; \
+            } \
+        } while(0)
+        _cmp_(char, char, 0);
+        _cmp_(unsigned char, uchar, 0);
+        _cmp_(short, short, 0);
+        _cmp_(unsigned short, ushort, 0);
+        _cmp_(int, int, 0);
+        _cmp_(unsigned int, uint, 0);
+        _cmp_(long, long, 0);
+        _cmp_(unsigned long, ulong, 0);
+        _cmp_(long long, llong, 0);
+        _cmp_(unsigned long long, ullong, 0);
+        _cmp_(bool, bool, 0);
+        _cmp_(float, float, 0.0);
+        _cmp_(double, double, 0.0);
+        _cmp_(long double, ldouble, 0.0);
+        _cmp_(float complex, float_complex, 0.0);
+        _cmp_(double complex, double_complex, 0.0);
+        _cmp_(long double complex, ldouble_complex, 0.0);
+#undef _cmp_
+    }
+    return 0;
+}
+
+metac_flag_t metac_value_is_empty(metac_value_t * p_value, metac_tag_map_t* p_tag_map) {
+    _check_(p_value == NULL, 0);
+    // TODO: implement for zero lenght array, pointers to char* (need tag_map)
+    return 0;
+}

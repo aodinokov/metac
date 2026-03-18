@@ -419,4 +419,10 @@ metac_value_t * metac_new_value_with_call_result(metac_entry_t * p_entry);
 /** @brief cleanup value created by metac_new_value_with_call_result (including place). handles NULL argument correctly */
 void metac_value_with_call_result_delete(metac_value_t * p_res_value);
 
+// some generic functions for serialization/deserialization
+// TODO: create doxygen description 
+metac_flag_t metac_value_is_nil(metac_value_t * p_value);
+metac_flag_t metac_value_is_zero(metac_value_t * p_value);
+metac_flag_t metac_value_is_empty(metac_value_t * p_value, metac_tag_map_t* p_tag_map);
+
 #endif
