@@ -1,4 +1,4 @@
-# How to: demo
+# Tutorial
 ## Intro
 We're going to use a single Demo application, which we'll evolve and extend in order to briefly show the capabilities of Metac.
 ### Makefile system
@@ -130,12 +130,12 @@ This construction tells that demodb is an application binary rule and that we ha
 In order to run the build process we can do from the step_01 folder:
 ```bash
 step_01 % make METAC_ROOT=../../..
-make -C ../../.. M=/home/test/metac/doc/demo/step_01 test
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_01 test
 All test dependencies were: bin_test module_test
-make -C ../../.. M=/home/test/metac/doc/demo/step_01 target
-cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_01/main.d -MP -MT '/home/test/metac/doc/demo/step_01/main.o /home/test/metac/doc/demo/step_01/main.d' -o /home/test/metac/doc/demo/step_01/main.o /home/test/metac/doc/demo/step_01/main.c
-cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_01/demodb.d -MP -MT '/home/test/metac/doc/demo/step_01/demodb.o /home/test/metac/doc/demo/step_01/demodb.d' -o /home/test/metac/doc/demo/step_01/demodb.o /home/test/metac/doc/demo/step_01/demodb.c
-cc /home/test/metac/doc/demo/step_01/main.o /home/test/metac/doc/demo/step_01/demodb.o  -o /home/test/metac/doc/demo/step_01/demodb
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_01 target
+cc -I./include -c -MMD -MF /home/test/metac/doc/tutorial/step_01/main.d -MP -MT '/home/test/metac/doc/tutorial/step_01/main.o /home/test/metac/doc/tutorial/step_01/main.d' -o /home/test/metac/doc/tutorial/step_01/main.o /home/test/metac/doc/tutorial/step_01/main.c
+cc -I./include -c -MMD -MF /home/test/metac/doc/tutorial/step_01/demodb.d -MP -MT '/home/test/metac/doc/tutorial/step_01/demodb.o /home/test/metac/doc/tutorial/step_01/demodb.d' -o /home/test/metac/doc/tutorial/step_01/demodb.o /home/test/metac/doc/tutorial/step_01/demodb.c
+cc /home/test/metac/doc/tutorial/step_01/main.o /home/test/metac/doc/tutorial/step_01/demodb.o  -o /home/test/metac/doc/tutorial/step_01/demodb
 Built dependencies:
 ```
 The advantage of this build approach is that if we now update any file which is dependency (e.g. header file) make will rebuild the related files including the final target. Just do `touch demodb.h && make METAC_ROOT=../../..`. The automatically generated dependencies are stored in `*.d` files.
@@ -144,8 +144,8 @@ Another difference from the original Makefile is that there is no clean rule. It
 
 ```bash
 % make METAC_ROOT=../../.. clean
-make -C ../../.. M=/home/test/metac/doc/demo/step_01 clean
-echo /home/test/metac/doc/demo/step_01/demodb /home/test/metac/doc/demo/step_01/main.o /home/test/metac/doc/demo/step_01/demodb.o /home/test/metac/doc/demo/step_01/main.d /home/test/metac/doc/demo/step_01/demodb.d | xargs -n 1| sort -u| xargs rm
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_01 clean
+echo /home/test/metac/doc/tutorial/step_01/demodb /home/test/metac/doc/tutorial/step_01/main.o /home/test/metac/doc/tutorial/step_01/demodb.o /home/test/metac/doc/tutorial/step_01/main.d /home/test/metac/doc/tutorial/step_01/demodb.d | xargs -n 1| sort -u| xargs rm
 % ls *
 Makefile	demodb.c	demodb.h	main.c
 ```
@@ -177,20 +177,20 @@ To run this test we'll need just to run `make test METAC_ROOT=<path to the metac
 
 ```bash
 step_02 % make METAC_ROOT=../../.. test
-make -C ../../.. M=/home/test/metac/doc/demo/step_02 test
-cc -I./include -g3 -Wno-format-extra-args --coverage -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.d' -o /home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.c
-cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -Wno-format-extra-args -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -g3  -D_METAC_OFF_ -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.meta.d' -o /home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.c
-cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.dummy.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.dummy.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.d' -o /home/test/metac/doc/demo/step_02/demodb_test.dummy.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.c
-cc /home/test/metac/doc/demo/step_02/demodb_test.meta.o /home/test/metac/doc/demo/step_02/demodb_test.dummy.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/./_meta_demodb_test
-(which dsymutil) && dsymutil /home/test/metac/doc/demo/step_02/./_meta_demodb_test || echo "Couldn't find dsymutil"
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_02 test
+cc -I./include -g3 -Wno-format-extra-args --coverage -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/tutorial/step_02/demodb_test.d -MP -MT '/home/test/metac/doc/tutorial/step_02/demodb_test.o /home/test/metac/doc/tutorial/step_02/demodb_test.d' -o /home/test/metac/doc/tutorial/step_02/demodb_test.o /home/test/metac/doc/tutorial/step_02/demodb_test.c
+cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -Wno-format-extra-args -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -g3  -D_METAC_OFF_ -c -MMD -MF /home/test/metac/doc/tutorial/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/tutorial/step_02/demodb_test.meta.o /home/test/metac/doc/tutorial/step_02/demodb_test.meta.d' -o /home/test/metac/doc/tutorial/step_02/demodb_test.meta.o /home/test/metac/doc/tutorial/step_02/demodb_test.c
+cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/tutorial/step_02/demodb_test.dummy.d -MP -MT '/home/test/metac/doc/tutorial/step_02/demodb_test.dummy.o /home/test/metac/doc/tutorial/step_02/demodb_test.dummy.d' -o /home/test/metac/doc/tutorial/step_02/demodb_test.dummy.o /home/test/metac/doc/tutorial/step_02/demodb_test.dummy.c
+cc /home/test/metac/doc/tutorial/step_02/demodb_test.meta.o /home/test/metac/doc/tutorial/step_02/demodb_test.dummy.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/tutorial/step_02/./_meta_demodb_test
+(which dsymutil) && dsymutil /home/test/metac/doc/tutorial/step_02/./_meta_demodb_test || echo "Couldn't find dsymutil"
 /usr/bin/dsymutil
 go build
-./metac run metac-test-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/demo/step_02/./_meta_demodb_test"' > /home/test/metac/doc/demo/step_02/demodb_test.test.c
-cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.test.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.test.d' -o /home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.test.c
-./metac run metac-reflect-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/demo/step_02/./_meta_demodb_test"' > /home/test/metac/doc/demo/step_02/demodb_test.reflect.c
-cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/demo/step_02/demodb_test.reflect.o /home/test/metac/doc/demo/step_02/demodb_test.meta.d' -o /home/test/metac/doc/demo/step_02/demodb_test.reflect.o /home/test/metac/doc/demo/step_02/demodb_test.reflect.c
-cc /home/test/metac/doc/demo/step_02/demodb_test.o /home/test/metac/doc/demo/step_02/demodb_test.test.o /home/test/metac/doc/demo/step_02/demodb_test.reflect.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/demo/step_02/demodb_test
-Running suite(s): /home/test/metac/doc/demo/step_02/demodb_test
+./metac run metac-test-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/tutorial/step_02/./_meta_demodb_test"' > /home/test/metac/doc/tutorial/step_02/demodb_test.test.c
+cc -I./include -g3 -D_THREAD_SAFE -I/opt/homebrew/Cellar/check/0.15.2/include -c -MMD -MF /home/test/metac/doc/tutorial/step_02/demodb_test.test.d -MP -MT '/home/test/metac/doc/tutorial/step_02/demodb_test.test.o /home/test/metac/doc/tutorial/step_02/demodb_test.test.d' -o /home/test/metac/doc/tutorial/step_02/demodb_test.test.o /home/test/metac/doc/tutorial/step_02/demodb_test.test.c
+./metac run metac-reflect-gen -s 'path_type: "macho"' -s 'path: "/home/test/metac/doc/tutorial/step_02/./_meta_demodb_test"' > /home/test/metac/doc/tutorial/step_02/demodb_test.reflect.c
+cc -I./include -c -MMD -MF /home/test/metac/doc/tutorial/step_02/demodb_test.meta.d -MP -MT '/home/test/metac/doc/tutorial/step_02/demodb_test.reflect.o /home/test/metac/doc/tutorial/step_02/demodb_test.meta.d' -o /home/test/metac/doc/tutorial/step_02/demodb_test.reflect.o /home/test/metac/doc/tutorial/step_02/demodb_test.reflect.c
+cc /home/test/metac/doc/tutorial/step_02/demodb_test.o /home/test/metac/doc/tutorial/step_02/demodb_test.test.o /home/test/metac/doc/tutorial/step_02/demodb_test.reflect.o --coverage -L/opt/homebrew/Cellar/check/0.15.2/lib -lcheck -o /home/test/metac/doc/tutorial/step_02/demodb_test
+Running suite(s): /home/test/metac/doc/tutorial/step_02/demodb_test
 100%: Checks: 1, Failures: 0, Errors: 0
 All test dependencies were: bin_test module_test
 step_02 %
@@ -377,13 +377,13 @@ if we can now try to compile we'll get an error:
 
 ```bash
 step_03 % make METAC_ROOT=../../..
-make -C ../../.. M=/home/test/metac/doc/demo/step_03 test
-Running suite(s): /home/test/metac/doc/demo/step_03/demodb_test
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_03 test
+Running suite(s): /home/test/metac/doc/tutorial/step_03/demodb_test
 100%: Checks: 3, Failures: 0, Errors: 0
 All test dependencies were: bin_test module_test
-make -C ../../.. M=/home/test/metac/doc/demo/step_03 target
-cc -I./include -c -MMD -MF /home/test/metac/doc/demo/step_03/main.d -MP -MT '/home/test/metac/doc/demo/step_03/main.o /home/test/metac/doc/demo/step_03/main.d' -o /home/test/metac/doc/demo/step_03/main.o /home/test/metac/doc/demo/step_03/main.c
-cc /home/test/metac/doc/demo/step_03/main.o /home/test/metac/doc/demo/step_03/demodb.o  -o /home/test/metac/doc/demo/step_03/demodb
+make -C ../../.. M=/home/test/metac/doc/tutorial/step_03 target
+cc -I./include -c -MMD -MF /home/test/metac/doc/tutorial/step_03/main.d -MP -MT '/home/test/metac/doc/tutorial/step_03/main.o /home/test/metac/doc/tutorial/step_03/main.d' -o /home/test/metac/doc/tutorial/step_03/main.o /home/test/metac/doc/tutorial/step_03/main.c
+cc /home/test/metac/doc/tutorial/step_03/main.o /home/test/metac/doc/tutorial/step_03/demodb.o  -o /home/test/metac/doc/tutorial/step_03/demodb
 Undefined symbols for architecture arm64:
   "_metac_dflt_gsym_db_append", referenced from:
       _metac__dflt_gsym_db_append in main.o
@@ -391,7 +391,7 @@ Undefined symbols for architecture arm64:
       _metac__dflt_gsym_p_person in main.o
 ld: symbol(s) not found for architecture arm64
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-make[1]: *** [/home/test/metac/doc/demo/step_03/demodb] Error 1
+make[1]: *** [/home/test/metac/doc/tutorial/step_03/demodb] Error 1
 ```
 This is expected - our makefile isn't created to generate reflection information yet. Let's modify it:
 
@@ -744,14 +744,14 @@ METAC_START_TEST(append_test) {
 If we run this now we'll see:
 ```bash
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:61:F:default:append_test:0: tc_inx 1: got 0x15b705ab0, expected (null)
+/home/test/metac/doc/tutorial/step_05/demodb_test.c:61:F:default:append_test:0: tc_inx 1: got 0x15b705ab0, expected (null)
 make[1]: *** [bin_test] Error 1
 ```
 value print prints value as address. This is right, but we probably want to see the DB internals. We need to switch to `metac_value_string_ex(p_db_value, METAC_WMODE_deep, NULL);`. We after that we got
 
 ```c
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:61:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {},},}, expected (null)
+/home/test/metac/doc/tutorial/step_05/demodb_test.c:61:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {},},}, expected (null)
 ```
 better, but `.data` isn't shown. This is because it's a flexible array. We need to create a tag_map.
 
@@ -785,7 +785,7 @@ METAC_TAG_MAP_END
 Try to run:
 ```bash
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:79:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = (char []){'J',}, .lastname = (char []){'D',}, .age = 43, .marital_status = msMarried,},},},}, expected (null)
+/home/test/metac/doc/tutorial/step_05/demodb_test.c:79:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = (char []){'J',}, .lastname = (char []){'D',}, .age = 43, .marital_status = msMarried,},},},}, expected (null)
 ```
 
 Better, but `char*` is printed as a pointer to 1 char. We need to update tag_map with additional information. Updated tag_map:
@@ -816,7 +816,7 @@ METAC_TAG_MAP_END
 The result is:
 ```bash
 0%: Checks: 1, Failures: 1, Errors: 0
-/home/test/metac/doc/demo/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = "John", .lastname = "Doe", .age = 43, .marital_status = msMarried,},},},}, expected (null)
+/home/test/metac/doc/tutorial/step_05/demodb_test.c:84:F:default:append_test:0: tc_inx 1: got (db_t []){{.count = 1, .data = {{.firstname = "John", .lastname = "Doe", .age = 43, .marital_status = msMarried,},},},}, expected (null)
 ```
 
 That now works as expected. We just need to add `expected_string` value for each case:
