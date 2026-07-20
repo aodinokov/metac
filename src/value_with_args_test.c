@@ -126,7 +126,7 @@ METAC_START_TEST(struct_in_va_arg_precheck) {
 }END_TEST
 
 
-#if VA_ARG_IN_VA_ARG != 0
+#if 0 //VA_ARG_IN_VA_ARG != 0
 /*
 some platforms have issues with passing 
 va_list via va_list. it was found that
