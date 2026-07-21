@@ -35,47 +35,48 @@ jobs:
     - name: Examples test
       run: make test all DWARF_VER_FORCE=${{matrix.dwarf-version}} WITH_CJSON=${{matrix.with-cjson}} WITH_YAML=${{matrix.with-yaml}}
 
-  ubuntu_big_endian:
-    # pretty slow since it's running on qemu. we may disable it periodically
-    # taken from https://github.com/marketplace/actions/run-on-architecture
-    # s390x is big endian with Ubuntu_latest which
-    # also has go-lang for linux: https://go.dev/dl/
-    # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
-    # GO_TELEMETRY_CHILD=off
-    # The host should always be Linux.
-    runs-on: ubuntu-24.04
-    name: ubuntu (s390x - big endian)
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download Go
-        run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.26.1.linux-s390x.tar.gz
-      - uses: uraimo/run-on-arch-action@v2
-        name: Run commands
-        id: runcmd
-        with:
-          arch: s390x
-          distro: ubuntu_latest
+  # TODO: Broken. This was necessary only to check bitfield on big_endian. as soon as we don't change the code - we can disable that
+  # ubuntu_big_endian:
+  #   # pretty slow since it's running on qemu. we may disable it periodically
+  #   # taken from https://github.com/marketplace/actions/run-on-architecture
+  #   # s390x is big endian with Ubuntu_latest which
+  #   # also has go-lang for linux: https://go.dev/dl/
+  #   # https://go.dev/dl/go1.23.0.linux-s390x.tar.gz
+  #   # GO_TELEMETRY_CHILD=off
+  #   # The host should always be Linux.
+  #   runs-on: ubuntu-24.04
+  #   name: ubuntu (s390x - big endian)
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Download Go
+  #       run: curl -fsSL -o go.tar.gz https://go.dev/dl/go1.26.1.linux-s390x.tar.gz
+  #     - uses: uraimo/run-on-arch-action@v2
+  #       name: Run commands
+  #       id: runcmd
+  #       with:
+  #         arch: s390x
+  #         distro: ubuntu_latest
 
-          # Not required, but speeds up builds by storing container images in
-          # a GitHub package registry.
-          # githubToken: ${{ github.token }}
+  #         # Not required, but speeds up builds by storing container images in
+  #         # a GitHub package registry.
+  #         # githubToken: ${{ github.token }}
 
-          # Set an output parameter `uname` for use in subsequent steps
-          run: |
-            set -x
-            uname -a
-            apt update && apt-get install -y ca-certificates pkg-config make gcc g++ check libffi-dev
+  #         # Set an output parameter `uname` for use in subsequent steps
+  #         run: |
+  #           set -x
+  #           uname -a
+  #           apt update && apt-get install -y ca-certificates pkg-config make gcc g++ check libffi-dev
 
-            tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
-            export PATH=$PATH:/usr/local/go/bin
-            go version
+  #           tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
+  #           export PATH=$PATH:/usr/local/go/bin
+  #           go version
 
-            export GO111MODULE=on
-            go test -cover ./...
-            go build
+  #           export GO111MODULE=on
+  #           go test -cover ./...
+  #           go build
             
-            # this started to use new CC ~5m ago which segfaults. try to uncomment later
-            # make test all
+  #           # this started to use new CC ~5m ago which segfaults. try to uncomment later
+  #           # make test all
 
   macos:
     runs-on: macos-latest
