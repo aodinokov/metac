@@ -17,6 +17,9 @@
 
 #include "value_with_args.c"
 
+// this test is invalid due to the dummy struct approach introduced in
+// https://github.com/aodinokov/metac/commit/3913a978a021cf8f014d71c5db6f848e5e4e0729
+#if 0
 /*
 some platforms have issues with passing 
 structures via va_list. it was found that
@@ -125,9 +128,9 @@ METAC_START_TEST(struct_in_va_arg_precheck) {
         sizeof(sz16), sz16,
         sizeof(sz128), sz128);
 }END_TEST
+#endif
 
-
-#if 0
+#if 1
 #if VA_ARG_IN_VA_ARG != 0
 /*
 some platforms have issues with passing 
