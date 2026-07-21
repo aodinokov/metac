@@ -42,7 +42,7 @@ void struct_in_va_arg(int count, ...) {
     uint8_t buf[128];
     for (int i = 0; i < count; ++i) {
         int sz = va_arg(in_cntr.parameters, int);
-        sprintf(stderr, "%d: read %d\n", i, sz);
+        fprintf(stderr, "%d: read %d\n", i, sz);
         // this mimicks modules/metac-reflect-gen/templates/_struct_type.tpl
         switch(sz) {
             case 1:{
@@ -127,7 +127,8 @@ METAC_START_TEST(struct_in_va_arg_precheck) {
 }END_TEST
 
 
-#if 0 //VA_ARG_IN_VA_ARG != 0
+#if 0
+#if VA_ARG_IN_VA_ARG != 0
 /*
 some platforms have issues with passing 
 va_list via va_list. it was found that
@@ -1047,3 +1048,4 @@ METAC_START_TEST(test_function_with_extra_cases) {
     METAC_VALUE_WITH_ARGS_DELETE(p_val);
     metac_tag_map_delete(p_tagmap);
 }END_TEST
+#endif 
