@@ -42,6 +42,7 @@ void struct_in_va_arg(int count, ...) {
     uint8_t buf[128];
     for (int i = 0; i < count; ++i) {
         int sz = va_arg(in_cntr.parameters, int);
+        sprintf(stderr, "%d: read %d\n", i, sz);
         // this mimicks modules/metac-reflect-gen/templates/_struct_type.tpl
         switch(sz) {
             case 1:{
