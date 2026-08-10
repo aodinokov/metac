@@ -1,3 +1,5 @@
+
+
 <img src="doc/logo/metac-logo-noborder-4171x1956.png" alt="metac logo" style="height: 110px;"/>
 
 [![GoBuildAndTest](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml/badge.svg)](https://github.com/aodinokov/metac/actions/workflows/buildAndTest.yaml) [![Go Report Card](https://goreportcard.com/badge/github.com/aodinokov/metac)](https://goreportcard.com/report/github.com/aodinokov/metac) [![Go Reference](https://pkg.go.dev/badge/github.com/aodinokov/metac)](https://pkg.go.dev/github.com/aodinokov/metac)
@@ -71,7 +73,7 @@ int main(){
 #define METAC_WRAP_FN_RES(_tag_map_, _fn_, _args_...) ({ \
         metac_parameter_storage_t * p_param_storage = metac_new_parameter_storage(); \
         if (p_param_storage != NULL) { \
-            p_val = metac_new_value_with_parameters(p_param_storage, _tag_map_, METAC_GSYM_LINK_ENTRY(_fn_), _args_); \
+            p_val = metac_value_parameter_wrap(metac_new_value(METAC_GSYM_LINK_ENTRY(_fn_), p_param_storage), _tag_map_, _args_); \
         } \
         _fn_(_args_);\
 })
@@ -83,12 +85,10 @@ METAC_GSYM_LINK(test_function1_with_args);
 
 int main() {
     metac_value_t * p_val = NULL;
-    // next will call test_function1_with_args and will output "fn returned: 38"
     printf("fn returned: %i\n", METAC_WRAP_FN_RES(NULL, test_function1_with_args, 10, 22));
     if (p_val != NULL) {
         char * s = metac_value_string_ex(p_val, METAC_WMODE_deep, NULL);
         if (s != NULL) {
-            // next will output "captured test_function1_with_args(10, 22)"
             printf("captured %s\n", s);
             free(s);
         }
